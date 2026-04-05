@@ -6,7 +6,7 @@ if (window.mainColor == null) {
 if (window.secondaryColor == null) {
   window.secondaryColor = parseInt("ffffff", 16);
 }
-window.currentPlayer = "player_42";
+window.currentPlayer = "player_01";
 window.currentShip = "ship_44";
 window.currentBall = "player_ball_23"
 window.currentWave = "dart_01"
