@@ -1725,7 +1725,7 @@ class ps {
     this.rotateActionDuration = 0;
     this.rotateActionStart = 0;
     this.rotateActionTotal = 0;
-    this._showHitboxes = true;
+    this._showHitboxes = false;
     this._lastLandObject = null;
     this._lastXOffset = 0;
     this._lastCameraX = 0;
@@ -2165,9 +2165,7 @@ class ps {
       this._waveSpriteLayer.sprite.y -= 1;
     }
     this._updateParticles(_0x30c325, _0x3f0607, _0x3afedf);
-    if (window.showHitboxes) {
-      this.drawHitboxes(this._hitboxGraphics, _0x30c325, _0x3f0607);
-    }
+    this.drawHitboxes(this._hitboxGraphics, _0x30c325, _0x3f0607);
   }
   enterShipMode(_0xeb37c6 = null) {
     if (this.p.isFlying) {
@@ -2338,6 +2336,9 @@ class ps {
       return;
     }
     this.p.isDead = true;
+    if (this._scene && this._scene._showHitboxesOnDeath) {
+      this.setShowHitboxes(true);
+    }
     this._scene.toggleGlitter(false);
     this._particleEmitter.stop();
     this._particleActive = false;
@@ -3215,7 +3216,8 @@ class ps {
   }
   drawHitboxes(_0x691b2a, _0x52bd8a, _0x5aece4) {
     _0x691b2a.clear();
-    if (/*!this._showHitboxes*/false) {
+    // made true
+    if (!this._showHitboxes) {
       return;
     }
     const _0x5dd446 = 30;
@@ -3261,7 +3263,7 @@ class ps {
     _0x691b2a.strokeRect(_0x7a132d - 9, _0x1e788a - 9, 36, 18);
   }
   setShowHitboxes(_0x2133d2) {
-    this._showHitboxes = /*_0x2133d2*/ true;
+    this._showHitboxes = !!_0x2133d2;
   }
   playEndAnimation(_0x24408e, _0x281588, _0x54bbf4) {
     this._endAnimating = true;
@@ -3348,6 +3350,7 @@ class ps {
   reset() {
     this._cleanupExplosion();
     this._endAnimating = false;
+    this.setShowHitboxes(false);
     this._lastLandObject = null;
     this._lastXOffset = 0;
     this.stopRotation();
@@ -3818,8 +3821,17 @@ class xs extends Phaser.Scene {
     this._spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this._upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this._wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    this._minusKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.MINUS);
     this._leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this._rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+    this._showHitboxesOnDeath = false;
+    this._minusKey.on("down", () => {
+      this._showHitboxesOnDeath = !this._showHitboxesOnDeath;
+      if (!this._showHitboxesOnDeath) {
+        this._player.setShowHitboxes(false);
+      }
+    });
+    // show hitboxes on death when pressed -
     this._aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this._dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
@@ -4770,6 +4782,9 @@ class xs extends Phaser.Scene {
           this._hadNewBest = true;
           this._showNewBest();
         }
+      }
+      if (this._player && this._player._hitboxGraphics) {
+        this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
       }
       this._player.updateExplosionPieces(_0xaf2ffd);
       this._deathTimer += _0xaf2ffd;
