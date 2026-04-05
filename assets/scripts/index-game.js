@@ -590,7 +590,7 @@ class us {
     this._groundId = null;
     if (!settingsStr) return;
     let pairs = settingsStr.split(",");
-    let settingsMap = {};
+    window.settingsMap = {};
     for (let i = 0; i + 1 < pairs.length; i += 2) {
       settingsMap[pairs[i]] = pairs[i + 1];
     }
@@ -3521,6 +3521,9 @@ class ys {
       volume: this._effectiveVolume()
     });
     this._music.play();
+    if (window.settingsMap && window.settingsMap['kA13']) {
+      this._music.seek = new Number(window.settingsMap['kA13'])
+    }
     this._setupAnalyser();
   }
   startMenuMusic() {
@@ -4413,6 +4416,16 @@ class xs extends Phaser.Scene {
     this._player.reset();
     this._attemptsLabel.setVisible(this._attempts > 1);
     this._positionAttemptsLabel();
+    let gamemode = parseInt(window.settingsMap["kA2"] || "0");
+    if (gamemode == 1) {
+      this._player.enterShipMode();
+    } else if (gamemode == 2) {
+      this._player.enterBallMode();
+    } else if (gamemode == 3) {
+      //this._player.enterUFOMode();
+    } else if (gamemode == 4) {
+      this._player.enterWaveMode();
+    }
   }
   _pushButton() {
     if (this._menuActive) {
@@ -4523,6 +4536,16 @@ class xs extends Phaser.Scene {
     this._attemptsLabel.setText("Attempt " + this._attempts);
     this._attemptsLabel.setVisible(true);
     this._positionAttemptsLabel();
+    let gamemode = parseInt(window.settingsMap["kA2"] || "0");
+    if (gamemode == 1) {
+      this._player.enterShipMode();
+    } else if (gamemode == 2) {
+      this._player.enterBallMode();
+    } else if (gamemode == 3) {
+      //this._player.enterUFOMode();
+    } else if (gamemode == 4) {
+      this._player.enterWaveMode();
+    }
   }
   _onFullscreenChange(_0x310c5b) {
     if (!_0x310c5b) {
