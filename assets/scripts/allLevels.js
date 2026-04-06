@@ -12,8 +12,8 @@ window.allLevels = [
 	    "DJVI" 
     ],
     [
-        "polargeist",
-	    "Polargeist",
+        "Poltergeist",
+	    "Poltergeist",
 	    "level_3",
 	    "Step" 
     ],
