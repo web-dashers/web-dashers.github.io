@@ -2942,12 +2942,16 @@ if (this.p.isFlying) {
             this._playPortalShine(gameObj);
             this.exitBallMode();
             this.exitWaveMode();
+            this.exitShipMode();
             this.enterShipMode(gameObj);
           }
         } else if (_colType === portalWaveType) {
           if (!gameObj.activated) {
             gameObj.activated = true;
             this._playPortalShine(gameObj);
+            this.exitBallMode();
+            this.exitShipMode();
+            this.exitWaveMode();
             this.enterWaveMode(gameObj);
           }
         } else if (_colType === "portal_cube") {
@@ -2964,6 +2968,7 @@ if (this.p.isFlying) {
             this._playPortalShine(gameObj);
             this.exitShipMode();
             this.exitWaveMode();
+            this.exitBallMode();
             this.enterBallMode(gameObj);
           }
         } else if (_colType === "portal_gravity_down") {
