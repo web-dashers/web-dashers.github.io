@@ -73658,10 +73658,15 @@ return {
     gridH: 0
   },
   143: {
+    can_color: true,
+    default_base_color_channel: 1004,
+    frame: "brick_02_001.png",
+    glow_frame: "brick_02_glow_001.png",
+    gridH: 1.0,
+    gridW: 1.0,
+    spritesheet: "GJ_GameSheet-uhd",
     type: "deco",
-    frame: "d_circle_01_001.png",
-    gridW: 0,
-    gridH: 0
+    z: 2
   },
   144: {
     type: "deco",

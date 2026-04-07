@@ -3175,12 +3175,13 @@ _updateBallJump(_0x2fe319) {
       }
     }
     let _0x3020c8 = this._gameLayer.getFloorY();
+    const iscube = !this.p.isFlying && !this.p.isBall && !this.p.isWave;
     if (!_0x30410f && !_boostedThisStep) {
       if (!this.p.gravityFlipped && this.p.y <= _0x3020c8 + 30) {
         this.p.y = _0x3020c8 + 30;
         this.hitGround();
       }
-      if (this.p.gravityFlipped && !this.p.isFlying) {
+      if (this.p.gravityFlipped && !this.p.isFlying && !iscube) {
         let gravCeilY = this._gameLayer.getCeilingY();
         if (gravCeilY === null) {
           gravCeilY = f;
@@ -3193,10 +3194,14 @@ _updateBallJump(_0x2fe319) {
       }
     }
     let _0x496456 = this._gameLayer.getCeilingY();
-    if (_0x496456 !== null && this.p.y >= _0x496456 - 30) {
+    if (_0x496456 !== null && this.p.y >= _0x496456 - 30 && !iscube) {
       this.p.y = _0x496456 - 30;
       this.hitGround();
       this.p.onCeiling = true;
+    }
+    if (this.p.y > 1890*4) {
+      this.killPlayer();
+      return;
     }
     if (this.p.isFlying || this.p.isWave) {
       const _0x354b7c = this.p.y <= _0x3020c8 + 30;
