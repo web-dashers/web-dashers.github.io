@@ -401,6 +401,7 @@ class PlayerState {
     this.onCeiling = false;
     this.upKeyDown = false;
     this.upKeyPressed = false;
+    this.queuedHold = false;
     this.isDead = false;
     this.mirrored = false;
   }
@@ -2341,6 +2342,7 @@ hitGround() {
     this.p.onGround = true;
     this.p.canJump = true;
     this.p.isJumping = false;
+    this.p.queuedHold = false;
     if (this.p.isBall) {
       if (_0x4a38a5) {
         this._rotation = Math.round(this._rotation / Math.PI) * Math.PI;
@@ -2829,6 +2831,7 @@ hitGround() {
       this.p.onGround = false;
       this.p.canJump = false;
       this.p.upKeyPressed = false;
+      this.p.queuedHold = false;
       this.p.yVelocity = this.flipMod() * 22.360064;
       this.runRotateAction();
     } else if (this.p.isJumping) {
@@ -3075,7 +3078,7 @@ _updateBallJump(_0x2fe319) {
         } else if (_colType === jumpRingType) {
           const _orbId = gameObj.orbId;
           const _isDash = (_orbId === 1704 || _orbId === 1751);
-          const _needsClick = _isDash ? this.p.upKeyDown : this.p.upKeyPressed;
+          const _needsClick = _isDash ? this.p.upKeyDown : (this.p.queuedHold && this.p.upKeyDown);
           if (!gameObj.activated && _needsClick) {
             if (_isDash) {
               gameObj._dashHoldTicks = (gameObj._dashHoldTicks || 0) + 1;
@@ -3085,6 +3088,7 @@ _updateBallJump(_0x2fe319) {
                 this.p.yVelocity *= 0.5;
                 this.flipGravity(!this.p.gravityFlipped);
                 this.p.upKeyPressed = false;
+                this.p.queuedHold = false;
                 _boostedThisStep = true;
               } else {
                 gameObj.activated = true;
@@ -3102,51 +3106,57 @@ _updateBallJump(_0x2fe319) {
                 this.p.onGround = false;
                 this.p.canJump = false;
                 this.p.upKeyPressed = false;
+                this.p.queuedHold = false;
                 _boostedThisStep = true;
               }
             } else {
               gameObj.activated = true;
-              const _grav = p;
               const _fm = this.flipMod();
               const _cubeJump = 22.360064;
               let _orbVel = 0;
+              let _flipBefore = false;
               let _flipAfter = false;
               if (_orbId === 1594) {
                 this.flipGravity(!this.p.gravityFlipped);
                 this.p.upKeyPressed = false;
+                this.p.queuedHold = false;
                 _boostedThisStep = true;
               } else {
                 if (this.p.isFlying) {
-                  if (_orbId === 36) { _orbVel = 8 * _grav; }
+                  if (_orbId === 36) { _orbVel = _cubeJump; }
                   else if (_orbId === 141) { _orbVel = _cubeJump * 0.37; }
                   else if (_orbId === 1333) { _orbVel = _cubeJump; }
-                  else if (_orbId === 84) { _orbVel = _cubeJump * 0.4; _flipAfter = true; }
-                  else if (_orbId === 1022) { _orbVel = _cubeJump * -0.7; _flipAfter = true; }
-                  else if (_orbId === 1330) { _orbVel = -14 * _grav; }
+                  else if (_orbId === 84) { _orbVel = _cubeJump * 0.7; _flipBefore = true; }
+                  else if (_orbId === 1022) { _orbVel = _cubeJump * 0.8; _flipAfter = true; }
+                  else if (_orbId === 1330) { _orbVel = -28; }
                 } else if (this.p.isBall) {
                   const _ballBase = _cubeJump * 0.7;
                   if (_orbId === 36) { _orbVel = _ballBase; }
                   else if (_orbId === 141) { _orbVel = _ballBase * 0.77; }
                   else if (_orbId === 1333) { _orbVel = _ballBase * 1.34; }
-                  else if (_orbId === 84) { _orbVel = _ballBase * 0.4; _flipAfter = true; }
-                  else if (_orbId === 1022) { _orbVel = _ballBase * -1; _flipAfter = true; }
-                  else if (_orbId === 1330) { _orbVel = -15 * _grav; }
+                  else if (_orbId === 84) { _orbVel = _ballBase; _flipBefore = true; }
+                  else if (_orbId === 1022) { _orbVel = _ballBase * 0.8; _flipAfter = true; }
+                  else if (_orbId === 1330) { _orbVel = -30; }
                 } else {
                   if (_orbId === 36) { _orbVel = _cubeJump; }
                   else if (_orbId === 141) { _orbVel = _cubeJump * 0.72; }
                   else if (_orbId === 1333) { _orbVel = _cubeJump * 1.38; }
-                  else if (_orbId === 84) { _orbVel = _cubeJump * 0.4; _flipAfter = true; }
-                  else if (_orbId === 1022) { _orbVel = _cubeJump * -1; _flipAfter = true; }
-                  else if (_orbId === 1330) { _orbVel = -15 * _grav; }
+                  else if (_orbId === 84) { _orbVel = _cubeJump; _flipBefore = true; }
+                  else if (_orbId === 1022) { _orbVel = _cubeJump * 0.8; _flipAfter = true; }
+                  else if (_orbId === 1330) { _orbVel = -30; }
                 }
                 this.p.isJumping = true;
                 this.p.onGround = false;
                 this.p.canJump = false;
                 this.p.upKeyPressed = false;
-                this.p.yVelocity = _fm * _orbVel;
-                if (_orbId === 1330 && this.p.isFlying) {
-                  this.p.wasBoosted = false;
-                } else if (_orbId === 1330) {
+                this.p.queuedHold = false;
+                if (_flipBefore) {
+                  this.flipGravity(!this.p.gravityFlipped);
+                  this.p.yVelocity = this.flipMod() * _orbVel;
+                } else {
+                  this.p.yVelocity = _fm * _orbVel;
+                }
+                if (_orbId === 1330) {
                   this.p.wasBoosted = false;
                 }
                 this.runRotateAction();
@@ -4511,6 +4521,7 @@ class xs extends Phaser.Scene {
     if (!this._slideIn && !this._state.isDead) {
       this._state.upKeyDown = true;
       this._state.upKeyPressed = true;
+      this._state.queuedHold = true;
       if (!this._state.isFlying && !this._state.isWave && this._state.canJump) {
         this._player.updateJump(0);
         this._totalJumps++;
@@ -4520,6 +4531,7 @@ class xs extends Phaser.Scene {
   _releaseButton() {
     this._state.upKeyDown = false;
     this._state.upKeyPressed = false;
+    this._state.queuedHold = false;
   }
   _positionMenuItems() {
     const _0x1e5db8 = r / 2;
@@ -4809,6 +4821,7 @@ class xs extends Phaser.Scene {
     this._spaceWasDown = _0x368ad9;
     if (!!this.input.activePointer.isDown && !this._state.upKeyDown && !this._state.isDead) {
       this._state.upKeyDown = true;
+      this._state.queuedHold = true;
     }
     this._level.updateEndPortalY(this._cameraY, this._state.isFlying || this._state.isWave);
     if (!this._levelWon && !this._state.isDead && this._level.endXPos > 0) {
