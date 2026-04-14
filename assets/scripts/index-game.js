@@ -4630,10 +4630,10 @@ class xs extends Phaser.Scene {
     const _0x22e4c7 = this.add.bitmapText(xPos, yPos, "goldFont", "Made by RobTop Games", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x22e4c7);
     yPos += 60;
-    const _0x3cdf70a = this.add.bitmapText(xPos, yPos, "goldFont", "Modded by:", 40).setOrigin(0.5, 0.5).setScale(0.6);
+    const _0x3cdf70a = this.add.bitmapText(xPos, yPos, "goldFont", "lil message:", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70a);
     yPos += 40;
-    const _0x3cdf70c = this.add.bitmapText(xPos, yPos, "goldFont", "AntiMatter, breadbb, bog, aloaf", 40).setOrigin(0.5, 0.5).setScale(0.6);
+    const _0x3cdf70c = this.add.bitmapText(xPos, yPos, "goldFont", "nightly is unstoppable", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70c);
     yPos += 30;
     const _0x3cdf70b = this.add.bitmapText(xPos, yPos, "goldFont", "PinkDev, t0nchi7 and arbstro", 40).setOrigin(0.5, 0.5).setScale(0.6);
