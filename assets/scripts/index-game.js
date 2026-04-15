@@ -117,61 +117,79 @@ preload() {
     const buttonW = 200;
     const buttonH = 40;
     const buttonX = cx - buttonW / 2;
-    const buttonBg = this.add.graphics();
-    buttonBg.fillStyle(0x00ff00, 1);
-    buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-    buttonBg.lineStyle(2, 0xffffff, 1);
-    buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-    const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Enable Offline Mode', {
-      fontSize: '16px', fontFamily: 'Arial', color: '#000000'
-    }).setOrigin(0.5);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        if (registrations.length > 0) {
+          // already registered
+          const buttonBg = this.add.graphics();
+          buttonBg.fillStyle(0x00aa00, 1);
+          buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          buttonBg.lineStyle(2, 0xffffff, 1);
+          buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Offline Mode Enabled', {
+            fontSize: '16px', fontFamily: 'Arial', color: '#000000'
+          }).setOrigin(0.5);
+        } else {
+          // create interactive button
+          const buttonBg = this.add.graphics();
+          buttonBg.fillStyle(0x00ff00, 1);
+          buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          buttonBg.lineStyle(2, 0xffffff, 1);
+          buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Enable Offline Mode', {
+            fontSize: '16px', fontFamily: 'Arial', color: '#000000'
+          }).setOrigin(0.5);
 
-    buttonBg.setInteractive(new Phaser.Geom.Rectangle(buttonX, buttonY, buttonW, buttonH), Phaser.Geom.Rectangle.Contains);
-    buttonBg.on('pointerdown', () => {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('Service Worker registered');
-            buttonText.setText('Offline Mode Enabled revisit this site to play offline');
+          buttonBg.setInteractive(new Phaser.Geom.Rectangle(buttonX, buttonY, buttonW, buttonH), Phaser.Geom.Rectangle.Contains);
+          buttonBg.on('pointerdown', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                console.log('Service Worker registered');
+                buttonText.setText('Offline Mode Enabled revisit this site to play offline');
+                buttonBg.clear();
+                buttonBg.fillStyle(0x00aa00, 1);
+                buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+                buttonBg.lineStyle(2, 0xffffff, 1);
+                buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+                buttonBg.disableInteractive();
+              })
+              .catch(error => {
+                console.log('Service Worker registration failed:', error);
+                buttonText.setText('Offline Mode Failed');
+                buttonBg.clear();
+                buttonBg.fillStyle(0xff0000, 1);
+                buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+                buttonBg.lineStyle(2, 0xffffff, 1);
+                buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+              });
+          });
+          buttonBg.on('pointerover', () => {
             buttonBg.clear();
-            buttonBg.fillStyle(0x00aa00, 1);
-            buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-            buttonBg.lineStyle(2, 0xffffff, 1);
-            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-            buttonBg.disableInteractive();
-          })
-          .catch(error => {
-            console.log('Service Worker registration failed:', error);
-            buttonText.setText('Offline Mode Failed');
-            buttonBg.clear();
-            buttonBg.fillStyle(0xff0000, 1);
+            buttonBg.fillStyle(0x00cc00, 1);
             buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
             buttonBg.lineStyle(2, 0xffffff, 1);
             buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
           });
-      } else {
-        buttonText.setText('Not Supported');
-        buttonBg.clear();
-        buttonBg.fillStyle(0xff0000, 1);
-        buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-        buttonBg.lineStyle(2, 0xffffff, 1);
-        buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-      }
-    });
-    buttonBg.on('pointerover', () => {
-      buttonBg.clear();
-      buttonBg.fillStyle(0x00cc00, 1);
+          buttonBg.on('pointerout', () => {
+            buttonBg.clear();
+            buttonBg.fillStyle(0x00ff00, 1);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+            buttonBg.lineStyle(2, 0xffffff, 1);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          });
+        }
+      });
+    } else {
+      // not supported
+      const buttonBg = this.add.graphics();
+      buttonBg.fillStyle(0xff0000, 1);
       buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
       buttonBg.lineStyle(2, 0xffffff, 1);
       buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-    });
-    buttonBg.on('pointerout', () => {
-      buttonBg.clear();
-      buttonBg.fillStyle(0x00ff00, 1);
-      buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-      buttonBg.lineStyle(2, 0xffffff, 1);
-      buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-    });
+      const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Not Supported', {
+        fontSize: '16px', fontFamily: 'Arial', color: '#000000'
+      }).setOrigin(0.5);
+    }
 
     const consoleLines = [];
     const fileBytesMap = {};
