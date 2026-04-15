@@ -130,7 +130,7 @@ preload() {
             fontSize: '16px', fontFamily: 'Arial', color: '#000000'
           }).setOrigin(0.5);
         } else {
-          // create interactive button
+          // button
           const buttonBg = this.add.graphics();
           buttonBg.fillStyle(0x00ff00, 1);
           buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
@@ -155,12 +155,6 @@ preload() {
               })
               .catch(error => {
                 console.log('Service Worker registration failed:', error);
-                buttonText.setText('Offline Mode Failed');
-                buttonBg.clear();
-                buttonBg.fillStyle(0xff0000, 1);
-                buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
-                buttonBg.lineStyle(2, 0xffffff, 1);
-                buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
               });
           });
           buttonBg.on('pointerover', () => {
