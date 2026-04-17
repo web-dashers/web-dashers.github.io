@@ -5208,9 +5208,7 @@ class xs extends Phaser.Scene {
         this._iconOverlayObjects.push(btn2);
 
         ((color, b1, b2) => {
-          b1.on("pointerover", () => b1.setAlpha(0.7));
-          b1.on("pointerout",  () => b1.setAlpha(1));
-          b1.on("pointerup",   () => {
+          this._makeBouncyButton(b1, b1.scaleX || 1, () => {
             window.mainColor = color;
             localStorage.setItem("iconMainColor", hexadecimalToHex(color));
             if (this._player) {
@@ -5223,9 +5221,7 @@ class xs extends Phaser.Scene {
             selectedIcon.setTint(color);
           });
 
-          b2.on("pointerover", () => b2.setAlpha(0.7));
-          b2.on("pointerout",  () => b2.setAlpha(1));
-          b2.on("pointerup",   () => {
+          this._makeBouncyButton(b2, b2.scaleX || 1, () => {
             window.secondaryColor = color;
             localStorage.setItem("iconSecondaryColor", hexadecimalToHex(color));
             if (this._player) {
@@ -5373,16 +5369,7 @@ class xs extends Phaser.Scene {
           }
 
           ((capturedFrame, capturedImg, capturedExtra, capturedOrigScale) => {
-            hitRect.on("pointerover",  () => { capturedImg.setAlpha(0.65); if (capturedExtra) capturedExtra.setAlpha(0.65); });
-            hitRect.on("pointerout",   () => {
-              capturedImg.setAlpha(1); capturedImg.setScale(capturedOrigScale);
-              if (capturedExtra) { capturedExtra.setAlpha(1); capturedExtra.setScale(capturedOrigScale); }
-            });
-            hitRect.on("pointerdown",  () => { capturedImg.setScale(capturedOrigScale * 1.15); if (capturedExtra) capturedExtra.setScale(capturedOrigScale * 1.15); });
-            hitRect.on("pointerup",    () => {
-              capturedImg.setScale(capturedOrigScale);
-              capturedImg.setAlpha(1);
-              if (capturedExtra) { capturedExtra.setScale(capturedOrigScale); capturedExtra.setAlpha(1); }
+            this._makeBouncyButton(hitRect, capturedOrigScale, () => {
               if (!this._iconOverlay) return;
 
               selLabel.setPosition(capturedImg.x, capturedImg.y).setScale(0.75).setVisible(true);
@@ -5475,7 +5462,7 @@ class xs extends Phaser.Scene {
               }
 
               _refreshPreview(tab, capturedFrame);
-            });
+            }, null, [capturedImg, capturedExtra]);
           })(frame, iconImg, extraImg, origScale);
         });
       };
@@ -6581,37 +6568,42 @@ this._escKey.on("down", () => {
     const _0x3f88a1 = _0x43b461 * (_0x37180a - 1) / 2;
     _0x122213.input.hitArea.setTo(-_0x960250, -_0x3f88a1, _0x46ea45 + _0x960250 * 2, _0x43b461 + _0x3f88a1 * 2);
   }
-  _makeBouncyButton(_0x4b8c6e, _0x57b645, _0x2f13d0, _0xda0c21) {
+  _makeBouncyButton(_0x4b8c6e, _0x57b645, _0x2f13d0, _0xda0c21, _0x1bff20) {
     const _0x396ca0 = _0x57b645 * 1.26;
+    const _0x1f57d7 = (_0x1bff20 || [_0x4b8c6e]).filter(Boolean);
+    const _0x5e9c35 = (_0x1ccb15) => {
+      for (const _0x2d9467 of _0x1f57d7) {
+        this.tweens.killTweensOf(_0x2d9467, "scale");
+        _0x2d9467.setScale(_0x1ccb15);
+      }
+    };
+    const _0x542c31 = (_0x3d54de, _0x1c8db6) => {
+      for (const _0x1c181c of _0x1f57d7) {
+        this.tweens.killTweensOf(_0x1c181c, "scale");
+        this.tweens.add({
+          targets: _0x1c181c,
+          scale: _0x3d54de,
+          duration: _0x1c8db6,
+          ease: "Bounce.Out"
+        });
+      }
+    };
     _0x4b8c6e.on("pointerdown", () => {
       if (!_0xda0c21 || !!_0xda0c21()) {
         _0x4b8c6e._pressed = true;
-        this.tweens.killTweensOf(_0x4b8c6e, "scale");
-        this.tweens.add({
-          targets: _0x4b8c6e,
-          scale: _0x396ca0,
-          duration: 300,
-          ease: "Bounce.Out"
-        });
+        _0x542c31(_0x396ca0, 300);
       }
     });
     _0x4b8c6e.on("pointerout", () => {
       if (_0x4b8c6e._pressed) {
         _0x4b8c6e._pressed = false;
-        this.tweens.killTweensOf(_0x4b8c6e, "scale");
-        this.tweens.add({
-          targets: _0x4b8c6e,
-          scale: _0x57b645,
-          duration: 400,
-          ease: "Bounce.Out"
-        });
+        _0x542c31(_0x57b645, 400);
       }
     });
     _0x4b8c6e.on("pointerup", () => {
       if (_0x4b8c6e._pressed) {
         _0x4b8c6e._pressed = false;
-        this.tweens.killTweensOf(_0x4b8c6e, "scale");
-        _0x4b8c6e.setScale(_0x57b645);
+        _0x5e9c35(_0x57b645);
         _0x2f13d0();
       }
     });
