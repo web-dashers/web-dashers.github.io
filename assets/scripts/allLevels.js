@@ -3,12 +3,11 @@ window.allLevels = [
         "stereo_madness", // internal level name
 	    "Stereo Madness", // proper level name
 	    "level_1",        // level id in assets/levels
-	    ["RobTop", "Forever Bound"], // person who made the level, person who made the song
-        //"Polargeist"    // in case a level uses a song not named the level
+	    ["RobTop", "Forever Bound"]   // person who made the level, person who made the song
     ],
     [
         "back_on_track",
-	    "Back on Track",
+	    "Back On Track",
 	    "level_2",
 	    ["RobTop", "DJVI" ]
     ],
@@ -68,7 +67,7 @@ window.allLevels = [
     ],
     [
         "theory_of_everything",
-	    "Theory of Everything",
+	    "Theory Of Everything",
 	    "level_12",
 	    ["RobTop", "DJ-Nate"] 
     ],
@@ -104,7 +103,7 @@ window.allLevels = [
     ],
     [
         "theory_of_everything_2",
-	    "Theory of Everything 2",
+	    "Theory Of Everything 2",
 	    "level_18",
 	    ["RobTop", "DJ-Nate"] 
     ],
@@ -148,8 +147,7 @@ window.allLevels = [
         "the_nightmare",
 	    "The Nightmare",
 	    "level_5703070",
-	    ["Jax", "Step"],
-        "Polargeist"
+	    ["Jax", "Step"]
     ],
     [
         "three_step",
@@ -174,5 +172,5 @@ window.allLevels = [
 	    "Nine Circles",
 	    "level_4284013",
 	    ["Zobros", "Rukkus"]
-    ],
+    ]
 ]
