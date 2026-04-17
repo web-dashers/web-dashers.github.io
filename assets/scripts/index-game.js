@@ -5556,7 +5556,7 @@ class xs extends Phaser.Scene {
     this._positionMenuItems();
     //icon stuff sequel
     if (this._iconBtn) {
-  this._iconBtn.x = (screenWidth / 2) - this._playBtn.width / 2 - 100 - (this._iconBtn.width * this._iconBtn.scaleX) / 2;
+  this._iconBtn.x = (screenWidth / 2) - this._playBtn.width / 2 - 50 - (this._iconBtn.width * this._iconBtn.scaleX) / 2;
   this.tweens.killTweensOf(this._iconBtn, "y");
   this._iconBtn.y = 320;
   this.tweens.add({
@@ -5570,7 +5570,7 @@ class xs extends Phaser.Scene {
 }
     // creator stuff the sequel
     if (this._creatorBtn) {
-  this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 100 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
+  this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 50 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
   this.tweens.killTweensOf(this._creatorBtn, "y");
   this._creatorBtn.y = 320;
   this.tweens.add({
@@ -6983,7 +6983,7 @@ this._escKey.on("down", () => {
       });
     }
     if (this._creatorBtn) {
-      this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 100 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
+      this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 50 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
       this.tweens.killTweensOf(this._creatorBtn, "y");
       this._creatorBtn.y = 320;
       this.tweens.add({
