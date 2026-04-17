@@ -2519,11 +2519,9 @@ class ps {
     {
       const _0xe76a85 = Math.cos(this._rotation);
       const _0x26ec65 = Math.sin(this._rotation);
-      const _0x3a11da = this.p.mirrored ? -1 : 1;
       const _0x216018 = this.p.isWave ? 0 : (this.p.isUfo ? 0 : -24);
       const _0x2baeac = (this.p.isWave ? 4 : (this.p.isUfo ? 5 : 18)) * (this.p.gravityFlipped ? -1 : 1);
-      const _0x4decbf = (_0x216018 * _0xe76a85 - _0x2baeac * _0x26ec65) * _0x3a11da;
-      const _0x75c380 = _0x119eb7 + _0x4decbf;
+      const _0x75c380 = _0x119eb7 + _0x216018 * _0xe76a85 - _0x2baeac * _0x26ec65;
       const _0x2b31d7 = _0x519d38 + _0x216018 * _0x26ec65 + _0x2baeac * _0xe76a85;
       const _0x5d66f4 = (Math.random() * 2 - 1) * 2 * 2;
       this._flyParticleEmitter.particleX = _0x75c380;
