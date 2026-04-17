@@ -2519,9 +2519,11 @@ class ps {
     {
       const _0xe76a85 = Math.cos(this._rotation);
       const _0x26ec65 = Math.sin(this._rotation);
+      const _0x3a11da = this.p.mirrored ? -1 : 1;
       const _0x216018 = this.p.isWave ? 0 : (this.p.isUfo ? 0 : -24);
       const _0x2baeac = (this.p.isWave ? 4 : (this.p.isUfo ? 5 : 18)) * (this.p.gravityFlipped ? -1 : 1);
-      const _0x75c380 = _0x119eb7 + _0x216018 * _0xe76a85 - _0x2baeac * _0x26ec65;
+      const _0x4decbf = (_0x216018 * _0xe76a85 - _0x2baeac * _0x26ec65) * _0x3a11da;
+      const _0x75c380 = _0x119eb7 + _0x4decbf;
       const _0x2b31d7 = _0x519d38 + _0x216018 * _0x26ec65 + _0x2baeac * _0xe76a85;
       const _0x5d66f4 = (Math.random() * 2 - 1) * 2 * 2;
       this._flyParticleEmitter.particleX = _0x75c380;
@@ -2653,9 +2655,10 @@ if (this.p.isFlying || this.p.isUfo) {
       const playerOffset = this.p.gravityFlipped ? -30 : 10; 
       const _0x285611 = Math.cos(_0x2907d3);
       const _0x501bf9 = Math.sin(_0x2907d3);
-      const _0x1b1d28 = -_0x3904f8 * _0x501bf9;
+        const _0x329da6 = this.p.mirrored ? -1 : 1;
+        const _0x1b1d28 = -_0x3904f8 * _0x501bf9 * _0x329da6;
       const _0x185f91 = _0x3904f8 * _0x285611; 
-      const _0x562424 = playerOffset * _0x501bf9;
+        const _0x562424 = playerOffset * _0x501bf9 * _0x329da6;
       const _0x3011c9 = -playerOffset * _0x285611;
       const _ufoMode = this.p.isUfo && !this.p.isFlying;
       if (this.p.isFlying) {
