@@ -22,6 +22,7 @@ window.orbClickScale = 2.0;
 window.orbClickShrinkTime = 250;
 window.orbParticleSize = 3.5;
 window.showPercentage = true;
+window.practiceMode = localStorage.getItem("practiceMode") === "true";
 
 // -------------------------------
 
@@ -2589,6 +2590,10 @@ hitGround() {
       const _0x2248d5 = this._scene._playerWorldX;
       const _0x17e0bb = this.p.gravityFlipped ? b(this.p.y) - 30 : b(this.p.y) + 30;
       _0x31584b.explode(10, _0x2248d5, _0x17e0bb);
+      if (window.practiceMode) {
+        this._scene._saveCheckpoint();
+        this._scene._showCheckpointIndicator(_0x2248d5, _0x17e0bb);
+      }
     }
   }
   killPlayer() {
@@ -2611,7 +2616,7 @@ hitGround() {
     const _0x3f0446 = _0x3f4b84._getMirrorXOffset(_0x3f4b84._playerWorldX - _0x3f4b84._cameraX);
     const _0x53ac5b = b(this.p.y) + this._lastCameraY;
     const _0x281e43 = 0.9;
-    _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
+    const _deathParticles = _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
       frame: "square.png",
       speed: {
         min: 200,
@@ -2650,7 +2655,7 @@ hitGround() {
     const _0x4683eb = {
       t: 0
     };
-    _0x3f4b84.tweens.add({
+    const _deathTween = _0x3f4b84.tweens.add({
       targets: _0x4683eb,
       t: 1,
       duration: 500,
@@ -2664,6 +2669,9 @@ hitGround() {
       },
       onComplete: () => _0x438d80.destroy()
     });
+    _0x3f4b84._deathParticles = _deathParticles;
+    _0x3f4b84._deathGraphics = _0x438d80;
+    _0x3f4b84._deathTween = _deathTween;
     this._createExplosionPieces(_0x3f0446, _0x53ac5b, _0x281e43);
     this.setCubeVisible(false);
     this.setShipVisible(false);
@@ -4083,6 +4091,10 @@ class xs extends Phaser.Scene {
     };
     this._state = new PlayerState();
     this._level = new us(this, this._cameraXRef);
+    this._checkpoint = null;
+    this._deathParticles = null;
+    this._deathGraphics = null;
+    this._deathTween = null;
     this._orbGfx = null;
     this._orbGfxTimer = 0;
     this._player = new ps(this, this._state, this._level);
@@ -5251,48 +5263,56 @@ this._escKey.on("down", () => {
       for (const o of barObjs) { this.tweens.killTweensOf(o); o.destroy(); }
       barObjs.length = 0;
 
-      const bestNormal = parseFloat(localStorage.getItem("bestPercent_" + (window.currentlevel[2] || "level_1")) || "0");
+      const bestNormal = window.practiceMode ? 0 : parseFloat(localStorage.getItem("bestPercent_" + (window.currentlevel[2] || "level_1")) || "0");
 
-      const modeLabel = this.add.bitmapText(cx, barAreaY - 40, "bigFont", "Normal Mode", 30)
-        .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5);
+      const modeText = window.practiceMode ? "Practice Mode" : "Normal Mode";
+      const modeLabel = this.add.bitmapText(cx, barAreaY - 40, "bigFont", modeText, 30)
+        .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5).setInteractive();
+      modeLabel.on("pointerdown", () => {
+        window.practiceMode = !window.practiceMode;
+        localStorage.setItem("practiceMode", window.practiceMode);
+        buildBar();
+      });
       barObjs.push(modeLabel);
       cardContainer.add(modeLabel);
 
-      const barBg = this.add.graphics().setScrollFactor(0).setDepth(154);
-      barBg.fillStyle(0x000000, 0.6);
-      barBg.fillRoundedRect(barX0, barAreaY - barH2 / 2, barW2, barH2, barH2 / 2);
-      barObjs.push(barBg);
-      cardContainer.add(barBg);
+      if (!window.practiceMode) {
+        const barBg = this.add.graphics().setScrollFactor(0).setDepth(154);
+        barBg.fillStyle(0x000000, 0.6);
+        barBg.fillRoundedRect(barX0, barAreaY - barH2 / 2, barW2, barH2, barH2 / 2);
+        barObjs.push(barBg);
+        cardContainer.add(barBg);
 
-      const padding = 3;
-      const innerH2 = barH2 - padding * 2;
-      const innerW2 = barW2 - padding * 2;
-      const innerRadius = innerH2 / 2;
-      const fillW = Math.max(innerH2, innerW2 * bestNormal / 100);
+        const padding = 3;
+        const innerH2 = barH2 - padding * 2;
+        const innerW2 = barW2 - padding * 2;
+        const innerRadius = innerH2 / 2;
+        const fillW = Math.max(innerH2, innerW2 * bestNormal / 100);
 
-      console.log({ bestNormal, fillW });
-    
-    if(bestNormal > 0) {
-      const barFg = this.add.graphics().setScrollFactor(0).setDepth(155);
-      barFg.fillStyle(0x00FF00, 1);
+        console.log({ bestNormal, fillW });
       
-      const rightR = (bestNormal >= 100) ? innerRadius : 0;
-      
-      barFg.fillRoundedRect(barX0 + padding, barAreaY - barH2 / 2 + padding, fillW, innerH2, {
-        tl: innerRadius,
-        bl: innerRadius,
-        tr: rightR,
-        br: rightR
-      });
-      
-      barObjs.push(barFg);
-        cardContainer.add(barFg);
+      if(bestNormal > 0) {
+        const barFg = this.add.graphics().setScrollFactor(0).setDepth(155);
+        barFg.fillStyle(0x00FF00, 1);
+        
+        const rightR = (bestNormal >= 100) ? innerRadius : 0;
+        
+        barFg.fillRoundedRect(barX0 + padding, barAreaY - barH2 / 2 + padding, fillW, innerH2, {
+          tl: innerRadius,
+          bl: innerRadius,
+          tr: rightR,
+          br: rightR
+        });
+        
+        barObjs.push(barFg);
+          cardContainer.add(barFg);
+        }
+
+        const pctLabel = this.add.bitmapText(cx, barAreaY, "bigFont", Math.round(bestNormal) + "%", 22)
+          .setScrollFactor(0).setDepth(156).setOrigin(0.5, 0.5);
+        barObjs.push(pctLabel);
+        cardContainer.add(pctLabel);
       }
-
-      const pctLabel = this.add.bitmapText(cx, barAreaY, "bigFont", Math.round(bestNormal) + "%", 22)
-        .setScrollFactor(0).setDepth(156).setOrigin(0.5, 0.5);
-      barObjs.push(pctLabel);
-      cardContainer.add(pctLabel);
     };
 
     buildCardContent();
@@ -5992,7 +6012,7 @@ this._escKey.on("down", () => {
     this._level.topContainer.setVisible(true);
     this._player.setCubeVisible(true);
     this._player.reset();
-    this._attemptsLabel.setVisible(this._attempts > 1);
+    this._attemptsLabel.setVisible(!window.practiceMode && this._attempts > 1);
     this._positionAttemptsLabel();
     let gamemode = parseInt(window.settingsMap["kA2"] || "0");
     if (gamemode == 1) {
@@ -6118,7 +6138,10 @@ this._escKey.on("down", () => {
     this._spaceWasDown = false;
   }
   _restartLevel() {
-    this._attempts++;
+    if (!window.practiceMode) {
+      this._attempts++;
+      this._checkpoint = null;
+    }
     const _0x2ba78a = this._cameraX;
     this._resetGameplayState();
     this._state.reset();
@@ -6144,7 +6167,7 @@ this._escKey.on("down", () => {
     this._showHitboxesCheckbox = null;
     this._pauseBtn.setVisible(true).setAlpha(75 / 255);
     this._attemptsLabel.setText("Attempt " + this._attempts);
-    this._attemptsLabel.setVisible(true);
+    this._attemptsLabel.setVisible(!window.practiceMode && this._attempts > 0);
     this._positionAttemptsLabel();
     let gamemode = parseInt(window.settingsMap["kA2"] || "0");
     if (gamemode == 1) {
@@ -6156,6 +6179,113 @@ this._escKey.on("down", () => {
     } else if (gamemode == 4) {
       this._player.enterWaveMode();
     }
+  }
+  _saveCheckpoint() {
+    if (!window.practiceMode) return;
+    this._checkpoint = {
+      playerX: this._playerWorldX,
+      playerY: this._state.y,
+      playerVelocityY: this._state.yVelocity,
+      playerGravityFlipped: this._state.gravityFlipped,
+      playerOnGround: this._state.onGround,
+      playerMirrored: this._state.mirrored,
+      playerDashing: this._state.isDashing,
+      playerMini: this._state.isMini,
+      cameraX: this._cameraX,
+      cameraY: this._cameraY,
+      colorTriggerIdx: this._level._colorTriggerIdx,
+      enterEffectTriggerIdx: this._level._enterEffectTriggerIdx,
+      moveTriggerIdx: this._level._moveTriggerIdx,
+      playerMode: this._state.isFlying ? 'ship' : this._state.isBall ? 'ball' : this._state.isWave ? 'wave' : 'cube'
+    };
+  }
+  _showCheckpointIndicator(x, y) {
+    if (!window.practiceMode) return;
+    const gfx = this.add.graphics().setScrollFactor(0.5).setDepth(14);
+    const screenX = this._getMirrorXOffset(x - this._cameraX);
+    const screenY = y + this._cameraY;
+    gfx.lineStyle(3, 0x00FFFF, 1);
+    gfx.drawCircle(screenX, screenY, 20);
+    const tween = this.tweens.add({
+      targets: gfx,
+      scaleX: 3,
+      scaleY: 3,
+      alpha: 0,
+      duration: 400,
+      ease: 'Quad.Out',
+      onComplete: () => {
+        gfx.destroy();
+      }
+    });
+  }
+  _restoreCheckpoint() {
+    if (!this._checkpoint || !window.practiceMode) return;
+    
+    // Clear death particles
+    if (this._deathParticles) {
+      this._deathParticles.destroy();
+      this._deathParticles = null;
+    }
+    if (this._deathGraphics) {
+      this._deathGraphics.destroy();
+      this._deathGraphics = null;
+    }
+    if (this._deathTween) {
+      this._deathTween.stop();
+      this._deathTween = null;
+    }
+    
+    // Clear explosion pieces
+    this._player._cleanupExplosion();
+    
+    this._cameraX = this._checkpoint.cameraX;
+    this._cameraY = this._checkpoint.cameraY;
+    this._cameraXRef._v = this._cameraX;
+    this._playerWorldX = this._checkpoint.playerX;
+    this._level._colorTriggerIdx = this._checkpoint.colorTriggerIdx;
+    this._level._enterEffectTriggerIdx = this._checkpoint.enterEffectTriggerIdx;
+    this._level._moveTriggerIdx = this._checkpoint.moveTriggerIdx;
+    this._state.y = this._checkpoint.playerY;
+    this._state.yVelocity = this._checkpoint.playerVelocityY;
+    this._state.gravityFlipped = this._checkpoint.playerGravityFlipped;
+    this._state.onGround = this._checkpoint.playerOnGround;
+    this._state.canJump = this._checkpoint.playerOnGround;
+    this._state.isDead = false;
+    this._state.mirrored = this._checkpoint.playerMirrored;
+    this._state.isDashing = this._checkpoint.playerDashing;
+    this._state.isMini = this._checkpoint.playerMini;
+    this._player._rotation = 0;
+    this._player.stopRotation();
+    const mode = this._checkpoint.playerMode;
+    const wasFlying = this._state.isFlying;
+    const wasBall = this._state.isBall;
+    const wasWave = this._state.isWave;
+    this._state.isFlying = mode === 'ship';
+    this._state.isBall = mode === 'ball';
+    this._state.isWave = mode === 'wave';
+    if (!wasFlying && this._state.isFlying) {
+      this._player.enterShipMode();
+    } else if (wasFlying && !this._state.isFlying) {
+      this._player.exitShipMode();
+    }
+    if (!wasBall && this._state.isBall) {
+      this._player.enterBallMode();
+    } else if (wasBall && !this._state.isBall) {
+      this._player.exitBallMode();
+    }
+    if (!wasWave && this._state.isWave) {
+      this._player.enterWaveMode();
+    } else if (wasWave && !this._state.isWave) {
+      this._player.exitWaveMode();
+    }
+    if (!this._state.isFlying && !this._state.isBall && !this._state.isWave) {
+      this._player.setCubeVisible(true);
+    }
+    this._newBestShown = false;
+    this._hadNewBest = false;
+    this._deathTimer = 0;
+    this._deathSoundPlayed = false;
+    this._audio.startMusic();
   }
   _onFullscreenChange(_0x310c5b) {
     if (!_0x310c5b) {
@@ -6396,7 +6526,9 @@ this._escKey.on("down", () => {
         this._lastPercent = Math.min(99, Math.max(0, Math.floor(_0x169d53 / _0x435587 * 100)));
         if (this._lastPercent > this._bestPercent) {
           this._bestPercent = this._lastPercent;
-          localStorage.setItem("bestPercent_" + (window.currentlevel[2] || "level_1"), this._bestPercent);
+          if (!window.practiceMode) {
+            localStorage.setItem("bestPercent_" + (window.currentlevel[2] || "level_1"), this._bestPercent);
+          }
           this._hadNewBest = true;
           this._showNewBest();
         }
@@ -6405,7 +6537,11 @@ this._escKey.on("down", () => {
       this._deathTimer += _0xaf2ffd;
       let _0x237728 = this._hadNewBest ? 1400 : 1000;
       if (this._deathTimer > _0x237728) {
-        this._restartLevel();
+        if (window.practiceMode && this._checkpoint) {
+          this._restoreCheckpoint();
+        } else {
+          this._restartLevel();
+        }
       }
       return;
     }
@@ -6630,7 +6766,9 @@ _applyMirrorEffect() {
   }
   _levelComplete() {
     this._bestPercent = 100;
-    localStorage.setItem("bestPercent_" + (window.currentlevel[2] || "level_1"), 100);
+    if (!window.practiceMode) {
+      localStorage.setItem("bestPercent_" + (window.currentlevel[2] || "level_1"), 100);
+    }
 
     const _0x356782 = this._level.endXPos - this._cameraX;
     const _0x2d967b = b(this._endPortalGameY) + this._cameraY;
