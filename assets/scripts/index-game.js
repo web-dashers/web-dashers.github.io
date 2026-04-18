@@ -115,7 +115,80 @@ preload() {
       fontSize: '11px', fontFamily: 'monospace', color: '#3366aa',
       wordWrap: { width: consoleW - 16 }, lineSpacing: 3
     });
- 
+    // offline stuff made by bean owner of overcloaked
+    // offline mode button
+    const buttonY = consoleY + consoleH + 20;
+    const buttonW = 200;
+    const buttonH = 40;
+    const buttonX = cx - buttonW / 2;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        if (registrations.length > 0) {
+          // already registered
+          const buttonBg = this.add.graphics();
+          buttonBg.fillStyle(0x00aa00, 1);
+          buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          buttonBg.lineStyle(2, 0xffffff, 1);
+          buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Offline Mode Enabled', {
+            fontSize: '16px', fontFamily: 'Arial', color: '#000000'
+          }).setOrigin(0.5);
+        } else {
+          // button
+          const buttonBg = this.add.graphics();
+          buttonBg.fillStyle(0x00ff00, 1);
+          buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          buttonBg.lineStyle(2, 0xffffff, 1);
+          buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Enable Offline Mode', {
+            fontSize: '16px', fontFamily: 'Arial', color: '#000000'
+          }).setOrigin(0.5);
+
+          buttonBg.setInteractive(new Phaser.Geom.Rectangle(buttonX, buttonY, buttonW, buttonH), Phaser.Geom.Rectangle.Contains);
+          buttonBg.on('pointerdown', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                console.log('Service Worker registered');
+                buttonText.setText('Offline Mode Enabled revisit this site to play offline');
+                buttonBg.clear();
+                buttonBg.fillStyle(0x00aa00, 1);
+                buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+                buttonBg.lineStyle(2, 0xffffff, 1);
+                buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+                buttonBg.disableInteractive();
+              })
+              .catch(error => {
+                console.log('Service Worker registration failed:', error);
+              });
+          });
+          buttonBg.on('pointerover', () => {
+            buttonBg.clear();
+            buttonBg.fillStyle(0x00cc00, 1);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+            buttonBg.lineStyle(2, 0xffffff, 1);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          });
+          buttonBg.on('pointerout', () => {
+            buttonBg.clear();
+            buttonBg.fillStyle(0x00ff00, 1);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+            buttonBg.lineStyle(2, 0xffffff, 1);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+          });
+        }
+      });
+    } else {
+      // not supported
+      const buttonBg = this.add.graphics();
+      buttonBg.fillStyle(0xff0000, 1);
+      buttonBg.fillRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+      buttonBg.lineStyle(2, 0xffffff, 1);
+      buttonBg.strokeRoundedRect(buttonX, buttonY, buttonW, buttonH, 8);
+      const buttonText = this.add.text(cx, buttonY + buttonH / 2, 'Not Supported', {
+        fontSize: '16px', fontFamily: 'Arial', color: '#000000'
+      }).setOrigin(0.5);
+    }
+
     const consoleLines = [];
     const fileBytesMap = {};
     let totalLoadedBytes = 0;
