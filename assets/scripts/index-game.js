@@ -36,6 +36,20 @@ function hexadecimalToHex(num) {
   return num.toString(16).padStart(6, '0');
 }
 
+const decoObjects = [
+  18, 19, 20, 21, 48, 49, 85, 86, 87, 97, 106, 107, 110, 113, 114,
+  115, 123, 124, 125, 126, 127, 128, 129, 130, 131, 134, 137, 138, 139, 151,
+  152, 153, 157, 158, 159, 180, 181, 182, 190, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233,
+  234, 235, 237, 238, 239, 240, 241, 242, 279, 280, 281, 282, 283, 284, 285,
+  394, 395, 396, 406, 407, 408, 409, 410, 411, 412, 413, 414, 419, 420, 448, 449, 450,
+  451, 452, 668, 669, 670, 671, 672, 719, 721, 906, 907, 908, 909, 910,
+  925, 926, 936, 937, 938, 939, 940, 941, 942, 990, 992, 997, 998, 999, 1000, 1001, 1002, 1003,
+  1004, 1005, 1019, 1020, 1021, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1764, 1765, 1766, 1767, 1768,
+  1835, 1836, 1837, 1838, 1844, 1845, 1846, 1847, 1848, 1893, 1896, 1897, 1898, 3621, 3622, 3623, 3624,
+  3625, 3626, 3627, 3628, 3629, 3630, 3631, 3632, 3633, 3634, 3635, 3636,
+  3637, 3638, 3639
+];
+
 let screenWidth = 1138;
 const screenHeight = 640;
 const a = 60;
@@ -616,6 +630,8 @@ class us {
     this._moveTriggerIdx = 0;
     this._activeMoveTweens = [];
     this._groupSprites = {};
+    this._colorizedSprites = [];
+    this._colorManager = null;
     this._groupOffsets = {};
     this._groupColliders = {};
     this._sections = [];
@@ -937,7 +953,83 @@ class us {
       return null;
     }
   }
-  _applyVisualProps(_0x4feeca, _0x2d433c, _0x590e4f, _0x5eb2df, _0x450956 = null) {
+  setColorManager(_0x51ebbe) {
+    this._colorManager = _0x51ebbe;
+    this.refreshObjectColors();
+  }
+  _getBaseColorChannel(_0x4e4443, _0x469df8) {
+    if (_0x469df8 && _0x469df8.color1 > 0) {
+      return _0x469df8.color1;
+    }
+    return _0x4e4443 && _0x4e4443.default_base_color_channel ? _0x4e4443.default_base_color_channel : 0;
+  }
+  _getDetailColorChannel(_0x5d4e4e, _0x1d6112) {
+    if (_0x1d6112 && _0x1d6112.color2 > 0) {
+      return _0x1d6112.color2;
+    }
+    if (_0x5d4e4e && _0x5d4e4e.default_detail_color_channel) {
+      return _0x5d4e4e.default_detail_color_channel;
+    }
+    return this._getBaseColorChannel(_0x5d4e4e, _0x1d6112);
+  }
+  _resolveVisualTint(_0x5042f4, _0x3f0057, _0x17c95f) {
+    if (!_0x5042f4) {
+      return null;
+    }
+    if (_0x5042f4.black) {
+      return 0;
+    }
+    const _0x24ef95 = _0x3f0057 || _0x5042f4;
+    if (_0x5042f4.tint === 65280) {
+      return this._colorManager ? this._colorManager.getHex(this._getBaseColorChannel(_0x24ef95, _0x17c95f)) : null;
+    }
+    if (_0x5042f4.tint === 52224) {
+      return this._colorManager ? this._colorManager.getHex(this._getDetailColorChannel(_0x24ef95, _0x17c95f)) : null;
+    }
+    if (_0x5042f4.tint !== undefined) {
+      return _0x5042f4.tint;
+    }
+    if (_0x24ef95 && _0x24ef95.can_color && this._colorManager) {
+      return this._colorManager.getHex(this._getBaseColorChannel(_0x24ef95, _0x17c95f));
+    }
+    return null;
+  }
+  _trackColorizedSprite(_0x2f1d59, _0x4a46e4, _0x4e3ef8 = null, _0x2c4a8c = null) {
+    if (!_0x2f1d59) {
+      return;
+    }
+    const _0x39ebac = _0x2c4a8c || _0x4e3ef8;
+    const _0x23ee7a = !!(_0x4e3ef8 && (_0x4e3ef8.black || _0x4e3ef8.tint !== undefined)) || !!(_0x39ebac && _0x39ebac.can_color);
+    if (!_0x23ee7a) {
+      return;
+    }
+    _0x2f1d59._eeColorInfo = {
+      levelObj: _0x4a46e4,
+      visualDef: _0x4e3ef8,
+      objectDef: _0x39ebac
+    };
+    this._colorizedSprites.push(_0x2f1d59);
+    this._applyTrackedTint(_0x2f1d59);
+  }
+  _applyTrackedTint(_0x53b57d) {
+    if (!_0x53b57d || !_0x53b57d.active || !_0x53b57d._eeColorInfo) {
+      return;
+    }
+    const _0x1c4d40 = _0x53b57d._eeColorInfo;
+    const _0x6d06d0 = this._resolveVisualTint(_0x1c4d40.visualDef, _0x1c4d40.objectDef, _0x1c4d40.levelObj);
+    if (_0x6d06d0 !== null) {
+      _0x53b57d.setTint(_0x6d06d0);
+    }
+  }
+  refreshObjectColors() {
+    if (!this._colorManager) {
+      return;
+    }
+    for (let _0x341c78 = 0; _0x341c78 < this._colorizedSprites.length; _0x341c78++) {
+      this._applyTrackedTint(this._colorizedSprites[_0x341c78]);
+    }
+  }
+  _applyVisualProps(_0x4feeca, _0x2d433c, _0x590e4f, _0x5eb2df, _0x450956 = null, _0x42e8c4 = null) {
     if (!_0x2d433c) {
       return;
     }
@@ -995,17 +1087,19 @@ class us {
       _0x2d433c.setScale(_0x5eb2df.scale);
     }
     if (_0x450956) {
-      if (_0x450956.tint !== undefined) {
-        _0x2d433c.setTint(_0x450956.tint);
-      } else if (_0x450956.black) {
-        _0x2d433c.setTint(0);
+      const _0x26f7f3 = this._resolveVisualTint(_0x450956, _0x42e8c4, _0x5eb2df);
+      if (_0x26f7f3 !== null) {
+        _0x2d433c.setTint(_0x26f7f3);
       }
     }
   }
-  _addVisualSprite(_0x2edd38, _0x55b8b6 = null) {
+  _addVisualSprite(_0x2edd38, _0x55b8b6 = null, _0x1b937f = null) {
     if (_0x2edd38) {
+      const _0x248db7 = !!(_0x1b937f && decoObjects.includes(_0x1b937f.id));
       if (_0x55b8b6 && _0x55b8b6.blend === "additive") {
         _0x2edd38.setBlendMode(S);
+        _0x2edd38._eeLayer = 0;
+      } else if (_0x248db7) {
         _0x2edd38._eeLayer = 0;
       } else if (_0x55b8b6 && _0x55b8b6._portalFront) {
         _0x2edd38._eeLayer = 2;
@@ -1104,7 +1198,8 @@ class us {
           const _0x32e8a1 = _0x4c7589.replace("_front_", "_back_");
           let _0x517b49 = L(_0xd15974, _0x2ddc05, _0x1b10a0, _0x32e8a1);
           if (_0x517b49) {
-            this._applyVisualProps(_0xd15974, _0x517b49, _0x32e8a1, _0x1b937f);
+            this._applyVisualProps(_0xd15974, _0x517b49, _0x32e8a1, _0x1b937f, _0x24471f, _0x24471f);
+            this._trackColorizedSprite(_0x517b49, _0x1b937f, _0x24471f, _0x24471f);
             _0x517b49._eeLayer = 1;
             _0x517b49._eeWorldX = _0x173c58;
             _0x517b49._eeBaseY = _0x1b10a0;
@@ -1121,8 +1216,9 @@ class us {
         } : _0x24471f;
         let _0x554e0e = L(_0xd15974, _0x2ddc05, _0x1b10a0, _0x4c7589);
         if (_0x554e0e) {
-          this._applyVisualProps(_0xd15974, _0x554e0e, _0x4c7589, _0x1b937f, _0x24471f);
-          this._addVisualSprite(_0x554e0e, _0x36f679);
+          this._applyVisualProps(_0xd15974, _0x554e0e, _0x4c7589, _0x1b937f, _0x24471f, _0x24471f);
+          this._trackColorizedSprite(_0x554e0e, _0x1b937f, _0x24471f, _0x24471f);
+          this._addVisualSprite(_0x554e0e, _0x36f679, _0x1b937f);
           _0x554e0e._eeWorldX = _0x173c58;
           _0x554e0e._eeBaseY = _0x1b10a0;
           this._addToSection(_0x554e0e);
@@ -1161,12 +1257,15 @@ class us {
           }
           if (_0x4c7589 && _0x4c7589.indexOf("sawblade") >= 0) {
             _0x554e0e.setTint(0x000000);
+            _0x554e0e._eeColorInfo = null;
             _0x554e0e._isSaw = true;
             this._sawSprites.push(_0x554e0e);
             let _sawMirror = L(_0xd15974, _0x2ddc05, _0x1b10a0, _0x4c7589);
             if (_sawMirror) {
-              this._applyVisualProps(_0xd15974, _sawMirror, _0x4c7589, _0x1b937f, _0x24471f);
+              this._applyVisualProps(_0xd15974, _sawMirror, _0x4c7589, _0x1b937f, _0x24471f, _0x24471f);
+              this._trackColorizedSprite(_sawMirror, _0x1b937f, _0x24471f, _0x24471f);
               _sawMirror.setTint(0x000000);
+              _sawMirror._eeColorInfo = null;
               _sawMirror.rotation = _0x554e0e.rotation + Math.PI;
               _sawMirror._isSaw = true;
               _sawMirror._eeWorldX = _0x173c58;
@@ -1183,7 +1282,12 @@ class us {
           let _0x47077e = _0x4c7589.replace("_001.png", "_2_001.png");
           let _0xe3eaec = R(_0xd15974, _0x47077e) ? L(_0xd15974, _0x2ddc05, _0x1b10a0, _0x47077e) : null;
           if (_0xe3eaec) {
-            this._applyVisualProps(_0xd15974, _0xe3eaec, _0x47077e, _0x1b937f);
+            this._applyVisualProps(_0xd15974, _0xe3eaec, _0x47077e, _0x1b937f, {
+              tint: 52224
+            }, _0x24471f);
+            this._trackColorizedSprite(_0xe3eaec, _0x1b937f, {
+              tint: 52224
+            }, _0x24471f);
             this._addVisualSprite(_0xe3eaec);
             _0xe3eaec._eeWorldX = _0x173c58;
             _0xe3eaec._eeBaseY = _0x1b10a0;
@@ -1209,30 +1313,37 @@ class us {
             }
             let _0x42173e = L(_0xd15974, _0x2ddc05 + _0x3b4e8c, _0x1b10a0 + _0x172131, _0x2ca803.frame);
             if (_0x42173e) {
-              this._applyVisualProps(_0xd15974, _0x42173e, _0x2ca803.frame, _0x1b937f, _0x2ca803);
+              this._applyVisualProps(_0xd15974, _0x42173e, _0x2ca803.frame, _0x1b937f, _0x2ca803, _0x24471f);
+              this._trackColorizedSprite(_0x42173e, _0x1b937f, _0x2ca803, _0x24471f);
               if (_0x2ca803.audioScale) {
                 _0x42173e.setScale(0.1);
                 _0x42173e.setAlpha(0.9);
                 _0x42173e._eeAudioScale = true;
                 this._audioScaleSprites.push(_0x42173e);
               }
-              if ((_0x2ca803.z !== undefined ? _0x2ca803.z : -1) < 0) {
+              const _0x404ec2 = decoObjects.includes(_0x1b937f.id);
+              if (_0x404ec2) {
+                _0x42173e._eeLayer = 0;
+              } else if ((_0x2ca803.z !== undefined ? _0x2ca803.z : -1) < 0) {
                 _0x42173e._eeLayer = 1;
                 _0x42173e._eeBehindParent = true;
               } else {
-                this._addVisualSprite(_0x42173e, _0x2ca803);
+                this._addVisualSprite(_0x42173e, _0x2ca803, _0x1b937f);
               }
               _0x42173e._eeWorldX = _0x173c58 + _0x3b4e8c;
               _0x42173e._eeBaseY = _0x1b10a0 + _0x172131;
               this._addToSection(_0x42173e);
               if (_0x4c7589 && _0x4c7589.indexOf("sawblade") >= 0) {
                 _0x42173e.setTint(0x000000);
+                _0x42173e._eeColorInfo = null;
                 _0x42173e._isSaw = true;
                 this._sawSprites.push(_0x42173e);
                 let _childMirror = L(_0xd15974, _0x2ddc05 + _0x3b4e8c, _0x1b10a0 + _0x172131, _0x2ca803.frame);
                 if (_childMirror) {
-                  this._applyVisualProps(_0xd15974, _childMirror, _0x2ca803.frame, _0x1b937f, _0x2ca803);
+                  this._applyVisualProps(_0xd15974, _childMirror, _0x2ca803.frame, _0x1b937f, _0x2ca803, _0x24471f);
+                  this._trackColorizedSprite(_childMirror, _0x1b937f, _0x2ca803, _0x24471f);
                   _childMirror.setTint(0x000000);
+                  _childMirror._eeColorInfo = null;
                   _childMirror.rotation = _0x42173e.rotation + Math.PI;
                   _childMirror._isSaw = true;
                   _childMirror._eeWorldX = _0x173c58 + _0x3b4e8c;
@@ -4420,6 +4531,9 @@ _updateBallJump(_0x2fe319) {
 }
 const fs = 1000;
 const gs = 1001;
+const playerPrimaryColorChannel = 1006;
+const playerSecondaryColorChannel = 1005;
+const lightBgColorChannel = 1007;
 class vs {
   constructor(_0x268d66, _0x3664f8, _0x4b756c) {
     this.from = {
@@ -4463,6 +4577,9 @@ class ms {
     this.reset();
   }
   setInitialColor(channelId, color) {
+    if (channelId === playerPrimaryColorChannel || channelId === playerSecondaryColorChannel || channelId === lightBgColorChannel) {
+      return;
+    }
     this._initialColors[channelId] = { ...color };
     this._colors[channelId] = { ...color };
   }
@@ -4485,6 +4602,9 @@ class ms {
     this._actions = {};
   }
   triggerColor(_0x917b29, _0x2cdda0, _0x10a755) {
+    if (_0x917b29 === playerPrimaryColorChannel || _0x917b29 === playerSecondaryColorChannel || _0x917b29 === lightBgColorChannel) {
+      return;
+    }
     let _0x16f9f0 = {
       ...this.getColor(_0x917b29)
     };
@@ -4508,6 +4628,28 @@ class ms {
     }
   }
   getColor(_0xb3f1d9) {
+    if (_0xb3f1d9 === playerPrimaryColorChannel) {
+      return {
+        r: window.mainColor >> 16 & 255,
+        g: window.mainColor >> 8 & 255,
+        b: window.mainColor & 255
+      };
+    }
+    if (_0xb3f1d9 === playerSecondaryColorChannel) {
+      return {
+        r: window.secondaryColor >> 16 & 255,
+        g: window.secondaryColor >> 8 & 255,
+        b: window.secondaryColor & 255
+      };
+    }
+    if (_0xb3f1d9 === lightBgColorChannel) {
+      const _0x5b8c9e = this.getColor(fs);
+      return {
+        r: Math.round(_0x5b8c9e.r + (255 - _0x5b8c9e.r) * 0.5),
+        g: Math.round(_0x5b8c9e.g + (255 - _0x5b8c9e.g) * 0.5),
+        b: Math.round(_0x5b8c9e.b + (255 - _0x5b8c9e.b) * 0.5)
+      };
+    }
     return this._colors[_0xb3f1d9] || {
       r: 255,
       g: 255,
@@ -4518,13 +4660,15 @@ class ms {
     let _0x25f448 = this.getColor(_0x32378c);
     return _0x25f448.r << 16 | _0x25f448.g << 8 | _0x25f448.b;
   }
+  hasActiveActions() {
+    return Object.keys(this._actions).length > 0;
+  }
 }
 class ys {
   constructor(scene) {
     this._scene = scene;
     this._music = null;
-    this._userMusicVol = localStorage.getItem("userMusicVol") ?? 1;
-    this._meteringEnabled = false;
+    this._userMusicVol = this._sanitizeVolume(localStorage.getItem("userMusicVol"), 1);
     this._analyser = null;
     this._meterBuffer = null;
     this._meterValue = 0.1;
@@ -4532,8 +4676,15 @@ class ys {
     this._lastPeak = 0;
     this._silenceCounter = 0;
   }
+  _sanitizeVolume(_0x4d4991, _0x1ff4b5 = 1) {
+    const _0x1f4df4 = typeof _0x4d4991 === "number" ? _0x4d4991 : parseFloat(_0x4d4991);
+    if (!Number.isFinite(_0x1f4df4)) {
+      return _0x1ff4b5;
+    }
+    return Phaser.Math.Clamp(_0x1f4df4, 0, 1);
+  }
   _effectiveVolume() {
-    return this._userMusicVol * 0.8;
+    return this._sanitizeVolume(this._userMusicVol, 1) * 0.8;
   }
   startMusic() {
     if (this._music) {
@@ -4581,11 +4732,11 @@ class ys {
     }
   }
   getUserMusicVolume() {
-    return this._userMusicVol;
+    return this._sanitizeVolume(this._userMusicVol, 1);
   }
   setUserMusicVolume(_0x1fad3d) {
-    this._userMusicVol = _0x1fad3d;
-    localStorage.setItem("userMusicVol", _0x1fad3d);
+    this._userMusicVol = this._sanitizeVolume(_0x1fad3d, 1);
+    localStorage.setItem("userMusicVol", this._userMusicVol);
     if (this._music) {
       this._music.volume = this._effectiveVolume();
     }
@@ -4720,6 +4871,7 @@ class xs extends Phaser.Scene {
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
     this._colorManager = new ms();
+    this._level.setColorManager(this._colorManager);
     if (this._audio == null) {
       this._audio = new ys(this);
     }
@@ -4732,6 +4884,7 @@ class xs extends Phaser.Scene {
         let col = this._level._initialColors[chId];
         this._colorManager.setInitialColor(parseInt(chId, 10), col);
       }
+      this._level.refreshObjectColors();
     }
     this._level.createEndPortal(this);
     this._glitterCenterX = 0;
@@ -5636,7 +5789,10 @@ this._escKey.on("down", () => {
     });
     this._paused = false;
     this._pauseContainer = null;
-    this._sfxVolume = localStorage.getItem("userSfxVol") ?? 1;
+    {
+      const _0x5f9df7 = parseFloat(localStorage.getItem("userSfxVol"));
+      this._sfxVolume = Number.isFinite(_0x5f9df7) ? Phaser.Math.Clamp(_0x5f9df7, 0, 1) : 1;
+    }
     this.input.on("pointerdown", () => {
       if (!this._menuActive && !this._paused && !this._levelSelectOverlay) {
         this._pushButton();
@@ -6461,21 +6617,12 @@ this._escKey.on("down", () => {
     const contentContainer = this.add.container(0, scrollAreaY - scrollAreaH / 2 + 8);
     bounceContainer.add(contentContainer);
     const updateEntries = [
-      { text: "4/17/26 - Update Log", scale: 0.85, font: "goldFont" },
-      { text: "Cache-manager added to speed up load time.", scale: 0.5 },
-	    { text: "Fixed UFO not disappearing on death.", scale: 0.6 },
-      { text: "Added UFO, Spider and Wave trail.", scale: 0.65 },
-      { text: "(ALL IN BETA, BUGS ARE NORMAL).", scale: 0.65, color: 0xff9944 },
-      { text: "Spider is very broken.", scale: 0.65, color: 0xff6666 },
-      { text: "Several QOL and bug fixes.", scale: 0.65 },
-      { text: "Added all 248 existing cubes.", scale: 0.65 },
-      { text: "Some cubes are broken.", scale: 0.65, color: 0xff6666 },
-      { text: "Headhitting in ship is fixed.", scale: 0.65 },
-      { text: "Added UFO and Wave icons.", scale: 0.65 },
-      { text: "(WAVE ICONS ARE NOT FUNCTIONAL.)", scale: 0.65, color: 0xff6666 },
-      { text: "(IT IS MEANT FOR A FUTURE UPD.)", scale: 0.65, color: 0xff9944 },
-      { text: "Added this dandy lil menu ;)", scale: 0.65 },
-      { text: "- rohanis0000", scale: 0.6, color: 0xaaddff },
+      { text: "4/18/26 - Update Log", scale: 0.85, font: "goldFont" },
+      { text: "Moved title screen buttons a bit.", scale: 0.65 },
+	    { text: "Fixed Ship rotation in mirror mode.", scale: 0.6 },
+      { text: "Made more icon kit buttons bouncy.", scale: 0.6 },
+      { text: "Changed the tab title.", scale: 0.65 },
+      { text: "- t0nchi7 :)", scale: 0.7, color: 0xaaddff },
     ];
     
     let yPos = 0;
@@ -7463,7 +7610,9 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     this._level.topContainer.x = -this._cameraX;
     this._level.topContainer.y = this._cameraY;
     let _0x5464ab = this._playerWorldX;
+    let _0x57f48e = false;
     for (let _0x2001f6 of this._level.checkColorTriggers(_0x5464ab)) {
+      _0x57f48e = true;
       this._colorManager.triggerColor(_0x2001f6.index, _0x2001f6.color, _0x2001f6.duration);
       if (_0x2001f6.tintGround) {
         this._colorManager.triggerColor(gs, _0x2001f6.color, _0x2001f6.duration);
@@ -7472,6 +7621,9 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     this._level.checkMoveTriggers(_0x5464ab);
     this._level.stepMoveTriggers(_0xaf2ffd / 1000);
     this._colorManager.step(_0xaf2ffd / 1000);
+    if (_0x57f48e || this._colorManager.hasActiveActions()) {
+      this._level.refreshObjectColors();
+    }
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
     this._level.updateVisibility(this._cameraX);
