@@ -187,7 +187,7 @@ preload() {
       };
     }
     this.load.atlas("GJ_WebSheet", "assets/sheets/GJ_WebSheet.png", "assets/sheets/GJ_WebSheet.json");
-	this.load.once('filecomplete', (key) => {
+    this.load.once('filecomplete', (key) => {
       if (key === 'GJ_WebSheet') {
         this.add.image(cx, barY - 120, "GJ_WebSheet", "GJ_logo_001.png")
       }
@@ -3073,11 +3073,17 @@ if (this.p.isFlying || this.p.isUfo) {
     this._particleEmitter.stop();
     this._streak.reset();
     this._streak.start();
-    this.setCubeVisible(false);
     this.setBallVisible(false);
     this.setShipVisible(false);
     this.setWaveVisible(false);
+    this.setSpiderVisible(false);
     this.setBirdVisible(true);
+    this.setCubeVisible(true);
+    for (const _layer of this._playerLayers) {
+      if (_layer) {
+        _layer.sprite.setScale(0.55);
+      }
+    }
     let _spawnY = this.p.y;
     if (_portal) {
       _spawnY = _portal.portalY !== undefined ? _portal.portalY : _portal.y;
@@ -3211,13 +3217,12 @@ hitGround() {
       },
       onComplete: () => _0x438d80.destroy()
     });
-	this.setBirdVisible(false);
     this._createExplosionPieces(_0x3f0446, _0x53ac5b, _0x281e43);
     this.setCubeVisible(false);
     this.setShipVisible(false);
     this.setBallVisible(false);
     this.setWaveVisible(false);
-    
+    this.setBirdVisible(false);
     this.setSpiderVisible(false);
   }
   _createExplosionPieces(_0x49be85, _0x13b56e, _0x349a09) {
@@ -3236,8 +3241,7 @@ hitGround() {
       if (!_0x1f09e3) {
         continue;
       }
-      const isBirdLayer = this._birdLayers && this._birdLayers.includes(_0x1f09e3);
-      if (!isBirdLayer && !_0x1f09e3.sprite.visible) {
+      if (!_0x1f09e3.sprite.visible) {
         continue;
       }
       const _0x53102a = _0x1f09e3.sprite;
@@ -4254,6 +4258,13 @@ _updateBallJump(_0x2fe319) {
               }
               continue;
             }
+            if (this.p.isUfo) {
+  this.p.y = top - playerSize;
+  this.hitGround();
+  this.p.onCeiling = true;
+  this.p.collideTop = top;
+  continue;
+}
             if ((_0x3e7199 <= top || _0x135a9d <= top) && (this.p.yVelocity >= 0 || this.p.onGround) && this.p.isFlying) {
               this.p.y = top - playerSize;
               this.hitGround();
