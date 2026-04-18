@@ -6613,10 +6613,14 @@ this._escKey.on("down", () => {
     bounceContainer.add(contentContainer);
     const updateEntries = [
       { text: "4/18/26 - Update Log", scale: 0.85, font: "goldFont" },
+      { text: "Removed black bar on logo.", scale: 0.7 },
       { text: "Moved title screen buttons a bit.", scale: 0.65 },
 	    { text: "Fixed Ship rotation in mirror mode.", scale: 0.6 },
       { text: "Made more icon kit buttons bouncy.", scale: 0.6 },
-      { text: "Changed the tab title.", scale: 0.65 },
+      { text: "Changed the tab title.", scale: 0.7 },
+      { text: "Layer deco objects correctly.", scale: 0.7 },
+      { text: "Colored deco objects.", scale: 0.7 },
+      { text: "Made some deco objects rotate.", scale: 0.65 },
       { text: "- t0nchi7 :)", scale: 0.7, color: 0xaaddff },
     ];
     
