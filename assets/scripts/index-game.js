@@ -6628,7 +6628,6 @@ this._escKey.on("down", () => {
       { text: "Moved title screen buttons a bit.", scale: 0.65 },
 	    { text: "Fixed Ship rotation in mirror mode.", scale: 0.6 },
       { text: "Made more icon kit buttons bouncy.", scale: 0.6 },
-      { text: "Changed the tab title.", scale: 0.7 },
       { text: "Layer deco objects correctly.", scale: 0.7 },
       { text: "Colored deco objects (still needs work).", scale: 0.55 },
       { text: "Made some deco objects rotate.", scale: 0.65 },
