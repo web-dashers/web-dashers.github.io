@@ -6630,9 +6630,10 @@ this._escKey.on("down", () => {
       { text: "Made more icon kit buttons bouncy.", scale: 0.6 },
       { text: "Changed the tab title.", scale: 0.7 },
       { text: "Layer deco objects correctly.", scale: 0.7 },
-      { text: "Colored deco objects (still needs work).", scale: 0.7 },
+      { text: "Colored deco objects (still needs work).", scale: 0.55 },
       { text: "Made some deco objects rotate.", scale: 0.65 },
       { text: "Changed the green orb sprite.", scale: 0.65 },
+      { text: "Slightly moved the 'Modded by'.", scale: 0.65 },
       { text: "- t0nchi7 :)", scale: 0.7, color: 0xaaddff },
     ];
     
