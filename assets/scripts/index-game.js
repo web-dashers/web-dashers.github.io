@@ -4537,8 +4537,8 @@ _updateBallJump(_0x2fe319) {
 }
 const fs = 1000;
 const gs = 1001;
-const playerPrimaryColorChannel = 1006;
-const playerSecondaryColorChannel = 1005;
+const p1ColorChannel = 1006;
+const p2ColorChannel = 1005;
 const lightBgColorChannel = 1007;
 class vs {
   constructor(_0x268d66, _0x3664f8, _0x4b756c) {
@@ -4583,7 +4583,7 @@ class ms {
     this.reset();
   }
   setInitialColor(channelId, color) {
-    if (channelId === playerPrimaryColorChannel || channelId === playerSecondaryColorChannel || channelId === lightBgColorChannel) {
+    if (channelId === p1ColorChannel || channelId === p2ColorChannel || channelId === lightBgColorChannel) {
       return;
     }
     this._initialColors[channelId] = { ...color };
@@ -4608,7 +4608,7 @@ class ms {
     this._actions = {};
   }
   triggerColor(_0x917b29, _0x2cdda0, _0x10a755) {
-    if (_0x917b29 === playerPrimaryColorChannel || _0x917b29 === playerSecondaryColorChannel || _0x917b29 === lightBgColorChannel) {
+    if (_0x917b29 === p1ColorChannel || _0x917b29 === p2ColorChannel || _0x917b29 === lightBgColorChannel) {
       return;
     }
     let _0x16f9f0 = {
@@ -4634,14 +4634,14 @@ class ms {
     }
   }
   getColor(_0xb3f1d9) {
-    if (_0xb3f1d9 === playerPrimaryColorChannel) {
+    if (_0xb3f1d9 === p1ColorChannel) {
       return {
         r: window.mainColor >> 16 & 255,
         g: window.mainColor >> 8 & 255,
         b: window.mainColor & 255
       };
     }
-    if (_0xb3f1d9 === playerSecondaryColorChannel) {
+    if (_0xb3f1d9 === p2ColorChannel) {
       return {
         r: window.secondaryColor >> 16 & 255,
         g: window.secondaryColor >> 8 & 255,
@@ -6630,7 +6630,7 @@ this._escKey.on("down", () => {
       { text: "Made more icon kit buttons bouncy.", scale: 0.6 },
       { text: "Changed the tab title.", scale: 0.7 },
       { text: "Layer deco objects correctly.", scale: 0.7 },
-      { text: "Colored deco objects.", scale: 0.7 },
+      { text: "Colored deco objects (still needs work).", scale: 0.7 },
       { text: "Made some deco objects rotate.", scale: 0.65 },
       { text: "Changed the green orb sprite.", scale: 0.65 },
       { text: "- t0nchi7 :)", scale: 0.7, color: 0xaaddff },
