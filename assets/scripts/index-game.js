@@ -39,7 +39,7 @@ function hexadecimalToHex(num) {
 const decoObjects = [
   18, 19, 20, 21, 48, 49, 85, 86, 87, 97, 106, 107, 110, 113, 114,
   115, 123, 124, 125, 126, 127, 128, 129, 130, 131, 134, 137, 138, 139, 151,
-  152, 153, 157, 158, 159, 180, 181, 182, 190, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233,
+  152, 153, 154, 155, 156, 157, 158, 159, 180, 181, 182, 190, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233,
   234, 235, 237, 238, 239, 240, 241, 242, 279, 280, 281, 282, 283, 284, 285,
   394, 395, 396, 406, 407, 408, 409, 410, 411, 412, 413, 414, 419, 420, 448, 449, 450,
   451, 452, 668, 669, 670, 671, 672, 719, 721, 906, 907, 908, 909, 910,
@@ -49,6 +49,9 @@ const decoObjects = [
   3625, 3626, 3627, 3628, 3629, 3630, 3631, 3632, 3633, 3634, 3635, 3636,
   3637, 3638, 3639
 ];
+
+const rotatingDeco = [85, 86, 87, 137, 138, 139, 154, 155, 156, 180, 181, 182, 222, 223, 224, 394,
+                      395, 396, 997, 998, 999, 1000, 1029, 1020, 1021];
 
 let screenWidth = 1138;
 const screenHeight = 640;
@@ -1274,6 +1277,9 @@ class us {
               this._addVisualSprite(_sawMirror);
               this._sawSprites.push(_sawMirror);
             }
+          } else if (rotatingDeco.includes(_0x1b937f.id)) {
+            _0x554e0e._isSaw = true;
+            this._sawSprites.push(_0x554e0e);
           }
         } else {
           console.warn("No sprite found for object ID " + _0x1b937f.id + " frame=" + _0x4c7589 + " type=" + (_0x24471f ? _0x24471f.type : "null"));
@@ -1351,6 +1357,9 @@ class us {
                   this._addToSection(_childMirror);
                   this._sawSprites.push(_childMirror);
                 }
+              } else if (rotatingDeco.includes(_0x1b937f.id)) {
+                _0x42173e._isSaw = true;
+                this._sawSprites.push(_0x42173e);
               }
             }
           }
