@@ -6561,7 +6561,7 @@ this._escKey.on("down", () => {
     yPos += 55;
     const _0x22e4c7 = this.add.bitmapText(xPos, yPos, "goldFont", "Made by RobTop Games", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x22e4c7);
-    yPos += 35;
+    yPos += 50;
     const _0x3cdf70a = this.add.bitmapText(xPos, yPos, "goldFont", "Modded by:", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70a);
     yPos += 35;
@@ -6632,6 +6632,7 @@ this._escKey.on("down", () => {
       { text: "Layer deco objects correctly.", scale: 0.7 },
       { text: "Colored deco objects.", scale: 0.7 },
       { text: "Made some deco objects rotate.", scale: 0.65 },
+      { text: "Changed the green orb sprite.", scale: 0.65 },
       { text: "- t0nchi7 :)", scale: 0.7, color: 0xaaddff },
     ];
     
