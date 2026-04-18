@@ -75590,15 +75590,15 @@ return {
         "can_color": false,
         "children": [
             {
-                "frame": "gravring_01_001.png",
+                "frame": "gravJumpRing_01_001.png",
                 "localDy": 0.0,
                 "tint": 65280,
                 "z": -1
             }
         ],
         "default_base_color_channel": 0,
-        "frame": "gravring_01_001.png",
-        "glow_frame": "gravring_01_glow_001.png",
+        "frame": "gravJumpRing_01_001.png",
+        "glow_frame": "gravJumpRing_01_glow_001.png",
         "gridH": 1.0,
         "gridW": 1.0,
         "spritesheet": "GJ_GameSheet-uhd",
