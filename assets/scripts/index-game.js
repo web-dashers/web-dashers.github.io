@@ -3732,6 +3732,7 @@ _updateBallJump(_0x2fe319) {
   }
   checkCollisions(_0x2f5078) {
     const playerSize = this.p.isMini ? 18 : 30;
+    const waveHitSize = this.p.isMini ? 6 : 9;
     const _0x3c691e = _0x2f5078 + centerX;
     const _0x8e0d28 = this.p.y;
     const _0x37040a = this.p.lastY;
@@ -3763,7 +3764,8 @@ _updateBallJump(_0x2fe319) {
       let rotatedRight = gameObj.x + rotatedHalfWidth;
       let rotatedTop = gameObj.y - rotatedHalfHeight;
       let rotatedBottom = gameObj.y + rotatedHalfHeight;
-      if (!(_0x3c691e + playerSize <= rotatedLeft) && !(_0x3c691e - playerSize >= rotatedRight) && !(_0x8e0d28 + playerSize <= rotatedTop) && !(_0x8e0d28 - playerSize >= rotatedBottom)) {
+      const _broadSize = this.p.isWave ? waveHitSize : playerSize;
+      if (!(_0x3c691e + _broadSize <= rotatedLeft) && !(_0x3c691e - _broadSize >= rotatedRight) && !(_0x8e0d28 + _broadSize <= rotatedTop) && !(_0x8e0d28 - _broadSize >= rotatedBottom)) {
         const _colType = gameObj.type;
         if (_colType === "portal_fly") {
           if (!gameObj.activated) {
@@ -4196,9 +4198,10 @@ _updateBallJump(_0x2fe319) {
     }
     let _0x3020c8 = this._gameLayer.getFloorY();
     const iscube = !this.p.isFlying && !this.p.isBall && !this.p.isWave && !this.p.isUfo && !this.p.isSpider;
+    const _effectiveSize = this.p.isWave ? waveHitSize : playerSize;
     if (!_0x30410f && !_boostedThisStep) {
-      if (!this.p.gravityFlipped && this.p.y <= _0x3020c8 + playerSize) {
-        this.p.y = _0x3020c8 + playerSize;
+      if (!this.p.gravityFlipped && this.p.y <= _0x3020c8 + _effectiveSize) {
+        this.p.y = _0x3020c8 + _effectiveSize;
         this.hitGround();
       }
       if (this.p.gravityFlipped && !this.p.isFlying && !iscube) {
@@ -4206,16 +4209,16 @@ _updateBallJump(_0x2fe319) {
         if (gravCeilY === null) {
           gravCeilY = f;
         }
-        if (this.p.y >= gravCeilY - playerSize) {
-          this.p.y = gravCeilY - playerSize;
+        if (this.p.y >= gravCeilY - _effectiveSize) {
+          this.p.y = gravCeilY - _effectiveSize;
           this.hitGround();
           this.p.onCeiling = true;
         }
       }
     }
     let _0x496456 = this._gameLayer.getCeilingY();
-    if (_0x496456 !== null && this.p.y >= _0x496456 - playerSize && !iscube) {
-      this.p.y = _0x496456 - playerSize;
+    if (_0x496456 !== null && this.p.y >= _0x496456 - _effectiveSize && !iscube) {
+      this.p.y = _0x496456 - _effectiveSize;
       this.hitGround();
       this.p.onCeiling = true;
     }
@@ -4224,8 +4227,8 @@ _updateBallJump(_0x2fe319) {
       return;
     }
     if (this.p.isFlying || this.p.isWave || this.p.isUfo || this.p.isSpider) {
-      const _0x354b7c = this.p.y <= _0x3020c8 + playerSize;
-      const _0xdc296 = _0x496456 !== null && this.p.y >= _0x496456 - playerSize;
+      const _0x354b7c = this.p.y <= _0x3020c8 + _effectiveSize;
+      const _0xdc296 = _0x496456 !== null && this.p.y >= _0x496456 - _effectiveSize;
       if (!_0x30410f && !_0x354b7c && this.p.collideTop === 0 && !_0xdc296) {
         this.p.onGround = false;
       }
