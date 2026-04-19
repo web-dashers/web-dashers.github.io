@@ -36,6 +36,9 @@ function hexadecimalToHex(num) {
   return num.toString(16).padStart(6, '0');
 }
 
+const rotatingDecoObjs = [85,86,87,137,138,139,154,155,156,180,181,182,222,223,224,375,376,377,378,394,395,396,997,
+                          998,999,1000,1019,1020,1021,1055,1056,1057,1058,1059,1060,1061,1752,1831,1832,1833,1834]
+
 let screenWidth = 1138;
 const screenHeight = 640;
 const a = 60;
@@ -608,6 +611,7 @@ class us {
     this._orbSprites = [];
     this._coinSprites = [];
     this._sawSprites = [];
+    this._rotatingDecoSprites = [];
     this._enterEffectTriggers = [];
     this._enterEffectTriggerIdx = 0;
     this._activeEnterEffect = 0;
@@ -1128,6 +1132,10 @@ class us {
           _0x554e0e._eeWorldX = _0x173c58;
           _0x554e0e._eeBaseY = _0x1b10a0;
           this._addToSection(_0x554e0e);
+          if (typeof rotatingDecoObjs !== 'undefined' && rotatingDecoObjs.includes(Number(_0x1b937f.id))) {
+            _0x554e0e._isRotatingDeco = true;
+            this._sawSprites.push(_0x554e0e);
+          }
           if (_0x1b937f.groups) {
             const _gids = _0x1b937f.groups.split('.').map(Number).filter(n => n > 0);
             _0x554e0e._eeGroups = _gids;
@@ -1227,6 +1235,10 @@ class us {
               _0x42173e._eeWorldX = _0x173c58 + _0x3b4e8c;
               _0x42173e._eeBaseY = _0x1b10a0 + _0x172131;
               this._addToSection(_0x42173e);
+              if (typeof rotatingDecoObjs !== 'undefined' && rotatingDecoObjs.includes(Number(_0x1b937f.id))) {
+                _0x42173e._isRotatingDeco = true;
+                this._sawSprites.push(_0x42173e);
+              }
               if (_0x4c7589 && _0x4c7589.indexOf("sawblade") >= 0) {
                 _0x42173e.setTint(0x000000);
                 _0x42173e._isSaw = true;
