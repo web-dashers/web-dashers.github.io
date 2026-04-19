@@ -54,8 +54,8 @@ const g = a;
 const jumpPadType = "jump_pad";
 const jumpRingType = "jump_ring";
 const T = 460;
-function b(_0x3ed2c6) {
-  return T - _0x3ed2c6;
+function b(y) {
+  return T - y;
 }
 let S = Phaser.BlendModes.ADD;
 let E = Phaser.BlendModes.NORMAL;
@@ -69,9 +69,9 @@ preload() {
 	if (window.gameCache) window.gameCache.init();
     (function (game) {
       if (game.renderer.type === Phaser.WEBGL) {
-        let _0x47cabb = game.renderer.gl;
-        S = game.renderer.addBlendMode([_0x47cabb.SRC_ALPHA, _0x47cabb.ONE], _0x47cabb.FUNC_ADD);
-        E = game.renderer.addBlendMode([_0x47cabb.DST_COLOR, _0x47cabb.ONE_MINUS_SRC_ALPHA], _0x47cabb.FUNC_ADD);
+        let gl = game.renderer.gl;
+        S = game.renderer.addBlendMode([gl.SRC_ALPHA, gl.ONE], gl.FUNC_ADD);
+        E = game.renderer.addBlendMode([gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA], gl.FUNC_ADD);
       }
     })(this.game);
  
@@ -159,7 +159,7 @@ preload() {
       pctText.setText(Math.floor(value * 100) + '%');
       loadingText.setText(value < 1 ? 'Loading...' : 'Ready!');
     });
-    this.load.on("loaderror", _0x550fba => {});
+    this.load.on("loaderror", error => {});
     if (window.gameCache) {
       const originalXhr = this.load.xhrLoader;
       this.load.xhrLoader = (file) => {
@@ -262,85 +262,85 @@ preload() {
     this.scene.start("GameScene");
   }
 }
-function loadFont(scene, _0x5059cd, _0x3a0583) {
-  const _0x4adbf2 = scene.textures.get(_0x5059cd);
-  const _0x39d5fe = _0x4adbf2.source[0];
-  const _0x177755 = _0x39d5fe.width;
-  const _0x69dcd6 = _0x39d5fe.height;
-  const _0x4bb3ff = {
-    font: _0x5059cd,
+function loadFont(scene, fontName, fontData) {
+  const texture = scene.textures.get(fontName);
+  const image = texture.source[0];
+  const imageWidth = image.width;
+  const imageHeight = image.height;
+  const fontConfig = {
+    font: fontName,
     size: 0,
     lineHeight: 0,
     chars: {}
   };
-  const _0x42b370 = [];
-  for (const _0x4e81a8 of _0x3a0583.split("\n")) {
-    const _0x4234e6 = _0x4e81a8.trim().split(/\s+/);
-    if (!_0x4234e6.length) {
+  const kerningPairs = [];
+  for (const line of fontData.split("\n")) {
+    const lineParts = line.trim().split(/\s+/);
+    if (!lineParts.length) {
       continue;
     }
-    const _0x485488 = _0x4234e6[0];
-    const _0x2e29f1 = {};
-    for (let _0x47b3a1 = 1; _0x47b3a1 < _0x4234e6.length; _0x47b3a1++) {
-      const _0x4f1697 = _0x4234e6[_0x47b3a1].indexOf("=");
-      if (_0x4f1697 >= 0) {
-        _0x2e29f1[_0x4234e6[_0x47b3a1].slice(0, _0x4f1697)] = _0x4234e6[_0x47b3a1].slice(_0x4f1697 + 1).replace(/^"|"$/g, "");
+    const lineType = lineParts[0];
+    const properties = {};
+    for (let i = 1; i < lineParts.length; i++) {
+      const equalIndex = lineParts[i].indexOf("=");
+      if (equalIndex >= 0) {
+        properties[lineParts[i].slice(0, equalIndex)] = lineParts[i].slice(equalIndex + 1).replace(/^"|"$/g, "");
       }
     }
-    if (_0x485488 === "info") {
-      _0x4bb3ff.size = parseInt(_0x2e29f1.size, 10);
-    } else if (_0x485488 === "common") {
-      _0x4bb3ff.lineHeight = parseInt(_0x2e29f1.lineHeight, 10);
-    } else if (_0x485488 === "char") {
-      const _0x1e73d6 = parseInt(_0x2e29f1.id, 10);
-      const _0xa9d8ad = parseInt(_0x2e29f1.x, 10);
-      const _0x38c0bc = parseInt(_0x2e29f1.y, 10);
-      const _0x33bab4 = parseInt(_0x2e29f1.width, 10);
-      const _0x5ab709 = parseInt(_0x2e29f1.height, 10);
-      const _0xd0e50c = _0xa9d8ad / _0x177755;
-      const _0x581858 = _0x38c0bc / _0x69dcd6;
-      const _0x40168d = (_0xa9d8ad + _0x33bab4) / _0x177755;
-      const _0x467b92 = (_0x38c0bc + _0x5ab709) / _0x69dcd6;
-      _0x4bb3ff.chars[_0x1e73d6] = {
-        x: _0xa9d8ad,
-        y: _0x38c0bc,
-        width: _0x33bab4,
-        height: _0x5ab709,
-        centerX: Math.floor(_0x33bab4 / 2),
-        centerY: Math.floor(_0x5ab709 / 2),
-        xOffset: parseInt(_0x2e29f1.xoffset, 10),
-        yOffset: parseInt(_0x2e29f1.yoffset, 10),
-        xAdvance: parseInt(_0x2e29f1.xadvance, 10),
+    if (lineType === "info") {
+      fontConfig.size = parseInt(properties.size, 10);
+    } else if (lineType === "common") {
+      fontConfig.lineHeight = parseInt(properties.lineHeight, 10);
+    } else if (lineType === "char") {
+      const charId = parseInt(properties.id, 10);
+      const charX = parseInt(properties.x, 10);
+      const charY = parseInt(properties.y, 10);
+      const charWidth = parseInt(properties.width, 10);
+      const charHeight = parseInt(properties.height, 10);
+      const u0 = charX / imageWidth;
+      const v0 = charY / imageHeight;
+      const u1 = (charX + charWidth) / imageWidth;
+      const v1 = (charY + charHeight) / imageHeight;
+      fontConfig.chars[charId] = {
+        x: charX,
+        y: charY,
+        width: charWidth,
+        height: charHeight,
+        centerX: Math.floor(charWidth / 2),
+        centerY: Math.floor(charHeight / 2),
+        xOffset: parseInt(properties.xoffset, 10),
+        yOffset: parseInt(properties.yoffset, 10),
+        xAdvance: parseInt(properties.xadvance, 10),
         data: {},
         kerning: {},
-        u0: _0xd0e50c,
-        v0: _0x581858,
-        u1: _0x40168d,
-        v1: _0x467b92
+        u0: u0,
+        v0: v0,
+        u1: u1,
+        v1: v1
       };
-      if (_0x33bab4 !== 0 && _0x5ab709 !== 0) {
-        const _0x30b963 = String.fromCharCode(_0x1e73d6);
-        const _0xe070ca = _0x4adbf2.add(_0x30b963, 0, _0xa9d8ad, _0x38c0bc, _0x33bab4, _0x5ab709);
-        if (_0xe070ca) {
-          _0xe070ca.setUVs(_0x33bab4, _0x5ab709, _0xd0e50c, _0x581858, _0x40168d, _0x467b92);
+      if (charWidth !== 0 && charHeight !== 0) {
+        const charCode = String.fromCharCode(charId);
+        const frame = texture.add(charCode, 0, charX, charY, charWidth, charHeight);
+        if (frame) {
+          frame.setUVs(charWidth, charHeight, u0, v0, u1, v1);
         }
       }
-    } else if (_0x485488 === "kerning") {
-      _0x42b370.push({
-        first: parseInt(_0x2e29f1.first, 10),
-        second: parseInt(_0x2e29f1.second, 10),
-        amount: parseInt(_0x2e29f1.amount, 10)
+    } else if (lineType === "kerning") {
+      kerningPairs.push({
+        first: parseInt(properties.first, 10),
+        second: parseInt(properties.second, 10),
+        amount: parseInt(properties.amount, 10)
       });
     }
   }
-  for (const _0x48e531 of _0x42b370) {
-    if (_0x4bb3ff.chars[_0x48e531.second]) {
-      _0x4bb3ff.chars[_0x48e531.second].kerning[_0x48e531.first] = _0x48e531.amount;
+  for (const kerningPair of kerningPairs) {
+    if (fontConfig.chars[kerningPair.second]) {
+      fontConfig.chars[kerningPair.second].kerning[kerningPair.first] = kerningPair.amount;
     }
   }
-  scene.cache.bitmapFont.add(_0x5059cd, {
-    data: _0x4bb3ff,
-    texture: _0x5059cd,
+  scene.cache.bitmapFont.add(fontName, {
+    data: fontConfig,
+    texture: fontName,
     frame: null
   });
 }
@@ -380,25 +380,25 @@ class PlayerState {
   }
 }
 const P = ["GJ_WebSheet", "GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04", "GJ_GameSheetEditor", "GJ_GameSheetGlow", "GJ_GameSheetIcons", "GJ_LaunchSheet", "player_ball_00", "player_dart_00"];
-function R(scene, _0x2da093) {
-  for (let _0x15819b of P) {
-    if (scene.textures.exists(_0x15819b)) {
-      if (scene.textures.get(_0x15819b).has(_0x2da093)) {
+function R(scene, frameName) {
+  for (let atlasName of P) {
+    if (scene.textures.exists(atlasName)) {
+      if (scene.textures.get(atlasName).has(frameName)) {
         return {
-          atlas: _0x15819b,
-          frame: _0x2da093
+          atlas: atlasName,
+          frame: frameName
         };
       }
     }
   }
   return null;
 }
-function L(scene, _0x310a42, _0x71aad, _0x4272eb) {
-  let _0x4a4e1f = R(scene, _0x4272eb);
-  if (_0x4a4e1f) {
-    return scene.add.image(_0x310a42, _0x71aad, _0x4a4e1f.atlas, _0x4a4e1f.frame);
-  } else if (scene.textures.exists(_0x4272eb)) {
-    return scene.add.image(_0x310a42, _0x71aad, _0x4272eb);
+function L(scene, x, y, textureName) {
+  let textureInfo = R(scene, textureName);
+  if (textureInfo) {
+    return scene.add.image(x, y, textureInfo.atlas, textureInfo.frame);
+  } else if (scene.textures.exists(textureName)) {
+    return scene.add.image(x, y, textureName);
   } else {
     return null;
   }
@@ -416,30 +416,30 @@ class Collider {
 }
 function parseObject(objectString) {
   let objectParts = objectString.split(",");
-  let _0x20f60e = {};
+  let objectData = {};
   for (let index = 0; index + 1 < objectParts.length; index += 2) {
-    let _0x323e77 = parseInt(objectParts[index], 10);
-    let _0x557e5c = objectParts[index + 1];
-    _0x20f60e[_0x323e77] = _0x557e5c;
+    let key = parseInt(objectParts[index], 10);
+    let value = objectParts[index + 1];
+    objectData[key] = value;
   }
-  let _0x382b1e = parseInt(_0x20f60e[1] || "0", 10);
-  if (_0x382b1e === 0) {
+  let objectId = parseInt(objectData[1] || "0", 10);
+  if (objectId === 0) {
     return null;
   } else {
     return {
-      id: _0x382b1e,
-      x: parseFloat(_0x20f60e[2] || "0"),
-      y: parseFloat(_0x20f60e[3] || "0"),
-      flipX: _0x20f60e[4] === "1",
-      flipY: _0x20f60e[5] === "1",
-      rot: parseFloat(_0x20f60e[6] || "0"),
-      scale: parseFloat(_0x20f60e[32] || "1"),
-      zLayer: parseInt(_0x20f60e[24] || "0", 10),
-      zOrder: parseInt(_0x20f60e[25] || "0", 10),
-      groups: _0x20f60e[57] || "",
-      color1: parseInt(_0x20f60e[21] || "0", 10),
-      color2: parseInt(_0x20f60e[22] || "0", 10),
-      _raw: _0x20f60e
+      id: objectId,
+      x: parseFloat(objectData[2] || "0"),
+      y: parseFloat(objectData[3] || "0"),
+      flipX: objectData[4] === "1",
+      flipY: objectData[5] === "1",
+      rot: parseFloat(objectData[6] || "0"),
+      scale: parseFloat(objectData[32] || "1"),
+      zLayer: parseInt(objectData[24] || "0", 10),
+      zOrder: parseInt(objectData[25] || "0", 10),
+      groups: objectData[57] || "",
+      color1: parseInt(objectData[21] || "0", 10),
+      color2: parseInt(objectData[22] || "0", 10),
+      _raw: objectData
     };
   }
 }
@@ -581,9 +581,9 @@ function getObjectFromId(id) {
   return allObjects[id] || null;
 }
 class us {
-  constructor(scene, _0x35fa95) {
+  constructor(scene, cameraXRef) {
     this._scene = scene;
-    this._cameraXRef = _0x35fa95;
+    this._cameraXRef = cameraXRef;
     this.additiveContainer = scene.add.container(0, 0).setDepth(-1);
     this.container = scene.add.container(0, 0);
     this.topContainer = scene.add.container(0, 0).setDepth(13);
@@ -628,12 +628,12 @@ class us {
     this._ceilingStartScreenY = 0;
     this._buildGround();
   }
-  loadLevel(_0x335f1b) {
+  loadLevel(levelData) {
     let {
-      objects: _0x1b4349,
+      objects: levelObjects,
       settings: settingslist
-    } = parseLevel(_0x335f1b);
-    this._spawnLevelObjects(_0x1b4349);
+    } = parseLevel(levelData);
+    this._spawnLevelObjects(levelObjects);
     this._setUpSettings(settingslist);
   }
   _setUpSettings(settingsStr) {
@@ -699,144 +699,144 @@ class us {
     console.log("level colors:", JSON.stringify(this._initialColors));
   }
   _buildGround() {
-    const _0x73ae12 = this._scene;
+    const scene = this._scene;
     window._groundId = window._groundId ? window._groundId : "01";
     
       console.log(window._groundId)
-    const _0x3bff90 = _0x73ae12.textures.getFrame("groundSquare_" + window._groundId + "_001.png");
-    this._tileW = _0x3bff90 ? _0x3bff90.width : 1012;
+    const groundFrame = scene.textures.getFrame("groundSquare_" + window._groundId + "_001.png");
+    this._tileW = groundFrame ? groundFrame.width : 1012;
     this._groundTiles = [];
     this._ceilingTiles = [];
-    let _0x5bf5f8 = Math.ceil(screenWidth / this._tileW) + 2;
-    let _0x428d85 = b(0);
-    const _0x239f13 = -centerX;
-    for (let _0x3a0baf = 0; _0x3a0baf < _0x5bf5f8; _0x3a0baf++) {
-      let _0x4cea14 = _0x239f13 + _0x3a0baf * this._tileW;
-      let _0x929a9b = _0x73ae12.add.image(0, _0x428d85, "groundSquare_" + window._groundId + "_001.png");
-      _0x929a9b.setOrigin(0, 0);
-      _0x929a9b.setTint(17578);
-      _0x929a9b.setDepth(20);
-      _0x929a9b._worldX = _0x4cea14;
-      this._groundTiles.push(_0x929a9b);
-      let _0x1b177f = _0x73ae12.add.image(0, _0x428d85, "groundSquare_" + window._groundId + "_001.png");
-      _0x1b177f.setOrigin(0, 1);
-      _0x1b177f.setFlipY(true);
-      _0x1b177f.setTint(17578);
-      _0x1b177f.setDepth(20);
-      _0x1b177f.setVisible(false);
-      _0x1b177f._worldX = _0x4cea14;
-      this._ceilingTiles.push(_0x1b177f);
+    let tileCount = Math.ceil(screenWidth / this._tileW) + 2;
+    let groundY = b(0);
+    const startX = -centerX;
+    for (let i = 0; i < tileCount; i++) {
+      let tileX = startX + i * this._tileW;
+      let groundTile = scene.add.image(0, groundY, "groundSquare_" + window._groundId + "_001.png");
+      groundTile.setOrigin(0, 0);
+      groundTile.setTint(17578);
+      groundTile.setDepth(20);
+      groundTile._worldX = tileX;
+      this._groundTiles.push(groundTile);
+      let ceilingTile = scene.add.image(0, groundY, "groundSquare_" + window._groundId + "_001.png");
+      ceilingTile.setOrigin(0, 1);
+      ceilingTile.setFlipY(true);
+      ceilingTile.setTint(17578);
+      ceilingTile.setDepth(20);
+      ceilingTile.setVisible(false);
+      ceilingTile._worldX = tileX;
+      this._ceilingTiles.push(ceilingTile);
     }
-    this._maxGroundWorldX = _0x239f13 + (_0x5bf5f8 - 1) * this._tileW;
-    const _0x42704c = _0x73ae12.textures.getFrame("GJ_WebSheet", "floorLine_01_001.png");
-    const _0x37a2ff = _0x42704c ? _0x42704c.width : 888;
-    const _0x578262 = screenWidth / _0x37a2ff;
-    this._groundLine = _0x73ae12.add.image(screenWidth / 2, _0x428d85 - 1, "GJ_WebSheet", "floorLine_01_001.png").setOrigin(0.5, 0).setScale(_0x578262, 1).setBlendMode(S).setDepth(21).setScrollFactor(0);
-    this._ceilingLine = _0x73ae12.add.image(screenWidth / 2, _0x428d85 + 1, "GJ_WebSheet", "floorLine_01_001.png").setOrigin(0.5, 1).setScale(_0x578262, 1).setFlipY(true).setBlendMode(S).setDepth(21).setScrollFactor(0).setVisible(false);
-    const _0x4ff823 = 100 / 255;
-    this._groundShadowL = _0x73ae12.add.image(-1, _0x428d85, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(0, 0).setScrollFactor(0).setDepth(22).setAlpha(_0x4ff823).setScale(0.7, 1).setBlendMode(E);
-    this._groundShadowR = _0x73ae12.add.image(screenWidth + 1, _0x428d85, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(1, 0).setScrollFactor(0).setDepth(22).setAlpha(_0x4ff823).setScale(0.7, 1).setFlipX(true).setBlendMode(E);
-    this._ceilingShadowL = _0x73ae12.add.image(-1, _0x428d85, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(0, 1).setScrollFactor(0).setDepth(22).setAlpha(_0x4ff823).setScale(0.7, 1).setFlipY(true).setBlendMode(E).setVisible(false);
-    this._ceilingShadowR = _0x73ae12.add.image(screenWidth + 1, _0x428d85, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(1, 1).setScrollFactor(0).setDepth(22).setAlpha(_0x4ff823).setScale(0.7, 1).setFlipX(true).setFlipY(true).setBlendMode(E).setVisible(false);
+    this._maxGroundWorldX = startX + (tileCount - 1) * this._tileW;
+    const floorLineFrame = scene.textures.getFrame("GJ_WebSheet", "floorLine_01_001.png");
+    const floorLineWidth = floorLineFrame ? floorLineFrame.width : 888;
+    const floorLineScale = screenWidth / floorLineWidth;
+    this._groundLine = scene.add.image(screenWidth / 2, groundY - 1, "GJ_WebSheet", "floorLine_01_001.png").setOrigin(0.5, 0).setScale(floorLineScale, 1).setBlendMode(S).setDepth(21).setScrollFactor(0);
+    this._ceilingLine = scene.add.image(screenWidth / 2, groundY + 1, "GJ_WebSheet", "floorLine_01_001.png").setOrigin(0.5, 1).setScale(floorLineScale, 1).setFlipY(true).setBlendMode(S).setDepth(21).setScrollFactor(0).setVisible(false);
+    const shadowAlpha = 100 / 255;
+    this._groundShadowL = scene.add.image(-1, groundY, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(0, 0).setScrollFactor(0).setDepth(22).setAlpha(shadowAlpha).setScale(0.7, 1).setBlendMode(E);
+    this._groundShadowR = scene.add.image(screenWidth + 1, groundY, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(1, 0).setScrollFactor(0).setDepth(22).setAlpha(shadowAlpha).setScale(0.7, 1).setFlipX(true).setBlendMode(E);
+    this._ceilingShadowL = scene.add.image(-1, groundY, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(0, 1).setScrollFactor(0).setDepth(22).setAlpha(shadowAlpha).setScale(0.7, 1).setFlipY(true).setBlendMode(E).setVisible(false);
+    this._ceilingShadowR = scene.add.image(screenWidth + 1, groundY, "GJ_WebSheet", "groundSquareShadow_001.png").setOrigin(1, 1).setScrollFactor(0).setDepth(22).setAlpha(shadowAlpha).setScale(0.7, 1).setFlipX(true).setFlipY(true).setBlendMode(E).setVisible(false);
   }
   resizeScreen() {
-    var _0xdc60af;
-    var _0x493047;
-    const _0x1f0ac2 = this._scene;
-    const _0x495be2 = this._tileW;
-    const _0x546bad = Math.ceil(screenWidth / _0x495be2) + 2;
-    const _0x4f87d5 = b(0);
-    while (this._groundTiles.length < _0x546bad) {
-      const _0x596be1 = this._maxGroundWorldX + _0x495be2;
+    var newTile;
+    var newCeilingTile;
+    const scene = this._scene;
+    const tileWidth = this._tileW;
+    const requiredTileCount = Math.ceil(screenWidth / tileWidth) + 2;
+    const groundY = b(0);
+    while (this._groundTiles.length < requiredTileCount) {
+      const newTileX = this._maxGroundWorldX + tileWidth;
       console.log(window._groundId)
-      let _0x32bd97 = _0x1f0ac2.add.image(0, _0x4f87d5, "groundSquare_" + window._groundId + "_001.png");
-      _0x32bd97.setOrigin(0, 0).setTint(((_0xdc60af = this._groundTiles[0]) == null ? undefined : _0xdc60af.tintTopLeft) || 17578).setDepth(20);
-      _0x32bd97._worldX = _0x596be1;
-      this._groundTiles.push(_0x32bd97);
-      let _0x6e7d76 = _0x1f0ac2.add.image(0, _0x4f87d5, "groundSquare_" + window._groundId + "_001.png");
-      _0x6e7d76.setOrigin(0, 1).setFlipY(true).setTint(((_0x493047 = this._groundTiles[0]) == null ? undefined : _0x493047.tintTopLeft) || 17578).setDepth(20).setVisible(false);
-      _0x6e7d76._worldX = _0x596be1;
-      this._ceilingTiles.push(_0x6e7d76);
-      this._maxGroundWorldX = _0x596be1;
+      let newGroundTile = scene.add.image(0, groundY, "groundSquare_" + window._groundId + "_001.png");
+      newGroundTile.setOrigin(0, 0).setTint(((newTile = this._groundTiles[0]) == null ? undefined : newTile.tintTopLeft) || 17578).setDepth(20);
+      newGroundTile._worldX = newTileX;
+      this._groundTiles.push(newGroundTile);
+      let newCeilingTile = scene.add.image(0, groundY, "groundSquare_" + window._groundId + "_001.png");
+      newCeilingTile.setOrigin(0, 1).setFlipY(true).setTint(((newCeilingTile = this._groundTiles[0]) == null ? undefined : newCeilingTile.tintTopLeft) || 17578).setDepth(20).setVisible(false);
+      newCeilingTile._worldX = newTileX;
+      this._ceilingTiles.push(newCeilingTile);
+      this._maxGroundWorldX = newTileX;
     }
-    const _0x51125e = this._scene.textures.getFrame("GJ_WebSheet", "floorLine_01_001.png");
-    const _0x1c38c3 = screenWidth / (_0x51125e ? _0x51125e.width : 888);
+    const floorLineFrame = this._scene.textures.getFrame("GJ_WebSheet", "floorLine_01_001.png");
+    const floorLineScale = screenWidth / (floorLineFrame ? floorLineFrame.width : 888);
     this._groundLine.x = screenWidth / 2;
-    this._groundLine.setScale(_0x1c38c3, 1);
+    this._groundLine.setScale(floorLineScale, 1);
     this._ceilingLine.x = screenWidth / 2;
-    this._ceilingLine.setScale(_0x1c38c3, 1);
+    this._ceilingLine.setScale(floorLineScale, 1);
     this._groundShadowR.x = screenWidth + 1;
     this._ceilingShadowR.x = screenWidth + 1;
   }
-  updateGroundTiles(_0x14aed2 = 0) {
-    const _0x3d0974 = this._cameraXRef.value;
-    const _0x40fc27 = this._tileW;
-    let _0x12b0b9;
-    let _0x3453a2;
-    let _0x5bf36e = this._maxGroundWorldX || -Infinity;
-    const _0x4e05bc = !this._flyGroundActive && this._flyCeilingY !== null;
+  updateGroundTiles(cameraY = 0) {
+    const cameraX = this._cameraXRef.value;
+    const tileWidth = this._tileW;
+    let leftTileIndex;
+    let rightTileIndex;
+    let maxWorldX = this._maxGroundWorldX || -Infinity;
+    const ceilingActive = !this._flyGroundActive && this._flyCeilingY !== null;
     if (this._flyVisualOnly && this._flyCeilingY !== null) {
-      _0x12b0b9 = b(0) + _0x14aed2;
-      _0x3453a2 = b(this._flyCeilingY) + _0x14aed2;
+      leftTileIndex = b(0) + cameraY;
+      rightTileIndex = b(this._flyCeilingY) + cameraY;
     } else if (this._flyGroundActive && this._groundTargetValue > 0.001) {
-      let _0x3ce536 = this._groundTargetValue;
-      let _0x3f1d55 = 620;
-      let _0x178745 = 20;
-      _0x12b0b9 = this._groundStartScreenY + (_0x3f1d55 - this._groundStartScreenY) * _0x3ce536;
-      _0x3453a2 = this._ceilingStartScreenY + (_0x178745 - this._ceilingStartScreenY) * _0x3ce536;
-      let _0x518952 = b(0) + _0x14aed2;
-      if (_0x12b0b9 > _0x518952) {
-        _0x12b0b9 = _0x518952;
+      let groundTarget = this._groundTargetValue;
+      let targetGroundY = 620;
+      let targetCeilingY = 20;
+      leftTileIndex = this._groundStartScreenY + (targetGroundY - this._groundStartScreenY) * groundTarget;
+      rightTileIndex = this._ceilingStartScreenY + (targetCeilingY - this._ceilingStartScreenY) * groundTarget;
+      let groundScreenY = b(0) + cameraY;
+      if (leftTileIndex > groundScreenY) {
+        leftTileIndex = groundScreenY;
       }
     } else {
-      _0x12b0b9 = b(0) + _0x14aed2;
-      _0x3453a2 = _0x4e05bc ? 20 : 0;
+      leftTileIndex = b(0) + cameraY;
+      rightTileIndex = ceilingActive ? 20 : 0;
     }
-    for (let _0x2c7b79 = 0; _0x2c7b79 < this._groundTiles.length; _0x2c7b79++) {
-      let _0x2d1a71 = this._groundTiles[_0x2c7b79];
-      let _0x20a50b = this._ceilingTiles[_0x2c7b79];
-      if (_0x2d1a71._worldX + _0x40fc27 <= _0x3d0974) {
-        _0x2d1a71._worldX = _0x5bf36e + _0x40fc27;
-        _0x20a50b._worldX = _0x2d1a71._worldX;
-        _0x5bf36e = _0x2d1a71._worldX;
-        this._maxGroundWorldX = _0x5bf36e;
+    for (let i = 0; i < this._groundTiles.length; i++) {
+      let groundTile = this._groundTiles[i];
+      let ceilingTile = this._ceilingTiles[i];
+      if (groundTile._worldX + tileWidth <= cameraX) {
+        groundTile._worldX = maxWorldX + tileWidth;
+        ceilingTile._worldX = groundTile._worldX;
+        maxWorldX = groundTile._worldX;
+        this._maxGroundWorldX = maxWorldX;
       }
-      let _0x1ff1b3 = _0x2d1a71._worldX - _0x3d0974;
-      _0x2d1a71.x = _0x1ff1b3;
-      _0x2d1a71.y = _0x12b0b9;
-      _0x20a50b.x = _0x1ff1b3;
-      _0x20a50b.y = _0x3453a2;
-      _0x20a50b.setVisible(this._flyGroundActive && this._groundTargetValue > 0 || _0x4e05bc);
+      let tileScreenX = groundTile._worldX - cameraX;
+      groundTile.x = tileScreenX;
+      groundTile.y = leftTileIndex;
+      ceilingTile.x = tileScreenX;
+      ceilingTile.y = rightTileIndex;
+      ceilingTile.setVisible(this._flyGroundActive && this._groundTargetValue > 0 || ceilingActive);
     }
-    this._groundLine.y = _0x12b0b9;
-    if (this._flyGroundActive && this._groundTargetValue > 0 || _0x4e05bc) {
-      this._ceilingLine.y = _0x3453a2;
+    this._groundLine.y = leftTileIndex;
+    if (this._flyGroundActive && this._groundTargetValue > 0 || ceilingActive) {
+      this._ceilingLine.y = rightTileIndex;
       this._ceilingLine.setVisible(true);
     } else {
       this._ceilingLine.setVisible(false);
     }
-    this._groundShadowL.y = _0x12b0b9;
-    this._groundShadowR.y = _0x12b0b9;
-    let _0x539bc2 = this._flyGroundActive && this._groundTargetValue > 0 || _0x4e05bc;
-    this._ceilingShadowL.y = _0x3453a2;
-    this._ceilingShadowR.y = _0x3453a2;
-    this._ceilingShadowL.setVisible(_0x539bc2);
-    this._ceilingShadowR.setVisible(_0x539bc2);
+    this._groundShadowL.y = leftTileIndex;
+    this._groundShadowR.y = leftTileIndex;
+    let ceilingVisible = this._flyGroundActive && this._groundTargetValue > 0 || ceilingActive;
+    this._ceilingShadowL.y = rightTileIndex;
+    this._ceilingShadowR.y = rightTileIndex;
+    this._ceilingShadowL.setVisible(ceilingVisible);
+    this._ceilingShadowR.setVisible(ceilingVisible);
   }
-  shiftGroundTiles(_0x47a8b8) {
-    for (let _0x33fd12 = 0; _0x33fd12 < this._groundTiles.length; _0x33fd12++) {
-      this._groundTiles[_0x33fd12]._worldX += _0x47a8b8;
-      this._ceilingTiles[_0x33fd12]._worldX += _0x47a8b8;
+  shiftGroundTiles(shiftAmount) {
+    for (let i = 0; i < this._groundTiles.length; i++) {
+      this._groundTiles[i]._worldX += shiftAmount;
+      this._ceilingTiles[i]._worldX += shiftAmount;
     }
-    this._maxGroundWorldX += _0x47a8b8;
+    this._maxGroundWorldX += shiftAmount;
   }
-  resetGroundTiles(_0x460241) {
-    const _0x4e210f = this._tileW;
-    for (let _0x33c028 = 0; _0x33c028 < this._groundTiles.length; _0x33c028++) {
-      this._groundTiles[_0x33c028]._worldX = _0x460241 + _0x33c028 * _0x4e210f;
-      this._ceilingTiles[_0x33c028]._worldX = _0x460241 + _0x33c028 * _0x4e210f;
+  resetGroundTiles(cameraX) {
+    const tileWidth = this._tileW;
+    for (let i = 0; i < this._groundTiles.length; i++) {
+      this._groundTiles[i]._worldX = cameraX + i * tileWidth;
+      this._ceilingTiles[i]._worldX = cameraX + i * tileWidth;
     }
-    this._maxGroundWorldX = _0x460241 + (this._groundTiles.length - 1) * _0x4e210f;
+    this._maxGroundWorldX = cameraX + (this._groundTiles.length - 1) * tileWidth;
     this.resetGroundState();
   }
   resetGroundState() {
@@ -849,38 +849,38 @@ class us {
     this._flyVisualOnly = false;
     this.flyCameraTarget = null;
   }
-  _computeFlyBounds(_0x804885, _0x4dbd1c = f, _0x354ea0 = false) {
-    let _0x4dd75a;
-    if (_0x354ea0) {
-      _0x4dd75a = _0x804885 - f / 2;
+  _computeFlyBounds(centerY, height = f, isPortal = false) {
+    let floorY;
+    if (isPortal) {
+      floorY = centerY - f / 2;
     } else {
-      _0x4dd75a = _0x804885 - _0x4dbd1c / 2;
+      floorY = centerY - height / 2;
     }
-    _0x4dd75a = Math.floor(_0x4dd75a / a) * a;
-    _0x4dd75a = Math.max(0, _0x4dd75a);
+    floorY = Math.floor(floorY / a) * a;
+    floorY = Math.max(0, floorY);
     return {
-      floorY: _0x4dd75a,
-      ceilingY: _0x4dd75a + _0x4dbd1c
+      floorY: floorY,
+      ceilingY: floorY + height
     };
   }
-  setFlyMode(_0x4a6d9a, _0x3a58e7, _0x8d8ff0 = f, _0x47bce0 = false) {
-    if (_0x4a6d9a) {
-      let _0x5b3ec5 = this._computeFlyBounds(_0x3a58e7, _0x8d8ff0, _0x47bce0);
-      this._flyFloorY = _0x5b3ec5.floorY;
-      this._flyCeilingY = _0x5b3ec5.ceilingY;
-      this._flyVisualOnly = _0x47bce0;
-      if (_0x47bce0) {
+  setFlyMode(enabled, centerY, height = f, visualOnly = false) {
+    if (enabled) {
+      let bounds = this._computeFlyBounds(centerY, height, visualOnly);
+      this._flyFloorY = bounds.floorY;
+      this._flyCeilingY = bounds.ceilingY;
+      this._flyVisualOnly = visualOnly;
+      if (visualOnly) {
         this._flyGroundActive = true;
       } else {
         this._flyGroundActive = true;
       }
-      let _0x15ff58 = this._flyFloorY + _0x8d8ff0 / 2;
-      this.flyCameraTarget = _0x15ff58 - 320 + o;
+      let flyCenter = this._flyFloorY + height / 2;
+      this.flyCameraTarget = flyCenter - 320 + o;
       if (this.flyCameraTarget < 0) {
         this.flyCameraTarget = 0;
       }
-      let _0x3be4f1 = this._scene && this._scene._cameraY || 0;
-      this._groundStartScreenY = b(0) + _0x3be4f1;
+      let currentCameraY = this._scene && this._scene._cameraY || 0;
+      this._groundStartScreenY = b(0) + currentCameraY;
       this._ceilingStartScreenY = 0;
       this._groundAnimFrom = this._groundTargetValue;
       this._groundAnimTo = 1;
@@ -905,14 +905,14 @@ class us {
       }
     }
   }
-  stepGroundAnimation(_0x4a003d) {
+  stepGroundAnimation(deltaTime) {
     if (!this._groundAnimating) {
       return;
     }
-    this._groundAnimTime += _0x4a003d;
-    let _0x4c9adc = this._groundAnimDuration > 0 ? Math.min(this._groundAnimTime / this._groundAnimDuration, 1) : 1;
-    this._groundTargetValue = this._groundAnimFrom + (this._groundAnimTo - this._groundAnimFrom) * _0x4c9adc;
-    if (_0x4c9adc >= 1) {
+    this._groundAnimTime += deltaTime;
+    let progress = this._groundAnimDuration > 0 ? Math.min(this._groundAnimTime / this._groundAnimDuration, 1) : 1;
+    this._groundTargetValue = this._groundAnimFrom + (this._groundAnimTo - this._groundAnimFrom) * progress;
+    if (progress >= 1) {
       this._groundAnimating = false;
       this._groundTargetValue = this._groundAnimTo;
       if (this._groundAnimTo === 0) {
@@ -937,111 +937,111 @@ class us {
       return null;
     }
   }
-  _applyVisualProps(_0x4feeca, _0x2d433c, _0x590e4f, _0x5eb2df, _0x450956 = null) {
-    if (!_0x2d433c) {
+  _applyVisualProps(scene, sprite, frameName, objectData, colorData = null) {
+    if (!sprite) {
       return;
     }
     let {
-      dx: _0x4aea8a,
-      dy: _0x545b71
-    } = function (_0x221968, _0xce6477) {
-      let _0x3a4f77 = R(_0x221968, _0xce6477);
-      if (!_0x3a4f77) {
+      dx: offsetX,
+      dy: offsetY
+    } = function (scene, frameName) {
+      let textureInfo = R(scene, frameName);
+      if (!textureInfo) {
         return {
           dx: 0,
           dy: 0
         };
       }
-      let _0x225d39 = _0x221968.textures.get(_0x3a4f77.atlas).get(_0x3a4f77.frame);
-      if (!_0x225d39) {
+      let frame = scene.textures.get(textureInfo.atlas).get(textureInfo.frame);
+      if (!frame) {
         return {
           dx: 0,
           dy: 0
         };
       }
-      let _0x30be73 = _0x225d39.customData || {};
-      if (_0x30be73.gjSpriteOffset) {
+      let customData = frame.customData || {};
+      if (customData.gjSpriteOffset) {
         return {
-          dx: _0x30be73.gjSpriteOffset.x || 0,
-          dy: -(_0x30be73.gjSpriteOffset.y || 0)
+          dx: customData.gjSpriteOffset.x || 0,
+          dy: -(customData.gjSpriteOffset.y || 0)
         };
       }
-      let _0x535a10 = _0x225d39.realWidth;
-      let _0x796c4 = _0x225d39.realHeight;
-      let _0x62367d = _0x225d39.width;
-      let _0x244756 = _0x225d39.height;
-      let _0x58bd9c = 0;
-      let _0xedc3c7 = 0;
-      if (_0x30be73.spriteSourceSize) {
-        _0x58bd9c = _0x30be73.spriteSourceSize.x || 0;
-        _0xedc3c7 = _0x30be73.spriteSourceSize.y || 0;
+      let realWidth = frame.realWidth;
+      let realHeight = frame.realHeight;
+      let frameWidth = frame.width;
+      let frameHeight = frame.height;
+      let sourceX = 0;
+      let sourceY = 0;
+      if (customData.spriteSourceSize) {
+        sourceX = customData.spriteSourceSize.x || 0;
+        sourceY = customData.spriteSourceSize.y || 0;
       }
       return {
-        dx: _0x535a10 / 2 - (_0x58bd9c + _0x62367d / 2),
-        dy: _0x796c4 / 2 - (_0xedc3c7 + _0x244756 / 2)
+        dx: realWidth / 2 - (sourceX + frameWidth / 2),
+        dy: realHeight / 2 - (sourceY + frameHeight / 2)
       };
-    }(_0x4feeca, _0x590e4f);
-    if (_0x5eb2df.flipX) {
-      _0x2d433c.setFlipX(true);
+    }(scene, frameName);
+    if (objectData.flipX) {
+      sprite.setFlipX(true);
     }
-    if (_0x5eb2df.flipY) {
-      _0x2d433c.setFlipY(true);
+    if (objectData.flipY) {
+      sprite.setFlipY(true);
     }
-    let _0x249260 = (_0x2d433c.getData("gjBaseRotationDeg") || 0) + _0x5eb2df.rot;
-    if (_0x249260 !== 0) {
-      _0x2d433c.setAngle(_0x249260);
+    let totalRotation = (sprite.getData("gjBaseRotationDeg") || 0) + objectData.rot;
+    if (totalRotation !== 0) {
+      sprite.setAngle(totalRotation);
     }
-    if (_0x5eb2df.scale !== 1) {
-      _0x2d433c.setScale(_0x5eb2df.scale);
+    if (objectData.scale !== 1) {
+      sprite.setScale(objectData.scale);
     }
-    if (_0x450956) {
-      if (_0x450956.tint !== undefined) {
-        _0x2d433c.setTint(_0x450956.tint);
-      } else if (_0x450956.black) {
-        _0x2d433c.setTint(0);
+    if (colorData) {
+      if (colorData.tint !== undefined) {
+        sprite.setTint(colorData.tint);
+      } else if (colorData.black) {
+        sprite.setTint(0);
       }
     }
   }
-  _addVisualSprite(_0x2edd38, _0x55b8b6 = null) {
-    if (_0x2edd38) {
-      if (_0x55b8b6 && _0x55b8b6.blend === "additive") {
-        _0x2edd38.setBlendMode(S);
-        _0x2edd38._eeLayer = 0;
-      } else if (_0x55b8b6 && _0x55b8b6._portalFront) {
-        _0x2edd38._eeLayer = 2;
-      } else if (_0x55b8b6 && _0x55b8b6.z !== undefined && _0x55b8b6.z < 0) {
-        _0x2edd38._eeLayer = 0;
+  _addVisualSprite(sprite, objectData = null) {
+    if (sprite) {
+      if (objectData && objectData.blend === "additive") {
+        sprite.setBlendMode(S);
+        sprite._eeLayer = 0;
+      } else if (objectData && objectData._portalFront) {
+        sprite._eeLayer = 2;
+      } else if (objectData && objectData.z !== undefined && objectData.z < 0) {
+        sprite._eeLayer = 0;
       } else {
-        _0x2edd38._eeLayer = 1;
+        sprite._eeLayer = 1;
       }
     }
   }
-  _getGlowFrameName(_0x40f97f) {
-    if (_0x40f97f && _0x40f97f.endsWith("_001.png")) {
-      return _0x40f97f.replace("_001.png", "_glow_001.png");
+  _getGlowFrameName(frameName) {
+    if (frameName && frameName.endsWith("_001.png")) {
+      return frameName.replace("_001.png", "_glow_001.png");
     } else {
       return null;
     }
   }
-  _addGlowSprite(_0x2fb4ca, _0xad3348, _0x5d6f6f, _0x3d09ed, _0x330e58, _0x3f8eef) {
-    let _0xa6570d = this._getGlowFrameName(_0x3d09ed);
-    if (!_0xa6570d) {
+  _addGlowSprite(scene, x, y, frameName, objectData, worldX) {
+    let glowFrameName = this._getGlowFrameName(frameName);
+    if (!glowFrameName) {
       return;
     }
-    if (!R(_0x2fb4ca, _0xa6570d) && !_0x2fb4ca.textures.exists(_0xa6570d)) {
+    if (!R(scene, glowFrameName) && !scene.textures.exists(glowFrameName)) {
       return;
     }
-    let _0x3a5f29 = L(_0x2fb4ca, _0xad3348, _0x5d6f6f, _0xa6570d);
-    if (_0x3a5f29) {
-      this._applyVisualProps(_0x2fb4ca, _0x3a5f29, _0xa6570d, _0x330e58);
-      _0x3a5f29.setBlendMode(S);
-      _0x3a5f29._eeLayer = 0;
-      if (_0x3f8eef !== undefined) {
-        _0x3a5f29._eeWorldX = _0x3f8eef;
-        _0x3a5f29._eeBaseY = _0x5d6f6f;
-        this._addToSection(_0x3a5f29);
+    let glowSprite = L(scene, x, y, glowFrameName);
+    if (glowSprite) {
+      this._applyVisualProps(scene, glowSprite, glowFrameName, objectData);
+      glowSprite.setBlendMode(S);
+      glowSprite._eeLayer = 0;
+      if (worldX !== undefined) {
+        glowSprite._eeWorldX = worldX;
+        glowSprite._eeBaseY = y;
+        this._addToSection(glowSprite);
       }
-      return _0x3a5f29;
+      return glowSprite;
     }
     return null;
   }
@@ -7178,8 +7178,8 @@ this._escKey.on("down", () => {
     this._deltaBuffer = _0x578d1b - _0xd8019e;
     return _0xd8019e * 60;
   }
-  update(_0x54fa47, _0xaf2ffd) {
-    this._fpsAccum += _0xaf2ffd;
+  update(_0x54fa47, deltaTime) {
+    this._fpsAccum += deltaTime;
     this._fpsFrames++;
     if (this._fpsAccum >= 250) {
       this._fpsText.setText(Math.round(this._fpsFrames * 1000 / this._fpsAccum));
@@ -7219,28 +7219,28 @@ this._escKey.on("down", () => {
       }
       this._arrowWasDown = _arrowLeft || _arrowRight;
       this._spaceWasDown = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown;
-      const _0x1e9cf4 = Math.min(_0xaf2ffd / 1000 * 60, 2);
-      const _0x2e19f3 = 0.25;
-      this._menuCameraX = (this._menuCameraX || 0) + _0x1e9cf4 * c * d * _0x2e19f3;
+      const menuDelta = Math.min(deltaTime / 1000 * 60, 2);
+      const menuSpeed = 0.25;
+      this._menuCameraX = (this._menuCameraX || 0) + menuDelta * c * d * menuSpeed;
       const _0x38afac = this._cameraX;
       this._cameraX = this._menuCameraX;
       this._updateBackground();
       this._cameraX = _0x38afac;
       this._prevCameraX = this._menuCameraX;
       this._cameraXRef._v = this._menuCameraX;
-      this._level.stepGroundAnimation(_0xaf2ffd / 1000);
+      this._level.stepGroundAnimation(deltaTime / 1000);
       this._level.updateGroundTiles(this._cameraY);
       return;
     }
     if (this._slideIn) {
-      const _0x3c9318 = this._quantizeDelta(_0xaf2ffd);
-      this._playerWorldX += _0x3c9318 * c * d;
-      const _0x4f81e7 = 0.25;
-      this._slideGroundX = (this._slideGroundX || this._cameraX) + _0x3c9318 * c * d * _0x4f81e7;
+      const slideDelta = this._quantizeDelta(deltaTime);
+      this._playerWorldX += slideDelta * c * d;
+      const slideGroundSpeed = 0.25;
+      this._slideGroundX = (this._slideGroundX || this._cameraX) + slideDelta * c * d * slideGroundSpeed;
       this._cameraXRef._v = this._slideGroundX;
-      const _0x95cc4f = this._playerWorldX - this._cameraX;
-      this._player.updateGroundRotation(_0x3c9318 * d);
-      this._player.syncSprites(this._cameraX, this._cameraY, _0xaf2ffd / 1000, this._getMirrorXOffset(_0x95cc4f));
+      const slidePlayerScreenX = this._playerWorldX - this._cameraX;
+      this._player.updateGroundRotation(slideDelta * d);
+      this._player.syncSprites(this._cameraX, this._cameraY, deltaTime / 1000, this._getMirrorXOffset(slidePlayerScreenX));
       this._level.additiveContainer.x = -this._cameraX;
       this._level.additiveContainer.y = this._cameraY;
       this._level.container.x = -this._cameraX;
@@ -7249,7 +7249,7 @@ this._escKey.on("down", () => {
       this._level.topContainer.y = this._cameraY;
       this._level.updateVisibility(this._cameraX);
       this._updateBackground();
-      this._level.stepGroundAnimation(_0xaf2ffd / 1000);
+      this._level.stepGroundAnimation(deltaTime / 1000);
       this._level.updateGroundTiles(this._cameraY);
       this._applyMirrorEffect();
       if (this._playerWorldX >= 0) {
@@ -7308,7 +7308,7 @@ this._escKey.on("down", () => {
       this._level.topContainer.x = -this._cameraX;
       this._level.topContainer.y = this._cameraY;
       this._updateBackground();
-      this._level.stepGroundAnimation(_0xaf2ffd / 1000);
+      this._level.stepGroundAnimation(deltaTime / 1000);
       this._level.updateGroundTiles(this._cameraY);
       this._applyMirrorEffect();
       return;
@@ -7333,17 +7333,17 @@ this._escKey.on("down", () => {
           this._showNewBest();
         }
       }
-      this._player.updateExplosionPieces(_0xaf2ffd);
-      this._deathTimer += _0xaf2ffd;
+      this._player.updateExplosionPieces(deltaTime);
+      this._deathTimer += deltaTime;
       let _0x237728 = this._hadNewBest ? 1400 : 1000;
       if (this._deathTimer > _0x237728) {
         this._restartLevel();
       }
       return;
     }
-    this._playTime += _0xaf2ffd / 1000;
-    this._audio.update(_0xaf2ffd / 1000);
-    window._animTimer += _0xaf2ffd;
+    this._playTime += deltaTime / 1000;
+    this._audio.update(deltaTime / 1000);
+    window._animTimer += deltaTime;
     for (let _as of window._animatedSprites) {
       if (window._animTimer - (_as._lastAnimSwap || 0) >= _as._animInterval) {
         _as._lastAnimSwap = window._animTimer;
@@ -7357,17 +7357,17 @@ this._escKey.on("down", () => {
       }
     }
     if (this._level && this._level._sawSprites) {
-      const _sawRot = _0xaf2ffd * 0.003;
+      const sawRotation = deltaTime * 0.003;
       for (let _saw of this._level._sawSprites) {
-        if (_saw && _saw.active) _saw.rotation += _sawRot;
+        if (_saw && _saw.active) _saw.rotation += sawRotation;
       }
     }
     this._level.updateAudioScale(this._audio.getMeteringValue());
     if (!this._orbGfx) {
       this._orbGfx = this.add.graphics().setDepth(54).setBlendMode(S);
     }
-    this._orbParticleAngle = ((this._orbParticleAngle || 0) + _0xaf2ffd * 0.004) % (Math.PI * 2);
-    this._orbGfxTimer = (this._orbGfxTimer || 0) + _0xaf2ffd;
+    this._orbParticleAngle = ((this._orbParticleAngle || 0) + deltaTime * 0.004) % (Math.PI * 2);
+    this._orbGfxTimer = (this._orbGfxTimer || 0) + deltaTime;
     if (this._orbGfxTimer > 33) {
       this._orbGfxTimer = 0;
       this._orbGfx.clear();
@@ -7397,29 +7397,29 @@ this._escKey.on("down", () => {
         } catch(e) {}
       }
     }
-    let _0x30fa5d = this._quantizeDelta(_0xaf2ffd);
-    let _0x5efc2d = _0x30fa5d > 0 ? Math.max(1, Math.round(_0x30fa5d * 4)) : 0;
-    if (_0x5efc2d > 60) {
-      _0x5efc2d = 60;
+    let quantizedDelta = this._quantizeDelta(deltaTime);
+    let subSteps = quantizedDelta > 0 ? Math.max(1, Math.round(quantizedDelta * 4)) : 0;
+    if (subSteps > 60) {
+      subSteps = 60;
     }
-    let _0x426602 = _0x5efc2d > 0 ? _0x30fa5d / _0x5efc2d : 0;
-    let _0x5caeb1 = _0x426602 * d;
-    let _0x5dfd5a = _0x426602 * c * d;
-    const _0x23505e = this._state.y;
-    for (let _0x26d5d6 = 0; _0x26d5d6 < _0x5efc2d; _0x26d5d6++) {
+    let subStepDelta = subSteps > 0 ? quantizedDelta / subSteps : 0;
+    let verticalDelta = subStepDelta * d;
+    let horizontalDelta = subStepDelta * c * d;
+    const initialY = this._state.y;
+    for (let i = 0; i < subSteps; i++) {
       this._state.lastY = this._state.y;
-      this._player.updateJump(_0x5caeb1);
-      this._state.y += this._state.yVelocity * _0x5caeb1;
+      this._player.updateJump(verticalDelta);
+      this._state.y += this._state.yVelocity * verticalDelta;
       this._player.checkCollisions(this._playerWorldX - centerX);
-      this._playerWorldX += _0x5dfd5a;
+      this._playerWorldX += horizontalDelta;
       if (this._isDual && !this._state2.isDead) {
         this._state2.upKeyDown = this._state.upKeyDown;
         this._state2.upKeyPressed = this._state.upKeyPressed;
         this._state2.queuedHold = this._state.queuedHold;
         this._state2.lastY = this._state2.y;
-        this._player2.updateJump(_0x5caeb1);
-        this._state2.y += this._state2.yVelocity * _0x5caeb1;
-        this._player2.checkCollisions(this._playerWorldX - centerX - _0x5dfd5a);
+        this._player2.updateJump(verticalDelta);
+        this._state2.y += this._state2.yVelocity * verticalDelta;
+        this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
         if (this._state2.isDead && !this._state.isDead) {
           this._player.killPlayer();
         }
@@ -7427,9 +7427,9 @@ this._escKey.on("down", () => {
 if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
   if (this._state.isBall) {
     const ballOnSurface = this._state.onGround || this._state.onCeiling;
-    this._player.updateBallRoll(_0x5dfd5a, ballOnSurface);
+    this._player.updateBallRoll(horizontalDelta, ballOnSurface);
   } else if (this._state.onGround) {
-    this._player.updateGroundRotation(_0x5caeb1);
+    this._player.updateGroundRotation(verticalDelta);
   } else if (this._player.rotateActionActive) {
     this._player.updateRotateAction(u);
   } else if (this._state.isDashing) {
@@ -7437,45 +7437,45 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
   }
 }
     }
-    this._state.lastY = _0x23505e;
+    this._state.lastY = initialY;
     if (!this._endCameraOverride) {
-      const _0xe48698 = this._playerWorldX - centerX;
+      const cameraOffsetX = this._playerWorldX - centerX;
       if (this._level.endXPos > 0) {
-        const _0x24670d = this._level.endXPos - screenWidth;
-        if (_0xe48698 >= _0x24670d - 200) {
+        const maxCameraX = this._level.endXPos - screenWidth;
+        if (cameraOffsetX >= maxCameraX - 200) {
           this._endCameraOverride = true;
-          this._cameraX = _0xe48698;
-          const _0x2e3f0a = -140 + (this._level._endPortalGameY || 240);
-          const _0x34bdb9 = 1.8;
-          const _0x41f777 = _0x2aca75 => _0x2aca75 < 0.5 ? Math.pow(_0x2aca75 * 2, _0x34bdb9) / 2 : 1 - Math.pow((1 - _0x2aca75) * 2, _0x34bdb9) / 2;
+          this._cameraX = cameraOffsetX;
+          const endCameraY = -140 + (this._level._endPortalGameY || 240);
+          const easingPower = 1.8;
+          const easeInOutCubic = t => t < 0.5 ? Math.pow(t * 2, easingPower) / 2 : 1 - Math.pow((1 - t) * 2, easingPower) / 2;
           this._endCamTween = {
             p: 0,
             fromX: this._cameraX,
-            toX: _0x24670d,
+            toX: maxCameraX,
             fromY: this._cameraY,
-            toY: _0x2e3f0a
+            toY: endCameraY
           };
           this.tweens.add({
             targets: this._endCamTween,
             p: 1,
             duration: 1200,
-            ease: _0x41f777
+            ease: easeInOutCubic
           });
         } else {
-          this._cameraX = _0xe48698;
+          this._cameraX = cameraOffsetX;
         }
       } else {
-        this._cameraX = _0xe48698;
+        this._cameraX = cameraOffsetX;
       }
     }
     if (this._endCameraOverride && this._endCamTween) {
-      const _0x490838 = this._endCamTween;
-      this._cameraX = _0x490838.fromX + (_0x490838.toX - _0x490838.fromX) * _0x490838.p;
-      this._cameraY = _0x490838.fromY + (_0x490838.toY - _0x490838.fromY) * _0x490838.p;
+      const tween = this._endCamTween;
+      this._cameraX = tween.fromX + (tween.toX - tween.fromX) * tween.p;
+      this._cameraY = tween.fromY + (tween.toY - tween.fromY) * tween.p;
     }
     this._cameraXRef._v = this._cameraX;
     if (!this._endCameraOverride) {
-      this._updateCameraY(_0x30fa5d);
+      this._updateCameraY(quantizedDelta);
     }
     this._level.additiveContainer.x = -this._cameraX;
     this._level.additiveContainer.y = this._cameraY;
@@ -7483,33 +7483,33 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     this._level.container.y = this._cameraY;
     this._level.topContainer.x = -this._cameraX;
     this._level.topContainer.y = this._cameraY;
-    let _0x5464ab = this._playerWorldX;
-    for (let _0x2001f6 of this._level.checkColorTriggers(_0x5464ab)) {
-      this._colorManager.triggerColor(_0x2001f6.index, _0x2001f6.color, _0x2001f6.duration);
-      if (_0x2001f6.tintGround) {
-        this._colorManager.triggerColor(gs, _0x2001f6.color, _0x2001f6.duration);
+    let playerX = this._playerWorldX;
+    for (let colorTrigger of this._level.checkColorTriggers(playerX)) {
+      this._colorManager.triggerColor(colorTrigger.index, colorTrigger.color, colorTrigger.duration);
+      if (colorTrigger.tintGround) {
+        this._colorManager.triggerColor(gs, colorTrigger.color, colorTrigger.duration);
       }
     }
-    this._level.checkMoveTriggers(_0x5464ab);
-    this._level.stepMoveTriggers(_0xaf2ffd / 1000);
-    this._colorManager.step(_0xaf2ffd / 1000);
+    this._level.checkMoveTriggers(playerX);
+    this._level.stepMoveTriggers(deltaTime / 1000);
+    this._colorManager.step(deltaTime / 1000);
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
     this._level.updateVisibility(this._cameraX);
-    this._level.checkEnterEffectTriggers(_0x5464ab);
+    this._level.checkEnterEffectTriggers(playerX);
     this._level.applyEnterEffects(this._cameraX);
     this._glitterCenterX = this._cameraX + screenWidth / 2;
     this._glitterCenterY = T - this._cameraY;
     this._updateBackground();
-    this._level.stepGroundAnimation(_0xaf2ffd / 1000);
+    this._level.stepGroundAnimation(deltaTime / 1000);
     this._level.updateGroundTiles(this._cameraY);
     if (this._state.isFlying) {
-      this._player.updateShipRotation(_0x30fa5d);
+      this._player.updateShipRotation(quantizedDelta);
     }
-    const _0x259e68 = this._playerWorldX - this._cameraX;
-    this._player.syncSprites(this._cameraX, this._cameraY, _0xaf2ffd / 1000, this._getMirrorXOffset(_0x259e68));
+    const playerScreenX = this._playerWorldX - this._cameraX;
+    this._player.syncSprites(this._cameraX, this._cameraY, deltaTime / 1000, this._getMirrorXOffset(playerScreenX));
     if (this._isDual && !this._state2.isDead) {
-      this._player2.syncSprites(this._cameraX, this._cameraY, _0xaf2ffd / 1000, this._getMirrorXOffset(_0x259e68));
+      this._player2.syncSprites(this._cameraX, this._cameraY, deltaTime / 1000, this._getMirrorXOffset(playerScreenX));
     }
     this._applyMirrorEffect();
     this._percentageLabel.setText(`${(this._playerWorldX / (this._level.endXPos || 6000) * 100).toFixed(2)}%`)
