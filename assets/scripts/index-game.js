@@ -4263,9 +4263,8 @@ _updateBallJump(_0x2fe319) {
             } catch(e) {}
           }
         } else if (_colType === hazardType) {
-          if (!window.noClip){
-            this.killPlayer();
-          }
+          if (window.noClip) continue;
+          this.killPlayer();
           return;
         } else if (_colType === solidType) {
           let _0x146a97 = _0x8e0d28 - playerSize + _0x11ee2f;
@@ -4278,9 +4277,8 @@ _updateBallJump(_0x2fe319) {
           const _0xLandTop = (this.p.yVelocity >= 0 || this.p.onGround) && (_0x3e7199 <= top || _0x135a9d <= top);
           const _0x2841ea = this.p.gravityFlipped ? _0xLandTop : _0xLandBot;
           if (_0x3c1654 && !_0x2841ea) {
-            if (!window.noClip && gameObj.objid !== 143){
-              this.killPlayer();
-            }
+            if (window.noClip || gameObj.objid === 143) continue
+            this.killPlayer();
             return;
           }
           if (pieceWidth + playerSize - 5 > left && pieceWidth - playerSize + 5 < right) {
@@ -4332,9 +4330,8 @@ _updateBallJump(_0x2fe319) {
             }
             if (!this.p.gravityFlipped && (_0x3e7199 <= top || _0x135a9d <= top) && this.p.yVelocity >= 0) {
               if (_0x3c1654) {
-                if (!window.noClip && gameObj.objid !== 143) {
-                  this.killPlayer();
-                }
+                if (window.noClip || gameObj.objid === 143) continue;
+                this.killPlayer();
                 return;
               }
               continue;
@@ -4355,8 +4352,8 @@ _updateBallJump(_0x2fe319) {
       if (Math.abs(this.p.collideTop - this.p.collideBottom) < 48) {
         if (!window.noClip) {
           this.killPlayer();
+          return;
         }
-        return;
       }
     }
     let _0x3020c8 = this._gameLayer.getFloorY();
