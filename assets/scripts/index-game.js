@@ -106,7 +106,7 @@ preload() {
     }).setOrigin(0.5, 0);
  
     const loadingText = this.add.text(cx, barY - 24, 'Loading...', {
-      fontSize: '15px', fontFamily: 'Arial', color: '#445588'
+      fontSize: '18px', fontFamily: 'Arial', color: '#445588'
     }).setOrigin(0.5, 1);
  
     const consoleX = cx - barW / 2;
@@ -133,6 +133,15 @@ preload() {
       if (consoleLines.length > 8) consoleLines.shift();
       consoleText.setText(consoleLines.join('\n'));
     };
+
+    let splashText = null;
+
+    if (window.allSplashes) {
+      console.log("splashes loaded correctly.")
+      splashText = window.allSplashes[Math.floor(Math.random()*window.allSplashes.length)];
+    } else {
+      console.warn("no splashes found!");
+    }
  
     this.load.on('fileprogress', (file) => {
       const prev = fileBytesMap[file.key] || { loaded: 0, total: 0 };
@@ -164,7 +173,11 @@ preload() {
       barFill.fillStyle(0x4488ff, 0.5);
       barFill.fillRoundedRect(barX, barY, fillW, barH / 2, { tl: 8, tr: 8, bl: 0, br: 0 });
       pctText.setText(Math.floor(value * 100) + '%');
-      loadingText.setText(value < 1 ? 'Loading...' : 'Ready!');
+      if (splashText) {
+        loadingText.setText(splashText);
+      } else {
+        loadingText.setText(value < 1 ? 'Loading...' : 'Ready!');
+      }
     });
     this.load.on("loaderror", error => {});
     if (window.gameCache) {
@@ -5837,7 +5850,7 @@ class xs extends Phaser.Scene {
       }
       this._searchOverlay = overlay;
       const blocker = this.add.zone(sw / 2, sh / 2, sw, sh).setScrollFactor(0).setDepth(101).setInteractive();
-      const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+      const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setScrollFactor(0).setDepth(104).setFlipX(true).setFlipY(true)
         .setRotation(Math.PI).setInteractive();
       this._makeBouncyButton(backBtn, 1, () => this._closeSearchMenu());
@@ -5875,9 +5888,9 @@ class xs extends Phaser.Scene {
       `;
       document.body.appendChild(htmlInput);
       setTimeout(() => htmlInput.focus(), 50);
-      const placeholderLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "Enter a level, user or ID", 18)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xaaddff);
-      const typedLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "", 18)
+      const placeholderLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "Enter a level, user or ID", 20)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0x6899d8);
+      const typedLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "", 20)
         .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xffffff);
       htmlInput.style.color = "transparent";
       htmlInput.style.caretColor = "#ffffff";
@@ -5897,6 +5910,7 @@ class xs extends Phaser.Scene {
         htmlInput.style.fontSize = `${Math.round(20 * sy)}px`;
       };
       window.addEventListener("resize", _repositionInput);
+
       const statusText = this.add.text(sw / 2, inputY + inputH + 22, "", {
         fontSize: "16px",
         fontFamily: "Arial, sans-serif",
@@ -5905,18 +5919,20 @@ class xs extends Phaser.Scene {
         wordWrap: { width: 420 }
       }).setScrollFactor(0).setDepth(106).setOrigin(0.5, 0).setAlpha(0);
       this._searchOverlayObjects.push(statusText);
+
       const _showStatus = (msg, color = "#ffffff", duration = 0) => {
         statusText.setText(msg);
         statusText.setColor(color);
         this.tweens.killTweensOf(statusText);
         statusText.setAlpha(1);
       };
+
       let _loading = false;
       const _doSearch = async () => {
         if (_loading) return;
         const levelId = htmlInput.value.trim().replace(/\D/g, "");
         if (!levelId) {
-          _showStatus("enter a level id", "#ff6666", 3000);
+          _showStatus("Enter a level ID", "#ff6666", 3000);
 
           return;
         }
@@ -5925,17 +5941,17 @@ class xs extends Phaser.Scene {
           await _doSearchInner(levelId);
         } catch (err) {
           console.error("search error:", err);
-          _showStatus("error: " + err.message, "#ff5555");
+          _showStatus("Error: " + err.message, "#ff5555");
         } finally {
           _loading = false;
         }
       };
       const _doSearchInner = async (levelId) => {
-        _showStatus("fetching level", "#ffb700");
+        _showStatus("Fetching level", "#ffb700");
 
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
         if (!PROXY_BASE) {
-          _showStatus("no proxy configured. set window._gdProxyUrl first.", "#ff0000");
+          _showStatus("No proxy configured. Set window._gdProxyUrl first.", "#ff0000");
           return;
         }
         const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
@@ -5948,7 +5964,7 @@ class xs extends Phaser.Scene {
         const rawResponse = await res.text();
         console.log("raw response:", rawResponse.slice(0, 200));
         if (!rawResponse || rawResponse === "-1" || !rawResponse.includes(":")) {
-          _showStatus("level not found from servers. check the id and try again.", "#ff0000");
+          _showStatus("Level not found from servers. Check the ID and try again.", "#ff0000");
           return;
         }
         const gdMap = {};
@@ -5968,7 +5984,7 @@ class xs extends Phaser.Scene {
         window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
         console.log("song offset (field 45):", window._onlineSongOffset);
         console.log("level:", levelName, "| songId:", songIdRaw, "| custom:", isCustomSong);
-        _showStatus(`found "${levelName}"${isCustomSong ? ` — loading song #${songIdRaw}...` : ""}`, "#00ff00");
+        _showStatus(`Found "${levelName}"${isCustomSong ? ` — Loading song #${songIdRaw}...` : ""}`, "#00ff00");
         if (isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
@@ -5990,7 +6006,7 @@ class xs extends Phaser.Scene {
               const songTitle  = (ngMap["2"]  || `Song #${songIdRaw}`).replace(/:$/, "").trim();
               console.log("song url:", songUrl);
               if (songUrl) {
-                _showStatus(`loading "${songTitle}" by ${songArtist}...`, "#00ff00");
+                _showStatus(`Loading "${songTitle}" by ${songArtist}...`, "#00ff00");
                 const audioCtx = this.game.sound.context;
                 if (audioCtx.state === "suspended") await audioCtx.resume();
                 const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
@@ -6023,7 +6039,7 @@ class xs extends Phaser.Scene {
           window._onlineLevelId,
           [window._onlineSongArtist || "Unknown"]
         ];
-        _showStatus(`loading string for "${levelName}"`, "#00ff00");
+        _showStatus(`Loading string for "${levelName}"`, "#00ff00");
         this.time.delayedCall(600, () => {
           htmlInput.remove();
           window.removeEventListener("resize", _repositionInput);
@@ -7699,7 +7715,7 @@ this._escKey.on("down", () => {
     bounceContainer.add(closeBtn);
     this._expandHitArea(closeBtn, 2);
     this._makeBouncyButton(closeBtn, 0.8, () => this._closeUpdateLogPopup());
-    const title = this.add.bitmapText(0, -124, "bigFont", "BETA (EXPECT BUGS)", 30).setOrigin(0.5, 0.5).setTint(0xff6666);
+    const title = this.add.bitmapText(0, -124, "goldFont", "Update Log", 30).setOrigin(0.5, 0.5);
     bounceContainer.add(title);
     const scrollAreaW = 420;
     const scrollAreaH = 230;
@@ -7718,18 +7734,8 @@ this._escKey.on("down", () => {
       0xff00ff - pink dev entries
     */
     const updateEntries = [
-      { text: "Update Log", scale: 0.85, font: "goldFont" },
-      { text: "Online levels - BETA", scale: 0.65 },
-      { text: "Practice Mode - BETA", scale: 0.65 },
-      { text: "THESE 2 CAN BE VERY BUGGY.", scale: 0.65, color: 0xff6666 },
-      { text: "UI tweaks.", scale: 0.65 },
-      { text: "Correct Wave hitboxes.", scale: 0.65 },
-      { text: "Move triggers now move orbs and etc.", scale: 0.6 },
-      // { text: "Added slopes. - PinkDev", scale: 0.65, color: 0xff00ff }, (soon)
-      { text: "Bug fixes.", scale: 0.65 },
-      // message of the update day (from me :P)
-      { text: "NEXT UPDATE FINNA BE MASSIVE :o", scale: 0.6, color: 0xaaddff },
-      { text: "- rohanis0000", scale: 0.6, color: 0xaaddff },
+      { text: "Splash text in loading screen", scale: 0.65 },
+      { text: "- t0nchi7", scale: 0.6, color: 0xaaddff },
     ]; 
     let yPos = 0;
     const lineItems = [];
