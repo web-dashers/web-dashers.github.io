@@ -181,17 +181,6 @@ window.allobjects = function() {
         "type": "deco",
         "z": 2
     },
-    1007: {
-        "can_color": false,
-        "default_base_color_channel": 0,
-        "frame": "edit_eAlphaBtn_001.png",
-        "glow_frame": "edit_eAlphaBtn_glow_001.png",
-        "gridH": 1.0,
-        "gridW": 1.0,
-        "spritesheet": "GJ_GameSheet02-uhd",
-        "type": "deco",
-        "z": 2
-    },
     1009: {
         "can_color": true,
         "default_base_color_channel": 1,
@@ -75619,6 +75608,12 @@ return {
         "spritesheet": "GJ_GameSheet-uhd",
         "type": "hazard",
         "z": 1
+    },
+    1007: {
+        type: "trigger",
+        frame: null,
+        gridW: 0,
+        gridH: 0
     },
 };
 }

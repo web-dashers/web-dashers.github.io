@@ -720,8 +720,12 @@ class us {
     this._moveTriggers = [];
     this._moveTriggerIdx = 0;
     this._activeMoveTweens = [];
+    this._alphaTriggers = [];
+    this._alphaTriggerIdx = 0;
+    this._activeAlphaTweens = [];
     this._groupSprites = {};
     this._groupOffsets = {};
+    this._groupOpacity = {};
     this._groupColliders = {};
     this._sections = [];
     this._sectionContainers = [];
@@ -1203,6 +1207,15 @@ class us {
             lockY: _raw[59] === '1',
           });
         }
+        if (levelObj.id === 1007) {
+          const _raw = levelObj._raw;
+          this._alphaTriggers.push({
+            x: levelObj.x * 2,
+            duration: parseFloat(_raw[10] ?? 0),
+            targetGroup: parseInt(_raw[51] ?? 0, 10),
+            targetOpacity: Math.max(0, Math.min(1, parseFloat(_raw[35] ?? 1))),
+          });
+        }
         continue;
       }
       let worldX = levelObj.x * 2;
@@ -1577,6 +1590,7 @@ class us {
     this._colorTriggers.sort((_0x359c7f, _0x28dd8b) => _0x359c7f.x - _0x28dd8b.x);
     this._enterEffectTriggers.sort((_0x3e43f2, _0x5e3d9a) => _0x3e43f2.x - _0x5e3d9a.x);
     this._moveTriggers.sort((a, b) => a.x - b.x);
+    this._alphaTriggers.sort((a, b) => a.x - b.x);
     this.endXPos = Math.max(screenWidth + 1200, this._lastObjectX + 680);
   }
   createEndPortal(_0x41fbdb) {
@@ -1880,6 +1894,65 @@ class us {
     }
   }
 
+  checkAlphaTriggers(playerX) {
+    while (this._alphaTriggerIdx < this._alphaTriggers.length) {
+      const trig = this._alphaTriggers[this._alphaTriggerIdx];
+      if (trig.x > playerX) break;
+      const currentOpacity = this._groupOpacity[trig.targetGroup] ?? 1;
+      this._activeAlphaTweens.push({
+        trig,
+        elapsed: 0,
+        startOpacity: currentOpacity,
+      });
+      this._alphaTriggerIdx++;
+    }
+  }
+
+  stepAlphaTriggers(dt) {
+    let i = 0;
+    while (i < this._activeAlphaTweens.length) {
+      const anim = this._activeAlphaTweens[i];
+      const { trig } = anim;
+      const dur = trig.duration > 0 ? trig.duration : 0;
+
+      anim.elapsed += dt;
+      const progress = dur > 0 ? Math.min(anim.elapsed / dur, 1) : 1;
+
+      const newOpacity = anim.startOpacity + (trig.targetOpacity - anim.startOpacity) * progress;
+      this._groupOpacity[trig.targetGroup] = Math.max(0, Math.min(1, newOpacity));
+
+      if (progress >= 1) {
+        this._activeAlphaTweens.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+
+    for (const gid in this._groupOpacity) {
+      const sprites = this._groupSprites[gid];
+      if (!sprites) continue;
+      const op = this._groupOpacity[gid];
+      for (const spr of sprites) {
+        if (!spr || !spr.active) continue;
+        if (spr._eeActive) continue;
+        spr.setAlpha(op);
+      }
+    }
+  }
+
+  resetAlphaTriggers() {
+    this._alphaTriggerIdx = 0;
+    this._activeAlphaTweens = [];
+    this._groupOpacity = {};
+    for (const gid in this._groupSprites) {
+      for (const spr of this._groupSprites[gid]) {
+        if (!spr || !spr.active) continue;
+        if (spr._eeActive) continue;
+        spr.setAlpha(1);
+      }
+    }
+  }
+
   resetEnterEffectTriggers() {
     this._enterEffectTriggerIdx = 0;
     this._activeEnterEffect = 0;
@@ -1897,11 +1970,22 @@ class us {
           if (!visMinSection._eeAudioScale) {
             visMinSection.setScale(1);
           }
-          visMinSection.setAlpha(1);
+          visMinSection.setAlpha(this._getGroupOpacityForSprite(visMinSection));
         }
       }
     }
   }
+  _getGroupOpacityForSprite(spr) {
+    const groups = spr && spr._eeGroups;
+    if (!groups || !groups.length) return 1;
+    let op = 1;
+    for (const gid of groups) {
+      const g = this._groupOpacity[gid];
+      if (g !== undefined && g < op) op = g;
+    }
+    return op;
+  }
+
   applyEnterEffects(_0x2f36ed) {
     const _0x221c93 = 400;
     const _0xa24372 = 140;
@@ -1928,7 +2012,7 @@ class us {
             if (!effectSprite._eeAudioScale) {
               effectSprite.setScale(1);
             }
-            effectSprite.setAlpha(1);
+            effectSprite.setAlpha(this._getGroupOpacityForSprite(effectSprite));
           }
           continue;
         }
@@ -1944,7 +2028,7 @@ class us {
             if (!effectSprite._eeAudioScale) {
               effectSprite.setScale(1);
             }
-            effectSprite.setAlpha(1);
+            effectSprite.setAlpha(this._getGroupOpacityForSprite(effectSprite));
           }
           continue;
         }
@@ -1986,8 +2070,9 @@ class us {
         if (effectSprite.y !== _0x50e6d9) {
           effectSprite.y = _0x50e6d9;
         }
-        if (effectSprite.alpha !== _0x2128bf) {
-          effectSprite.alpha = _0x2128bf;
+        const _eeFinalAlpha = _0x2128bf * this._getGroupOpacityForSprite(effectSprite);
+        if (effectSprite.alpha !== _eeFinalAlpha) {
+          effectSprite.alpha = _eeFinalAlpha;
         }
         if (!effectSprite._eeAudioScale && effectSprite.scaleX !== _0x127ace) {
           effectSprite.setScale(_0x127ace);
@@ -7784,6 +7869,7 @@ this._escKey.on("down", () => {
     this._level.shiftGroundTiles(this._cameraX - _0x2ba78a);
     this._level.resetGroundState();
     this._level.resetColorTriggers();
+    this._level.resetAlphaTriggers();
     this._level.resetEnterEffectTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
@@ -7911,6 +7997,7 @@ this._escKey.on("down", () => {
     this._level._groundY = checkpoint.groundY;
     this._level._ceilingY = checkpoint.ceilingY;
     this._level.resetColorTriggers();
+    this._level.resetAlphaTriggers();
     this._level.resetEnterEffectTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
@@ -8358,6 +8445,8 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     }
     this._level.checkMoveTriggers(playerX);
     this._level.stepMoveTriggers(deltaTime / 1000);
+    this._level.checkAlphaTriggers(playerX);
+    this._level.stepAlphaTriggers(deltaTime / 1000);
     this._colorManager.step(deltaTime / 1000);
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
