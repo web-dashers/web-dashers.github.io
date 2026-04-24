@@ -6784,6 +6784,11 @@ class xs extends Phaser.Scene {
     this._dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
     this._percentageLabel = this.add.bitmapText(screenWidth / 2, 20, "bigFont", "0.00%", 30).setOrigin(0.5, 0.5).setVisible(false).setDepth(100);
+    this._isShuttingDown = false;
+    this.events.once("shutdown", () => {
+      this._isShuttingDown = true;
+      this._percentageLabel = null;
+    });
 
     this._updatePracticeHUDBar = () => {};
 
@@ -8256,6 +8261,17 @@ this._escKey.on("down", () => {
     }
     this._attemptsLabel.setPosition(_0xdbdd91, 150);
   }
+  _getLevelPercent(_0x1d30d5 = this._playerWorldX) {
+    const _0x2518db = this._level && this._level.endXPos > 0 ? this._level.endXPos : 6000;
+    return Math.max(0, Math.min(_0x1d30d5 / _0x2518db * 100, 100));
+  }
+  _setPercentageLabel(_0x4b77bc) {
+    if (this._isShuttingDown || !this.sys || !this.sys.isActive() || !this._percentageLabel || !this._percentageLabel.active || !this._percentageLabel.scene) {
+      return;
+    }
+    const _0x5ce833 = Math.max(0, Math.min(_0x4b77bc, 100));
+    this._percentageLabel.setText(`${_0x5ce833.toFixed(2)}%`);
+  }
   _resetGameplayState() {
     this._cameraX = -centerX;
     this._cameraY = 0;
@@ -8271,6 +8287,7 @@ this._escKey.on("down", () => {
     this._endCameraOverride = false;
     this._endCamTween = null;
     this._spaceWasDown = false;
+    this._setPercentageLabel(0);
   }
   _restartLevel() {
     this._attempts++;
@@ -8918,7 +8935,7 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
       this._player2.syncSprites(this._cameraX, this._cameraY, deltaTime / 1000, this._getMirrorXOffset(playerScreenX));
     }
     this._applyMirrorEffect();
-    this._percentageLabel.setText(`${(this._playerWorldX / (this._level.endXPos || 6000) * 100).toFixed(2)}%`)
+    this._setPercentageLabel(this._getLevelPercent());
   }
 _applyMirrorEffect() {
     const isMirrored = this._state.mirrored;
@@ -9016,9 +9033,11 @@ _applyMirrorEffect() {
   }
 
     _triggerEndPortal() {
+    this._setPercentageLabel(100);
     this._player.playEndAnimation(this._level.endXPos, () => this._levelComplete(), this._endPortalGameY);
   }
   _levelComplete() {
+    this._setPercentageLabel(100);
     if (!this._practicedMode.practiceMode) {
       this._bestPercent = 100;
       localStorage.setItem("bestPercent_" + (window.currentlevel[2] || "level_1"), 100);
