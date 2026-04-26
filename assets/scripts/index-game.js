@@ -3716,10 +3716,6 @@ if (this.p.isFlying || this.p.isUfo) {
     this._gameLayer.setFlyMode(false, 0);
   }
   hitGround() {
-    if (this.p.gravityFlipped && !this.p.onCeiling && !this.p.isFlying && !this.p.isBall && !this.p.isUfo && !this.p.isSpider) {
-        this.killPlayer();
-        return;
-    }
     const _0x4a38a5 = !this.p.onGround;
     if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo) {
       this.p.lastGroundY = this.p.y;
