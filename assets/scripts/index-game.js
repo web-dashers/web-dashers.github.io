@@ -3716,10 +3716,6 @@ if (this.p.isFlying || this.p.isUfo) {
     this._gameLayer.setFlyMode(false, 0);
   }
   hitGround() {
-    if (this.p.gravityFlipped && !this.p.onCeiling && !this.p.isFlying && !this.p.isBall && !this.p.isUfo && !this.p.isSpider) {
-        this.killPlayer();
-        return;
-    }
     const _0x4a38a5 = !this.p.onGround;
     if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo) {
       this.p.lastGroundY = this.p.y;
@@ -4220,18 +4216,6 @@ if (this.p.isFlying || this.p.isUfo) {
     }
   }
   updateJump(_0x3d1c6f) {
-    const objectsUnderPointer = this._scene.input.manager.hitTest(
-      this._scene.input.activePointer, 
-      this._scene._startPosGui.list,
-      this._scene.cameras.main
-    );
-    const isOverUI = objectsUnderPointer.length > 0;
-
-    if (isOverUI){
-      this.p.upKeyDown = false;
-      this.p.upKeyPressed = false;
-    }
-
     if (this.p.pendingVelocity !== null) {
       this.p.yVelocity = this.p.pendingVelocity;
       this.p.pendingVelocity = null;
@@ -4255,7 +4239,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this._updateUfoJump(_0x3d1c6f);
     } else if (this.p.isSpider) {
       this._updateSpiderJump(_0x3d1c6f);
-    } else if (this.p.upKeyDown && this.p.canJump && !isOverUI) {
+    } else if (this.p.upKeyDown && this.p.canJump && !this.p.touchingRing) {
       this.p.isJumping = true;
       this.p.onGround = false;
       this.p.canJump = false;
@@ -4483,6 +4467,7 @@ _updateBallJump(_0x2fe319) {
     this.p.collideTop = 0;
     this.p.collideBottom = 0;
     this.p.onCeiling = false;
+    this.p.touchingRing = false;
     let _0x30410f = false;
     let _boostedThisStep = false;
     const _0x198534 = this._gameLayer.getNearbySectionObjects(pieceWidth);
@@ -4702,6 +4687,7 @@ _updateBallJump(_0x2fe319) {
           const _orbId = gameObj.orbId;
           const _isDash = (_orbId === 1704 || _orbId === 1751);
           const _needsClick = this.p.isFlying || this.p.isUfo ? this.p.upKeyDown : (_isDash ? this.p.upKeyDown : (this.p.queuedHold && this.p.upKeyDown));
+          this.p.touchingRing = true;
           if (!gameObj.activated && _needsClick) {
             if (_isDash) {
               gameObj._dashHoldTicks = (gameObj._dashHoldTicks || 0) + 1;
@@ -6119,7 +6105,9 @@ class xs extends Phaser.Scene {
         const levelIdParsed = gdMap["1"] || levelId;
         const songIdRaw     = (gdMap["35"] || "").trim();
         const isCustomSong  = !!songIdRaw && songIdRaw !== "0";
-        const songKey       = isCustomSong ? `ng_song_${songIdRaw}` : window.currentlevel[0];
+        const officialSongId = gdMap["12"] || "0";
+        const songKey = isCustomSong ? `ng_song_${songIdRaw}` : window.allLevels[officialSongId][0];
+        window.currentlevel[0] = songKey;
         window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
         console.log("song offset (field 45):", window._onlineSongOffset);
         console.log("level:", levelName, "| songId:", songIdRaw, "| custom:", isCustomSong);
@@ -6173,7 +6161,7 @@ class xs extends Phaser.Scene {
         window._onlineLevelId     = "online_" + levelIdParsed;
         this.game.registry.set("autoStartGame", true);
         window.currentlevel = [
-          isCustomSong ? songKey : window.currentlevel[0],
+          songKey,
           levelName,
           window._onlineLevelId,
           [window._onlineSongArtist || "Unknown"]
@@ -8514,6 +8502,15 @@ _buildSettingsPopup() {
     }
   }
   _pushButton() {
+    const objectsUnderPointer = this.input.manager.hitTest(
+      this.input.activePointer, 
+      this._startPosGui.list,
+      this.cameras.main
+    );
+    const isOverUI = objectsUnderPointer.length > 0;
+    const fromClick = this.input.activePointer.isDown;
+    const cancelInput = isOverUI && fromClick;
+
     if (this._menuActive) {
       this._audio.playEffect("playSound_01", {
         volume: 1
@@ -8521,7 +8518,7 @@ _buildSettingsPopup() {
       this._startGame();
       return;
     }
-    if (!this._slideIn && !this._state.isDead) {
+    if (!this._slideIn && !this._state.isDead && !cancelInput) {
       this._state.upKeyDown = true;
       this._state.upKeyPressed = true;
       this._state.queuedHold = true;
@@ -9088,9 +9085,24 @@ _buildSettingsPopup() {
       this._releaseButton();
     }
     this._spaceWasDown = _0x368ad9;
+
+    const objectsUnderPointer = this.input.manager.hitTest(
+      this.input.activePointer, 
+      this._startPosGui.list,
+      this.cameras.main
+    );
+    const isOverUI = objectsUnderPointer.length > 0;
+    const fromClick = this.input.activePointer.isDown;
+    const cancelInput = isOverUI && fromClick;
+
     if (!!this.input.activePointer.isDown && !this._state.upKeyDown && !this._state.isDead) {
       this._state.upKeyDown = true;
       this._state.queuedHold = true;
+    }
+    if (cancelInput){
+      this._state.upKeyDown = false;
+      this._state.upKeyPressed = false;
+      this._state.queuedHold = false;
     }
     this._level.updateEndPortalY(this._cameraY, this._state.isFlying || this._state.isWave || this._state.isUfo);
     if (!this._levelWon && !this._state.isDead && this._level.endXPos > 0) {
