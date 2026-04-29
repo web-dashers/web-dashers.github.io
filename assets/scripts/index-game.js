@@ -4786,6 +4786,15 @@ _updateBallJump(_0x2fe319) {
                   else if (_orbId === 84) { _orbVel = _cubeJump * 0.4; _flipAfter = true; }
                   else if (_orbId === 1022) { _orbVel = _cubeJump * -0.7; _flipAfter = true; }
                   else if (_orbId === 1330) { _orbVel = -28; }
+					} else if (this.p.isSwing) {
+                  const _swingBase = _cubeJump * 0.6;
+                  const _spiderBase = _cubeJump * 0.7;
+                  if (_orbId === 36) { _orbVel = _swingBase; }
+                  else if (_orbId === 141) { _orbVel = _swingBase * 0.72; }
+                  else if (_orbId === 1333) { _orbVel = _swingBase * 1.38; }
+                  else if (_orbId === 84) { _orbVel = _swingBase * 0.4; _flipAfter = true; }
+                  else if (_orbId === 1022) { _orbVel = _spiderBase * -1; _flipAfter = true; }
+                  else if (_orbId === 1330) { _orbVel = -28; }
                 } else if (this.p.isBall) {
                   const _ballBase = _cubeJump * 0.7;
                   if (_orbId === 36) { _orbVel = _ballBase; }
