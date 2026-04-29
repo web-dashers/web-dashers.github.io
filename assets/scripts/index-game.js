@@ -4690,7 +4690,7 @@ _updateBallJump(_0x2fe319) {
           const _orbId = gameObj.orbId;
           const _isDash = (_orbId === 1704 || _orbId === 1751);
           const justPressed = this.p.upKeyDown && !this.p.wasUpKeyDown;
-          const _needsClick = (this.p.isFlying || this.p.isUfo) ? justPressed : (_isDash ? this.p.upKeyDown : (justPressed || (this.p.queuedHold && this.p.upKeyDown)));
+          const _needsClick = (this.p.isFlying || this.p.isUfo || this.p.isBall) ? justPressed : (_isDash ? this.p.upKeyDown : (justPressed && this.onGround || (this.p.queuedHold && this.p.upKeyDown)));
           this.p.touchingRing = true;
           if (!gameObj.activated && _needsClick) {
             if (_isDash) {
