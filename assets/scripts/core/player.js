@@ -2116,7 +2116,7 @@ _updateBallJump(_0x2fe319) {
           const _orbId = gameObj.orbId;
           const _isDash = (_orbId === 1704 || _orbId === 1751);
           const justPressed = this.p.upKeyDown && !this.p.wasUpKeyDown;
-          const _needsClick = (this.p.isFlying || this.p.isUfo) ? justPressed : (_isDash ? this.p.upKeyDown : (justPressed || (this.p.queuedHold && this.p.upKeyDown)));
+          const _needsClick = (this.p.isFlying || this.p.isUfo) ? justPressed : (justPressed || (this.p.queuedHold && this.p.upKeyDown));
           this.p.touchingRing = true;
           if (!gameObj.activated && _needsClick) {
             if (_isDash) {
@@ -2124,13 +2124,12 @@ _updateBallJump(_0x2fe319) {
               if (gameObj._dashHoldTicks < 2) {
                 gameObj.activated = true;
                 const _dashAngleDeg = gameObj.orbRotation || 0;
-                let _clampedAngle = _dashAngleDeg;
-                if (_clampedAngle > 270) { _clampedAngle -= 360; }
-                if (_clampedAngle >= 90 && _clampedAngle <= 270) { _clampedAngle = 180 - _clampedAngle; }
-                _clampedAngle = Math.max(-70, Math.min(70, _clampedAngle));
-                const _dashRad = _clampedAngle * Math.PI / 180;
+                const _dashRad = _dashAngleDeg * Math.PI / 180;
+                const _maxSin = Math.sin(70 * Math.PI / 180);
+                const _rawSin = -Math.sin(_dashRad);
+                const _dashSin = Math.max(-_maxSin, Math.min(_maxSin, _rawSin));
                 const _dashSpeed = 18;
-                const _dashVelY = Math.sin(_dashRad) * _dashSpeed * this.flipMod();
+                const _dashVelY = _dashSin * _dashSpeed * this.flipMod();
                 if (_orbId === 1751) {
                   this.flipGravity(!this.p.gravityFlipped);
                 }

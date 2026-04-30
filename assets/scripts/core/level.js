@@ -2035,6 +2035,9 @@ window.LevelObject = class LevelObject {
   resetObjects() {
     for (let _0x3d473e of this.objects) {
       _0x3d473e.activated = false;
+      if (_0x3d473e._dashHoldTicks !== undefined) {
+        _0x3d473e._dashHoldTicks = 0;
+      }
     }
     for (let _0x5c5d9a of this._audioScaleSprites) {
       _0x5c5d9a.setScale(0.1);
