@@ -1498,12 +1498,12 @@ class xs extends Phaser.Scene {
     this._pauseContainer = null;
     this._sfxVolume = localStorage.getItem("userSfxVol") ?? 1;
     this.input.on("pointerdown", () => {
-      if (!this._menuActive && !this._paused && !this._levelSelectOverlay) {
+      if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon) {
         this._pushButton();
       }
     });
     this.input.on("pointerup", () => {
-      if (!this._menuActive && !this._paused && !this._levelSelectOverlay) {
+      if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon) {
         this._releaseButton();
       }
     });
@@ -2553,7 +2553,7 @@ _buildSettingsPopup() {
     const _0x3cdf70c = this.add.bitmapText(xPos, yPos, "goldFont", "PinkDev, rohanis0000, arbstro,", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70c);
     yPos += 35;
-    const _0x3cdf70d = this.add.bitmapText(xPos, yPos, "goldFont", "q8j, and Lasokar.", 40).setOrigin(0.5, 0.5).setScale(0.6);
+    const _0x3cdf70d = this.add.bitmapText(xPos, yPos, "goldFont", "and Lasokar.", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70d);
     yPos += 35;
     const _0x97b2a9 = this.add.text(xPos, 463, "© 2026 RobTop Games. All rights reserved.", {
@@ -2610,15 +2610,22 @@ _buildSettingsPopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 0.85, font: "goldFont" },
+      { text: "GD accurate loading screen.", scale: 0.65 },
+      { text: "Fixed freeze when completing level in noclip.", scale: 0.5 },
       { text: "Online levels - BETA", scale: 0.65 },
       { text: "Practice Mode - BETA", scale: 0.65 },
       { text: "THESE 2 CAN BE VERY BUGGY.", scale: 0.65, color: 0xff6666 },
       { text: "UI tweaks.", scale: 0.65 },
       { text: "Correct Wave hitboxes.", scale: 0.65 },
       { text: "Move triggers now move orbs and etc.", scale: 0.6 },
-      { text: "(For Developers)", scale: 0.85, font: "goldFont" },
-      { text: "Split Code into multiple files -pinkdev", scale: 0.6, color: 0xff00ff },
       { text: "Bug fixes.", scale: 0.65 },
+      { text: "i love pinkdev no diddy", scale: 0.65, color: 0xaaddff },
+      { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
+      { text: "(For Developers)", scale: 0.85, font: "goldFont" },
+      { text: "Split Code into multiple files. - PinkDev", scale: 0.58, color: 0xff00ff },
+      { text: "Put split code into folders. - rohanis0000", scale: 0.55, color: 0xaaddff },
+      
+      
 
     ]; 
     let yPos = 0;
