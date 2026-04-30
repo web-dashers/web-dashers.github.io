@@ -265,7 +265,7 @@ function getObjectFromId(id) {
   return allObjects[id] || null;
 }
 
-class us {
+window.us = class us {
   constructor(scene, cameraXRef) {
     this._scene = scene;
     this._cameraXRef = cameraXRef;
