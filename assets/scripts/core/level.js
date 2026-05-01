@@ -11,6 +11,7 @@ class Collider {
     this.slopeDir = 1;
     this.slopeIsFilled = false;
     this.slopeFlipY = false;
+    this.slopeFloorTop = false;
   }
   getSlopeSurfaceY(worldX) {
     if (this.type !== slopeType) return null;
@@ -1183,11 +1184,30 @@ window.LevelObject = class LevelObject {
         if (objectDef.type === solidType && objectDef.gridW > 0 && objectDef.gridH > 0) {
           let _0x10e5ae = objectDef.gridW * a;
           let _0x11e08d = objectDef.gridH * a;
-          let _0x4628ff = new Collider(solidType, worldX, worldY, _0x10e5ae, _0x11e08d, levelObj.rot || 0);
-          _0x4628ff.objid = levelObj.id;
-          _registerCollider(_0x4628ff);
-          this.objects.push(_0x4628ff);
-          this._addCollisionToSection(_0x4628ff);
+          if (_SLOPE_DATA[levelObj.id]) {
+            let _fx = levelObj.flipX || false;
+            let _fy = levelObj.flipY || false;
+            const _nr = ((Math.round(levelObj.rot || 0) % 360) + 360) % 360;
+            if (_nr === 90) { const _t = _fx; _fx = !_fy; _fy = _t; }
+            else if (_nr === 180) { _fx = !_fx; _fy = !_fy; }
+            else if (_nr === 270) { const _t = _fx; _fx = _fy; _fy = !_t; }
+            let _slopeCol = new Collider(slopeType, worldX, worldY, _0x10e5ae, _0x11e08d, levelObj.rot || 0);
+            _slopeCol.slopeDir = _fx ? -1 : 1;
+            _slopeCol.slopeFlipY = _fy;
+            _slopeCol.slopeFloorTop = _fy;
+            _slopeCol.slopeAngleDeg = _SLOPE_DATA[levelObj.id].angle || 45;
+            _slopeCol.slopeIsFilled = _SLOPE_DATA[levelObj.id].sq || false;
+            _slopeCol.objid = levelObj.id;
+            _registerCollider(_slopeCol);
+            this.objects.push(_slopeCol);
+            this._addCollisionToSection(_slopeCol);
+          } else {
+            let _0x4628ff = new Collider(solidType, worldX, worldY, _0x10e5ae, _0x11e08d, levelObj.rot || 0);
+            _0x4628ff.objid = levelObj.id;
+            _registerCollider(_0x4628ff);
+            this.objects.push(_0x4628ff);
+            this._addCollisionToSection(_0x4628ff);
+          }
         } else if (objectDef.type === hazardType) {
           let _0x3f8c4f = 0;
           let _0x2a123d = 0;
