@@ -157,7 +157,7 @@ class ColorManager {
   }
 }
 
-function circleEffect(gameScene, xPos, yPos, radius, radius2, duration, filled = false, _0x550b4a /*idk what this is*/ = false, color = 16777215) {
+function circleEffect(gameScene, xPos, yPos, radius, radius2, duration, filled = false, pulseAlpha = false, color = 16777215) {
   const graphics = gameScene.add.graphics().setScrollFactor(0).setDepth(55).setBlendMode(S);
   const targets = {
     r: radius,
@@ -168,9 +168,9 @@ function circleEffect(gameScene, xPos, yPos, radius, radius2, duration, filled =
     r: radius2,
     t: 1,
     duration: duration,
-    ease: filled && !_0x550b4a ? "Quad.Out" : "Linear",
+    ease: filled && !pulseAlpha ? "Quad.Out" : "Linear",
     onUpdate: () => {
-      const alpha = _0x550b4a ? targets.t < 0.5 ? targets.t * 2 : (1 - targets.t) * 2 : 1 - targets.t;
+      const alpha = pulseAlpha ? targets.t < 0.5 ? targets.t * 2 : (1 - targets.t) * 2 : 1 - targets.t;
       graphics.clear();
       if (filled) {
         graphics.fillStyle(color, Math.max(0, alpha));

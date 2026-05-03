@@ -906,7 +906,7 @@ window.LevelObject = class LevelObject {
       if (frameName) {
         let spriteWorldX = worldX;
         let baseY = b(worldY);
-        const _0x501fde = (objectDef.type === portalType || objectDef.type === speedType) && frameName.includes("_front_");
+        const isFrontFrame = (objectDef.type === portalType || objectDef.type === speedType) && frameName.includes("_front_");
         // compute z-depth once for all sprites of this object
         const _zLayer = levelObj.zLayer || (objectDef.default_z_layer !== undefined ? objectDef.default_z_layer : 0);
         const _zOrd = levelObj.zOrder || (objectDef.default_z_order !== undefined ? objectDef.default_z_order : 0);
@@ -936,11 +936,11 @@ window.LevelObject = class LevelObject {
             this._groupSprites[_gid].push(spr);
           }
         };
-        if (_0x501fde) {
-          const _0x32e8a1 = frameName.replace("_front_", "_back_");
-          let backSprite = addImageToScene(scene, spriteWorldX, baseY, _0x32e8a1);
+        if (isFrontFrame) {
+          const backFrame = frameName.replace("_front_", "_back_");
+          let backSprite = addImageToScene(scene, spriteWorldX, baseY, backFrame);
           if (backSprite) {
-            this._applyVisualProps(scene, backSprite, _0x32e8a1, levelObj);
+            this._applyVisualProps(scene, backSprite, backFrame, levelObj);
             backSprite._eeLayer = 1;
             backSprite._eeWorldX = worldX;
             backSprite._eeBaseY = baseY;
@@ -960,7 +960,7 @@ window.LevelObject = class LevelObject {
             _registerToGroups(_0xOrbGlow, worldX, baseY);
           }
         }
-        const _0x36f679 = _0x501fde ? {
+        const _0x36f679 = isFrontFrame ? {
           ...objectDef,
           _portalFront: true
         } : objectDef;
@@ -1025,10 +1025,10 @@ window.LevelObject = class LevelObject {
           console.warn("No sprite found for object ID " + levelObj.id + " frame=" + frameName + " type=" + (objectDef ? objectDef.type : "null"));
         }
         if (objectDef && (objectDef.type === solidType || objectDef.type === hazardType)) {
-          let _0x47077e = frameName.replace("_001.png", "_2_001.png");
-          let overlaySprite = getAtlasFrame(scene, _0x47077e) ? addImageToScene(scene, spriteWorldX, baseY, _0x47077e) : null;
+          let secondFrame = frameName.replace("_001.png", "_2_001.png");
+          let overlaySprite = getAtlasFrame(scene, secondFrame) ? addImageToScene(scene, spriteWorldX, baseY, secondFrame) : null;
           if (overlaySprite) {
-            this._applyVisualProps(scene, overlaySprite, _0x47077e, levelObj);
+            this._applyVisualProps(scene, overlaySprite, secondFrame, levelObj);
             this._addVisualSprite(overlaySprite);
             overlaySprite._eeWorldX = worldX;
             overlaySprite._eeBaseY = baseY;
@@ -1043,24 +1043,24 @@ window.LevelObject = class LevelObject {
         }
         if (objectDef.children) {
           for (let childDef of objectDef.children) {
-            let _0x3b4e8c = childDef.dx || 0;
-            let _0x172131 = childDef.dy || 0;
+            let dY = childDef.dx || 0;
+            let dX = childDef.dy || 0;
             if (childDef.localDx !== undefined || childDef.localDy !== undefined) {
-              let _0x38902b = childDef.localDx || 0;
-              let _0x256a8e = childDef.localDy || 0;
+              let localDX = childDef.localDx || 0;
+              let localDY = childDef.localDy || 0;
               if (levelObj.flipX) {
-                _0x38902b = -_0x38902b;
+                localDX = -localDX;
               }
               if (levelObj.flipY) {
-                _0x256a8e = -_0x256a8e;
+                localDY = -localDY;
               }
-              let _0x3e62f2 = (levelObj.rot || 0) * Math.PI / 180;
-              _0x3b4e8c = _0x38902b * Math.cos(_0x3e62f2) - _0x256a8e * Math.sin(_0x3e62f2);
-              _0x172131 = _0x38902b * Math.sin(_0x3e62f2) + _0x256a8e * Math.cos(_0x3e62f2);
+              let portalRot = (levelObj.rot || 0) * Math.PI / 180;
+              dY = localDX * Math.cos(portalRot) - localDY * Math.sin(portalRot);
+              dX = localDX * Math.sin(portalRot) + localDY * Math.cos(portalRot);
             }
-            const _childWorldX = worldX + _0x3b4e8c;
-            const _childBaseY = baseY + _0x172131;
-            let childSprite = addImageToScene(scene, spriteWorldX + _0x3b4e8c, baseY + _0x172131, childDef.frame);
+            const _childWorldX = worldX + dY;
+            const _childBaseY = baseY + dX;
+            let childSprite = addImageToScene(scene, spriteWorldX + dY, baseY + dX, childDef.frame);
             if (childSprite) {
               this._applyVisualProps(scene, childSprite, childDef.frame, levelObj, childDef);
               if (childDef.audioScale) {
@@ -1086,7 +1086,7 @@ window.LevelObject = class LevelObject {
                 childSprite.setTint(0x000000);
                 childSprite._isSaw = true;
                 this._sawSprites.push(childSprite);
-                let _childMirror = addImageToScene(scene, spriteWorldX + _0x3b4e8c, baseY + _0x172131, childDef.frame);
+                let _childMirror = addImageToScene(scene, spriteWorldX + dY, baseY + dX, childDef.frame);
                 if (_childMirror) {
                   this._applyVisualProps(scene, _childMirror, childDef.frame, levelObj, childDef);
                   _childMirror.setTint(0x000000);
@@ -1109,25 +1109,25 @@ window.LevelObject = class LevelObject {
         console.warn("Object ID " + levelObj.id + " has no definition in allObjects at x=" + worldX + " y=" + worldY);
       }
       if (objectDef && objectDef.portalParticle && frameName) {
-        let _0x3a9438 = worldX;
-        let _0x2e9079 = b(worldY);
-        const _0x143187 = 2;
-        let _0x5926ad = _0x3a9438 - _0x143187 * 5;
-        let _0x1ebc69 = _0x2e9079;
+        let x = worldX;
+        let y = b(worldY);
+        const scale = 2;
+        let spawnX = x - scale * 5;
+        let spawnY = y;
         const _portalRot = (levelObj.rot || 0) * Math.PI / 180;
-        const _0x388526 = {
-          getRandomPoint: _0x4ad804 => {
-            let _0x5b7fb4 = (Math.random() * 190 + 85) * Math.PI / 180;
-            let _0x2bc56f = _0x143187 * 20 + Math.random() * 40 * _0x143187;
-            let _rx = Math.cos(_0x5b7fb4) * _0x2bc56f;
-            let _ry = Math.sin(_0x5b7fb4) * _0x2bc56f;
-            _0x4ad804.x = _rx * Math.cos(_portalRot) - _ry * Math.sin(_portalRot);
-            _0x4ad804.y = _rx * Math.sin(_portalRot) + _ry * Math.cos(_portalRot);
-            return _0x4ad804;
+        const portalParticleEmitter = {
+          getRandomPoint: point => {
+            let angle = (Math.random() * 190 + 85) * Math.PI / 180;
+            let radius = scale * 20 + Math.random() * 40 * scale;
+            let _rx = Math.cos(angle) * radius;
+            let _ry = Math.sin(angle) * radius;
+            point.x = _rx * Math.cos(_portalRot) - _ry * Math.sin(_portalRot);
+            point.y = _rx * Math.sin(_portalRot) + _ry * Math.cos(_portalRot);
+            return point;
           }
         };
         const _0x100649 = 20;
-        let _0x1bed6b = scene.add.particles(_0x5926ad, _0x1ebc69, "GJ_WebSheet", {
+        let _0x1bed6b = scene.add.particles(spawnX, spawnY, "GJ_WebSheet", {
           frame: "square.png",
           lifespan: {
             min: 200,
@@ -1149,22 +1149,22 @@ window.LevelObject = class LevelObject {
           emitting: true,
           emitZone: {
             type: "random",
-            source: _0x388526
+            source: portalParticleEmitter
           },
-          emitCallback: _0x157c59 => {
-            let _0x30a90b = -_0x157c59.x;
-            let _0x3e98bf = -_0x157c59.y;
-            let _0x42124a = Math.sqrt(_0x30a90b * _0x30a90b + _0x3e98bf * _0x3e98bf) || 1;
-            let _0x1d5ab8 = _0x157c59.life / 1000;
-            let _0x1e162a = (_0x42124a - _0x100649) / (_0x1d5ab8 || 0.3);
-            _0x157c59.velocityX = _0x30a90b / _0x42124a * _0x1e162a;
-            _0x157c59.velocityY = _0x3e98bf / _0x42124a * _0x1e162a;
+          emitCallback: portalParticle => {
+            let particleX = -portalParticle.x;
+            let particleY = -portalParticle.y;
+            let dist = Math.sqrt(particleX * particleX + particleY * particleY) || 1;
+            let life = portalParticle.life / 1000;
+            let speed = (dist - _0x100649) / (life || 0.3);
+            portalParticle.velocityX = particleX / dist * speed;
+            portalParticle.velocityY = particleY / dist * speed;
           }
         });
         _0x1bed6b.setDepth(14);
         _0x1bed6b._eeLayer = 2;
         _0x1bed6b._eeWorldX = worldX;
-        _0x1bed6b._eeBaseY = _0x1ebc69;
+        _0x1bed6b._eeBaseY = spawnY;
         this._addToSection(_0x1bed6b);
       }
       if (objectDef) {
@@ -1233,7 +1233,7 @@ window.LevelObject = class LevelObject {
           }[levelObj.id];
           if (levelObj.id === 111) {
           }
-          const _0x25452a = {
+          const portalTable = {
             gravity_flip: "portal_gravity_down",
             gravity_normal: "portal_gravity_up",
             [flyPortal]: "portal_fly",
@@ -1252,18 +1252,18 @@ window.LevelObject = class LevelObject {
             dual_off: "portal_dual_off",
           }[_0x5bcd81] || null;
           if (levelObj.id === 111) {
-            console.log("res - _0x5bcd81: " + _0x5bcd81 + ", _0x25452a: " + _0x25452a);
+            console.log("res - _0x5bcd81: " + _0x5bcd81 + ", portalTable: " + portalTable);
           }
-          if (!_0x25452a) {
+          if (!portalTable) {
             console.warn("unknown portal sub-type: id=" + levelObj.id + " sub=" + objectDef.sub);
           }
-          if (_0x25452a) {
-            let _0x4bd7bc = new Collider(_0x25452a, worldX, worldY, _0xad0974, _0x2c2226, levelObj.rot || 0);
+          if (portalTable) {
+            let _0x4bd7bc = new Collider(portalTable, worldX, worldY, _0xad0974, _0x2c2226, levelObj.rot || 0);
             _0x4bd7bc.portalY = worldY;
             _registerCollider(_0x4bd7bc);
             this.objects.push(_0x4bd7bc);
             this._addCollisionToSection(_0x4bd7bc);
-            console.log("portal collision created: type=" + _0x25452a + " id=" + levelObj.id + " x=" + worldX + " y=" + worldY + " w=" + _0xad0974 + " h=" + _0x2c2226);
+            console.log("portal collision created: type=" + portalTable + " id=" + levelObj.id + " x=" + worldX + " y=" + worldY + " w=" + _0xad0974 + " h=" + _0x2c2226);
           } else {
             console.warn("portal ID " + levelObj.id + " has no matching sub-type (sub=" + objectDef.sub + ")");
           }
@@ -1346,32 +1346,32 @@ window.LevelObject = class LevelObject {
     if (this.endXPos <= 0) {
       return;
     }
-    const _0x3b56d4 = this.endXPos;
-    const _0x1c3aea = b(240);
-    const _0x46064b = Math.round(16);
-    this._endPortalContainer = _0x41fbdb.add.container(_0x3b56d4, _0x1c3aea);
-    for (let _0x2a327c = 0; _0x2a327c < _0x46064b; _0x2a327c++) {
-      const _0xacf7ef = _0x41fbdb.add.image(0, (_0x2a327c - Math.floor(_0x46064b / 2)) * a, "GJ_WebSheet", "square_02_001.png").setAngle(-90);
+    const endX = this.endXPos;
+    const endY = b(240);
+    const _0x46064b = 16;
+    this._endPortalContainer = _0x41fbdb.add.container(endX, endY);
+    for (let i = 0; i < _0x46064b; i++) {
+      const _0xacf7ef = _0x41fbdb.add.image(0, (i - Math.floor(_0x46064b / 2)) * a, "GJ_WebSheet", "square_02_001.png").setAngle(-90);
       this._endPortalContainer.add(_0xacf7ef);
     }
     this.container.add(this._endPortalContainer);
-    this._endPortalShine = _0x41fbdb.add.image(_0x3b56d4 - 58, _0x1c3aea, "GJ_WebSheet", "gradientBar.png");
+    this._endPortalShine = _0x41fbdb.add.image(endX - 58, endY, "GJ_WebSheet", "gradientBar.png");
     const _0x3e25a9 = ((_0x400605 = _0x41fbdb.textures.getFrame("GJ_WebSheet", "gradientBar.png")) == null ? undefined : _0x400605.height) || 64;
     this._endPortalShine.setBlendMode(S);
     this._endPortalShine.setTint(window.mainColor);
     this._endPortalShine.setScale(1, 960 / _0x3e25a9);
     this.additiveContainer.add(this._endPortalShine);
-    const _0x58cedb = _0x3b56d4 - 30;
+    const _0x58cedb = endX - 30;
     const _0x4f52b7 = {
-      getRandomPoint: _0x4f04dd => {
-        const _0x53ec71 = (85 + Math.random() * 190) * Math.PI / 180;
-        const _0x42e60c = 320 + (Math.random() * 2 - 1) * 80;
-        _0x4f04dd.x = Math.cos(_0x53ec71) * _0x42e60c;
-        _0x4f04dd.y = Math.sin(_0x53ec71) * _0x42e60c;
-        return _0x4f04dd;
+      getRandomPoint: point => {
+        const angle = (85 + Math.random() * 190) * Math.PI / 180;
+        const radius = 320 + (Math.random() * 2 - 1) * 80;
+        point.x = Math.cos(angle) * radius;
+        point.y = Math.sin(angle) * radius;
+        return point;
       }
     };
-    this._endPortalEmitter = _0x41fbdb.add.particles(_0x58cedb, _0x1c3aea, "GJ_WebSheet", {
+    this._endPortalEmitter = _0x41fbdb.add.particles(_0x58cedb, endY, "GJ_WebSheet", {
       frame: "square.png",
       lifespan: {
         min: 200,
@@ -1395,24 +1395,24 @@ window.LevelObject = class LevelObject {
         type: "random",
         source: _0x4f52b7
       },
-      emitCallback: _0x2daff4 => {
-        const _0x5e30d8 = -_0x2daff4.x;
-        const _0x17ba71 = -_0x2daff4.y;
-        const _0x3c5c52 = Math.sqrt(_0x5e30d8 * _0x5e30d8 + _0x17ba71 * _0x17ba71) || 1;
-        const _0x279521 = (_0x3c5c52 - 20) / (_0x2daff4.life / 1000 || 0.3);
-        _0x2daff4.velocityX = _0x5e30d8 / _0x3c5c52 * _0x279521;
-        _0x2daff4.velocityY = _0x17ba71 / _0x3c5c52 * _0x279521;
+      emitCallback: endPortalParticle => {
+        const particleX = -endPortalParticle.x;
+        const particleY = -endPortalParticle.y;
+        const dist = Math.sqrt(particleX * particleX + particleY * particleY) || 1;
+        const speed = (dist - 20) / (endPortalParticle.life / 1000 || 0.3);
+        endPortalParticle.velocityX = particleX / dist * speed;
+        endPortalParticle.velocityY = particleY / dist * speed;
       }
     });
     this._endPortalEmitter.setDepth(14);
     this.topContainer.add(this._endPortalEmitter);
     this._endPortalGameY = 240;
   }
-  updateEndPortalY(_0x26f0ab, _0x43c4d1) {
+  updateEndPortalY(cameraY, _0x43c4d1) {
     if (!this._endPortalContainer) {
       return;
     }
-    const _0x50aa7d = 140 + _0x26f0ab;
+    const _0x50aa7d = 140 + cameraY;
     let _0x1be4c3;
     _0x1be4c3 = _0x43c4d1 ? _0x50aa7d : Math.max(240, _0x50aa7d);
     const _0x32e645 = b(_0x1be4c3);
@@ -1421,14 +1421,14 @@ window.LevelObject = class LevelObject {
     this._endPortalEmitter.y = _0x32e645;
     this._endPortalGameY = _0x1be4c3;
   }
-  checkColorTriggers(_0x2b00ce) {
+  checkColorTriggers(playerX) {
     let _0x24b030 = [];
     while (this._colorTriggerIdx < this._colorTriggers.length) {
-      let _0x39c924 = this._colorTriggers[this._colorTriggerIdx];
-      if (!(_0x39c924.x <= _0x2b00ce)) {
+      let colorTrigger = this._colorTriggers[this._colorTriggerIdx];
+      if (!(colorTrigger.x <= playerX)) {
         break;
       }
-      _0x24b030.push(_0x39c924);
+      _0x24b030.push(colorTrigger);
       this._colorTriggerIdx++;
     }
     return _0x24b030;
@@ -1872,12 +1872,12 @@ window.LevelObject = class LevelObject {
     this._enterEffectTriggerIdx = 0;
     this._activeEnterEffect = 0;
     this._activeExitEffect = 0;
-    for (let _0x17a21d = 0; _0x17a21d < this._sections.length; _0x17a21d++) {
-      this._setSectionVisible(_0x17a21d, true);
-      const _0x14a035 = this._sections[_0x17a21d];
-      if (_0x14a035) {
-        for (let _0x13e116 = 0; _0x13e116 < _0x14a035.length; _0x13e116++) {
-          const visMinSection = _0x14a035[_0x13e116];
+    for (let si = 0; si < this._sections.length; si++) {
+      this._setSectionVisible(si, true);
+      const sectLength = this._sections[si];
+      if (sectLength) {
+        for (let si = 0; si < sectLength.length; si++) {
+          const visMinSection = sectLength[si];
           visMinSection._eeActive = false;
           visMinSection.visible = true;
           visMinSection.x = visMinSection._eeWorldX;
@@ -1910,15 +1910,15 @@ window.LevelObject = class LevelObject {
     const _0x49c6d8 = _0x2f36ed + screenWidth / 2;
     const _0x2d8f53 = Math.max(0, Math.floor((_0x29a51b - _0xa24372) / _0x221c93));
     const _0x2b19db = Math.min(this._sections.length - 1, Math.floor((_0x548004 + _0xa24372) / _0x221c93));
-    for (let _0x1bd44f = _0x2d8f53; _0x1bd44f <= _0x2b19db; _0x1bd44f++) {
-      const _0x2cff29 = this._sections[_0x1bd44f];
-      if (!_0x2cff29) {
+    for (let si = _0x2d8f53; si <= _0x2b19db; si++) {
+      const section = this._sections[si];
+      if (!section) {
         continue;
       }
-      const _0x20a3bb = _0x1bd44f * _0x221c93;
+      const _0x20a3bb = si * _0x221c93;
       const _0x8f9d56 = _0x20a3bb >= _0x29a51b + _0xa24372 && _0x20a3bb + _0x221c93 <= _0x548004 - _0xa24372;
-      for (let _0x54aba7 = 0; _0x54aba7 < _0x2cff29.length; _0x54aba7++) {
-        const effectSprite = _0x2cff29[_0x54aba7];
+      for (let si = 0; si < section.length; si++) {
+        const effectSprite = section[si];
         if (_0x8f9d56) {
           if (effectSprite._eeActive) {
             effectSprite._eeActive = false;

@@ -112,8 +112,8 @@ class GameScene extends Phaser.Scene {
     this._menuCameraX = -centerX;
     this._prevCameraX = -centerX;
     this._bg = this.add.tileSprite(0, 0, screenWidth, screenHeight, "game_bg_01").setOrigin(0, 0).setScrollFactor(0).setDepth(-10);
-    const _0x15d27a = this.textures.get("game_bg_01").source[0].height;
-    this._bgInitY = _0x15d27a - screenHeight - o;
+    const bgHeight = this.textures.get("game_bg_01").source[0].height;
+    this._bgInitY = bgHeight - screenHeight - o;
     this._cameraX = -centerX;
     this._cameraY = 0;
     this._cameraXRef = {
@@ -145,12 +145,12 @@ class GameScene extends Phaser.Scene {
         this.cache.text.entries.set(window._onlineLevelId, window._onlineLevelString);
       } catch(e) {}
     }
-    let _0x591888 = this.cache.text.get(window.currentlevel[2]);
-    if (!_0x591888 && window._onlineLevelString && window.currentlevel[2] === window._onlineLevelId) {
-      _0x591888 = window._onlineLevelString;
+    let levelString = this.cache.text.get(window.currentlevel[2]);
+    if (!levelString && window._onlineLevelString && window.currentlevel[2] === window._onlineLevelId) {
+      levelString = window._onlineLevelString;
     }
-    if (_0x591888) {
-      this._level.loadLevel(_0x591888);
+    if (levelString) {
+      this._level.loadLevel(levelString);
     }
     const _bgId = window._backgroundId || "01";
     const _bgKey = "game_bg_" + (parseInt(_bgId, 10) - 1);
@@ -188,9 +188,9 @@ class GameScene extends Phaser.Scene {
       blendMode: S,
       tint: window.mainColor,
       emitting: false,
-      emitCallback: _0x3c2a3e => {
-        _0x3c2a3e.x = this._glitterCenterX + (Math.random() * 2 - 1) * (screenWidth / 1.8);
-        _0x3c2a3e.y = this._glitterCenterY + (Math.random() * 2 - 1) * 320;
+      emitCallback: glitterParticle => {
+        glitterParticle.x = this._glitterCenterX + (Math.random() * 2 - 1) * (screenWidth / 1.8);
+        glitterParticle.y = this._glitterCenterY + (Math.random() * 2 - 1) * 320;
       }
     });
     this._level.additiveContainer.add(this._glitterEmitter);
@@ -223,7 +223,7 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(1, 1).setScrollFactor(0).setDepth(30).setAlpha(0.3);
     this._tryMeImg = this.add.image(0, 182.5, "GJ_WebSheet", "tryMe_001.png").setScrollFactor(0).setDepth(30);
     this._downloadBtns = [];
-    const _0x4fc67f = [{
+    const downloadButtons = [{
       key: "downloadSteam_001",
       url: "https://github.com/web-dashers/web-dashers.github.io"
     },
@@ -231,19 +231,19 @@ class GameScene extends Phaser.Scene {
       key: "downloadApple_001",
       url: "https://discord.gg/TfEzAVWPSJ"
     }];
-    for (let _0xfeaf5c = 0; _0xfeaf5c < _0x4fc67f.length; _0xfeaf5c++) {
-      const _0x1ce2a6 = _0x4fc67f[_0xfeaf5c];
+    for (let i = 0; i < downloadButtons.length; i++) {
+      const downloadBtn = downloadButtons[i];
       const _0x6bf69f = 1 / 1.5;
-      const _0x1d293f = this.add.image(0, 0, "GJ_WebSheet", _0x1ce2a6.key + ".png").setScrollFactor(0).setDepth(30).setScale(_0x6bf69f).setInteractive();
-      this._makeBouncyButton(_0x1d293f, _0x6bf69f, () => window.open(_0x1ce2a6.url, "_blank"), () => this._menuActive);
-      this._downloadBtns.push(_0x1d293f);
+      const _0x1d293f = this.add.image(0, 0, "GJ_WebSheet", downloadBtn.key + ".png").setScrollFactor(0).setDepth(30).setScale(_0x6bf69f).setInteractive();
+      this._makeBouncyButton(_0x1d293f, _0x6bf69f, () => window.open(downloadBtn.url, "_blank"), () => this._menuActive);
+      this.downloadBtns.push(_0x1d293f);
     }
-    const _0x28fa5b = this.scale.isFullscreen;
-    this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setAlpha(0.8).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
+    const isFullscreen = this.scale.isFullscreen;
+    this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", isFullscreen ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setAlpha(0.8).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
     this._expandHitArea(this._menuFsBtn, 1.5);
     this._makeBouncyButton(this._menuFsBtn, 0.64, () => {
-      const _0x26b7c = !this.scale.isFullscreen;
-      this._menuFsBtn.setTexture("GJ_WebSheet", _0x26b7c ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png");
+      const newFullscreen = !this.scale.isFullscreen;
+      this._menuFsBtn.setTexture("GJ_WebSheet", newFullscreen ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png");
       this._expandHitArea(this._menuFsBtn, 1.5);
       this._toggleFullscreen();
     }, () => this._menuActive);
@@ -916,9 +916,9 @@ class GameScene extends Phaser.Scene {
           const totalDotsToShow = Math.min(maxPages, 9);
           const totalWidth = (totalDotsToShow - 1) * navDotSpacing;
           const startX = sw / 2 - totalWidth / 2;
-          for (let i = 0; i < totalDotsToShow; i++) {
-            dots[i].setPosition(startX + i * navDotSpacing, navDotY).setVisible(true);
-            dots[i].setTexture("GJ_GameSheet03", page === i ? "gj_navDotBtn_on_001.png" : "gj_navDotBtn_off_001.png");
+          for (let di = 0; di < totalDotsToShow; di++) {
+            dots[i].setPosition(startX + di * navDotSpacing, navDotY).setVisible(true);
+            dots[i].setTexture("GJ_GameSheet03", page === di ? "gj_navDotBtn_on_001.png" : "gj_navDotBtn_off_001.png");
           }
         } else {
           navDot1.setPosition(sw / 2 - navDotSpacing / 2, navDotY).setVisible(true);
@@ -2187,8 +2187,8 @@ class GameScene extends Phaser.Scene {
         this._practicedMode.clearCheckpoints();
         this._restartLevel();
   }
-  toggleGlitter(_0x34c21a) {
-    if (_0x34c21a) {
+  toggleGlitter(toggleGlitter) {
+    if (toggleGlitter) {
       this._glitterEmitter.start();
     } else {
       this._glitterEmitter.stop();
@@ -2231,12 +2231,12 @@ class GameScene extends Phaser.Scene {
       }
     }
   }
-  _createPauseToggleButton(_0x5376fd, _0x3b6200, _0x2b25c8, _0xe203c3, _0x268e2b, _0x2d04c4) {
-    const _0x4864cc = this.add.container(_0x3b6200, _0x2b25c8);
-    const pieceHeight = this.add.image(0, 0, "GJ_GameSheet03", _0x268e2b ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png").setScale(0.7).setInteractive();
-    const _0x15c0df = this.add.bitmapText(25 + 10, 0, "bigFont", _0xe203c3, 32).setOrigin(0, 0.5);
-    _0x4864cc.add([pieceHeight, _0x15c0df]);
-    _0x5376fd.add(_0x4864cc);
+  _createPauseToggleButton(pauseBtn, buttonX, buttonY, text, pauseToggle, _0x2d04c4) {
+    const buttonContainer = this.add.container(buttonX, buttonY);
+    const pieceHeight = this.add.image(0, 0, "GJ_GameSheet03", pauseToggle ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png").setScale(0.7).setInteractive();
+    const pieceBtn = this.add.bitmapText(25 + 10, 0, "bigFont", text, 32).setOrigin(0, 0.5);
+    buttonContainer.add([pieceHeight, pieceBtn]);
+    pauseBtn.add(buttonContainer);
     const _0x232e51 = _0x1dce15 => {
       pieceHeight.setTexture("GJ_GameSheet03", _0x1dce15 ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
       this._expandHitArea(pieceHeight, 2);
@@ -2246,36 +2246,36 @@ class GameScene extends Phaser.Scene {
     this._makeBouncyButton(pieceHeight, 0.7, () => {
       _0x232e51(pieceHeight.frame.name === "GJ_checkOff_001.png");
     }, () => this._paused && !!this._pauseContainer);
-    _0x15c0df.setInteractive();
-    _0x15c0df.on("pointerdown", () => {
+    pieceBtn.setInteractive();
+    pieceBtn.on("pointerdown", () => {
       if (this._paused && this._pauseContainer) {
         _0x232e51(pieceHeight.frame.name === "GJ_checkOff_001.png");
       }
     });
-    return _0x4864cc;
+    return buttonContainer;
   }
 _buildPauseOverlay() {
     const textureY = screenWidth / 2;
-    const _0xf70e04 = 320;
+    const textureX = 320;
     const _0x4eb71b = screenWidth - 40;
     this._pauseContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(100);
     
-    const _0x505665 = this.add.rectangle(textureY, _0xf70e04, screenWidth, screenHeight, 0, 75 / 255);
+    const _0x505665 = this.add.rectangle(textureY, textureX, screenWidth, screenHeight, 0, 75 / 255);
     _0x505665.setInteractive();
     this._pauseContainer.add(_0x505665);
     
     const _0x103191 = this.textures.get("square04_001").source[0].width * 0.325;
-    const _0x954813 = this._drawScale9(textureY, _0xf70e04, _0x4eb71b, 600, "square04_001", _0x103191, 0, 150 / 255);
+    const _0x954813 = this._drawScale9(textureY, textureX, _0x4eb71b, 600, "square04_001", _0x103191, 0, 150 / 255);
     this._pauseContainer.add(_0x954813);
 
-    const _0x3874ed = this.scale.isFullscreen;
-    const _0x426993 = this.add.image(textureY - _0x4eb71b / 2 + 40, 60, "GJ_WebSheet", _0x3874ed ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png").setScale(0.64).setInteractive();
-    this._expandHitArea(_0x426993, 2.5);
-    this._pauseContainer.add(_0x426993);
-    this._makeBouncyButton(_0x426993, 0.64, () => {
-      const _0x23c9e5 = !this.scale.isFullscreen;
-      _0x426993.setTexture("GJ_WebSheet", _0x23c9e5 ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png");
-      this._expandHitArea(_0x426993, 2.5);
+    const isFullscreen = this.scale.isFullscreen;
+    const fullscreenBtn = this.add.image(textureY - _0x4eb71b / 2 + 40, 60, "GJ_WebSheet", isFullscreen ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png").setScale(0.64).setInteractive();
+    this._expandHitArea(fullscreenBtn, 2.5);
+    this._pauseContainer.add(fullscreenBtn);
+    this._makeBouncyButton(fullscreenBtn, 0.64, () => {
+      const newFullscreen = !this.scale.isFullscreen;
+      fullscreenBtn.setTexture("GJ_WebSheet", newFullscreen ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png");
+      this._expandHitArea(fullscreenBtn, 2.5);
       this._toggleFullscreen();
     });
 
@@ -2286,18 +2286,18 @@ _buildPauseOverlay() {
 
     this._pauseContainer.add(this.add.bitmapText(textureY, 65, "bigFont", window.currentlevel[1], 40).setOrigin(0.5, 0.5));
 
-    const _0x21dacf = 170;
-    const _0x46bab2 = this._bestPercent || 0;
-    const _0x38b8d1 = this.add.image(textureY, _0x21dacf, "GJ_WebSheet", "GJ_progressBar_001.png").setTint(0).setAlpha(125 / 255);
-    this._pauseContainer.add(_0x38b8d1);
-    const _0x1d49a9 = this.textures.getFrame("GJ_WebSheet", "GJ_progressBar_001.png");
-    const _0xb5ab6f = _0x1d49a9 ? _0x1d49a9.width : 680;
-    const _0x1e6502 = _0x1d49a9 ? _0x1d49a9.height : 40;
-    const _0x3782ca = Math.max(1, Math.floor(_0xb5ab6f * (_0x46bab2 / 100)));
-    const _0x3d0987 = this.add.image(0, 0, "GJ_WebSheet", "GJ_progressBar_001.png").setTint(65280).setScale(0.992, 0.86).setOrigin(0, 0.5).setCrop(0, 0, _0x3782ca, _0x1e6502);
-    _0x3d0987.setPosition(textureY - _0xb5ab6f * 0.992 / 2, _0x21dacf);
-    this._pauseContainer.add(_0x3d0987);
-    this._pauseContainer.add(this.add.bitmapText(textureY, _0x21dacf, "bigFont", _0x46bab2 + "%", 30).setOrigin(0.5, 0.5).setScale(0.7));
+    const bestBarY = 170;
+    const bestPercent = this._bestPercent || 0;
+    const bestBarImg = this.add.image(textureY, bestBarY, "GJ_WebSheet", "GJ_progressBar_001.png").setTint(0).setAlpha(125 / 255);
+    this._pauseContainer.add(bestBarImg);
+    const bestBarFrame = this.textures.getFrame("GJ_WebSheet", "GJ_progressBar_001.png");
+    const bestBarW = bestBarFrame ? bestBarFrame.width : 680;
+    const bestBarH = bestBarFrame ? bestBarFrame.height : 40;
+    const bestBarFill = Math.max(1, Math.floor(bestBarW * (bestPercent / 100)));
+    const bestBarFg = this.add.image(0, 0, "GJ_WebSheet", "GJ_progressBar_001.png").setTint(65280).setScale(0.992, 0.86).setOrigin(0, 0.5).setCrop(0, 0, bestBarFill, bestBarH);
+    bestBarFg.setPosition(textureY - bestBarW * 0.992 / 2, bestBarY);
+    this._pauseContainer.add(bestBarFg);
+    this._pauseContainer.add(this.add.bitmapText(textureY, bestBarY, "bigFont", bestPercent + "%", 30).setOrigin(0.5, 0.5).setScale(0.7));
     this._pauseContainer.add(this.add.bitmapText(textureY, 130, "bigFont", "Normal Mode", 30).setOrigin(0.5, 0.5).setScale(0.78));
 
     const _pausePractPct = this._practiceBestPercent || 0;
@@ -2314,7 +2314,7 @@ _buildPauseOverlay() {
     this._pauseContainer.add(this.add.bitmapText(textureY, _pausePractBarY, "bigFont", _pausePractPct + "%", 30).setOrigin(0.5, 0.5).setScale(0.7));
     this._pauseContainer.add(this.add.bitmapText(textureY, _pausePractBarY - 40, "bigFont", "Practice Mode", 30).setOrigin(0.5, 0.5).setScale(0.78));
 
-    const _0x4791ac = [
+    const pauseBtns = [
         { frame: this._practicedMode.practiceMode ? "GJ_normalBtn_001.png" : "GJ_practiceBtn_001.png", atlas: "GJ_GameSheet03", action: null },
         { frame: "GJ_playBtn2_001.png", atlas: "GJ_WebSheet", action: () => this._resumeGame() },
         { frame: "GJ_menuBtn_001.png", atlas: "GJ_WebSheet", action: () => {
@@ -2329,12 +2329,12 @@ _buildPauseOverlay() {
         }}
     ];
 
-    const _0x25aa59 = _0x4791ac.map(btn => this.textures.getFrame(btn.atlas, btn.frame)?.width || 123);
-    let _0x599a9b = textureY - (_0x25aa59.reduce((a, b) => a + b, 0) + (_0x4791ac.length - 1) * 40) / 2;
+    const pauseBtnW = pauseBtns.map(btn => this.textures.getFrame(btn.atlas, btn.frame)?.width || 123);
+    let _0x599a9b = textureY - (pauseBtnW.reduce((a, b) => a + b, 0) + (pauseBtns.length - 1) * 40) / 2;
 
-    for (let i = 0; i < _0x4791ac.length; i++) {
-        const item = _0x4791ac[i];
-        const width = _0x25aa59[i];
+    for (let i = 0; i < pauseBtns.length; i++) {
+        const item = pauseBtns[i];
+        const width = pauseBtnW[i];
         const btn = this.add.image(_0x599a9b + width / 2, 390, item.atlas, item.frame).setInteractive();
         
         if (item.action === null) {
@@ -2358,21 +2358,21 @@ _buildPauseOverlay() {
         _0x599a9b += width + 40;
     }
 
-    const _0x1008ae = 530;
+    const sliderGrooveH = 530;
     const _0x22b43a = 0.7;
-    const _0x41925a = this.textures.getFrame("GJ_WebSheet", "slidergroove.png");
-    const _0x372782 = _0x41925a ? _0x41925a.width : 420;
+    const sliderGrooveFrame = this.textures.getFrame("GJ_WebSheet", "slidergroove.png");
+    const sliderGrooveW = sliderGrooveFrame ? sliderGrooveFrame.width : 420;
 
     const createSlider = (posX, iconFrame, initialVal, setter) => {
-        this._pauseContainer.add(this.add.image(posX - 180 - 5, _0x1008ae, "GJ_WebSheet", iconFrame).setScale(1.2));
-        const barMaxW = (_0x372782 - 8) * _0x22b43a;
-        const barStartX = posX - _0x372782 * _0x22b43a / 2 + 2.8;
+        this._pauseContainer.add(this.add.image(posX - 180 - 5, sliderGrooveH, "GJ_WebSheet", iconFrame).setScale(1.2));
+        const barMaxW = (sliderGrooveW - 8) * _0x22b43a;
+        const barStartX = posX - sliderGrooveW * _0x22b43a / 2 + 2.8;
         const fillW = initialVal * barMaxW;
-        const fillBar = this.add.tileSprite(barStartX, _0x1008ae, fillW > 0 ? fillW : 1, 11.2, "sliderBar").setOrigin(0, 0.5);
+        const fillBar = this.add.tileSprite(barStartX, sliderGrooveH, fillW > 0 ? fillW : 1, 11.2, "sliderBar").setOrigin(0, 0.5);
         this._pauseContainer.add(fillBar);
-        this._pauseContainer.add(this.add.image(posX, _0x1008ae, "GJ_WebSheet", "slidergroove.png").setScale(_0x22b43a));
+        this._pauseContainer.add(this.add.image(posX, sliderGrooveH, "GJ_WebSheet", "slidergroove.png").setScale(_0x22b43a));
         
-        const thumb = this.add.image(barStartX + fillW, _0x1008ae, "GJ_WebSheet", "sliderthumb.png").setScale(_0x22b43a).setInteractive({ draggable: true });
+        const thumb = this.add.image(barStartX + fillW, sliderGrooveH, "GJ_WebSheet", "sliderthumb.png").setScale(_0x22b43a).setInteractive({ draggable: true });
         this._pauseContainer.add(thumb);
         thumb.on("drag", (p, dragX) => {
             thumb.x = Math.max(barStartX, Math.min(barStartX + barMaxW, dragX));
@@ -2421,10 +2421,10 @@ _buildSettingsPopup() {
     const spacingY = 70;
     const startY = centerY - 150;
 
-    const createToggle = (x, y, label, getVal, setVal, callback = null) => {
+    const createToggle = (xPos, yPos, label, getVal, setVal, callback = null) => {
         const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
-        const check = this.add.image(x + checkOffset, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
-        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        const check = this.add.image(xPos + checkOffset, yPos, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
+        const txt = this.add.bitmapText(xPos + textOffset, yPos, "bigFont", label, 25).setOrigin(0, 0.5);
         this._settingsPopup.add([check, txt]);
 
         this._makeBouncyButton(check, 0.8, () => {
@@ -2775,8 +2775,8 @@ _buildSettingsPopup() {
       } catch (_0x22124f) {}
     }
   }
-  _drawScale9(_0x147730, _0x4c8cbf, scaleWidth, scaleHeight, _0x24a44b, borderSize, _0x590eba, _0x206735) {
-    const _0x4080b2 = this.add.container(_0x147730, _0x4c8cbf);
+  _drawScale9(posX, posY, scaleWidth, scaleHeight, _0x24a44b, borderSize, _0x590eba, _0x206735) {
+    const _0x4080b2 = this.add.container(posX, posY);
     const _0x2522df = this.textures.get(_0x24a44b);
     const _0x401ec1 = _0x2522df.source[0];
     const _0x3f82ec = _0x401ec1.width;
@@ -2865,13 +2865,13 @@ _buildSettingsPopup() {
       dw: borderSize,
       dh: borderSize
     }];
-    for (let _0x24f653 = 0; _0x24f653 < _0x1d065e.length; _0x24f653++) {
-      const scale9Piece = _0x1d065e[_0x24f653];
-      const _0xade586 = "_s9_" + _0x24f653;
-      if (!_0x2522df.has(_0xade586)) {
-        _0x2522df.add(_0xade586, 0, scale9Piece.sx, scale9Piece.sy, scale9Piece.sw, scale9Piece.sh);
+    for (let i = 0; i < _0x1d065e.length; i++) {
+      const scale9Piece = _0x1d065e[i];
+      const s9index = "_s9_" + i;
+      if (!_0x2522df.has(s9index)) {
+        _0x2522df.add(s9index, 0, scale9Piece.sx, scale9Piece.sy, scale9Piece.sw, scale9Piece.sh);
       }
-      const _0x1145e5 = this.add.image(scale9Piece.dx, scale9Piece.dy, _0x24a44b, _0xade586).setOrigin(0, 0).setDisplaySize(scale9Piece.dw, scale9Piece.dh);
+      const _0x1145e5 = this.add.image(scale9Piece.dx, scale9Piece.dy, _0x24a44b, s9index).setOrigin(0, 0).setDisplaySize(scale9Piece.dw, scale9Piece.dh);
       if (_0x590eba !== undefined) {
         _0x1145e5.setTint(_0x590eba);
       }
@@ -3114,9 +3114,9 @@ _buildSettingsPopup() {
     this._state.queuedHold = false;
   }
   _positionMenuItems() {
-    const _0x1e5db8 = screenWidth / 2;
+    const centerX = screenWidth / 2;
     if (this._logo) {
-      this._logo.x = _0x1e5db8;
+      this._logo.x = centerX;
     }
     if (this._menuInfoBtn) {
       this._menuInfoBtn.x = screenWidth - 30 - 3;
@@ -3125,14 +3125,14 @@ _buildSettingsPopup() {
       this._copyrightText.x = screenWidth - 20;
     }
     if (this._tryMeImg) {
-      this._tryMeImg.x = _0x1e5db8 + 175;
+      this._tryMeImg.x = centerX + 175;
     }
     if (this._menuGlitter) {
-      this._menuGlitter.x = _0x1e5db8;
+      this._menuGlitter.x = centerX;
       this._menuGlitter.y = 320;
     }
     if (this._playBtn) {
-      this._playBtn.x = _0x1e5db8;
+      this._playBtn.x = centerX;
       this.tweens.killTweensOf(this._playBtn, "y");
       this._playBtn.y = 320;
       this.tweens.add({
@@ -3148,8 +3148,8 @@ _buildSettingsPopup() {
       const _0x285ef7 = screenWidth - 130;
       const _0x4a8263 = 555;
       const _0x23d03e = 210;
-      for (let _0x1bdfae = 0; _0x1bdfae < this._downloadBtns.length; _0x1bdfae++) {
-        this._downloadBtns[_0x1bdfae].setPosition(_0x285ef7 - _0x1bdfae * _0x23d03e, _0x4a8263);
+      for (let i = 0; i < this._downloadBtns.length; i++) {
+        this._downloadBtns[i].setPosition(_0x285ef7 - i * _0x23d03e, _0x4a8263);
       }
     }
     if (this._iconBtn) {
@@ -3180,11 +3180,11 @@ _buildSettingsPopup() {
     }
   }
   _positionAttemptsLabel() {
-    let _0xdbdd91 = this._cameraX + screenWidth / 2;
+    let labelX = this._cameraX + screenWidth / 2;
     if (this._attempts > 1) {
-      _0xdbdd91 += 100;
+      labelX += 100;
     }
-    this._attemptsLabel.setPosition(_0xdbdd91, 150);
+    this._attemptsLabel.setPosition(labelX, 150);
   }
   _resetGameplayState() {
     this._cameraX = -centerX;
@@ -3204,7 +3204,7 @@ _buildSettingsPopup() {
   }
   _restartLevel() {
     this._attempts++;
-    const _0x2ba78a = this._cameraX;
+    const cameraX = this._cameraX;
     if (this._levelWon && this._practicedMode.practiceMode) {
       this._practicedMode.togglePracticeMode();
       this._practicedMode.clearCheckpoints();
@@ -3244,7 +3244,7 @@ _buildSettingsPopup() {
       playerSpeed = SpeedPortal.FOUR_TIMES;
     }
     this._level.resetObjects();
-    this._level.shiftGroundTiles(this._cameraX - _0x2ba78a);
+    this._level.shiftGroundTiles(this._cameraX - cameraX);
     this._level.resetGroundState();
     this._level.resetColorTriggers();
     this._level.resetAlphaTriggers();
@@ -3299,7 +3299,7 @@ _buildSettingsPopup() {
       this._pauseContainer.destroy();
       this._pauseContainer = null;
     }
-    this._pauseBtn.setVisible(true).setAlpha(75 / 255);
+    this._pauseBtn.setVisible(true).setAlpha(75/255);
     if (this._practiceModeBarContainer) {
       this._practiceModeBarContainer.setVisible(this._practicedMode && this._practicedMode.practiceMode);
     }
@@ -3473,8 +3473,8 @@ _buildSettingsPopup() {
   }
   _applyScreenResize() {
     if (this.scale.isFullscreen) {
-      const _0x5bc34b = window.innerWidth / window.innerHeight;
-      l(Math.round(screenHeight * _0x5bc34b));
+      const aspectRatio = window.innerWidth / window.innerHeight;
+      l(Math.round(screenHeight * aspectRatio));
     }
     this.scale.setGameSize(screenWidth, screenHeight);
     this.scale.refresh();
@@ -3490,7 +3490,7 @@ _buildSettingsPopup() {
     }
     this._level.resizeScreen();
     if (!this._menuActive) {
-      const _0x56287b = this._cameraX;
+      const cameraX = this._cameraX;
       this._cameraX = this._playerWorldX - centerX;
       this._cameraXRef._v = this._cameraX;
       this._level.additiveContainer.x = -this._cameraX;
@@ -3499,12 +3499,12 @@ _buildSettingsPopup() {
       this._level.container.y = this._cameraY;
       this._level.topContainer.x = -this._cameraX;
       this._level.topContainer.y = this._cameraY;
-      this._level.shiftGroundTiles(this._cameraX - _0x56287b);
+      this._level.shiftGroundTiles(this._cameraX - cameraX);
       this._level.updateGroundTiles(this._cameraY);
       this._level.updateVisibility(this._cameraX);
       this._level.applyEnterEffects(this._cameraX);
-      const _0xde8a1a = this._playerWorldX - this._cameraX;
-      this._player.syncSprites(this._cameraX, this._cameraY, 0, this._getMirrorXOffset(_0xde8a1a));
+      const screenX = this._playerWorldX - this._cameraX;
+      this._player.syncSprites(this._cameraX, this._cameraY, 0, this._getMirrorXOffset(screenX));
       this._applyMirrorEffect();
     }
   }
@@ -3513,7 +3513,7 @@ _buildSettingsPopup() {
     this._prevCameraX = this._cameraX;
     this._bg.tilePositionY = this._bgInitY - this._cameraY * this._bgSpeedY;
   }
-  _updateCameraY(_0xc7c517) {
+  _updateCameraY(cameraY) {
     let explosionPiece = this._cameraY;
     let _0x1a27be = explosionPiece;
     if (this._level.flyCameraTarget !== null) {
@@ -3540,16 +3540,16 @@ _buildSettingsPopup() {
     if (_0x1a27be < 0) {
       _0x1a27be = 0;
     }
-    if (_0xc7c517 !== 0) {
-      explosionPiece += (_0x1a27be - explosionPiece) / (10 / _0xc7c517);
+    if (cameraY !== 0) {
+      explosionPiece += (_0x1a27be - explosionPiece) / (10 / cameraY);
       if (explosionPiece < 0) {
         explosionPiece = 0;
       }
       this._cameraY = explosionPiece;
     }
   }
-  _quantizeDelta(_0x654f39) {
-    let _0x578d1b = _0x654f39 / 1000 + this._deltaBuffer;
+  _quantizeDelta(dt) {
+    let _0x578d1b = dt / 1000 + this._deltaBuffer;
     let _0x53e02e = Math.round(_0x578d1b / u);
     if (_0x53e02e < 0) {
       _0x53e02e = 0;
@@ -3630,10 +3630,10 @@ _buildSettingsPopup() {
       const menuDelta = Math.min(deltaTime / 1000 * 60, 2);
       const menuSpeed = 0.25;
       this._menuCameraX = (this._menuCameraX || 0) + menuDelta * playerSpeed * d * menuSpeed;
-      const _0x38afac = this._cameraX;
+      const cameraX = this._cameraX;
       this._cameraX = this._menuCameraX;
       this._updateBackground();
-      this._cameraX = _0x38afac;
+      this._cameraX = cameraX;
       this._prevCameraX = this._menuCameraX;
       this._cameraXRef._v = this._menuCameraX;
       this._level.stepGroundAnimation(deltaTime / 1000);
@@ -4091,12 +4091,12 @@ _applyMirrorEffect() {
       if (this._updatePracticeHUDBar) this._updatePracticeHUDBar();
     }
 
-    const _0x356782 = this._level.endXPos - this._cameraX;
-    const _0x2d967b = b(this._endPortalGameY) + this._cameraY;
-    for (let _0x481f7c = 0; _0x481f7c < 5; _0x481f7c++) {
-      this.time.delayedCall(_0x481f7c * 50, () => circleEffect(this, _0x356782, _0x2d967b, 10, screenWidth, 500, false, true, window.mainColor));
+    const endScreenX = this._level.endXPos - this._cameraX;
+    const endScreenY = b(this._endPortalGameY) + this._cameraY;
+    for (let i = 0; i < 5; i++) {
+      this.time.delayedCall(i * 50, () => circleEffect(this, endScreenX, endScreenY, 10, screenWidth, 500, false, true, window.mainColor));
     }
-    circleEffect(this, _0x356782, _0x2d967b, 10, 1000, 500, true, false, window.mainColor);
+    circleEffect(this, endScreenX, endScreenY, 10, 1000, 500, true, false, window.mainColor);
     this._showCompleteEffect();
   }
   _showCompleteEffect() {
@@ -4124,18 +4124,18 @@ _applyMirrorEffect() {
       const _0x44369e = Array.from({
         length: _0x1b2543
       }, (_0x18e51d, _0x59ebd4) => _0x487fb1 + _0x59ebd4 * _0x323ded);
-      for (let _0x59890f = _0x44369e.length - 1; _0x59890f > 0; _0x59890f--) {
-        const _0x2bf73b = Math.floor(Math.random() * (_0x59890f + 1));
-        [_0x44369e[_0x59890f], _0x44369e[_0x2bf73b]] = [_0x44369e[_0x2bf73b], _0x44369e[_0x59890f]];
+      for (let i = _0x44369e.length - 1; i > 0; i--) {
+        const _0x2bf73b = Math.floor(Math.random() * (i + 1));
+        [_0x44369e[i], _0x44369e[_0x2bf73b]] = [_0x44369e[_0x2bf73b], _0x44369e[i]];
       }
       let _0x594d69 = 0;
       const _0x116c8c = [];
-      for (let _0x104cbb = 0; _0x104cbb < _0x1b2543; _0x104cbb++) {
-        const _0x1a79fc = _0x104cbb * _0x57b9ff + _0x2b6612 + _0x5ce50e * (Math.random() * 2 - 1);
+      for (let i = 0; i < _0x1b2543; i++) {
+        const _0x1a79fc = i * _0x57b9ff + _0x2b6612 + _0x5ce50e * (Math.random() * 2 - 1);
         const _0x6eb03a = _0x26b2b1 + _0x6f49c1 * (Math.random() * 2 - 1);
         const _0x2e9531 = _0x1c105b + _0x586720 * (Math.random() * 2 - 1);
         const _0x28e7b3 = Math.min(1, Math.max(0, _0x4da54f + _0x20decf * (Math.random() * 2 - 1)));
-        const _0x34147c = _0x44369e[_0x104cbb] + _0x323ded * Math.random() + 180;
+        const _0x34147c = _0x44369e[i] + _0x323ded * Math.random() + 180;
         const containerY = _0x3f5321.add.graphics().setScrollFactor(0).setDepth(-1).setBlendMode(S).setPosition(_0x8f5267, _0x2f1e2d).setAngle(_0x34147c).setAlpha(_0x28e7b3).setVisible(false);
         const _0x496d96 = {
           h: 1,
@@ -4242,15 +4242,15 @@ _applyMirrorEffect() {
         }
       }).setScrollFactor(0).setDepth(59);
     }
-    const _0x2eadf2 = this._level.endXPos - this._cameraX;
-    const _0x380b24 = b(this._endPortalGameY) + this._cameraY;
-    circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 800, true, false, window.mainColor);
+    const endScreenX = this._level.endXPos - this._cameraX;
+    const endScreenY = b(this._endPortalGameY) + this._cameraY;
+    circleEffect(this, endScreenX, endScreenY, 10, screenWidth, 800, true, false, window.mainColor);
     circleEffect(this, _0x56628c, 250, 10, 1000, 800, true, false, window.mainColor);
-    for (let _0x579e05 = 0; _0x579e05 < 5; _0x579e05++) {
-      this.time.delayedCall(_0x579e05 * 50, () => circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 500, false, true, window.mainColor));
+    for (let i = 0; i < 5; i++) {
+      this.time.delayedCall(i * 50, () => circleEffect(this, endScreenX, endScreenY, 10, screenWidth, 500, false, true, window.mainColor));
     }
-    for (let _0x429722 = 0; _0x429722 < 10; _0x429722++) {
-      const _0xbf7dd0 = _0x429722 * 150 + (Math.random() * 160 - 80);
+    for (let i = 0; i < 10; i++) {
+      const _0xbf7dd0 = i * 150 + (Math.random() * 160 - 80);
       this.time.delayedCall(Math.max(0, _0xbf7dd0), () => particleEffect(this, window.mainColor, window.secondaryColor));
     }
     this.time.delayedCall(1500, () => this._showEndLayer());
@@ -4320,25 +4320,25 @@ _applyMirrorEffect() {
     const _0x45540f = 225;
     this._endLayerInternal.add(this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign());
     this._endLayerInternal.add(this.add.image(containerX - _0x45540f, 352.5, "GJ_WebSheet", "getIt_001.png").setScale(1 / 1.5));
-    const _0x34b1bd = [{
+    const downloadButtons = [{
       key: "downloadApple_001",
       url: "https://discord.gg/TfEzAVWPSJ"
     }, {
       key: "downloadSteam_001",
       url: "https://github.com/web-dashers/web-dashers.github.io"
     }];
-    for (let _0x10f8cc = 0; _0x10f8cc < _0x34b1bd.length; _0x10f8cc++) {
-      const _0xd7310b = _0x34b1bd[_0x10f8cc];
-      const _0x1e3f82 = (_0x10f8cc - 1) * _0x45540f;
+    for (let i = 0; i < downloadButtons.length; i++) {
+      const downloadBtn = downloadButtons[i];
+      const _0x1e3f82 = (i - 1) * _0x45540f;
       const _0x55a82e = 1 / 1.5;
-      const _0x4c7fb8 = this.add.image(containerX + _0x1e3f82, 437.5, "GJ_WebSheet", _0xd7310b.key + ".png").setScale(_0x55a82e).setInteractive();
+      const _0x4c7fb8 = this.add.image(containerX + _0x1e3f82, 437.5, "GJ_WebSheet", downloadBtn.key + ".png").setScale(_0x55a82e).setInteractive();
       this._endLayerInternal.add(_0x4c7fb8);
-      this._makeBouncyButton(_0x4c7fb8, _0x55a82e, () => window.open(_0xd7310b.url, "_blank"));
+      this._makeBouncyButton(_0x4c7fb8, _0x55a82e, () => window.open(downloadBtn.url, "_blank"));
     }
     _0x2de55e.width;
     this._endStarX = containerX + _0x45540f;
     this._endStarY = _0x241209 - 77.5;
-    const _0x45fc2b = [{
+    const endBtns = [{
       frame: "GJ_replayBtn_001.png",
       dx: -200,
       action: () => this._hideEndLayer(() => this._restartLevel())
@@ -4356,7 +4356,7 @@ _applyMirrorEffect() {
         });
       }
     }];
-    for (const _0x2d4335 of _0x45fc2b) {
+    for (const _0x2d4335 of endBtns) {
       const _0xdde774 = this.add.image(containerX + _0x2d4335.dx, 555, "GJ_WebSheet", _0x2d4335.frame).setInteractive();
       this._endLayerInternal.add(_0xdde774);
       this._makeBouncyButton(_0xdde774, 1, _0x2d4335.action);
@@ -4366,12 +4366,12 @@ _applyMirrorEffect() {
     if (!this._endLayerInternal) {
       return;
     }
-    const _0x4edc03 = this._endStarX;
-    const _0x5a0e9 = this._endStarY;
-    const _0x453043 = this.add.image(_0x4edc03, _0x5a0e9, "GJ_WebSheet", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
-    this._endLayerInternal.add(_0x453043);
+    const endStarX = this._endStarX;
+    const endStarY = this._endStarY;
+    const endStar = this.add.image(endStarX, endStarY, "GJ_WebSheet", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
+    this._endLayerInternal.add(endStar);
     this.tweens.add({
-      targets: _0x453043,
+      targets: endStar,
       scale: 0.8,
       alpha: 1,
       duration: 300,
@@ -4380,8 +4380,8 @@ _applyMirrorEffect() {
     });
     this.time.delayedCall(100, () => {
       this._audio.playEffect("highscoreGet02");
-      const _0x1204d3 = _0x4edc03;
-      const _0x96e3b2 = _0x5a0e9 + this._endLayerInternal.y;
+      const _0x1204d3 = endStarX;
+      const _0x96e3b2 = endStarY + this._endLayerInternal.y;
       this.add.particles(_0x1204d3, _0x96e3b2, "GJ_WebSheet", {
         frame: "square.png",
         speed: {
