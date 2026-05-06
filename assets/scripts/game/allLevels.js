@@ -173,6 +173,12 @@ window.allLevels = [
 	    "level_4284013",
 	    ["Zobros", "Rukkus"]
     ],
+	[
+        "payload",
+	    "Payload in 1.0",
+	    "level_23",
+	    ["usrx215", "Dex-Arson"]
+    ]
 	/*
     [
         "stereo_madness",
