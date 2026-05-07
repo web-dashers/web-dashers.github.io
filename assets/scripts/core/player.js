@@ -456,6 +456,7 @@ class PlayerObject {
     }
   }
   _initParticles(scene) {
+    const freq = window.lowDetailMode ? 0 : 1000 / 30;
     this._particleEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
       frame: "square.png",
       speed: {
@@ -475,8 +476,8 @@ class PlayerObject {
         end: 0
       },
       gravityY: 600,
-      frequency: 1000 / 30,
-      blendMode: "ADD",
+      frequency: freq,
+      blendMode: window.lowDetailMode ? "NORMAL" : "ADD",
       alpha: {
         start: 1,
         end: 0
@@ -505,8 +506,8 @@ class PlayerObject {
         end: 0
       },
       gravityY: 600,
-      frequency: 1000 / 30,
-      blendMode: "ADD",
+      frequency: freq,
+      blendMode: window.lowDetailMode ? "NORMAL" : "ADD",
       tint: {
         start: 16737280,
         end: 16711680
@@ -538,8 +539,8 @@ class PlayerObject {
         end: 0
       },
       gravityY: 600,
-      frequency: 1000 / 30,
-      blendMode: "ADD",
+      frequency: freq,
+      blendMode: window.lowDetailMode ? "NORMAL" : "ADD",
       tint: {
         start: 16760320,
         end: 16711680
@@ -633,6 +634,7 @@ class PlayerObject {
     this._waveTrail.addToContainer(this._gameLayer.container, 9);
   }
   _updateParticles(_0xc43238, _0x52b718, _0x5af874) {
+    if (!this._particleEmitter) return;
     if (this.p.isDead) {
       return;
     }

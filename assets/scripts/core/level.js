@@ -1348,51 +1348,53 @@ window.LevelObject = class LevelObject {
     this._endPortalShine.setTint(window.mainColor);
     this._endPortalShine.setScale(1, 960 / _0x3e25a9);
     this.additiveContainer.add(this._endPortalShine);
-    const _0x58cedb = _0x3b56d4 - 30;
-    const _0x4f52b7 = {
-      getRandomPoint: _0x4f04dd => {
-        const _0x53ec71 = (85 + Math.random() * 190) * Math.PI / 180;
-        const _0x42e60c = 320 + (Math.random() * 2 - 1) * 80;
-        _0x4f04dd.x = Math.cos(_0x53ec71) * _0x42e60c;
-        _0x4f04dd.y = Math.sin(_0x53ec71) * _0x42e60c;
-        return _0x4f04dd;
-      }
-    };
-    this._endPortalEmitter = _0x41fbdb.add.particles(_0x58cedb, _0x1c3aea, "GJ_WebSheet", {
-      frame: "square.png",
-      lifespan: {
-        min: 200,
-        max: 1000
-      },
-      speed: 0,
-      scale: {
-        start: 0.75,
-        end: 0.125
-      },
-      alpha: {
-        start: 1,
-        end: 0
-      },
-      tint: window.mainColor,
-      blendMode: Phaser.BlendModes.ADD,
-      frequency: 10,
-      maxParticles: 100,
-      emitting: true,
-      emitZone: {
-        type: "random",
-        source: _0x4f52b7
-      },
-      emitCallback: _0x2daff4 => {
-        const _0x5e30d8 = -_0x2daff4.x;
-        const _0x17ba71 = -_0x2daff4.y;
-        const _0x3c5c52 = Math.sqrt(_0x5e30d8 * _0x5e30d8 + _0x17ba71 * _0x17ba71) || 1;
-        const _0x279521 = (_0x3c5c52 - 20) / (_0x2daff4.life / 1000 || 0.3);
-        _0x2daff4.velocityX = _0x5e30d8 / _0x3c5c52 * _0x279521;
-        _0x2daff4.velocityY = _0x17ba71 / _0x3c5c52 * _0x279521;
-      }
-    });
-    this._endPortalEmitter.setDepth(14);
-    this.topContainer.add(this._endPortalEmitter);
+    if (!window.lowDetailMode) {
+      const _0x58cedb = _0x3b56d4 - 30;
+      const _0x4f52b7 = {
+        getRandomPoint: _0x4f04dd => {
+          const _0x53ec71 = (85 + Math.random() * 190) * Math.PI / 180;
+          const _0x42e60c = 320 + (Math.random() * 2 - 1) * 80;
+          _0x4f04dd.x = Math.cos(_0x53ec71) * _0x42e60c;
+          _0x4f04dd.y = Math.sin(_0x53ec71) * _0x42e60c;
+          return _0x4f04dd;
+        }
+      };
+      this._endPortalEmitter = _0x41fbdb.add.particles(_0x58cedb, _0x1c3aea, "GJ_WebSheet", {
+        frame: "square.png",
+        lifespan: {
+          min: 200,
+          max: 1000
+        },
+        speed: 0,
+        scale: {
+          start: 0.75,
+          end: 0.125
+        },
+        alpha: {
+          start: 1,
+          end: 0
+        },
+        tint: window.mainColor,
+        blendMode: Phaser.BlendModes.ADD,
+        frequency: 10,
+        maxParticles: 100,
+        emitting: true,
+        emitZone: {
+          type: "random",
+          source: _0x4f52b7
+        },
+        emitCallback: _0x2daff4 => {
+          const _0x5e30d8 = -_0x2daff4.x;
+          const _0x17ba71 = -_0x2daff4.y;
+          const _0x3c5c52 = Math.sqrt(_0x5e30d8 * _0x5e30d8 + _0x17ba71 * _0x17ba71) || 1;
+          const _0x279521 = (_0x3c5c52 - 20) / (_0x2daff4.life / 1000 || 0.3);
+          _0x2daff4.velocityX = _0x5e30d8 / _0x3c5c52 * _0x279521;
+          _0x2daff4.velocityY = _0x17ba71 / _0x3c5c52 * _0x279521;
+        }
+      });
+      this._endPortalEmitter.setDepth(14);
+      this.topContainer.add(this._endPortalEmitter);
+    }
     this._endPortalGameY = 240;
   }
   updateEndPortalY(_0x26f0ab, _0x43c4d1) {
@@ -1405,7 +1407,9 @@ window.LevelObject = class LevelObject {
     const _0x32e645 = b(_0x1be4c3);
     this._endPortalContainer.y = _0x32e645;
     this._endPortalShine.y = _0x32e645;
-    this._endPortalEmitter.y = _0x32e645;
+    if (this._endPortalEmitter) {
+      this._endPortalEmitter.y = _0x32e645;
+    }
     this._endPortalGameY = _0x1be4c3;
   }
   checkColorTriggers(_0x2b00ce) {

@@ -169,31 +169,33 @@ class GameScene extends Phaser.Scene {
     this._level.createEndPortal(this);
     this._glitterCenterX = 0;
     this._glitterCenterY = T;
-    this._glitterEmitter = this.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: 0,
-      scale: {
-        start: 0.375,
-        end: 0
-      },
-      alpha: {
-        start: 1,
-        end: 0
-      },
-      lifespan: {
-        min: 200,
-        max: 1800
-      },
-      frequency: 60,
-      blendMode: S,
-      tint: window.mainColor,
-      emitting: false,
-      emitCallback: _0x3c2a3e => {
-        _0x3c2a3e.x = this._glitterCenterX + (Math.random() * 2 - 1) * (screenWidth / 1.8);
-        _0x3c2a3e.y = this._glitterCenterY + (Math.random() * 2 - 1) * 320;
-      }
-    });
-    this._level.additiveContainer.add(this._glitterEmitter);
+    if (!window.lowDetailMode) {
+      this._glitterEmitter = this.add.particles(0, 0, "GJ_WebSheet", {
+        frame: "square.png",
+        speed: 0,
+        scale: {
+          start: 0.375,
+          end: 0
+        },
+        alpha: {
+          start: 1,
+          end: 0
+        },
+        lifespan: {
+          min: 200,
+          max: 1800
+        },
+        frequency: 60,
+        blendMode: S,
+        tint: window.mainColor,
+        emitting: false,
+        emitCallback: _0x3c2a3e => {
+          _0x3c2a3e.x = this._glitterCenterX + (Math.random() * 2 - 1) * (screenWidth / 1.8);
+          _0x3c2a3e.y = this._glitterCenterY + (Math.random() * 2 - 1) * 320;
+        }
+      });
+      this._level.additiveContainer.add(this._glitterEmitter);
+    }
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
     this._level.additiveContainer.setVisible(false);
@@ -278,33 +280,35 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._makeBouncyButton(this._menuNewgroundsBtn, 0.8, () => {
       this._buildNewgroundsPopup();
     }, () => this._menuActive && !this._newgroundsPopup);
-    this._menuGlitter = this.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: 0,
-      scale: {
-        start: 0.5,
-        end: 0
-      },
-      alpha: {
-        start: 0.6,
-        end: 0.2
-      },
-      lifespan: {
-        min: 1000,
-        max: 2000
-      },
-      frequency: 35,
-      blendMode: S,
-      tint: 20670,
-      x: {
-        min: -130,
-        max: 130
-      },
-      y: {
-        min: -100,
-        max: 100
-      }
-    }).setScrollFactor(0).setDepth(29);
+    if (!window.lowDetailMode) {
+      this._menuGlitter = this.add.particles(0, 0, "GJ_WebSheet", {
+        frame: "square.png",
+        speed: 0,
+        scale: {
+          start: 0.5,
+          end: 0
+        },
+        alpha: {
+          start: 0.6,
+          end: 0.2
+        },
+        lifespan: {
+          min: 1000,
+          max: 2000
+        },
+        frequency: 35,
+        blendMode: S,
+        tint: 20670,
+        x: {
+          min: -130,
+          max: 130
+        },
+        y: {
+          min: -100,
+          max: 100
+        }
+      }).setScrollFactor(0).setDepth(29);
+    }
     this._playBtn = this.add.image(0, 0, "GJ_WebSheet", "GJ_playBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
     this._playBtnPressed = false;
     this._makeBouncyButton(this._playBtn, 1, () => {
@@ -2262,10 +2266,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._restartLevel();
   }
   toggleGlitter(_0x34c21a) {
-    if (_0x34c21a) {
-      this._glitterEmitter.start();
-    } else {
-      this._glitterEmitter.stop();
+    if (this._glitterEmitter) {
+      if (_0x34c21a) {
+        this._glitterEmitter.start();
+      } else {
+        this._glitterEmitter.stop();
+      }
     }
   }
   _setParticleTimeScale(timeScale) {
@@ -3453,7 +3459,9 @@ _buildSettingsPopup() {
     this._player2.setShipVisible(false);
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
-    this._glitterEmitter.stop();
+    if (this._glitterEmitter) {
+      this._glitterEmitter.stop();
+    }
     let speedKey = parseInt(window.settingsMap["kA4"] || "0");
     if (speedKey == 0) {
       playerSpeed = SpeedPortal.ONE_TIMES;
@@ -4445,38 +4453,40 @@ _applyMirrorEffect() {
       }
     });
     const _0x2884ff = [window.mainColor, 16777215];
-    for (let _0x5f16c8 = 0; _0x5f16c8 < 2; _0x5f16c8++) {
-      this.add.particles(_0x56628c, 250, "GJ_WebSheet", {
-        frame: "square.png",
-        speed: {
-          min: 300,
-          max: 700
-        },
-        angle: {
-          min: 0,
-          max: 360
-        },
-        scale: {
-          start: 0.4,
-          end: 0.13
-        },
-        lifespan: {
-          min: 0,
-          max: 1000
-        },
-        quantity: 50,
-        stopAfter: 200,
-        blendMode: S,
-        tint: _0x2884ff[_0x5f16c8],
-        x: {
-          min: -800,
-          max: 800
-        },
-        y: {
-          min: -80,
-          max: 80
-        }
-      }).setScrollFactor(0).setDepth(59);
+    if (!window.lowDetailMode) {
+      for (let _0x5f16c8 = 0; _0x5f16c8 < 2; _0x5f16c8++) {
+        this.add.particles(_0x56628c, 250, "GJ_WebSheet", {
+          frame: "square.png",
+          speed: {
+            min: 300,
+            max: 700
+          },
+          angle: {
+            min: 0,
+            max: 360
+          },
+          scale: {
+            start: 0.4,
+            end: 0.13
+          },
+          lifespan: {
+            min: 0,
+            max: 1000
+          },
+          quantity: 50,
+          stopAfter: 200,
+          blendMode: S,
+          tint: _0x2884ff[_0x5f16c8],
+          x: {
+            min: -800,
+            max: 800
+          },
+          y: {
+            min: -80,
+            max: 80
+          }
+        }).setScrollFactor(0).setDepth(59);
+      }
     }
     const _0x2eadf2 = this._level.endXPos - this._cameraX;
     const _0x380b24 = b(this._endPortalGameY) + this._cameraY;
@@ -4990,33 +5000,35 @@ _applyMirrorEffect() {
       this._audio.playEffect("highscoreGet02");
       const _0x1204d3 = _0x4edc03;
       const _0x96e3b2 = _0x5a0e9 + this._endLayerInternal.y;
-      this.add.particles(_0x1204d3, _0x96e3b2, "GJ_WebSheet", {
-        frame: "square.png",
-        speed: {
-          min: 200,
-          max: 600
-        },
-        angle: {
-          min: 0,
-          max: 360
-        },
-        scale: {
-          start: 0.5,
-          end: 0
-        },
-        alpha: {
-          start: 1,
-          end: 0
-        },
-        lifespan: {
-          min: 200,
-          max: 600
-        },
-        quantity: 30,
-        stopAfter: 30,
-        blendMode: S,
-        tint: 16776960
-      }).setScrollFactor(0).setDepth(202);
+      if (!window.lowDetailMode) {
+        this.add.particles(_0x1204d3, _0x96e3b2, "GJ_WebSheet", {
+          frame: "square.png",
+          speed: {
+            min: 200,
+            max: 600
+          },
+          angle: {
+            min: 0,
+            max: 360
+          },
+          scale: {
+            start: 0.5,
+            end: 0
+          },
+          alpha: {
+            start: 1,
+            end: 0
+          },
+          lifespan: {
+            min: 200,
+            max: 600
+          },
+          quantity: 30,
+          stopAfter: 30,
+          blendMode: S,
+          tint: 16776960
+        }).setScrollFactor(0).setDepth(202);
+      }
       const _0x43203f = this.add.graphics().setScrollFactor(0).setDepth(202).setBlendMode(S);
       const _0x403316 = {
         t: 0
