@@ -567,9 +567,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         loadingCircle.setVisible(isLoading);
         loadingCircle.setAlpha(isLoading ? 0.7 : 0);
         if (!isLoading) loadingCircle.rotation = 0;
-
-        searchBtn.setVisible(!isLoading);
-        clearSearchBtn.setVisible(!isLoading);
       };
 
       const _doSearch = async () => {
