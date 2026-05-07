@@ -478,13 +478,13 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
       const searchBtn = this.add.image(inputX + inputW + 35, inputY + inputH / 2, "GJ_GameSheet03", "GJ_longBtn06_001.png")
         .setScrollFactor(0).setDepth(104).setInteractive().setScale(0.7);
-      this._makeBouncyButton(searchBtn, 1, () => {
+      this._makeBouncyButton(searchBtn, 0.7, () => {
         _doSearch();
       }, () => true);
       
       const clearSearchBtn = this.add.image(inputX + inputW + searchBtn.width + 20, inputY + inputH / 2, "GJ_GameSheet03", "GJ_longBtn07_001.png")
         .setScrollFactor(0).setDepth(104).setInteractive().setScale(0.7);
-      this._makeBouncyButton(clearSearchBtn, 1, () => {
+      this._makeBouncyButton(clearSearchBtn, 0.7, () => {
         htmlInput.value = "";
         placeholderLabel.setVisible(true);
         typedLabel.setText("");
@@ -650,7 +650,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         });
       };
       this._searchOverlayObjects = [
-        overlay, blocker, backBtn, inputBg, statusText, placeholderLabel, typedLabel
+        overlay, blocker, backBtn, inputBg, statusText, placeholderLabel, typedLabel, searchBtn, clearSearchBtn, inputContainer
       ];
       if (window.levelID) { // if there's an ID parameter, load it directly
         htmlInput.remove();
