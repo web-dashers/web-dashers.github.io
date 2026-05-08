@@ -2575,6 +2575,29 @@ _buildSettingsPopup() {
             () => window.solidWave,
             (v) => window.solidWave = v
         );
+        createToggle(container, column1X, startY + (spacingY * 4), "Low Detail Mode",
+            () => window.lowDetailMode,
+            (v) => {
+                window.lowDetailMode = v;
+                localStorage.setItem("lowDetailMode", v);
+                let S = v ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD;
+                if (this.game && this.game.renderer) {
+                    this.game.renderer.pipelines && this.game.renderer.gl && (
+                        this.game.renderer.gl.disable(this.game.renderer.gl.BLEND)
+                    );
+                }
+            }
+        );
+        createToggle(container, column1X, startY + (spacingY * 5), "Disable VSync WIP",
+            () => window.vsyncDisabled,
+            (v) => {
+                window.vsyncDisabled = v;
+                localStorage.setItem("vsyncDisabled", v);
+                if (this.game && this.game.loop) {
+                    this.game.loop.smoothStep = !v;
+                }
+            }
+        );
     };
 
     const buildPage = (idx) => {
@@ -2605,7 +2628,9 @@ _buildSettingsPopup() {
         hitboxTrail: window.showHitboxTrail,
         showFPS: this._fpsText.visible,
         solidWaveTrail: window.solidWave,
-        noclipAccuracy: window.noClipAccuracy
+        noclipAccuracy: window.noClipAccuracy,
+        vsyncDisabled: window.vsyncDisabled,
+        lowDetailMode: window.lowDetailMode
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -2620,7 +2645,9 @@ _buildSettingsPopup() {
         hitboxTrail: false,
         showFPS: false,
         solidWaveTrail: false,
-        noclipAccuracy: false
+        noclipAccuracy: false,
+        vsyncDisabled: false,
+        lowDetailMode: window.lowDetailMode
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -2634,6 +2661,14 @@ _buildSettingsPopup() {
     this._fpsText.visible = data.showFPS;
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
+    window.vsyncDisabled = data.vsyncDisabled ?? false;
+    // lowDetailMode already set by config.js; only override if explicitly saved
+    if (data.lowDetailMode !== undefined && saved) {
+        window.lowDetailMode = data.lowDetailMode;
+    }
+    if (window.vsyncDisabled && this.game && this.game.loop) {
+        this.game.loop.smoothStep = false;
+    }
   }
   
   _buildInfoPopup() {

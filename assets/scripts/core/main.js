@@ -44,7 +44,7 @@ const phaserConfig = {
   height: screenHeight,
   resolution: 1,
   fps: {
-    smoothStep: !window.lowDetailMode
+    smoothStep: !window.vsyncDisabled && !window.lowDetailMode
   },
   backgroundColor: "#000000",
   parent: document.body,

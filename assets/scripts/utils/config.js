@@ -30,6 +30,9 @@ if (urlParams.has('id')) {
 // Low Detail Mode for older devices
 window.lowDetailMode = localStorage.getItem("lowDetailMode") === "true" || urlParams.has('ldm');
 
+// VSync disabled flag (loaded from settings, default false)
+window.vsyncDisabled = localStorage.getItem("vsyncDisabled") === "true";
+
 // Auto-detect low performance devices
 if (!window.lowDetailMode) {
   const cores = navigator.hardwareConcurrency || 2;
