@@ -3918,7 +3918,7 @@ _buildSettingsPopup() {
       return;
     }
     let _0x368ad9 = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown;
-    if (!this._updateLogPopup && _0x368ad9 && !this._spaceWasDown) {
+    if (!this._updateLogPopup && _0x368ad9 && (!this._spaceWasDown || !this._state.upKeyDown)) {
       this._pushButton();
     } else if (!_0x368ad9 && this._spaceWasDown) {
       this._releaseButton();
