@@ -783,12 +783,13 @@ class PlayerObject {
 if (this.p.isFlying || this.p.isUfo) {
       const _0x3904f8 = 10;
       const playerOffset = this.p.gravityFlipped ? -30 : 10; 
-      const _0x285611 = Math.cos(playerRotation);
-      const _0x501bf9 = Math.sin(playerRotation);
-      const _0x1b1d28 = -_0x3904f8 * _0x501bf9;
-      const _0x185f91 = _0x3904f8 * _0x285611; 
-      const _0x562424 = playerOffset * _0x501bf9;
-      const _0x3011c9 = -playerOffset * _0x285611;
+      const cosRotation = Math.cos(playerRotation);
+      const sinRotation = Math.sin(playerRotation);
+	  const mirrored = this.p.mirrored ? -1 : 1;
+      const _0x1b1d28 = -_0x3904f8 * sinRotation * mirrored;
+      const _0x185f91 = _0x3904f8 * cosRotation; 
+      const _0x562424 = playerOffset * sinRotation * mirrored;
+      const _0x3011c9 = -playerOffset * cosRotation;
       const _ufoMode = this.p.isUfo && !this.p.isFlying;
       if (this.p.isFlying) {
         for (const layer of this._shipLayers) {
@@ -1549,7 +1550,6 @@ if (this.p.isFlying || this.p.isUfo) {
     }
   }
   flipGravity(flipped, _0x11bbde = 0.5) {
-      console.log("flipGravity called: flipped=" + flipped + " current=" + this.p.gravityFlipped);
       if (this.p.gravityFlipped === flipped) {
         return;
       }
@@ -1625,11 +1625,12 @@ if (this.p.isFlying || this.p.isUfo) {
     let _0x17a9a6 = Math.min(dt * 1, _0x108955 * dt);
     this._rotation = this.slerp2D(this._rotation, _0x183c2a, _0x17a9a6);
   }
-  updateBallRoll(dt, onSurface) {
+  updateBallRoll(_0x1dd8af, onSurface) {
     const gravityDir = this.p.gravityFlipped ? -1 : 1;
-    const rollDir = this.p.mirrored ? -gravityDir : gravityDir;
+	  const rollDir = this.p.mirrored ? -gravityDir : gravityDir;
     const speedFactor = onSurface ? 0.5 : 0.35;
-    this._rotation += dt / (g / 2) * rollDir * speedFactor;
+    const miniRollScale = this.p.isMini ? 1 / 0.8 : 1;
+    this._rotation += _0x1dd8af / (g / 2) * gravityDir * speedFactor * miniRollScale;
   }
   updateShipRotation(_0x217ad3) {
     let _0x48f422 = -(this.p.y - this.p.lastY);
@@ -1678,11 +1679,10 @@ if (this.p.isFlying || this.p.isUfo) {
       this.p.canJump = false;
       this.p.upKeyPressed = false;
       this.p.queuedHold = false;
-      this.p.yVelocity = this.flipMod() * 22.360064;
+      this.p.yVelocity = this.flipMod() * 22.360064 * (this.p.isMini ? 0.8 : 1);
       this.runRotateAction();
     } else if (this.p.isJumping) {
-      const _miniGrav = this.p.isMini ? 1.4 : 1;
-      this.p.yVelocity -= p * _0x3d1c6f * this.flipMod() * _miniGrav;
+      this.p.yVelocity -= p * _0x3d1c6f * this.flipMod();
       if (this.playerIsFalling()) {
         this.p.isJumping = false;
         this.p.onGround = false;
@@ -1691,8 +1691,7 @@ if (this.p.isFlying || this.p.isUfo) {
       if (this.playerIsFalling()) {
         this.p.canJump = false;
       }
-      const _miniGrav = this.p.isMini ? 1.4 : 1;
-      this.p.yVelocity -= p * _0x3d1c6f * this.flipMod() * _miniGrav;
+      this.p.yVelocity -= p * _0x3d1c6f * this.flipMod();
       if (this.p.gravityFlipped) {
         this.p.yVelocity = Math.min(this.p.yVelocity, 30);
       } else {
@@ -1711,6 +1710,7 @@ if (this.p.isFlying || this.p.isUfo) {
     }
   }
   _updateFlyJump(_0x130c46) {
+    const _shipMiniScale = this.p.isMini ? 1.176470588 : 1;
     let _0x203040 = 0.8;
     if (this.p.upKeyDown) {
       _0x203040 = -1;
@@ -1722,27 +1722,26 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p.upKeyDown && this.playerIsFalling()) {
       _0x2d237f = 0.5;
     }
-    this.p.yVelocity -= p * _0x130c46 * this.flipMod() * _0x203040 * _0x2d237f;
+    this.p.yVelocity -= p * _0x130c46 * this.flipMod() * _0x203040 * _0x2d237f * _shipMiniScale;
     if (this.p.upKeyDown) {
       this.p.onGround = false;
     }
     if (!this.p.wasBoosted) {
       if (this.p.gravityFlipped) {
-        this.p.yVelocity = Math.max(this.p.yVelocity, -16);
-        this.p.yVelocity = Math.min(this.p.yVelocity, 12.8);
+        this.p.yVelocity = Math.max(this.p.yVelocity, -16 * _shipMiniScale);
+        this.p.yVelocity = Math.min(this.p.yVelocity, 12.8 * _shipMiniScale);
       } else {
-        this.p.yVelocity = Math.max(this.p.yVelocity, -12.8);
-        this.p.yVelocity = Math.min(this.p.yVelocity, 16);
+        this.p.yVelocity = Math.max(this.p.yVelocity, -12.8 * _shipMiniScale);
+        this.p.yVelocity = Math.min(this.p.yVelocity, 16 * _shipMiniScale);
       }
     }
   }
 _updateBallJump(_0x2fe319) {
-  const _miniGrav = this.p.isMini ? 1.4 : 1;
-  const _0x144266 = p * 0.6 * _miniGrav;
+  const _0x144266 = p * 0.6;
   if (this.p.upKeyPressed && this.p.canJump) {
     const _0x47d739 = this.flipMod();
     this.p.upKeyPressed = false;
-    this.p.yVelocity = _0x47d739 * 22.360064;
+    this.p.yVelocity = _0x47d739 * 22.360064 * (this.p.isMini ? 0.8 : 1);
     this.flipGravity(!this.p.gravityFlipped);
     this.p.onGround = false;
     this.p.canJump = false;
@@ -1783,13 +1782,16 @@ _updateBallJump(_0x2fe319) {
     this._rotation = _0x312a7f === 0 ? 0 : _0x312a7f > 0 ? -_waveAngle : _waveAngle;
   }
   _updateUfoJump(_dt) {
-    const _miniGrav = this.p.isMini ? 1.35 : 1;
-    const _gravStrength = p * 0.55 * _miniGrav;
-    this.p.yVelocity -= _gravStrength * _dt * this.flipMod();
+    const _ufoJump = this.p.isMini ? 13.296 : 13.742;
+    const _ufoThreshold = 3.832796;
+    const _ufoFastGrav = this.p.isMini ? 0.634524 : 0.540121;
+    const _ufoSlowGrav = this.p.isMini ? 0.421624 : 0.359973;
+    const _ufoUpVel = this.p.yVelocity * this.flipMod();
+    const _ufoGrav = _ufoUpVel > _ufoThreshold ? _ufoFastGrav : _ufoSlowGrav;
+    this.p.yVelocity -= p * _ufoGrav * _dt * this.flipMod();
     if (this.p.upKeyPressed) {
       this.p.upKeyPressed = false;
-      const _burstVel = 14.5 * this.flipMod();
-      this.p.yVelocity = _burstVel;
+      this.p.yVelocity = _ufoJump * this.flipMod();
       this.p.onGround = false;
       this.p.canJump = false;
       this.p.isJumping = true;
@@ -1798,12 +1800,14 @@ _updateBallJump(_0x2fe319) {
       } catch(e) {}
     }
     if (!this.p.wasBoosted) {
+      const _ufoMaxUp = this.p.isMini ? 18.824 : 16;
+      const _ufoMaxFall = this.p.isMini ? 15.058 : 12.8;
       if (this.p.gravityFlipped) {
-        this.p.yVelocity = Math.max(this.p.yVelocity, -14.5);
-        this.p.yVelocity = Math.min(this.p.yVelocity, 11);
+        this.p.yVelocity = Math.max(this.p.yVelocity, -_ufoMaxUp);
+        this.p.yVelocity = Math.min(this.p.yVelocity, _ufoMaxFall);
       } else {
-        this.p.yVelocity = Math.max(this.p.yVelocity, -11);
-        this.p.yVelocity = Math.min(this.p.yVelocity, 14.5);
+        this.p.yVelocity = Math.max(this.p.yVelocity, -_ufoMaxFall);
+        this.p.yVelocity = Math.min(this.p.yVelocity, _ufoMaxUp);
       }
     }
     if (this.p.upKeyDown) {
@@ -2088,16 +2092,27 @@ _updateBallJump(_0x2fe319) {
                 else if (_padId === 140) { _padVel = 5.6 * _grav; }
                 else if (_padId === 1332) { _padVel = 10.08 * _grav; }
                 else if (_padId === 67) { _padVel = 15.0 * _grav; _padFlip = true; }
+              } else if (this.p.isUfo) {
+                if (_padId === 35) { _padVel = this.p.isMini ? 25.6 : 16; }
+                else if (_padId === 140) { _padVel = this.p.isMini ? 10.237037 : 12.8; }
+                else if (_padId === 1332) { _padVel = this.p.isMini ? 25.6 : 16; }
+                else if (_padId === 67) { _padVel = this.p.isMini ? 20.48 : 25.6; _padFlip = true; }
               } else if (this.p.isBall) {
                 if (_padId === 35) { _padVel = 9.6 * _grav; }
                 else if (_padId === 140) { _padVel = 6.72 * _grav; }
                 else if (_padId === 1332) { _padVel = 12 * _grav; }
                 else if (_padId === 67) { _padVel = 10.0 * _grav; _padFlip = true; }
+                if (this.p.isMini) {
+                  _padVel *= 0.8;
+                }
               } else {
                 if (_padId === 35) { _padVel = 16 * _grav; }
                 else if (_padId === 140) { _padVel = 10.4 * _grav; }
                 else if (_padId === 1332) { _padVel = 20 * _grav; }
                 else if (_padId === 67) { _padVel = 15.0 * _grav; _padFlip = true; }
+                if (!this.p.isUfo && !this.p.isSpider && !this.p.isRobot && this.p.isMini) {
+                  _padVel *= 0.8;
+                }
               }
               this.p.isJumping = true;
               this.p.onGround = false;
@@ -2222,7 +2237,7 @@ _updateBallJump(_0x2fe319) {
                   else if (_orbId === 1022) { _orbVel = _spiderBase * -1; _flipAfter = true; }
                   else if (_orbId === 1330) { _orbVel = -28; }
                 } else if (this.p.isBall) {
-                  const _ballBase = _cubeJump * 0.7;
+                  const _ballBase = _cubeJump * 0.7 * (this.p.isMini ? 0.8 : 1);
                   if (_orbId === 36) { _orbVel = _ballBase; }
                   else if (_orbId === 141) { _orbVel = _ballBase * 0.77; }
                   else if (_orbId === 1333) { _orbVel = _ballBase * 1.34; }
@@ -2230,11 +2245,14 @@ _updateBallJump(_0x2fe319) {
                   else if (_orbId === 1022) { _orbVel = _ballBase * -1; _flipAfter = true; }
                   else if (_orbId === 1330) { _orbVel = -30; }
                 } else if (this.p.isUfo) {
-                  if (_orbId === 36) { _orbVel = 16; }
-                  else if (_orbId === 141) { _orbVel = _cubeJump * 0.42; }
+                  const _ufoYellowOrb = this.p.isMini ? 17.888 : 22.36;
+                  const _ufoPinkOrb = this.p.isMini ? 7.674 : 9.592;
+                  const _ufoBlueOrb = (this.p.isMini ? -7.155 : -8.944) * 2;
+                  if (_orbId === 36) { _orbVel = _ufoYellowOrb; }
+                  else if (_orbId === 141) { _orbVel = _ufoPinkOrb; }
                   else if (_orbId === 1333) { _orbVel = _cubeJump * 1.02; }
-                  else if (_orbId === 84) { _orbVel = _cubeJump * 0.4; _flipAfter = true; }
-                  else if (_orbId === 1022) { _orbVel = -16; _flipAfter = true; }
+                  else if (_orbId === 84) { _orbVel = _ufoBlueOrb; _flipAfter = true; }
+                  else if (_orbId === 1022) { _orbVel = -_ufoYellowOrb * 2; _flipAfter = true; }
                   else if (_orbId === 1330) { _orbVel = -22.4; }
                 } else if (this.p.isRobot) {
                   if (_orbId === 36) { _orbVel = _cubeJump * 0.9; }
@@ -2252,11 +2270,12 @@ _updateBallJump(_0x2fe319) {
                   else if (_orbId === 1022) { _orbVel = _spiderBase * -1; _flipAfter = true; }
                   else if (_orbId === 1330) { _orbVel = -30; }
                 } else {
-                  if (_orbId === 36) { _orbVel = _cubeJump; }
-                  else if (_orbId === 141) { _orbVel = _cubeJump * 0.72; }
-                  else if (_orbId === 1333) { _orbVel = _cubeJump * 1.38; }
-                  else if (_orbId === 84) { _orbVel = _cubeJump; _flipAfter = true; }
-                  else if (_orbId === 1022) { _orbVel = _cubeJump * 1; _flipBefore = true; }
+                  const _cubeOrbJump = _cubeJump * (this.p.isMini ? 0.8 : 1);
+                  if (_orbId === 36) { _orbVel = _cubeOrbJump; }
+                  else if (_orbId === 141) { _orbVel = _cubeOrbJump * 0.72; }
+                  else if (_orbId === 1333) { _orbVel = _cubeOrbJump * 1.38; }
+                  else if (_orbId === 84) { _orbVel = _cubeOrbJump; _flipAfter = true; }
+                  else if (_orbId === 1022) { _orbVel = _cubeOrbJump * 1; _flipBefore = true; }
                   else if (_orbId === 1330) { _orbVel = -18; }
                 }
                 this.p.isJumping = true;

@@ -73,6 +73,19 @@ const gs = 1001;
 
 const atlasList = ["GJ_WebSheet", "GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04", "GJ_GameSheetEditor", "GJ_GameSheetGlow", "GJ_GameSheetIcons", "GJ_LaunchSheet", "player_ball_00", "player_dart_00"];
 function getAtlasFrame(scene, frameName) {
+  if (frameName.startsWith("player_")) {
+    const playerAtlasPriority = ["GJ_GameSheet03", "GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet04", "GJ_GameSheetEditor", "GJ_GameSheetGlow", "GJ_GameSheetIcons", "GJ_WebSheet", "GJ_LaunchSheet", "player_ball_00", "player_dart_00"];
+    for (let atlasName of playerAtlasPriority) {
+      if (scene.textures.exists(atlasName)) {
+        if (scene.textures.get(atlasName).has(frameName)) {
+          return {
+            atlas: atlasName,
+            frame: frameName
+          };
+        }
+      }
+    }
+  }
   for (let atlasName of atlasList) {
     if (scene.textures.exists(atlasName)) {
       if (scene.textures.get(atlasName).has(frameName)) {
