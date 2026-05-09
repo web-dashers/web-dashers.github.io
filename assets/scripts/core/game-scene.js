@@ -3514,9 +3514,10 @@ _buildSettingsPopup() {
       this._state.mirrored = pos.mirrored;
       this._level.fastForwardTriggers(pos.x, this._colorManager);
     }
-
-    this._audio.reset();
-    this._audio.startMusic(musicOffset);
+    if (!this._practicedMode.practiceMode) {
+      this._audio.reset();
+      this._audio.startMusic(musicOffset);
+    }
     this._paused = false;
     if (this._pauseContainer) {
       this._pauseContainer.destroy();
