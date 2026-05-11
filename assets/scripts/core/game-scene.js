@@ -2575,7 +2575,7 @@ _buildSettingsPopup() {
             () => window.solidWave,
             (v) => window.solidWave = v
         );
-        createToggle(container, column1X, startY + (spacingY * 4), "Low Detail Mode",
+        createToggle(container, column1X, startY + (spacingY * 4), "Low Detail Mode (Refresh Required)",
             () => window.lowDetailMode,
             (v) => {
                 window.lowDetailMode = v;
@@ -2586,15 +2586,9 @@ _buildSettingsPopup() {
                         this.game.renderer.gl.disable(this.game.renderer.gl.BLEND)
                     );
                 }
-            }
-        );
-        createToggle(container, column1X, startY + (spacingY * 5), "Disable VSync WIP",
-            () => window.vsyncDisabled,
-            (v) => {
-                window.vsyncDisabled = v;
-                localStorage.setItem("vsyncDisabled", v);
-                if (this.game && this.game.loop) {
-                    this.game.loop.smoothStep = !v;
+                if (this.game && this.game.canvas) {
+                    const ctx = this.game.canvas.getContext('2d');
+                    if (ctx) ctx.imageSmoothingEnabled = !v;
                 }
             }
         );
@@ -2629,7 +2623,6 @@ _buildSettingsPopup() {
         showFPS: this._fpsText.visible,
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
-        vsyncDisabled: window.vsyncDisabled,
         lowDetailMode: window.lowDetailMode
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
@@ -2646,7 +2639,6 @@ _buildSettingsPopup() {
         showFPS: false,
         solidWaveTrail: false,
         noclipAccuracy: false,
-        vsyncDisabled: false,
         lowDetailMode: window.lowDetailMode
     };
 
@@ -2661,13 +2653,13 @@ _buildSettingsPopup() {
     this._fpsText.visible = data.showFPS;
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
-    window.vsyncDisabled = data.vsyncDisabled ?? false;
     // lowDetailMode already set by config.js; only override if explicitly saved
     if (data.lowDetailMode !== undefined && saved) {
         window.lowDetailMode = data.lowDetailMode;
     }
-    if (window.vsyncDisabled && this.game && this.game.loop) {
-        this.game.loop.smoothStep = false;
+    if (window.lowDetailMode && this.game && this.game.canvas) {
+        const ctx = this.game.canvas.getContext('2d');
+        if (ctx) ctx.imageSmoothingEnabled = false;
     }
   }
   
@@ -2705,7 +2697,7 @@ _buildSettingsPopup() {
     const _0x3cdf70c = this.add.bitmapText(xPos, yPos, "goldFont", "bog, AntiMatter, arbstro, aloaf", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70c);
     yPos += 35;
-    const _0x3cdf70d = this.add.bitmapText(xPos, yPos, "goldFont", "t0nchi7 and Lasokar.", 40).setOrigin(0.5, 0.5).setScale(0.6);
+    const _0x3cdf70d = this.add.bitmapText(xPos, yPos, "goldFont", "t0nchi7, Lasokar & POW_Boy1.", 40).setOrigin(0.5, 0.5).setScale(0.6);
     this._infoPopup.add(_0x3cdf70d);
     yPos += 35;
     const _0x97b2a9 = this.add.text(xPos, 463, "© 2026 RobTop Games. All rights reserved.", {
@@ -2756,22 +2748,19 @@ _buildSettingsPopup() {
     bounceContainer.add(contentContainer);
     /* colors for reference
       0xff6666
-      0xff9944
+      0xff9944 - important notes
       0xaaddff - fun messages from me :)
       0xff00ff - pink dev entries
+      0xd98282 - POW_Boy1 entries
     */
     const updateEntries = [
       { text: "Update Log", scale: 0.85, font: "goldFont" },
-      { text: "Accurate Featured tab demo.", scale: 0.65 },
-      { text: "Info popups.", scale: 0.65 },
-      { text: "Main menu buttons.", scale: 0.65 },
-      { text: "Settings, Stats and Newgrounds.", scale: 0.65 },
-      { text: "Fixed being able to go to the level selector while in menus.", scale: 0.35 },
-      { text: "GD accurate loading screen.", scale: 0.65 },
-      { text: "UI tweaks.", scale: 0.65 },
-      { text: "Bug fixes.", scale: 0.65 },
+      { text: "Added LDM (Low Detail Mode).", scale: 0.65 },
+      { text: "LDM is automatically enabled on trash devices.", scale: 0.45, color: 0xff9944 },
       { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
+      { text: "I love working on LDM", scale: 0.65, color: 0xd98282 },
+      { text: "- POW_Boy1", scale: 0.65, color: 0xd98282 },
     ]; 
     let yPos = 0;
     const lineItems = [];

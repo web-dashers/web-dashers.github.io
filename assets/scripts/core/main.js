@@ -44,7 +44,7 @@ const phaserConfig = {
   height: screenHeight,
   resolution: 1,
   fps: {
-    smoothStep: !window.vsyncDisabled && !window.lowDetailMode
+    smoothStep: !window.lowDetailMode
   },
   backgroundColor: "#000000",
   parent: document.body,
@@ -52,7 +52,9 @@ const phaserConfig = {
     windowEvents: false
   },
   render: {
-    powerPreference: window.lowDetailMode ? "low-power" : "default"
+    powerPreference: window.lowDetailMode ? "low-power" : "default",
+    antialias: !window.lowDetailMode,
+    desynchronized: window.vsyncDisabled
   },
   scale: {
     mode: Phaser.Scale.FIT,

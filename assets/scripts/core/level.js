@@ -1104,7 +1104,7 @@ window.LevelObject = class LevelObject {
         if (levelObj.id === 1331) {
         }
       }
-      if (objectDef && objectDef.portalParticle && frameName) {
+      if (objectDef && objectDef.portalParticle && frameName && !window.lowDetailMode) {
         let _0x3a9438 = worldX;
         let _0x2e9079 = b(worldY);
         const _0x143187 = 2;
@@ -1209,21 +1209,6 @@ window.LevelObject = class LevelObject {
             this.objects.push(_0x3c84ad);
             this._addCollisionToSection(_0x3c84ad);
           }
-        } else if (_SLOPE_DATA[levelObj.id]) {
-          const _slopeData = _SLOPE_DATA[levelObj.id];
-          const _slopeW = _slopeData.gw * a;
-          const _slopeH = _slopeData.gh * a;
-          const _slopeCollider = new Collider(slopeType, worldX, worldY, _slopeW, _slopeH, levelObj.rot || 0);
-          _slopeCollider.slopeAngleDeg = _slopeData.angle;
-          // determine visual/physics orientation from object flips
-          _slopeCollider.slopeDir = levelObj.flipX ? -1 : 1;
-          _slopeCollider.slopeFlipY = !!levelObj.flipY;
-          // assume 'pit' frames are empty (not filled)
-          _slopeCollider.slopeIsFilled = !(objectDef && objectDef.frame && String(objectDef.frame).toLowerCase().includes("pit"));
-          _slopeCollider.objid = levelObj.id;
-          _registerCollider(_slopeCollider);
-          this.objects.push(_slopeCollider);
-          this._addCollisionToSection(_slopeCollider);
         } else if (objectDef.type === portalType) {
 
           let _0xad0974 = objectDef.gridW * a;

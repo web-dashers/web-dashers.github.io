@@ -1200,7 +1200,8 @@ if (this.p.isFlying || this.p.isUfo) {
     const _0x3f0446 = _0x3f4b84._getMirrorXOffset(_0x3f4b84._playerWorldX - _0x3f4b84._cameraX);
     const _0x53ac5b = b(this.p.y) + this._lastCameraY;
     const _0x281e43 = 0.9;
-    _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
+    if (!window.lowDetailMode) {
+      _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
       frame: "square.png",
       speed: {
         min: 200,
@@ -1235,6 +1236,7 @@ if (this.p.isFlying || this.p.isUfo) {
         max: 20
       }
     }).setScrollFactor(0).setDepth(15);
+    }
     const _0x438d80 = _0x3f4b84.add.graphics().setScrollFactor(0).setDepth(15).setBlendMode(S);
     const _0x4683eb = {
       t: 0
@@ -1340,7 +1342,7 @@ if (this.p.isFlying || this.p.isUfo) {
         _0xba83f5.y = -(_0x20396e + _0x20847a / 2 - sliderBar / 2);
         this._explosionContainer.add(_0xba83f5);
         let _0x298d34 = null;
-        if (_0x156c8b % 2 == 0) {
+        if (_0x156c8b % 2 == 0 && !window.lowDetailMode) {
           const _0x367bdb = 200 + Math.random() * 200;
           const _0x5e5fa8 = _0xba83f5;
           _0x298d34 = _0x44acaf.add.particles(0, 0, "GJ_WebSheet", {

@@ -27,18 +27,14 @@ if (urlParams.has('id')) {
   window.levelID = urlParams.get('id');
 }
 
-// Low Detail Mode for older devices
 window.lowDetailMode = localStorage.getItem("lowDetailMode") === "true" || urlParams.has('ldm');
 
-// VSync disabled flag (loaded from settings, default false)
 window.vsyncDisabled = localStorage.getItem("vsyncDisabled") === "true";
 
-// Auto-detect low performance devices
 if (!window.lowDetailMode) {
   const cores = navigator.hardwareConcurrency || 2;
   const memory = navigator.deviceMemory || 4;
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  // Enable LDM if less than 4 cores, less than 4GB memory, or mobile device
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|ChromeOS|IEMobile|Opera Mini/i.test(navigator.userAgent);
   window.lowDetailMode = cores < 4 || memory < 4 || isMobile;
 }
 
