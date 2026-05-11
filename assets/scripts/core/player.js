@@ -186,52 +186,67 @@ class WaveTrail {
     const n = pts.length;
     const upper = new Array(n);
     const lower = new Array(n);
-    const segNx = new Array(n - 1);
-    const segNy = new Array(n - 1);
-    for (let i = 0; i < n - 1; i++) {
-      const dx = pts[i+1].x - pts[i].x;
-      const dy = pts[i+1].y - pts[i].y;
-      const len = Math.sqrt(dx*dx + dy*dy) || 1;
-      segNx[i] = -dy / len;
-      segNy[i] = dx / len;
-    }
-    const MITER_LIMIT_SQ = 4;
+    
     for (let i = 0; i < n; i++) {
-      const px = pts[i].x, py = pts[i].y;
+      const p = pts[i];
+      let nx, ny;
+
       if (i === 0) {
-        upper[0] = { x: px + segNx[0] * halfW, y: py + segNy[0] * halfW };
-        lower[0] = { x: px - segNx[0] * halfW, y: py - segNy[0] * halfW };
+        const dx = pts[1].x - p.x;
+        const dy = pts[1].y - p.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        nx = -dy / len;
+        ny = dx / len;
       } else if (i === n - 1) {
-        upper[i] = { x: px + segNx[i-1] * halfW, y: py + segNy[i-1] * halfW };
-        lower[i] = { x: px - segNx[i-1] * halfW, y: py - segNy[i-1] * halfW };
+        const dx = p.x - pts[i - 1].x;
+        const dy = p.y - pts[i - 1].y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        nx = -dy / len;
+        ny = dx / len;
       } else {
-        const nx = segNx[i-1] + segNx[i];
-        const ny = segNy[i-1] + segNy[i];
-        const nlen = Math.sqrt(nx*nx + ny*ny);
-        if (nlen < 1e-6) {
-          upper[i] = { x: px + segNx[i-1] * halfW, y: py + segNy[i-1] * halfW };
-          lower[i] = { x: px - segNx[i-1] * halfW, y: py - segNy[i-1] * halfW };
-        } else {
-          const mnx = nx / nlen, mny = ny / nlen;
-          const dot = mnx * segNx[i-1] + mny * segNy[i-1];
-          const scale = dot > 1e-4 ? Math.min(halfW / dot, halfW * 2) : halfW;
-          upper[i] = { x: px + mnx * scale, y: py + mny * scale };
-          lower[i] = { x: px - mnx * scale, y: py - mny * scale };
-        }
+        const dx1 = p.x - pts[i - 1].x;
+        const dy1 = p.y - pts[i - 1].y;
+        const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) || 1;
+
+        const dx2 = pts[i + 1].x - p.x;
+        const dy2 = pts[i + 1].y - p.y;
+        const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
+
+        nx = -(dy1 / len1 + dy2 / len2) * 0.5;
+        ny = (dx1 / len1 + dx2 / len2) * 0.5;
       }
+
+      upper[i] = { x: p.x + nx * halfW, y: p.y + ny * halfW };
+      lower[i] = { x: p.x - nx * halfW, y: p.y - ny * halfW };
     }
     return { upper, lower };
   }
 
-  _drawRibbon(gfx, pts, halfW, color, baseAlpha) {
+  _drawRibbon(gfx, pts, halfW, color, baseAlpha, antialias = false) {
     const n = pts.length;
     if (n < 2) return;
+
     const { upper, lower } = this._buildEdges(pts, halfW);
+    if (antialias) {
+      this._drawRibbon(gfx, pts, halfW + 0.5, color, baseAlpha * 0.5, false);
+    }
+
     for (let i = 0; i < n - 1; i++) {
-      const alpha = Math.max(0, ((1 - pts[i].age) + (1 - pts[i+1].age)) * 0.5) * baseAlpha;
+      const alpha = Math.max(0, (1 - (pts[i].age + pts[i+1].age) * 0.5)) * baseAlpha;
       if (alpha <= 0.01) continue;
+
       gfx.fillStyle(color, alpha);
-      gfx.fillPoints([upper[i], upper[i+1], lower[i+1], lower[i]], true);
+      
+      gfx.fillTriangle(
+        upper[i].x, upper[i].y,
+        upper[i+1].x, upper[i+1].y,
+        lower[i].x, lower[i].y
+      );
+      gfx.fillTriangle(
+        upper[i+1].x, upper[i+1].y,
+        lower[i+1].x, lower[i+1].y,
+        lower[i].x, lower[i].y
+      );
     }
   }
 
@@ -382,22 +397,19 @@ class PlayerObject {
     if (this._ballOverlayLayer) {
       this._ballOverlayLayer.sprite.setTint(window.secondaryColor);
     }
-    this._waveGlowLayer = ds(spriteY, particleY, spriteX, "player_dart_00_glow_001.png", 9, false);
-    this._waveOverlayLayer = ds(spriteY, particleY, spriteX, "player_dart_00_2_001.png", 8, false);
+    this._waveGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_glow_001.png`, 9, false);
+    this._waveOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_2_001.png`, 8, false);
     this._waveExtraLayer = null;
-    this._waveSpriteLayer = ds(spriteY, particleY, spriteX, "player_dart_00_001.png", 10, false);
+    this._waveSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_001.png`, 10, false);
     if (this._waveGlowLayer) {
       this._waveGlowLayer.sprite.setTint(window.secondaryColor);
       this._waveGlowLayer.sprite._glowEnabled = false;
-      this._waveGlowLayer.sprite.setScale(0.42);
     }
     if (this._waveSpriteLayer) {
       this._waveSpriteLayer.sprite.setTint(window.mainColor);
-      this._waveSpriteLayer.sprite.setScale(0.42);
     }
     if (this._waveOverlayLayer) {
       this._waveOverlayLayer.sprite.setTint(window.secondaryColor);
-      this._waveOverlayLayer.sprite.setScale(0.42);
     }
     this.playerSprite = this._playerSpriteLayer.sprite;
     this.shipSprite = this._shipSpriteLayer.sprite;
@@ -661,7 +673,7 @@ class PlayerObject {
       this._flyParticle2Emitter.particleX = _0x75c380;
       this._flyParticle2Emitter.particleY = _0x2b31d7 + _0x5d66f4;
       this._streak.setPosition(this.p.isWave ? _0x75c380 : (this.p.isUfo ? _0x75c380 : _0x75c380 + 8), _0x2b31d7);
-      this._waveTrail.setPosition(_0x75c380, _0x2b31d7);
+      this._waveTrail.setPosition(_0x119eb7, _0x519d38);
     }
     this._streak.update(_0x5af874);
     this._waveTrail.update(_0x5af874);
@@ -785,7 +797,7 @@ if (this.p.isFlying || this.p.isUfo) {
       const playerOffset = this.p.gravityFlipped ? -30 : 10; 
       const cosRotation = Math.cos(playerRotation);
       const sinRotation = Math.sin(playerRotation);
-	  const mirrored = this.p.mirrored ? -1 : 1;
+	    const mirrored = this.p.mirrored ? -1 : 1;
       const _0x1b1d28 = -_0x3904f8 * sinRotation * mirrored;
       const _0x185f91 = _0x3904f8 * cosRotation; 
       const _0x562424 = playerOffset * sinRotation * mirrored;
@@ -856,7 +868,7 @@ if (this.p.isFlying || this.p.isUfo) {
             playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -playerRotation : playerRotation);
             let _miniS = this.p.isMini ? 0.6 : 1;
             if (this.p.isWave && this._waveLayers.includes(playerLayer)) {
-              _miniS *= 0.42; //fix wave size
+              _miniS *= 0.94; //fix wave size
             }
             playerLayer.sprite.scaleY = (this.p.gravityFlipped ? -_miniS : _miniS);
             playerLayer.sprite.scaleX = (this.p.mirrored ? -_miniS : _miniS);
@@ -876,7 +888,7 @@ if (this.p.isFlying || this.p.isUfo) {
             playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -playerRotation : playerRotation);
             let _miniS = this.p.isMini ? 0.6 : 1;
             if (this.p.isWave && this._waveLayers.includes(playerLayer)) {
-              _miniS *= 0.42; //fix wave size
+              _miniS *= 0.94; //fix wave size
             }
             playerLayer.sprite.scaleY = (this.p.gravityFlipped ? -_miniS : _miniS);
             playerLayer.sprite.scaleX = (this.p.mirrored ? -_miniS : _miniS);
@@ -898,9 +910,14 @@ if (this.p.isFlying || this.p.isUfo) {
       this._dashAnimationSprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
       this._dashAnimationSprite.scaleX = _miniS;
     }
-    
+
     if (!this._scene._slideIn){
-      if (window.showHitboxes) {
+      if (!this._hitboxTrail) this._hitboxTrail = [];
+      if (!this.p.isDead) {
+        this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y });
+        if (this._hitboxTrail.length > 180) this._hitboxTrail.shift();
+      }
+      if (window.showHitboxes || this.p.isDead && window.hitboxesOnDeath) {
         this.drawHitboxes(this._hitboxGraphics, cameraX, cameraY);
       } else if (this._hitboxGraphics) {
         this._hitboxGraphics.clear();
@@ -1767,14 +1784,6 @@ _updateBallJump(_0x2fe319) {
   _updateWaveJump() {
     const _0x1a4d8f = (this.p.isMini ? 22.7720072 : 11.3860036) * (playerSpeed / 11.540004);
     let _0x312a7f = (this.p.upKeyDown ? 1 : -1) * this.flipMod() * _0x1a4d8f;
-    if (this.p.onGround) {
-      const _0x41866f = this.p.onCeiling ? _0x312a7f < 0 : _0x312a7f > 0;
-      if (_0x41866f) {
-        this.p.onGround = false;
-      } else {
-        _0x312a7f = 0;
-      }
-    }
     this.p.canJump = false;
     this.p.isJumping = false;
     this.p.yVelocity = _0x312a7f;
@@ -2611,13 +2620,6 @@ _updateBallJump(_0x2fe319) {
     }
 
     if (window.showHitboxTrail) {
-      if (!this._hitboxTrail) this._hitboxTrail = [];
-      
-      if (!this.p.isDead) {
-          this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y });
-          if (this._hitboxTrail.length > 100) this._hitboxTrail.shift();
-      }
-
       this._hitboxTrail.forEach((pos, index) => {
           const trailXRaw = pos.x - camX;
           const trailX = isFlipped ? screenWidth - trailXRaw : trailXRaw;
