@@ -2757,9 +2757,7 @@ _buildSettingsPopup() {
       { text: "Update Log", scale: 0.85, font: "goldFont" },
       { text: "Added LDM (Low Detail Mode).", scale: 0.65 },
       { text: "LDM is automatically enabled on trash devices.", scale: 0.45, color: 0xff9944 },
-      { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
-      { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
-      { text: "I love working on LDM", scale: 0.65, color: 0xd98282 },
+      { text: "WSP People!", scale: 0.65, color: 0xd98282 },
       { text: "- POW_Boy1", scale: 0.65, color: 0xd98282 },
     ]; 
     let yPos = 0;
@@ -4072,50 +4070,52 @@ _buildSettingsPopup() {
       }
     }
     this._level.updateAudioScale(this._audio.getMeteringValue());
-    if (!this._orbGfx) {
-      this._orbGfx = this.add.graphics().setDepth(54).setBlendMode(S);
-    }
-    this._orbParticleAngle = ((this._orbParticleAngle || 0) + deltaTime * 0.004) % (Math.PI * 2);
-    this._orbGfxTimer = (this._orbGfxTimer || 0) + deltaTime;
-    if (this._orbGfxTimer > 33) {
-      this._orbGfxTimer = 0;
-      this._orbGfx.clear();
-      if (this._level && this._level._orbSprites && this._level.container) {
-        try {
-        let _drawn = 0;
-        const _orbTypeColorMap = {
-          36: 0xfffb57,
-          84: 0x58ffff,
-          141: 0xff52f0,
-          444: 0xff00d2,
-          1022: 0x63ff5f,
-          1330: 0xffffff,
-          1333: 0xff6326,
-          1594: 0x6cff6b,
-          1704: 0x04ff04,
-          1751: 0xff00d2
-        };
-        for (let _oSpr of this._level._orbSprites) {
-          if (_drawn >= 4) break;
-          if (!_oSpr || !_oSpr.visible || !_oSpr.active || !_oSpr.scene) continue;
-          const _sx = _oSpr.x + this._level.container.x;
-          const _sy = _oSpr.y + this._level.container.y;
-          if (_sx < -40 || _sx > screenWidth + 40 || _sy < -40 || _sy > screenHeight + 40) continue;
-          _drawn++;
-          const _orbTypeTint = _orbTypeColorMap[_oSpr._orbId];
-          for (let _pi = 0; _pi < 5; _pi++) {
-            const _orbitSpeed = 0.7 + (_pi % 3) * 0.35;
-            const _orbitR = 34 + (_pi * 5 % 17);
-            const _ang = this._orbParticleAngle * _orbitSpeed + (_pi * Math.PI * 2 / 5);
-            const _px = _sx + Math.cos(_ang) * _orbitR;
-            const _py = _sy + Math.sin(_ang) * (_orbitR * 0.85);
-            const _size = (window.orbParticleSize || 3.5) + (_pi % 3) * 1.0;
-            const _alpha = 0.5 + (_pi % 4) * 0.12;
-            this._orbGfx.fillStyle(_orbTypeTint, _alpha);
-            this._orbGfx.fillRect(_px - _size, _py - _size, _size * 2, _size * 2);
+    if (!window.lowDetailMode) {
+      if (!this._orbGfx) {
+        this._orbGfx = this.add.graphics().setDepth(54).setBlendMode(S);
+      }
+      this._orbParticleAngle = ((this._orbParticleAngle || 0) + deltaTime * 0.004) % (Math.PI * 2);
+      this._orbGfxTimer = (this._orbGfxTimer || 0) + deltaTime;
+      if (this._orbGfxTimer > 33) {
+        this._orbGfxTimer = 0;
+        this._orbGfx.clear();
+        if (this._level && this._level._orbSprites && this._level.container) {
+          try {
+          let _drawn = 0;
+          const _orbTypeColorMap = {
+            36: 0xfffb57,
+            84: 0x58ffff,
+            141: 0xff52f0,
+            444: 0xff00d2,
+            1022: 0x63ff5f,
+            1330: 0xffffff,
+            1333: 0xff6326,
+            1594: 0x6cff6b,
+            1704: 0x04ff04,
+            1751: 0xff00d2
+          };
+          for (let _oSpr of this._level._orbSprites) {
+            if (_drawn >= 4) break;
+            if (!_oSpr || !_oSpr.visible || !_oSpr.active || !_oSpr.scene) continue;
+            const _sx = _oSpr.x + this._level.container.x;
+            const _sy = _oSpr.y + this._level.container.y;
+            if (_sx < -40 || _sx > screenWidth + 40 || _sy < -40 || _sy > screenHeight + 40) continue;
+            _drawn++;
+            const _orbTypeTint = _orbTypeColorMap[_oSpr._orbId];
+            for (let _pi = 0; _pi < 5; _pi++) {
+              const _orbitSpeed = 0.7 + (_pi % 3) * 0.35;
+              const _orbitR = 34 + (_pi * 5 % 17);
+              const _ang = this._orbParticleAngle * _orbitSpeed + (_pi * Math.PI * 2 / 5);
+              const _px = _sx + Math.cos(_ang) * _orbitR;
+              const _py = _sy + Math.sin(_ang) * (_orbitR * 0.85);
+              const _size = (window.orbParticleSize || 3.5) + (_pi % 3) * 1.0;
+              const _alpha = 0.5 + (_pi % 4) * 0.12;
+              this._orbGfx.fillStyle(_orbTypeTint, _alpha);
+              this._orbGfx.fillRect(_px - _size, _py - _size, _size * 2, _size * 2);
+            }
           }
+          } catch(e) {}
         }
-        } catch(e) {}
       }
     }
     let quantizedDelta = this._quantizeDelta(deltaTime);
@@ -4361,10 +4361,12 @@ _applyMirrorEffect() {
 
     const _0x356782 = this._level.endXPos - this._cameraX;
     const _0x2d967b = b(this._endPortalGameY) + this._cameraY;
-    for (let _0x481f7c = 0; _0x481f7c < 5; _0x481f7c++) {
-      this.time.delayedCall(_0x481f7c * 50, () => circleEffect(this, _0x356782, _0x2d967b, 10, screenWidth, 500, false, true, window.mainColor));
+    if (!window.lowDetailMode) {
+      for (let _0x481f7c = 0; _0x481f7c < 5; _0x481f7c++) {
+        this.time.delayedCall(_0x481f7c * 50, () => circleEffect(this, _0x356782, _0x2d967b, 10, screenWidth, 500, false, true, window.mainColor));
+      }
+      circleEffect(this, _0x356782, _0x2d967b, 10, 1000, 500, true, false, window.mainColor);
     }
-    circleEffect(this, _0x356782, _0x2d967b, 10, 1000, 500, true, false, window.mainColor);
     this._showCompleteEffect();
   }
   _showCompleteEffect() {
@@ -4450,7 +4452,9 @@ _applyMirrorEffect() {
         }
       });
     })(this, this._level.endXPos - this._cameraX + 60, b(this._endPortalGameY) + this._cameraY, window.mainColor);
-    this.cameras.main.shake(1950, 0.004);
+    if (!window.lowDetailMode) {
+      this.cameras.main.shake(1950, 0.004);
+    }
     this.time.delayedCall(1950, () => this._showCompleteText());
   }
   _showCompleteText() {
@@ -4514,14 +4518,16 @@ _applyMirrorEffect() {
     }
     const _0x2eadf2 = this._level.endXPos - this._cameraX;
     const _0x380b24 = b(this._endPortalGameY) + this._cameraY;
-    circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 800, true, false, window.mainColor);
-    circleEffect(this, _0x56628c, 250, 10, 1000, 800, true, false, window.mainColor);
-    for (let _0x579e05 = 0; _0x579e05 < 5; _0x579e05++) {
-      this.time.delayedCall(_0x579e05 * 50, () => circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 500, false, true, window.mainColor));
-    }
-    for (let _0x429722 = 0; _0x429722 < 10; _0x429722++) {
-      const _0xbf7dd0 = _0x429722 * 150 + (Math.random() * 160 - 80);
-      this.time.delayedCall(Math.max(0, _0xbf7dd0), () => particleEffect(this, window.mainColor, window.secondaryColor));
+    if (!window.lowDetailMode) {
+      circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 800, true, false, window.mainColor);
+      circleEffect(this, _0x56628c, 250, 10, 1000, 800, true, false, window.mainColor);
+      for (let _0x579e05 = 0; _0x579e05 < 5; _0x579e05++) {
+        this.time.delayedCall(_0x579e05 * 50, () => circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 500, false, true, window.mainColor));
+      }
+      for (let _0x429722 = 0; _0x429722 < 10; _0x429722++) {
+        const _0xbf7dd0 = _0x429722 * 150 + (Math.random() * 160 - 80);
+        this.time.delayedCall(Math.max(0, _0xbf7dd0), () => particleEffect(this, window.mainColor, window.secondaryColor));
+      }
     }
     this.time.delayedCall(1500, () => this._showEndLayer());
   }

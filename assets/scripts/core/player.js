@@ -456,177 +456,179 @@ class PlayerObject {
     }
   }
   _initParticles(scene) {
-    const freq = window.lowDetailMode ? 0 : 1000 / 30;
-    this._particleEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: {
-        min: 110,
-        max: 190
-      },
-      angle: {
-        min: 225,
-        max: 315
-      },
-      lifespan: {
-        min: 150,
-        max: 450
-      },
-      scale: {
-        start: 0.5,
-        end: 0
-      },
-      gravityY: 600,
-      frequency: freq,
-      blendMode: window.lowDetailMode ? "NORMAL" : "ADD",
-      alpha: {
-        start: 1,
-        end: 0
-      },
-      tint: window.mainColor
-    });
-    this._particleEmitter.stop();
-    this._particleEmitter.setDepth(9);
-    this._gameLayer.container.add(this._particleEmitter);
-    this._flyParticleEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: {
-        min: 22,
-        max: 38
-      },
-      angle: {
-        min: 225,
-        max: 315
-      },
-      lifespan: {
-        min: 150,
-        max: 450
-      },
-      scale: {
-        start: 0.5,
-        end: 0
-      },
-      gravityY: 600,
-      frequency: freq,
-      blendMode: window.lowDetailMode ? "NORMAL" : "ADD",
-      tint: {
-        start: 16737280,
-        end: 16711680
-      },
-      alpha: {
-        start: 1,
-        end: 0
-      }
-    });
-    this._flyParticleEmitter.stop();
-    this._flyParticleEmitter.setDepth(9);
-    this._gameLayer.container.add(this._flyParticleEmitter);
-    this._flyParticle2Emitter = scene.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: {
-        min: 220,
-        max: 380
-      },
-      angle: {
-        min: 180,
-        max: 360
-      },
-      lifespan: {
-        min: 150,
-        max: 450
-      },
-      scale: {
-        start: 0.75,
-        end: 0
-      },
-      gravityY: 600,
-      frequency: freq,
-      blendMode: window.lowDetailMode ? "NORMAL" : "ADD",
-      tint: {
-        start: 16760320,
-        end: 16711680
-      },
-      alpha: {
-        start: 1,
-        end: 0
-      }
-    });
-    this._flyParticle2Emitter.stop();
-    this._flyParticle2Emitter.setDepth(9);
-    this._gameLayer.container.add(this._flyParticle2Emitter);
-    this._shipDragEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      x: {
-        min: -18,
-        max: 18
-      },
-      speed: {
-        min: 223.79999999999998,
-        max: 343.79999999999995
-      },
-      angle: {
-        min: 205,
-        max: 295
-      },
-      lifespan: {
-        min: 80,
-        max: 220
-      },
-      scale: {
-        start: 0.375,
-        end: 0
-      },
-      gravityX: -700,
-      gravityY: 600,
-      frequency: 25,
-      blendMode: "ADD",
-      alpha: {
-        start: 1,
-        end: 0
-      }
-    });
-    this._shipDragEmitter.stop();
-    this._shipDragEmitter.setDepth(22);
+    if (!window.lowDetailMode) {
+      const freq = 1000 / 30;
+      this._particleEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
+        frame: "square.png",
+        speed: {
+          min: 110,
+          max: 190
+        },
+        angle: {
+          min: 225,
+          max: 315
+        },
+        lifespan: {
+          min: 150,
+          max: 450
+        },
+        scale: {
+          start: 0.5,
+          end: 0
+        },
+        gravityY: 600,
+        frequency: freq,
+        blendMode: "ADD",
+        alpha: {
+          start: 1,
+          end: 0
+        },
+        tint: window.mainColor
+      });
+      this._particleEmitter.stop();
+      this._particleEmitter.setDepth(9);
+      this._gameLayer.container.add(this._particleEmitter);
+      this._flyParticleEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
+        frame: "square.png",
+        speed: {
+          min: 22,
+          max: 38
+        },
+        angle: {
+          min: 225,
+          max: 315
+        },
+        lifespan: {
+          min: 150,
+          max: 450
+        },
+        scale: {
+          start: 0.5,
+          end: 0
+        },
+        gravityY: 600,
+        frequency: freq,
+        blendMode: "ADD",
+        tint: {
+          start: 16737280,
+          end: 16711680
+        },
+        alpha: {
+          start: 1,
+          end: 0
+        }
+      });
+      this._flyParticleEmitter.stop();
+      this._flyParticleEmitter.setDepth(9);
+      this._gameLayer.container.add(this._flyParticleEmitter);
+      this._flyParticle2Emitter = scene.add.particles(0, 0, "GJ_WebSheet", {
+        frame: "square.png",
+        speed: {
+          min: 220,
+          max: 380
+        },
+        angle: {
+          min: 180,
+          max: 360
+        },
+        lifespan: {
+          min: 150,
+          max: 450
+        },
+        scale: {
+          start: 0.75,
+          end: 0
+        },
+        gravityY: 600,
+        frequency: freq,
+        blendMode: "ADD",
+        tint: {
+          start: 16760320,
+          end: 16711680
+        },
+        alpha: {
+          start: 1,
+          end: 0
+        }
+      });
+      this._flyParticle2Emitter.stop();
+      this._flyParticle2Emitter.setDepth(9);
+      this._gameLayer.container.add(this._flyParticle2Emitter);
+      this._shipDragEmitter = scene.add.particles(0, 0, "GJ_WebSheet", {
+        frame: "square.png",
+        x: {
+          min: -18,
+          max: 18
+        },
+        speed: {
+          min: 223.79999999999998,
+          max: 343.79999999999995
+        },
+        angle: {
+          min: 205,
+          max: 295
+        },
+        lifespan: {
+          min: 80,
+          max: 220
+        },
+        scale: {
+          start: 0.375,
+          end: 0
+        },
+        gravityX: -700,
+        gravityY: 600,
+        frequency: 25,
+        blendMode: "ADD",
+        alpha: {
+          start: 1,
+          end: 0
+        }
+      });
+      this._shipDragEmitter.stop();
+      this._shipDragEmitter.setDepth(22);
+      const _0x57911a = {
+        frame: "square.png",
+        speed: {
+          min: 250,
+          max: 350
+        },
+        angle: {
+          min: 210,
+          max: 330
+        },
+        lifespan: {
+          min: 50,
+          max: 600
+        },
+        scale: {
+          start: 0.625,
+          end: 0
+        },
+        gravityY: 1000,
+        blendMode: "ADD",
+        alpha: {
+          start: 1,
+          end: 0
+        },
+        tint: window.mainColor,
+        emitting: false
+      };
+      this._landEmitter1 = scene.add.particles(0, 0, "GJ_WebSheet", {
+        ..._0x57911a
+      });
+      this._landEmitter2 = scene.add.particles(0, 0, "GJ_WebSheet", {
+        ..._0x57911a
+      });
+      this._gameLayer.topContainer.add(this._landEmitter1);
+      this._gameLayer.topContainer.add(this._landEmitter2);
+    }
     this._shipDragActive = false;
     this._particleActive = false;
     this._flyParticle2Active = false;
     this._flyParticleActive = false;
-    const _0x57911a = {
-      frame: "square.png",
-      speed: {
-        min: 250,
-        max: 350
-      },
-      angle: {
-        min: 210,
-        max: 330
-      },
-      lifespan: {
-        min: 50,
-        max: 600
-      },
-      scale: {
-        start: 0.625,
-        end: 0
-      },
-      gravityY: 1000,
-      blendMode: "ADD",
-      alpha: {
-        start: 1,
-        end: 0
-      },
-      tint: window.mainColor,
-      emitting: false
-    };
-    this._landEmitter1 = scene.add.particles(0, 0, "GJ_WebSheet", {
-      ..._0x57911a
-    });
-    this._landEmitter2 = scene.add.particles(0, 0, "GJ_WebSheet", {
-      ..._0x57911a
-    });
     this._aboveContainer = scene.add.container(0, 0);
     this._aboveContainer.setDepth(13);
-    this._gameLayer.topContainer.add(this._landEmitter1);
-    this._gameLayer.topContainer.add(this._landEmitter2);
     this._landIdx = false;
     this._streak = new StreakManager(this._scene, "streak_01", 0.231, 10, 8, 100, window.secondaryColor, 0.7);
     this._streak.addToContainer(this._gameLayer.container, 8);
@@ -923,7 +925,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.isJumping = false;
     this.stopRotation();
     this._rotation = 0;
-    this._particleEmitter.stop();
+    if (this._particleEmitter) this._particleEmitter.stop();
     this._flyParticle2Active = false;
     this._streak.reset();
     this._streak.start();
@@ -950,11 +952,11 @@ if (this.p.isFlying || this.p.isUfo) {
       this.p.isJumping = false;
       this.stopRotation();
       this._rotation = 0;
-      this._flyParticleEmitter.stop();
+      if (this._flyParticleEmitter) this._flyParticleEmitter.stop();
       this._flyParticleActive = false;
-      this._flyParticle2Emitter.stop();
+      if (this._flyParticle2Emitter) this._flyParticle2Emitter.stop();
       this._flyParticle2Active = false;
-      this._shipDragEmitter.stop();
+      if (this._shipDragEmitter) this._shipDragEmitter.stop();
       this._shipDragActive = false;
       this._particleActive = false;
       this._streak.stop();
@@ -1106,7 +1108,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.isJumping = false;
     this.stopRotation();
     this._rotation = 0;
-    this._particleEmitter.stop();
+    if (this._particleEmitter) this._particleEmitter.stop();
     this._streak.reset();
     this._streak.start();
     this.setBallVisible(false);
@@ -1136,7 +1138,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.isJumping = false;
     this.stopRotation();
     this._rotation = 0;
-    this._flyParticleEmitter.stop();
+    if (this._flyParticleEmitter) this._flyParticleEmitter.stop();
     this.setCubeVisible(!this.p.isBall && !this.p.isFlying);
     this.setBallVisible(this.p.isBall);
     this.setShipVisible(this.p.isFlying);
@@ -1175,9 +1177,11 @@ if (this.p.isFlying || this.p.isUfo) {
     if (_0x4a38a5 && !this.p.isFlying && !this.p.isWave && !this.p.isSpider) {
       this._landIdx = !this._landIdx;
       const _0x31584b = this._landIdx ? this._landEmitter1 : this._landEmitter2;
-      const _0x2248d5 = this._scene._playerWorldX;
-      const _0x17e0bb = this.p.gravityFlipped ? b(this.p.y) - 30 : b(this.p.y) + 30;
-      _0x31584b.explode(10, _0x2248d5, _0x17e0bb);
+      if (_0x31584b) {
+        const _0x2248d5 = this._scene._playerWorldX;
+        const _0x17e0bb = this.p.gravityFlipped ? b(this.p.y) - 30 : b(this.p.y) + 30;
+        _0x31584b.explode(10, _0x2248d5, _0x17e0bb);
+      }
     }
   }
   killPlayer() {
@@ -1186,13 +1190,13 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     this.p.isDead = true;
     this._scene.toggleGlitter(false);
-    this._particleEmitter.stop();
+    if (this._particleEmitter) this._particleEmitter.stop();
     this._particleActive = false;
-    this._flyParticleEmitter.stop();
+    if (this._flyParticleEmitter) this._flyParticleEmitter.stop();
     this._flyParticleActive = false;
-    this._flyParticle2Emitter.stop();
+    if (this._flyParticle2Emitter) this._flyParticle2Emitter.stop();
     this._flyParticle2Active = false;
-    this._shipDragEmitter.stop();
+    if (this._shipDragEmitter) this._shipDragEmitter.stop();
     this._shipDragActive = false;
     this._streak.stop();
     this._streak.reset();
@@ -1799,9 +1803,11 @@ _updateBallJump(_0x2fe319) {
       this.p.onGround = false;
       this.p.canJump = false;
       this.p.isJumping = true;
-      try {
-        this._flyParticle2Emitter.explode(6, this._scene._playerWorldX, b(this.p.y) + (this.p.gravityFlipped ? -18 : 18));
-      } catch(e) {}
+      if (this._flyParticle2Emitter) {
+        try {
+          this._flyParticle2Emitter.explode(6, this._scene._playerWorldX, b(this.p.y) + (this.p.gravityFlipped ? -18 : 18));
+        } catch(e) {}
+      }
     }
     if (!this.p.wasBoosted) {
       const _ufoMaxUp = this.p.isMini ? 18.824 : 16;
@@ -2678,10 +2684,10 @@ _updateBallJump(_0x2fe319) {
     const _0x8bc9f4 = _0x568b25 + 300;
     const _0x11b580 = [this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer, this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer, this._waveSpriteLayer, this._waveOverlayLayer, this._waveExtraLayer, this._waveGlowLayer, this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer].filter(_0x3e9c62 => _0x3e9c62 && _0x3e9c62.sprite.visible).map(_0x5cedeb => _0x5cedeb.sprite);
     this._startPercent = (this._scene._playerWorldX / this._scene._level.endXPos) * 100;
-    this._particleEmitter.stop();
-    this._flyParticleEmitter.stop();
-    this._flyParticle2Emitter.stop();
-    this._shipDragEmitter.stop();
+    if (this._particleEmitter) this._particleEmitter.stop();
+    if (this._flyParticleEmitter) this._flyParticleEmitter.stop();
+    if (this._flyParticle2Emitter) this._flyParticle2Emitter.stop();
+    if (this._shipDragEmitter) this._shipDragEmitter.stop();
     const _0x154798 = this.p.isFlying;
     const _0x3793a4 = [this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer];
     const _0xbd676f = [this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer];
@@ -2778,13 +2784,13 @@ _updateBallJump(_0x2fe319) {
         _0x1e656c.sprite.setScale(1);
       }
     }
-    this._particleEmitter.stop();
+    if (this._particleEmitter) this._particleEmitter.stop();
     this._particleActive = false;
-    this._flyParticleEmitter.stop();
+    if (this._flyParticleEmitter) this._flyParticleEmitter.stop();
     this._flyParticleActive = false;
-    this._flyParticle2Emitter.stop();
+    if (this._flyParticle2Emitter) this._flyParticle2Emitter.stop();
     this._flyParticle2Active = false;
-    this._shipDragEmitter.stop();
+    if (this._shipDragEmitter) this._shipDragEmitter.stop();
     this._shipDragActive = false;
     this._streak.stop();
     this._streak.reset();
