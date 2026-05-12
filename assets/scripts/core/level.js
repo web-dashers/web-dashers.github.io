@@ -45,7 +45,7 @@ function parseObject(objectString) {
   } else {
     return {
       id: objectId,
-      x: parseFloat(objectData[2] || "0") - 10,
+      x: parseFloat(objectData[2] || "0") - 5,
       y: parseFloat(objectData[3] || "0"),
       flipX: objectData[4] === "1",
       flipY: objectData[5] === "1",
