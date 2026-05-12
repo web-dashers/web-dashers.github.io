@@ -2736,8 +2736,11 @@ _buildSettingsPopup() {
       { text: "GD accurate loading screen.", scale: 0.65 },
       { text: "UI tweaks.", scale: 0.65 },
       { text: "Bug fixes.", scale: 0.65 },
+      { text: "Accurate Saved levels tab demo", scale: 0.65 },
       { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
+      { text: "no.", scale: 0.65, color: 0xac66cc },
+      { text: "-Ameth7st", scale: 0.65, color: 0xac66cc },
     ]; 
     let yPos = 0;
     const lineItems = [];
