@@ -1765,23 +1765,32 @@ _updateBallJump(_0x2fe319) {
       }
     }
   }
-  _updateWaveJump() {
-    const _0x1a4d8f = (this.p.isMini ? 22.7720072 : 11.3860036) * (playerSpeed / 11.540004);
-    let _0x312a7f = (this.p.upKeyDown ? 1 : -1) * this.flipMod() * _0x1a4d8f;
-    if (this.p.onGround) {
-      const _0x41866f = this.p.onCeiling ? _0x312a7f < 0 : _0x312a7f > 0;
-      if (_0x41866f) {
-        this.p.onGround = false;
-      } else {
-        _0x312a7f = 0;
-      }
+_updateWaveJump() {
+    const _baseSpeed = this.p.isMini ? 22.7720072 : 11.3860036;
+    const _speedMod = (playerSpeed / 11.540004);
+    const _waveVel = _baseSpeed * _speedMod;
+    const isPushingUp = this.p.upKeyDown; 
+    let _0x312a7f = (isPushingUp ? 1 : -1) * this.flipMod() * _waveVel;
+
+    if (this.p.onGround || this.p.onCeiling) {
+        const movingAwayFromCeiling = this.p.onCeiling && !isPushingUp;
+        const movingAwayFromFloor = this.p.onGround && isPushingUp;
+
+        if (movingAwayFromCeiling || movingAwayFromFloor) {
+            this.p.onGround = false;
+            this.p.onCeiling = false;
+        } else {
+            _0x312a7f = 0;
+        }
     }
+
+    this.p.yVelocity = _0x312a7f;
     this.p.canJump = false;
     this.p.isJumping = false;
-    this.p.yVelocity = _0x312a7f;
+
     const _waveAngle = this.p.isMini ? Math.atan(0.5) : Math.PI / 4;
     this._rotation = _0x312a7f === 0 ? 0 : _0x312a7f > 0 ? -_waveAngle : _waveAngle;
-  }
+}
   _updateUfoJump(_dt) {
     const _ufoJump = this.p.isMini ? 13.296 : 13.742;
     const _ufoThreshold = 3.832796;
