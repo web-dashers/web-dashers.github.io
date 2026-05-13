@@ -787,98 +787,7 @@ window.LevelObject = class LevelObject {
     for (let levelObj of _0x35f1ae) {
       let objectDef = getObjectFromId(levelObj.id);
       if (objectDef && objectDef.type === triggerType) {
-        if (levelObj.id === 29 || levelObj.id === 30) {
-          this._colorTriggers.push({
-            x: levelObj.x * 2,
-            index: levelObj.id === 29 ? 1000 : 1001,
-            color: {
-              r: parseInt(levelObj._raw[7] ?? 255, 10),
-              g: parseInt(levelObj._raw[8] ?? 255, 10),
-              b: parseInt(levelObj._raw[9] ?? 255, 10)
-            },
-            duration: parseFloat(levelObj._raw[10] ?? 0),
-            tintGround: levelObj._raw[14] === "1"
-          });
-        }
-        if (objectDef.enterEffect) {
-          this._enterEffectTriggers.push({
-            x: levelObj.x * 2,
-            effect: objectDef.enterEffect
-          });
-        }
-        if (levelObj.id === 901) {
-          const _raw = levelObj._raw;
-          this._moveTriggers.push({
-            x: levelObj.x * 2,
-            duration: parseFloat(_raw[10] ?? 0),
-            easingType: parseInt(_raw[30] ?? 0, 10),
-            easingRate: parseFloat(_raw[85] ?? 2),
-            targetGroup: parseInt(_raw[51] ?? 0, 10),
-            offsetX: parseFloat(_raw[28] ?? 0) * 2,
-            offsetY: parseFloat(_raw[29] ?? 0) * 2,
-            lockX: _raw[58] === '1',
-            lockY: _raw[59] === '1',
-          });
-        }
-        if (levelObj.id === 1007) {
-          const _raw = levelObj._raw;
-          this._alphaTriggers.push({
-            x: levelObj.x * 2,
-            duration: parseFloat(_raw[10] ?? 0),
-            targetGroup: parseInt(_raw[51] ?? 0, 10),
-            targetOpacity: Math.max(0, Math.min(1, parseFloat(_raw[35] ?? 1))),
-          });
-        }
-        if (levelObj.id === 899) {
-          const _raw = levelObj._raw;
-          const targetChannel = parseInt(_raw[23] ?? 0, 10);
-          if (targetChannel > 0) {
-            this._colorTriggers.push({
-              x: levelObj.x * 2,
-              index: targetChannel,
-              color: {
-                r: parseInt(_raw[7] ?? 255, 10),
-                g: parseInt(_raw[8] ?? 255, 10),
-                b: parseInt(_raw[9] ?? 255, 10)
-              },
-              duration: parseFloat(_raw[10] ?? 0),
-              tintGround: _raw[14] === "1",
-              opacity: parseFloat(_raw[35] ?? 1)
-            });
-          }
-        }
-        if (levelObj.id === 1346) {
-          const _raw = levelObj._raw;
-          this._rotateTriggers.push({
-            x: levelObj.x * 2,
-            targetGroup: parseInt(_raw[51] ?? 0, 10),
-            degrees: parseFloat(_raw[68] ?? 0),
-            duration: parseFloat(_raw[10] ?? 0),
-            easingType: parseInt(_raw[30] ?? 0, 10),
-            easingRate: parseFloat(_raw[85] ?? 2),
-            lockRotation: _raw[70] === '1',
-            times360: parseInt(_raw[69] ?? 0, 10),
-            centerGroup: parseInt(_raw[71] ?? 0, 10),
-          });
-        }
-        if (levelObj.id === 1006) {
-          const _raw = levelObj._raw;
-          const targetType = parseInt(_raw[52] ?? 0, 10);
-          this._pulseTriggers.push({
-            x: levelObj.x * 2,
-            targetGroup: targetType === 1 ? parseInt(_raw[51] ?? 0, 10) : 0,
-            targetChannel: targetType === 0 ? parseInt(_raw[51] ?? 0, 10) : 0,
-            targetType: targetType,
-            color: {
-              r: parseInt(_raw[7] ?? 255, 10),
-              g: parseInt(_raw[8] ?? 255, 10),
-              b: parseInt(_raw[9] ?? 255, 10)
-            },
-            fadeIn: parseFloat(_raw[45] ?? 0),
-            hold: parseFloat(_raw[46] ?? 0),
-            fadeOut: parseFloat(_raw[47] ?? 0),
-          });
-        }
+        // Always load start positions even in LDM
         if (levelObj.id === 31) {
           this._startPositions.push({
             x: 2 * levelObj.x,
@@ -889,6 +798,101 @@ window.LevelObject = class LevelObject {
             mirrored: levelObj.mirrored,
             gravityFlipped: levelObj.flipGravity
           });
+        }
+        // Skip other triggers in LDM mode
+        if (!window.lowDetailMode) {
+          if (levelObj.id === 29 || levelObj.id === 30) {
+            this._colorTriggers.push({
+              x: levelObj.x * 2,
+              index: levelObj.id === 29 ? 1000 : 1001,
+              color: {
+                r: parseInt(levelObj._raw[7] ?? 255, 10),
+                g: parseInt(levelObj._raw[8] ?? 255, 10),
+                b: parseInt(levelObj._raw[9] ?? 255, 10)
+              },
+              duration: parseFloat(levelObj._raw[10] ?? 0),
+              tintGround: levelObj._raw[14] === "1"
+            });
+          }
+          if (objectDef.enterEffect) {
+            this._enterEffectTriggers.push({
+              x: levelObj.x * 2,
+              effect: objectDef.enterEffect
+            });
+          }
+          if (levelObj.id === 901) {
+            const _raw = levelObj._raw;
+            this._moveTriggers.push({
+              x: levelObj.x * 2,
+              duration: parseFloat(_raw[10] ?? 0),
+              easingType: parseInt(_raw[30] ?? 0, 10),
+              easingRate: parseFloat(_raw[85] ?? 2),
+              targetGroup: parseInt(_raw[51] ?? 0, 10),
+              offsetX: parseFloat(_raw[28] ?? 0) * 2,
+              offsetY: parseFloat(_raw[29] ?? 0) * 2,
+              lockX: _raw[58] === '1',
+              lockY: _raw[59] === '1',
+            });
+          }
+          if (levelObj.id === 1007) {
+            const _raw = levelObj._raw;
+            this._alphaTriggers.push({
+              x: levelObj.x * 2,
+              duration: parseFloat(_raw[10] ?? 0),
+              targetGroup: parseInt(_raw[51] ?? 0, 10),
+              targetOpacity: Math.max(0, Math.min(1, parseFloat(_raw[35] ?? 1))),
+            });
+          }
+          if (levelObj.id === 899) {
+            const _raw = levelObj._raw;
+            const targetChannel = parseInt(_raw[23] ?? 0, 10);
+            if (targetChannel > 0) {
+              this._colorTriggers.push({
+                x: levelObj.x * 2,
+                index: targetChannel,
+                color: {
+                  r: parseInt(_raw[7] ?? 255, 10),
+                  g: parseInt(_raw[8] ?? 255, 10),
+                  b: parseInt(_raw[9] ?? 255, 10)
+                },
+                duration: parseFloat(_raw[10] ?? 0),
+                tintGround: _raw[14] === "1",
+                opacity: parseFloat(_raw[35] ?? 1)
+              });
+            }
+          }
+          if (levelObj.id === 1346) {
+            const _raw = levelObj._raw;
+            this._rotateTriggers.push({
+              x: levelObj.x * 2,
+              targetGroup: parseInt(_raw[51] ?? 0, 10),
+              degrees: parseFloat(_raw[68] ?? 0),
+              duration: parseFloat(_raw[10] ?? 0),
+              easingType: parseInt(_raw[30] ?? 0, 10),
+              easingRate: parseFloat(_raw[85] ?? 2),
+              lockRotation: _raw[70] === '1',
+              times360: parseInt(_raw[69] ?? 0, 10),
+              centerGroup: parseInt(_raw[71] ?? 0, 10),
+            });
+          }
+          if (levelObj.id === 1006) {
+            const _raw = levelObj._raw;
+            const targetType = parseInt(_raw[52] ?? 0, 10);
+            this._pulseTriggers.push({
+              x: levelObj.x * 2,
+              targetGroup: targetType === 1 ? parseInt(_raw[51] ?? 0, 10) : 0,
+              targetChannel: targetType === 0 ? parseInt(_raw[51] ?? 0, 10) : 0,
+              targetType: targetType,
+              color: {
+                r: parseInt(_raw[7] ?? 255, 10),
+                g: parseInt(_raw[8] ?? 255, 10),
+                b: parseInt(_raw[9] ?? 255, 10)
+              },
+              fadeIn: parseFloat(_raw[45] ?? 0),
+              hold: parseFloat(_raw[46] ?? 0),
+              fadeOut: parseFloat(_raw[47] ?? 0),
+            });
+          }
         }
         continue;
       }
@@ -950,7 +954,7 @@ window.LevelObject = class LevelObject {
           }
         }
         let _0xOrbGlow = null;
-        if (objectDef.glow) {
+        if (!window.lowDetailMode && objectDef.glow) {
           _0xOrbGlow = this._addGlowSprite(scene, spriteWorldX, baseY, frameName, levelObj, worldX);
           if (_0xOrbGlow) {
             _0xOrbGlow._eeZDepth = _objZDepth - 0.003;
@@ -1104,7 +1108,7 @@ window.LevelObject = class LevelObject {
         if (levelObj.id === 1331) {
         }
       }
-      if (objectDef && objectDef.portalParticle && frameName) {
+      if (objectDef && objectDef.portalParticle && frameName && !window.lowDetailMode) {
         let _0x3a9438 = worldX;
         let _0x2e9079 = b(worldY);
         const _0x143187 = 2;
@@ -1267,7 +1271,7 @@ window.LevelObject = class LevelObject {
           _registerCollider(padObj);
           this.objects.push(padObj);
           this._addCollisionToSection(padObj);
-        } else if (objectDef.type === ringType) {
+        } else if (!window.lowDetailMode && objectDef.type === ringType) {
           let orbW = objectDef.gridW * a;
           let orbH = objectDef.gridH * a;
           let orbObj = new Collider(jumpRingType, worldX, worldY, orbW, orbH, levelObj.rot || 0);
@@ -1348,51 +1352,53 @@ window.LevelObject = class LevelObject {
     this._endPortalShine.setTint(window.mainColor);
     this._endPortalShine.setScale(1, 960 / _0x3e25a9);
     this.additiveContainer.add(this._endPortalShine);
-    const _0x58cedb = _0x3b56d4 - 30;
-    const _0x4f52b7 = {
-      getRandomPoint: _0x4f04dd => {
-        const _0x53ec71 = (85 + Math.random() * 190) * Math.PI / 180;
-        const _0x42e60c = 320 + (Math.random() * 2 - 1) * 80;
-        _0x4f04dd.x = Math.cos(_0x53ec71) * _0x42e60c;
-        _0x4f04dd.y = Math.sin(_0x53ec71) * _0x42e60c;
-        return _0x4f04dd;
-      }
-    };
-    this._endPortalEmitter = _0x41fbdb.add.particles(_0x58cedb, _0x1c3aea, "GJ_WebSheet", {
-      frame: "square.png",
-      lifespan: {
-        min: 200,
-        max: 1000
-      },
-      speed: 0,
-      scale: {
-        start: 0.75,
-        end: 0.125
-      },
-      alpha: {
-        start: 1,
-        end: 0
-      },
-      tint: window.mainColor,
-      blendMode: Phaser.BlendModes.ADD,
-      frequency: 10,
-      maxParticles: 100,
-      emitting: true,
-      emitZone: {
-        type: "random",
-        source: _0x4f52b7
-      },
-      emitCallback: _0x2daff4 => {
-        const _0x5e30d8 = -_0x2daff4.x;
-        const _0x17ba71 = -_0x2daff4.y;
-        const _0x3c5c52 = Math.sqrt(_0x5e30d8 * _0x5e30d8 + _0x17ba71 * _0x17ba71) || 1;
-        const _0x279521 = (_0x3c5c52 - 20) / (_0x2daff4.life / 1000 || 0.3);
-        _0x2daff4.velocityX = _0x5e30d8 / _0x3c5c52 * _0x279521;
-        _0x2daff4.velocityY = _0x17ba71 / _0x3c5c52 * _0x279521;
-      }
-    });
-    this._endPortalEmitter.setDepth(14);
-    this.topContainer.add(this._endPortalEmitter);
+    if (!window.lowDetailMode) {
+      const _0x58cedb = _0x3b56d4 - 30;
+      const _0x4f52b7 = {
+        getRandomPoint: _0x4f04dd => {
+          const _0x53ec71 = (85 + Math.random() * 190) * Math.PI / 180;
+          const _0x42e60c = 320 + (Math.random() * 2 - 1) * 80;
+          _0x4f04dd.x = Math.cos(_0x53ec71) * _0x42e60c;
+          _0x4f04dd.y = Math.sin(_0x53ec71) * _0x42e60c;
+          return _0x4f04dd;
+        }
+      };
+      this._endPortalEmitter = _0x41fbdb.add.particles(_0x58cedb, _0x1c3aea, "GJ_WebSheet", {
+        frame: "square.png",
+        lifespan: {
+          min: 200,
+          max: 1000
+        },
+        speed: 0,
+        scale: {
+          start: 0.75,
+          end: 0.125
+        },
+        alpha: {
+          start: 1,
+          end: 0
+        },
+        tint: window.mainColor,
+        blendMode: Phaser.BlendModes.ADD,
+        frequency: 10,
+        maxParticles: 100,
+        emitting: true,
+        emitZone: {
+          type: "random",
+          source: _0x4f52b7
+        },
+        emitCallback: _0x2daff4 => {
+          const _0x5e30d8 = -_0x2daff4.x;
+          const _0x17ba71 = -_0x2daff4.y;
+          const _0x3c5c52 = Math.sqrt(_0x5e30d8 * _0x5e30d8 + _0x17ba71 * _0x17ba71) || 1;
+          const _0x279521 = (_0x3c5c52 - 20) / (_0x2daff4.life / 1000 || 0.3);
+          _0x2daff4.velocityX = _0x5e30d8 / _0x3c5c52 * _0x279521;
+          _0x2daff4.velocityY = _0x17ba71 / _0x3c5c52 * _0x279521;
+        }
+      });
+      this._endPortalEmitter.setDepth(14);
+      this.topContainer.add(this._endPortalEmitter);
+    }
     this._endPortalGameY = 240;
   }
   updateEndPortalY(_0x26f0ab, _0x43c4d1) {
@@ -1405,7 +1411,9 @@ window.LevelObject = class LevelObject {
     const _0x32e645 = b(_0x1be4c3);
     this._endPortalContainer.y = _0x32e645;
     this._endPortalShine.y = _0x32e645;
-    this._endPortalEmitter.y = _0x32e645;
+    if (this._endPortalEmitter) {
+      this._endPortalEmitter.y = _0x32e645;
+    }
     this._endPortalGameY = _0x1be4c3;
   }
   checkColorTriggers(_0x2b00ce) {

@@ -27,6 +27,17 @@ if (urlParams.has('id')) {
   window.levelID = urlParams.get('id');
 }
 
+window.lowDetailMode = localStorage.getItem("lowDetailMode") === "true" || urlParams.has('ldm');
+
+window.vsyncDisabled = localStorage.getItem("vsyncDisabled") === "true";
+
+if (!window.lowDetailMode) {
+  const cores = navigator.hardwareConcurrency || 2;
+  const memory = navigator.deviceMemory || 4;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|ChromeOS|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  window.lowDetailMode = cores < 4 || memory < 4 || isMobile;
+}
+
 // -------------------------------
 
 function hexToHexadecimal(str) {
@@ -65,7 +76,7 @@ const T = 460;
 function b(y) {
   return T - y;
 }
-let S = Phaser.BlendModes.ADD;
+let S = window.lowDetailMode ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD;
 let E = Phaser.BlendModes.NORMAL;
 
 const fs = 1000;

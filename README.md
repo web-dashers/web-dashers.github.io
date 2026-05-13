@@ -41,6 +41,7 @@
 - **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Mini portals and Speed portals!
 - **Practice Mode** - Practice mode is still very buggy at the time. Currently, you can press Z to add a checkpoint, or X to delete a checkpoint, and P to enable and disable Practice mode!
 - **Extra Settingss** - You can enable and disable Noclip or Show Hitboxes from the pause menu in a level, along with other settings, like the level percentage!
+- **Low Detail Mode (LDM)** - Automatically enables on low-performance devices to improve frame rate by disabling particle effects and optimizing rendering. Can be manually controlled via URL parameter (?ldm) or localStorage.
 
 ## What we hope to see added in the future:
 - **All Gamemodes** - This will allow every official main level to be playable, along with others that require currently un-implemented gamemodes.

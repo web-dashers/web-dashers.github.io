@@ -188,38 +188,40 @@ function particleEffect(gameScene, color1 = 16777215, color2 = 16777215) {
   const xPos = basePos + (screenWidth - 400) * Math.random();
   const yPos = basePos + Math.random() * 240;
   circleEffect(gameScene, xPos, yPos, 40, 140 + Math.random() * 60, 500, true, true, color2);
-  gameScene.add.particles(xPos, yPos, "GJ_WebSheet", {
-    frame: "square.png",
-    speed: {
-      min: 520,
-      max: 920
-    },
-    angle: {
-      min: 0,
-      max: 360
-    },
-    scale: {
-      start: 0.4,
-      end: 0.13
-    },
-    alpha: {
-      start: 1,
-      end: 0
-    },
-    lifespan: {
-      min: 0,
-      max: 500
-    },
-    stopAfter: 25,
-    blendMode: S, 
-    tint: color1,
-    x: {
-      min: -20,
-      max: 20
-    },
-    y: {
-      min: -20,
-      max: 20
-    }
-  }).setScrollFactor(0).setDepth(57);
+  if (!window.lowDetailMode) {
+    gameScene.add.particles(xPos, yPos, "GJ_WebSheet", {
+      frame: "square.png",
+      speed: {
+        min: 520,
+        max: 920
+      },
+      angle: {
+        min: 0,
+        max: 360
+      },
+      scale: {
+        start: 0.4,
+        end: 0.13
+      },
+      alpha: {
+        start: 1,
+        end: 0
+      },
+      lifespan: {
+        min: 0,
+        max: 500
+      },
+      stopAfter: 25,
+      blendMode: S, 
+      tint: color1,
+      x: {
+        min: -20,
+        max: 20
+      },
+      y: {
+        min: -20,
+        max: 20
+      }
+    }).setScrollFactor(0).setDepth(57);
+  }
 }
