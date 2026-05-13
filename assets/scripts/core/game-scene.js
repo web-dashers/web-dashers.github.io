@@ -393,6 +393,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           .setScrollFactor(0).setDepth(104).setScale(btnScale);
         const isSearchButton  = frame === "GJ_searchBtn_001.png";
         const isFeaturedButton = frame === "GJ_featuredBtn_001.png";
+        const isSavedButton = frame === "GJ_savedBtn_001.png";
         if (isSearchButton) {
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
@@ -404,6 +405,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           this._makeBouncyButton(btn, btnScale, () => {
             this._closeCreatorMenu(true);
             this._openOnlineLevelsScene({ type: 6 });
+          }, () => true);
+        } else if (isSavedButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._closeCreatorMenu(true);
+            this._openSavedLevelScene({ type: 6 });
           }, () => true);
         } else {
           btn.setTint(0x666666);
@@ -2730,8 +2737,11 @@ _buildSettingsPopup() {
       { text: "GD accurate loading screen.", scale: 0.65 },
       { text: "UI tweaks.", scale: 0.65 },
       { text: "Bug fixes.", scale: 0.65 },
+      { text: "Accurate Saved levels tab demo", scale: 0.65 },
       { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
+      { text: "nope.", scale: 0.65, color: 0xac66cc },
+      { text: "-Ameth7st", scale: 0.65, color: 0xac66cc },
     ]; 
     let yPos = 0;
     const lineItems = [];
