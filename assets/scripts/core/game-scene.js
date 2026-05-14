@@ -5507,11 +5507,13 @@ _moveObject = (dx, dy) => {
     const sprites = this._level.objectSprites[selectedIndex];
     const saveObj = window.levelObjects[selectedIndex];
 
-    if (!collider || !saveObj) return;
+    if (!saveObj) return;
 
-    collider.x += dx; collider.y += dy;
-    collider._baseX += dx; collider._baseY += dy;
-    collider._origBaseX += dx; collider._origBaseY += dy;
+    if (collider) {
+      collider.x += dx; collider.y += dy;
+      collider._baseX += dx; collider._baseY += dy;
+      collider._origBaseX += dx; collider._origBaseY += dy;
+    }
 
     saveObj.x += dx / 2; saveObj.y -= dy / 2;
     if (saveObj._raw) {
@@ -5884,8 +5886,14 @@ _placeObject = () => {
 
             spr.setDepth((spr._eeZDepth || finalDepth) + 10);
 
-            if (this._level.container && !this._level.container.exists(spr)) {
-                this._level.container.add(spr);
+            if (spr._eeLayer === 2) {
+                if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
+                    this._level.topContainer.add(spr);
+                }
+            } else {
+                if (this._level.container && !this._level.container.exists(spr)) {
+                    this._level.container.add(spr);
+                }
             }
         }
     }
