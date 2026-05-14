@@ -178,7 +178,7 @@ class BootScene extends Phaser.Scene {
       "Programming amazing AI",
       "Hiding secret vault",
       "Spooky doesn't get out much",
-      "WebDasher was here",
+      "Rohan was here",
       "Warp Speed",
       "So, what's up?",
       "Hold on, reading the manual",
@@ -256,6 +256,11 @@ class BootScene extends Phaser.Scene {
       this.load.image("GJ_button02", "assets/sprites/GJ_button_02.png");
       this.load.image("import", "assets/sprites/import.png");
       this.load.image("export", "assets/sprites/export.png");
+      this.load.image("tutorial_01", "assets/sprites/tutorial_01.png");
+      this.load.image("tutorial_02", "assets/sprites/tutorial_02.png");
+      this.load.image("tutorial_03", "assets/sprites/tutorial_03.png");
+      this.load.image("tutorial_04", "assets/sprites/tutorial_04.png");
+      this.load.image("tutorial_05", "assets/sprites/tutorial_05.png");
 
       for (let i = 1; i < 23; i++) {
         let index = i - 1;
