@@ -1947,7 +1947,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         "level_137677336": "diffIcon_00_btn_001",
         "level_116489424": "diffIcon_00_btn_001",
         "level_4284013": "diffIcon_06_btn_001",
-        "level_56199846": "diffIcon_04_btn_001",
         "level_23":       "diffIcon_10_btn_001"
       };
       const diffIconKey = levelDifficultyMap[levelId] || "diffIcon_05_btn_001";
@@ -2589,6 +2588,13 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
+
+    const lockIcon = this.add.image(centerX + (panelWidth / 2) + 30, centerY - (panelHeight / 2) + 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
+    lockIcon.setScale(0.75);
+    lockIcon.setInteractive();
+    this._expandHitArea(lockIcon, 1.5);
+    this._makeBouncyButton(lockIcon, 0.75, () => { this._openVaultMenu(); });
+    this._settingsPopup.add(lockIcon);
   }
   _saveSettings() {
     const settings = {
@@ -2636,49 +2642,293 @@ _buildSettingsPopup() {
       return;
     }
     const xPos = screenWidth / 2;
-    const _0x4c3182 = 320;
-    const _0xe2830b = 336;
-    this._infoPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
-    const _0x249eb7 = this.add.rectangle(xPos, _0x4c3182, screenWidth, screenHeight, 0, 100 / 255);
-    _0x249eb7.setInteractive();
-    this._infoPopup.add(_0x249eb7);
-    const _0x14e46f = this.textures.get("GJ_square02").source[0].width * 0.325;
-    const _0x2c64c2 = this._drawScale9(xPos, _0x4c3182, 480, _0xe2830b, "GJ_square02", _0x14e46f, 16777215, 1);
-    this._infoPopup.add(_0x2c64c2);
-    const _0x5a0f88 = this.add.image(xPos - 240 + 20, 172, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
-    this._infoPopup.add(_0x5a0f88);
-    this._expandHitArea(_0x5a0f88, 2);
-    this._makeBouncyButton(_0x5a0f88, 0.8, () => this._closeInfoPopup());
-    let yPos = 206;
-    const _0x302fca = this.add.bitmapText(xPos, yPos, "bigFont", "Credits", 40).setOrigin(0.5, 0.5);
-    this._infoPopup.add(_0x302fca);
-    yPos += 55;
-    const _0x22e4c7 = this.add.bitmapText(xPos, yPos, "goldFont", "Made by RobTop Games", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x22e4c7);
-    yPos += 35;
-    const _0x3cdf70a = this.add.bitmapText(xPos, yPos, "goldFont", "Modded by:", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70a);
-    yPos += 35;
-    const _0x3cdf70b = this.add.bitmapText(xPos, yPos, "goldFont", "breadbb, PinkDev, rohanis0000,", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70b);
-    yPos += 35;
-    const _0x3cdf70c = this.add.bitmapText(xPos, yPos, "goldFont", "bog, AntiMatter, arbstro, aloaf", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70c);
-    yPos += 35;
-    const _0x3cdf70d = this.add.bitmapText(xPos, yPos, "goldFont", "t0nchi7 and Lasokar.", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70d);
-    yPos += 35;
-    const _0x97b2a9 = this.add.text(xPos, 463, "© 2026 RobTop Games. All rights reserved.", {
-      fontSize: "12px",
-      color: "#000000",
-      fontFamily: "Arial"
-    }).setOrigin(0.5, 0.5).setAlpha(0.7).setResolution(2);
-    this._infoPopup.add(_0x97b2a9);
+    const popupHeight = 320;
+    const popupWidth = 336;
+    this._infoPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+    const background = this.add.rectangle(xPos, popupHeight, screenWidth, screenHeight, 0, 100 / 255);
+    background.setInteractive();
+    this._infoPopup.add(background);
+    
+    const bounceContainer = this.add.container(xPos, popupHeight).setScale(0);
+    this._infoPopup.add(bounceContainer);
+    const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
+    const popupBg = this._drawScale9(0, 0, 480, popupWidth, "GJ_square02", cornerRadius, 16777215, 1);
+    bounceContainer.add(popupBg);
+    const closeBtn = this.add.image(-240 + 20, -148, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    bounceContainer.add(closeBtn);
+    this._expandHitArea(closeBtn, 2);
+    this._makeBouncyButton(closeBtn, 0.8, () => this._closeInfoPopup());
+    const title = this.add.bitmapText(0, -124, "bigFont", "Credits", 30).setOrigin(0.5, 0.5);
+    bounceContainer.add(title);
+    const scrollAreaW = 420;
+    const scrollAreaH = 230;
+    const scrollAreaX = 0;
+    const scrollAreaY = 20;
+    const scrollFrameBg = this.add.graphics();
+    scrollFrameBg.fillStyle(0x000000, 0.18);
+    scrollFrameBg.fillRoundedRect(scrollAreaX - scrollAreaW / 2, scrollAreaY - scrollAreaH / 2, scrollAreaW, scrollAreaH, 8);
+    bounceContainer.add(scrollFrameBg);
+    const contentContainer = this.add.container(0, scrollAreaY - scrollAreaH / 2 + 8);
+    bounceContainer.add(contentContainer);
+    
+    const creditsEntries = [
+      { text: "Made by RobTop Games", scale: 0.8, font: "goldFont" },
+      { text: "Modded by:", scale: 0.9, font: "bigFont" },
+      { text: "breadbb, PinkDev, rohanis0000,", scale: 0.7, font: "goldFont" },
+      { text: "bog, AntiMatter, arbstro, aloaf", scale: 0.7, font: "goldFont" },
+      { text: "Contributors:", scale: 0.9, font: "bigFont" },
+      { text: "t0nchi7 and Lasokar.", scale: 0.7, font: "goldFont" },
+      { text: "© 2026 RobTop Games. All rights reserved.", scale: 0.4, font: "Arial", color: 0x000000 },
+    ]; 
+    let yPos = 0;
+    const lineItems = [];
+    creditsEntries.forEach(entry => {
+      let txt;
+      if (entry.font === "Arial") {
+        txt = this.add.text(0, yPos, entry.text, {
+          fontSize: `${Math.round(32 * (entry.scale || 0.65))}px`,
+          fontFamily: "Arial",
+          color: entry.color ? `#${entry.color.toString(16).padStart(6, '0')}` : "#ffffff"
+        }).setOrigin(0.5, 0);
+      } else {
+        txt = this.add.bitmapText(0, yPos, entry.font || "bigFont", entry.text, 32)
+          .setOrigin(0.5, 0)
+          .setScale(entry.scale || 0.65);
+        if (entry.color != null) txt.setTint(entry.color);
+      }
+      contentContainer.add(txt);
+      lineItems.push(txt);
+      yPos += Math.round(32 * (entry.scale || 0.65)) + 10;
+    });
+    const totalContentH = yPos;
+    const maxScrollDown = Math.max(0, totalContentH - scrollAreaH + 16);
+    const maskGraphics = this.add.graphics();
+    const maskShape = this.add.graphics();
+    maskShape.fillStyle(0xffffff, 1);
+    const updateMask = () => {
+      if (!bounceContainer || !bounceContainer.active) return;
+      const wx = xPos + bounceContainer.x - xPos;
+      const s = bounceContainer.scaleX;
+      const bwx = xPos;
+      const bwy = popupHeight;
+      maskShape.clear();
+      maskShape.fillStyle(0xffffff, 1);
+      maskShape.fillRect(
+        bwx + (scrollAreaX - scrollAreaW / 2) * s,
+        bwy + (scrollAreaY - scrollAreaH / 2) * s,
+        scrollAreaW * s,
+        scrollAreaH * s
+      );
+    };
+    const geomMask = maskShape.createGeometryMask();
+    contentContainer.setMask(geomMask);
+    const maskUpdateEvent = this.events.on('postupdate', updateMask);
+    let scrollY = 0;
+    const baseContentY = scrollAreaY - scrollAreaH / 2 + 8;
+    const applyScroll = () => {
+      contentContainer.y = baseContentY - scrollY;
+    };
+    applyScroll();
+    const scrollZone = this.add.zone(scrollAreaX, scrollAreaY, scrollAreaW, scrollAreaH).setInteractive();
+    bounceContainer.add(scrollZone);
+    scrollZone.on('wheel', (_p, _dx, deltaY) => {
+      scrollY = Phaser.Math.Clamp(scrollY + deltaY * 0.6, 0, maxScrollDown);
+      applyScroll();
+    });
+
+    let dragStartY = 0;
+    let dragStartScroll = 0;
+    scrollZone.on('pointerdown', (pointer) => {
+      dragStartY = pointer.y;
+      dragStartScroll = scrollY;
+    });
+    scrollZone.on('pointermove', (pointer) => {
+      if (pointer.isDown) {
+        const dy = dragStartY - pointer.y;
+        scrollY = Phaser.Math.Clamp(dragStartScroll + dy, 0, maxScrollDown);
+        applyScroll();
+      }
+    });
+    this._infoPopupCleanup = () => {
+      this.events.off('postupdate', updateMask);
+      maskShape.destroy();
+      geomMask.destroy();
+    };
+    this.tweens.add({
+      targets: bounceContainer,
+      scale: { from: 0, to: 1 },
+      duration: 500,
+      ease: "Bounce.Out"
+    });
   }
   _closeInfoPopup() {
     if (this._infoPopup) {
+      if (this._infoPopupCleanup) {
+        this._infoPopupCleanup();
+        this._infoPopupCleanup = null;
+      }
       this._infoPopup.destroy();
       this._infoPopup = null;
+    }
+  }
+ _buildHowToPlayPopup() {
+  if (this._howToPlayPopup) {
+    return;
+  }
+  const TUTORIAL_PAGES = ["tutorial_01", "tutorial_02", "tutorial_03", "tutorial_04", "tutorial_05"];
+  const GREEN  = 0x00e719;
+  const YELLOW = 0xf8ff00;
+  const BLUE   = 0x3cadf5;
+  const TUTORIAL_DESCRIPTIONS = [
+    { fontSize: 40, lines: [
+      [{ text: "TAP", color: GREEN }, { text: " the screen to jump." }],
+      [{ text: "HOLD", color: GREEN }, { text: " down to keep jumping." }]
+    ]},
+    { fontSize: 40, lines: [
+      [{ text: "Hold", color: GREEN }, { text: " to fly up." }],
+      [{ text: "Release", color: GREEN }, { text: " to fly down." }]
+    ]},
+    { fontSize: 35, lines: [
+      [{ text: "You can enter " }, { text: "practice mode", color: BLUE }, { text: " from" }],
+      [{ text: "the pause menu." }],
+      [{ text: "Practice mode lets you place" }],
+      [{ text: "checkpoints", color: GREEN }, { text: "." }]
+    ]},
+    { fontSize: 35, lines: [
+      [{ text: "You can place checkpoints manually, or" }],
+      [{ text: "use the auto-checkpoints feature." }],
+      [{ text: "Tap the delete button to remove your" }],
+      [{ text: "last checkpoint." }]
+    ]},
+    { fontSize: 35, lines: [
+      [{ text: "Jump Orbs", color: YELLOW }, { text: " activate when you are on" }],
+      [{ text: "top of them." }],
+      [{ text: "TAP", color: GREEN }, { text: " while touching an orb to" }],
+      [{ text: "interact with it and use its effect." }]
+    ]}
+  ];
+  const TOTAL_PAGES = TUTORIAL_PAGES.length;
+  let currentPage = 0;
+
+  const xPos = screenWidth / 2;
+  const _0x4c3182 = 320;
+  this._howToPlayPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(300);
+  const _0x249eb7 = this.add.rectangle(xPos, _0x4c3182, screenWidth, screenHeight, 0, 100 / 255);
+  _0x249eb7.setInteractive();
+  this._howToPlayPopup.add(_0x249eb7);
+  const _0x14e46f = this.textures.get("GJ_square01").source[0].width * 0.325;
+  const panelContainer = this.add.container(xPos, _0x4c3182);
+  this._howToPlayPopup.add(panelContainer);
+  const _0x2c64c2 = this._drawScale9(0, 0, 830, 530, "GJ_square01", _0x14e46f, 16777215, 1);
+  panelContainer.add(_0x2c64c2);
+  const _0x5a0f88 = this.add.image(-240 - 160, 172 - _0x4c3182 - 110, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+  this._expandHitArea(_0x5a0f88, 2);
+  this._makeBouncyButton(_0x5a0f88, 0.8, () => this._closeHowToPlayPopup());
+  panelContainer.add(_0x5a0f88);
+  const howToPlayTitle = this.add.bitmapText(0, -210, "bigFont", "How To Play", 62).setOrigin(0.5, 0.5);
+  panelContainer.add(howToPlayTitle);
+  const DESC_TOP_Y = -195;
+  const DESC_BOT_Y = 15;
+  const DESC_MAX_H = DESC_BOT_Y - DESC_TOP_Y;
+
+  let descLineObjects = [];
+
+  const _buildDescLines = (pageIndex) => {
+    for (const obj of descLineObjects) obj.destroy();
+    descLineObjects = [];
+
+    const page = TUTORIAL_DESCRIPTIONS[pageIndex];
+    if (!page || !page.lines.length) return;
+
+    const fontSize = page.fontSize;
+    const lineSpacing = 0.35;
+    const lineH = fontSize * (1 + lineSpacing);
+    const startY = DESC_TOP_Y + fontSize / 0.5;
+
+    for (let i = 0; i < page.lines.length; i++) {
+      const segments = page.lines[i];
+      const lineY = startY + i * lineH;
+      if (segments.length === 1 && !segments[0].color) {
+        const obj = this.add.bitmapText(0, lineY, "bigFont", segments[0].text, fontSize)
+          .setOrigin(0.5, 0.5);
+        panelContainer.add(obj);
+        descLineObjects.push(obj);
+        continue;
+      }
+      const measured = segments.map(seg => {
+        const tmp = this.add.bitmapText(0, -9999, "bigFont", seg.text, fontSize);
+        const w = tmp.width;
+        tmp.destroy();
+        return w;
+      });
+      const totalW = measured.reduce((a, b) => a + b, 0);
+      let curX = -totalW / 2;
+
+      for (let s = 0; s < segments.length; s++) {
+        const seg = segments[s];
+        const obj = this.add.bitmapText(curX, lineY, "bigFont", seg.text, fontSize)
+          .setOrigin(0, 0.5);
+        if (seg.color) obj.setTint(seg.color);
+        panelContainer.add(obj);
+        descLineObjects.push(obj);
+        curX += measured[s];
+      }
+    }
+  };
+
+  _buildDescLines(0);
+  const tutorialImage = this.add.image(-240 + 150, 155, TUTORIAL_PAGES[0]);
+  panelContainer.add(tutorialImage);
+  const nextGroup = this.add.container(-240 + 550, 165);
+  const nextBtnW = 125, nextBtnH = 80;
+  const nextBtnBorder = this.textures.get("GJ_button01").source[0].width * 0.3;
+  const nextBtn9 = this._drawScale9(0, 0, nextBtnW, nextBtnH, "GJ_button01", nextBtnBorder, 0xffffff, 1);
+  const nextBtn = this.add.rectangle(0, 0, nextBtnW, nextBtnH).setInteractive();
+  const nextLabel = this.add.bitmapText(-5, -2.5, "bigFont", "Next", 35).setOrigin(0.5, 0.5);
+  nextGroup.add(nextBtn9);
+  nextGroup.add(nextBtn);
+  nextGroup.add(nextLabel);
+  panelContainer.add(nextGroup);
+
+  nextBtn.on("pointerdown", () => {
+    nextGroup._pressed = true;
+    this.tweens.killTweensOf(nextGroup);
+    this.tweens.add({ targets: nextGroup, scaleX: 1.26, scaleY: 1.26, duration: 300, ease: "Bounce.Out" });
+  });
+  nextBtn.on("pointerout", () => {
+    if (nextGroup._pressed) {
+      nextGroup._pressed = false;
+      this.tweens.killTweensOf(nextGroup);
+      this.tweens.add({ targets: nextGroup, scaleX: 1, scaleY: 1, duration: 400, ease: "Bounce.Out" });
+    }
+  });
+  nextBtn.on("pointerup", () => {
+    if (!nextGroup._pressed) return;
+    nextGroup._pressed = false;
+    this.tweens.killTweensOf(nextGroup);
+    nextGroup.setScale(1);
+
+    if (currentPage >= TOTAL_PAGES - 1) {
+      this._closeHowToPlayPopup();
+    } else {
+      currentPage++;
+      tutorialImage.setTexture(TUTORIAL_PAGES[currentPage]);
+      _buildDescLines(currentPage);
+      nextLabel.setText(currentPage >= TOTAL_PAGES - 1 ? "Exit" : "Next");
+    }
+  });
+  panelContainer.setScale(0);
+  this.tweens.add({
+    targets: panelContainer,
+    scale: 1,
+    duration: 400,
+    ease: "Bounce.Out"
+  });
+}
+  _closeHowToPlayPopup() {
+    if (this._howToPlayPopup) {
+      this._howToPlayPopup.destroy();
+      this._howToPlayPopup = null;
     }
   }
   _buildUpdateLogPopup() {
@@ -4691,8 +4941,7 @@ _applyMirrorEffect() {
                 if (hitZone._pressed) {
                     hitZone._pressed = false;
                     this.tweens.killTweensOf(grp, "scale");
-                    this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out" });
-                    action();
+                    this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out", onComplete: () => { action(); } });
                 }
             });
         }
@@ -4701,12 +4950,19 @@ _applyMirrorEffect() {
     };
 
     _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, false, null);
-    _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, false, null);
+    _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
     _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
     _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
     _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null);
     _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null);
     _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null);
+
+    const lockIcon = this.add.image(containerX + 535, 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
+    lockIcon.setScale(0.9);
+    lockIcon.setInteractive();
+    this._expandHitArea(lockIcon, 1.5);
+    this._makeBouncyButton(lockIcon, 0.9, () => { this._openVaultMenu(); });
+    this._settingsLayerInternal.add(lockIcon);
     
     const _0x45b6e4 = 0.8;
     let _0xe44f6d = 250;
