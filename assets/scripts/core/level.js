@@ -972,25 +972,25 @@ window.LevelObject = class LevelObject {
       }
     };
 
+    let portalBackSprite = null;
     if (isPortalFront) {
       const backFrame = frameName.replace("_front_", "_back_");
-      const backSprite = addImageToScene(scene, spriteWorldX, baseY, backFrame);
-      if (backSprite) {
-        this._applyVisualProps(scene, backSprite, backFrame, levelObj);
-        backSprite._eeLayer = 1;
-        backSprite._eeWorldX = worldX;
-        backSprite._eeBaseY = baseY;
-        backSprite._eeZDepth = objZDepth - 0.005;
-        backSprite._eeOrigAlpha = 1;
-        this._addToSection(backSprite);
-        registerToGroups(backSprite, worldX, baseY);
-        registerColor(backSprite, col1);
-        registerObjectSprite(backSprite);
+      portalBackSprite = addImageToScene(scene, spriteWorldX, baseY, backFrame);
+      if (portalBackSprite) {
+        portalBackSprite._eeLayer = 1;
+        portalBackSprite._eeWorldX = worldX;
+        portalBackSprite._eeBaseY = baseY;
+        portalBackSprite._eeZDepth = objZDepth - 0.005;
+        portalBackSprite._eeOrigAlpha = 1;
+        this._addToSection(portalBackSprite);
+        registerToGroups(portalBackSprite, worldX, baseY);
+        registerColor(portalBackSprite, col1);
+        registerObjectSprite(portalBackSprite);
       }
     }
 
     let orbGlow = null;
-    if (objectDef.glow && !window.isEditor) {
+    if (objectDef.glow) {
       orbGlow = this._addGlowSprite(scene, spriteWorldX, baseY, frameName, levelObj, worldX);
       if (orbGlow) {
         orbGlow._eeZDepth = objZDepth - 0.003;
@@ -1005,6 +1005,10 @@ window.LevelObject = class LevelObject {
 
     if (sprite) {
       this._applyVisualProps(scene, sprite, frameName, levelObj, objectDef);
+      if (portalBackSprite) {
+        portalBackSprite.x = sprite.x;
+        portalBackSprite.y = sprite.y;
+      }
       this._addVisualSprite(sprite, visualDef);
       sprite._eeWorldX = worldX;
       sprite._eeBaseY = baseY;
