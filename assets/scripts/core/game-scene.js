@@ -3288,7 +3288,7 @@ _buildSettingsPopup() {
       { text: "breadbb, PinkDev, rohanis0000,", scale: 0.7, font: "goldFont" },
       { text: "bog, AntiMatter, arbstro, aloaf", scale: 0.7, font: "goldFont" },
       { text: "Contributors:", scale: 0.9, font: "bigFont" },
-      { text: "t0nchi7 and Lasokar.", scale: 0.7, font: "goldFont" },
+      { text: "t0nchi7, Lasokar, and Itzar.", scale: 0.7, font: "goldFont" },
       { text: "© 2026 RobTop Games. All rights reserved.", scale: 0.4, font: "Arial", color: 0x000000 },
     ]; 
     let yPos = 0;
