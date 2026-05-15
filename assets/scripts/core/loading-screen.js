@@ -254,8 +254,6 @@ class BootScene extends Phaser.Scene {
       this.load.image("loadingCircle", "assets/sprites/loadingCircle.png");
       this.load.image("GJ_button01", "assets/sprites/GJ_button_01.png");
       this.load.image("GJ_button02", "assets/sprites/GJ_button_02.png");
-      this.load.image("import", "assets/sprites/import.png");
-      this.load.image("export", "assets/sprites/export.png");
       this.load.image("tutorial_01", "assets/sprites/tutorial_01.png");
       this.load.image("tutorial_02", "assets/sprites/tutorial_02.png");
       this.load.image("tutorial_03", "assets/sprites/tutorial_03.png");
@@ -281,10 +279,10 @@ class BootScene extends Phaser.Scene {
       this.load.audio("menu_music", "assets/music/menuLoop.mp3");
       this.load.audio("StayInsideMe", "assets/music/StayInsideMe.mp3");
 
-      /*for (const lvlarray of window.allLevels) {
+      for (const lvlarray of window.allLevels) {
         this.load.text(lvlarray[2], "assets/levels/" + lvlarray[2].split("_")[1] + ".txt");
         this.load.audio(lvlarray[0], "assets/music/" + (lvlarray[4] ? lvlarray[4] : lvlarray[1].replaceAll(" ", "")) + ".mp3");
-      }*/
+      }
 
       this.load.audio("explode_11", "assets/sfx/explode_11.ogg");
       this.load.audio("endStart_02", "assets/sfx/endStart_02.ogg");
