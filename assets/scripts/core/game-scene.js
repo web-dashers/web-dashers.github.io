@@ -394,7 +394,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           .setScrollFactor(0).setDepth(104).setScale(btnScale);
         const isSearchButton  = frame === "GJ_searchBtn_001.png";
         const isFeaturedButton = frame === "GJ_featuredBtn_001.png";
-        const isEditorButton = frame === "GJ_createBtn_001.png"; 
+        const isEditorButton  = frame === "GJ_createBtn_001.png";
+        const isDailyButton   = frame === "GJ_dailyBtn_001.png";
+        const isWeeklyButton  = frame === "GJ_weeklyBtn_001.png";
+        const isEventButton   = frame === "GJ_eventBtn_001.png";
         if (isSearchButton) {
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
@@ -412,6 +415,21 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           this._makeBouncyButton(btn, btnScale, () => {
             this._closeCreatorMenu(true);
             this._openEditorMenu();
+          }, () => true);
+        } else if (isDailyButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._openDailyLevelScene(0);
+          }, () => true);
+        } else if (isWeeklyButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._openDailyLevelScene(1);
+          }, () => true);
+        } else if (isEventButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._openDailyLevelScene(2);
           }, () => true);
         } else {
           btn.setTint(0x666666);
@@ -7179,6 +7197,256 @@ _applyMirrorEffect() {
     return { overlay: bgGfx, objects, listLeft, listTop, panelW, panelH,
              panelCX, panelCY, addRow, clearRows, prevBtn, nextBtn,
              pageLbl, closeOverlay, redrawStripes: _redrawStripes };
+  }
+  async _openDailyLevelScene(type) {
+    if (this._dailyLevelOverlay) return;
+
+    const typeTitle = ["Daily Level", "Weekly Level", "Event Level"][type] ?? "Daily Level";
+
+    // Inject keyframe once
+    if (!document.getElementById('_gdDailyStyle')) {
+      const s = document.createElement('style');
+      s.id = '_gdDailyStyle';
+      s.textContent = '@keyframes _gdSpin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    document.body.appendChild(overlay);
+    this._dailyLevelOverlay = overlay;
+
+    const _close = () => {
+      if (this._dailyLevelOverlay) { this._dailyLevelOverlay.remove(); this._dailyLevelOverlay = null; }
+    };
+    overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
+
+    // Draw a frame from a Phaser atlas onto a <canvas>
+    const _drawFrame = (texKey, frameName, w, h) => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.style.cssText = `width:${w}px;height:${h}px;image-rendering:pixelated;display:block;`;
+      try {
+        const tex = this.textures.get(texKey);
+        const frame = tex.get(frameName);
+        const img = tex.source[0].image;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        if (frame.rotated) {
+          // Stored 90° CW in atlas: JSON reports original dims, actual stored region has swapped dims
+          ctx.save(); ctx.translate(0, h); ctx.rotate(-Math.PI/2);
+          ctx.drawImage(img, frame.cutX, frame.cutY, frame.cutHeight, frame.cutWidth, 0, 0, h, w);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, w, h);
+        }
+      } catch(_) {}
+      return c;
+    };
+
+    // Render a string using a Phaser bitmap font onto a <canvas>
+    const _drawBitmapText = (text, fontKey, scale) => {
+      try {
+        const fc = this.cache.bitmapFont.get(fontKey);
+        if (!fc || !fc.data) return null;
+        const chars = fc.data.chars;
+        const lineH = fc.data.lineHeight;
+        const fontImg = this.textures.get(fontKey).source[0].image;
+        let totalW = 0;
+        for (let i = 0; i < text.length; i++) {
+          const cd = chars[text.charCodeAt(i)];
+          totalW += (cd ? cd.xAdvance : 10) * scale;
+        }
+        const canvasW = Math.max(1, Math.ceil(totalW));
+        const canvasH = Math.max(1, Math.ceil(lineH * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasW; canvas.height = canvasH;
+        canvas.style.cssText = `display:block;image-rendering:pixelated;`;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        let x = 0;
+        for (let i = 0; i < text.length; i++) {
+          const cd = chars[text.charCodeAt(i)];
+          if (!cd || cd.width === 0) { x += (cd ? cd.xAdvance : 10) * scale; continue; }
+          ctx.drawImage(fontImg, cd.x, cd.y, cd.width, cd.height,
+            x + cd.xOffset * scale, cd.yOffset * scale, cd.width * scale, cd.height * scale);
+          x += cd.xAdvance * scale;
+        }
+        return canvas;
+      } catch(_) { return null; }
+    };
+
+    const panel = document.createElement('div');
+    panel.style.cssText = `width:500px;max-width:95vw;transform:scale(0);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);border:52px solid transparent;border-image:url('assets/sprites/GJ_square01.png') 32.5% fill;box-sizing:border-box;`;
+    overlay.appendChild(panel);
+    requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.transform = 'scale(1)'; }));
+
+    const header = document.createElement('div');
+    header.style.cssText = 'padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid rgba(200,149,42,0.45);';
+    const titleEl = document.createElement('div');
+    titleEl.style.cssText = 'display:flex;align-items:center;';
+    titleEl.appendChild(_drawBitmapText(typeTitle, 'goldFont', 0.3) || (() => { const s=document.createElement('span'); s.textContent=typeTitle; return s; })());
+    const xBtn = document.createElement('button');
+    xBtn.style.cssText = 'background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.75;transition:opacity 0.15s;';
+    xBtn.appendChild(_drawFrame('GJ_GameSheet03', 'GJ_closeBtn_001.png', 28, 28));
+    xBtn.onmouseenter = () => xBtn.style.opacity = '1';
+    xBtn.onmouseleave = () => xBtn.style.opacity = '0.75';
+    xBtn.onclick = _close;
+    header.appendChild(titleEl); header.appendChild(xBtn);
+    panel.appendChild(header);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'padding:28px;display:flex;align-items:center;justify-content:center;min-height:130px;';
+    const spinner = document.createElement('img');
+    spinner.src = 'assets/sprites/loadingCircle.png';
+    spinner.style.cssText = 'width:64px;height:64px;animation:_gdSpin 0.75s linear infinite;image-rendering:pixelated;';
+    body.appendChild(spinner);
+    panel.appendChild(body);
+
+    const footer = document.createElement('div');
+    footer.style.cssText = 'padding:10px 20px;display:flex;justify-content:center;';
+    const okBtn = document.createElement('button');
+    okBtn.style.cssText = `background:none;border:24px solid transparent;border-image:url('assets/sprites/GJ_button_01.png') 30% fill;padding:4px 28px;cursor:pointer;transition:filter 0.15s,transform 0.1s;box-sizing:border-box;min-width:110px;display:flex;align-items:center;justify-content:center;`;
+    okBtn.appendChild(_drawBitmapText('OK', 'bigFont', 0.3) || (() => { const s=document.createElement('span'); s.textContent='OK'; return s; })());
+    okBtn.onmouseenter = () => { okBtn.style.filter = 'brightness(1.15)'; okBtn.style.transform = 'scale(1.05)'; };
+    okBtn.onmouseleave = () => { okBtn.style.filter = ''; okBtn.style.transform = ''; };
+    okBtn.onclick = _close;
+    footer.appendChild(okBtn);
+    panel.appendChild(footer);
+
+    const UDID      = "S1525563882685027288177222016278245"; // used to help stop rate limiting, i have no idea if this literally does anything and i cant be fucked to generate a new udid for every user on the website. maybe someone else can do it
+    const CACHE_KEY = ["gd_lvl_cache_0","gd_lvl_cache_1","gd_lvl_cache_2"][type];
+    const _cacheExpiry = () => {
+      if (type === 0) {
+        const r = new Date(); r.setUTCHours(23,0,0,0);
+        if (Date.now() >= r.getTime()) r.setUTCDate(r.getUTCDate()+1);
+        return r.getTime();
+      }
+      return type === 1 ? Date.now()+48*3600*1000 : Date.now()+2*3600*1000;
+    };
+    const _readCache  = () => { try { const c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); return c&&Date.now()<c.expires?c:null; } catch(_){return null;} };
+    const _writeCache = (d,e) => { try { localStorage.setItem(CACHE_KEY,JSON.stringify({expires:e,...d})); } catch(_){} };
+    const _fmtNum = n => { n=Math.abs(parseInt(n)||0); return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n); };
+    const _fmtTime = s => { s=parseInt(s)||0; if(s<=0)return'Soon'; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); if(h>=24){const d=Math.floor(h/24);return`${d}d ${h%24}h`;} return h?`${h}h ${m}m`:`${m}m`; };
+    const _parseKV = str => { const m={},p=str.split(':'); for(let i=0;i+1<p.length;i+=2)m[p[i]]=p[i+1]; return m; };
+
+    try {
+      const PROXY = (window._gdProxyUrl||'').replace(/\/$/,'');
+      if (!PROXY) throw new Error('no proxy configured');
+
+      let levelIndex, secondsRemaining, levelName, downloads, likes, length,
+          stars, coins, coinsVerified, isDemon, demonDiff, creatorName;
+
+      const cached = _readCache();
+      if (cached) {
+        ({levelIndex,creatorName,levelName,downloads,likes,length,stars,coins,coinsVerified,isDemon,demonDiff} = cached);
+        secondsRemaining = Math.max(0, Math.floor((cached.expires-Date.now())/1000));
+      } else {
+        levelIndex=''; secondsRemaining=0;
+        try {
+          const dr = await fetch(`${PROXY}/getGJDailyLevel.php`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`secret=Wmfd2893gb7&type=${type}&udid=${UDID}`});
+          const dt = await dr.text(), dp = dt.split('|');
+          if (dp.length>=2&&/^\d+$/.test(dp[0].trim())){levelIndex=dp[0].trim();secondsRemaining=parseInt(dp[1])||0;}
+        } catch(_){}
+
+        const dlId=[-1,-2,-3][type]??-1;
+        const lr = await fetch(`${PROXY}/downloadGJLevel22.php`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`levelID=${dlId}&secret=Wmfd2893gb7&udid=${UDID}`});
+        const lvlText = await lr.text();
+        if (!lvlText||lvlText.trim()==='-1') throw new Error(`${['Daily','Weekly','Event'][type]??'Daily'} level unavailable`);
+
+        const hp=lvlText.split('#'), kv=_parseKV(hp[0]);
+        creatorName='';
+        for(let i=1;i<hp.length;i++){const cp=hp[i].split(':');if(cp.length>=3&&/^\d+$/.test(cp[0])&&cp[1]&&/^\d+$/.test(cp[2])){creatorName=cp[1];break;}}
+        if(!creatorName) creatorName='Player '+(kv['6']||'?');
+
+        levelName=kv['2']||'Unknown'; downloads=parseInt(kv['10'])||0; likes=parseInt(kv['14'])||0;
+        length=parseInt(kv['15'])||0; stars=parseInt(kv['18'])||0; coins=parseInt(kv['37'])||0;
+        coinsVerified=kv['38']==='1'; isDemon=parseInt(kv['17'])===1; demonDiff=parseInt(kv['43']);
+
+        const expires=_cacheExpiry();
+        _writeCache({levelIndex,creatorName,levelName,downloads,likes,length,stars,coins,coinsVerified,isDemon,demonDiff},expires);
+        if(!secondsRemaining) secondsRemaining=Math.max(0,Math.floor((expires-Date.now())/1000));
+      }
+
+      let diffFrame;
+      if (isDemon){const dm={3:'diffIcon_07_btn_001.png',4:'diffIcon_08_btn_001.png',0:'diffIcon_06_btn_001.png',6:'diffIcon_09_btn_001.png',7:'diffIcon_10_btn_001.png'};diffFrame=dm[demonDiff]??'diffIcon_06_btn_001.png';}
+      else if(stars===1)diffFrame='diffIcon_auto_btn_001.png';
+      else if(stars===2)diffFrame='diffIcon_01_btn_001.png';
+      else if(stars===3)diffFrame='diffIcon_02_btn_001.png';
+      else if(stars<=5)diffFrame='diffIcon_03_btn_001.png';
+      else if(stars<=7)diffFrame='diffIcon_04_btn_001.png';
+      else if(stars<=9)diffFrame='diffIcon_05_btn_001.png';
+      else diffFrame='diffIcon_00_btn_001.png';
+
+      body.innerHTML='';
+      body.style.cssText='padding:18px 20px;display:flex;gap:18px;align-items:flex-start;';
+
+      const left=document.createElement('div');
+      left.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;min-width:72px;';
+      left.appendChild(_drawFrame('GJ_GameSheet03',diffFrame,64,64));
+
+      const starsRow=document.createElement('div');
+      starsRow.style.cssText='display:flex;align-items:center;gap:4px;';
+      starsRow.appendChild(_drawFrame('GJ_GameSheet03',stars>0?'GJ_starsIcon_001.png':'GJ_starsIcon_gray_001.png',18,18));
+      starsRow.appendChild(_drawBitmapText(String(stars),'bigFont',0.22)||Object.assign(document.createElement('span'),{textContent:String(stars)}));
+      left.appendChild(starsRow);
+
+      if(coins>0){
+        const cr=document.createElement('div'); cr.style.cssText='display:flex;gap:3px;';
+        for(let c=0;c<Math.min(coins,3);c++){
+          const cc=_drawFrame('GJ_GameSheet03','usercoin_small01_001.png',18,18);
+          if(!coinsVerified)cc.style.filter='grayscale(1) brightness(0.55)';
+          cr.appendChild(cc);
+        }
+        left.appendChild(cr);
+      }
+      body.appendChild(left);
+
+      const right=document.createElement('div');
+      right.style.cssText='flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden;';
+
+      const _truncName = levelName.length > 28 ? levelName.slice(0,27)+'...' : levelName;
+      right.appendChild(_drawBitmapText(_truncName, 'bigFont', 0.4)||Object.assign(document.createElement('div'),{textContent:_truncName}));
+      right.appendChild(_drawBitmapText('by '+creatorName, 'goldFont', 0.38)||Object.assign(document.createElement('div'),{textContent:'by '+creatorName}));
+
+      const sep=document.createElement('div'); sep.style.cssText='height:1px;background:rgba(255,255,255,0.1);margin:2px 0;';
+      right.appendChild(sep);
+
+      const stats=document.createElement('div');
+      stats.style.cssText='display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
+      const _s=(frameKey, val) => {
+        const e=document.createElement('span');
+        e.style.cssText='display:flex;align-items:center;gap:3px;';
+        e.appendChild(_drawFrame('GJ_GameSheet03', frameKey, 18, 18));
+        e.appendChild(_drawBitmapText(val,'bigFont',0.22)||Object.assign(document.createElement('span'),{textContent:val}));
+        return e;
+      };
+      stats.appendChild(_s('GJ_downloadsIcon_001.png', _fmtNum(downloads)));
+      stats.appendChild(_s('GJ_likesIcon_001.png', _fmtNum(likes)));
+      stats.appendChild(_s('GJ_timeIcon_001.png', ['Tiny','Short','Medium','Long','XL'][Math.min(length,4)]??'XL'));
+      right.appendChild(stats);
+
+      /*
+        const timeLabel=['New level in:'];
+        const te=document.createElement('div'); te.style.cssText='display:flex;align-items:center;';
+        te.appendChild(_drawBitmapText(timeLabel+' '+_fmtTime(secondsRemaining),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:timeLabel+' '+_fmtTime(secondsRemaining)}));
+        right.appendChild(te);
+      } */
+      if(levelIndex){
+        const ie=document.createElement('div'); ie.style.cssText='display:flex;align-items:center;opacity:0.75;';
+        ie.appendChild(_drawBitmapText('#'+levelIndex,'goldFont',0.2)||Object.assign(document.createElement('span'),{textContent:'#'+levelIndex}));
+        right.appendChild(ie);
+      }
+      body.appendChild(right);
+
+    } catch(err) {
+      body.innerHTML='';
+      body.style.cssText='padding:28px;display:flex;align-items:center;justify-content:center;';
+      const e=document.createElement('div'); e.style.cssText='display:flex;align-items:center;';
+      e.appendChild(_drawBitmapText(String(err?.message||err).slice(0,40),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:String(err?.message||err).slice(0,80)}));
+      body.appendChild(e);
+    }
   }
   _openOnlineLevelsScene(params = {}) {
     if (this._onlineLevelsOverlay) return;
