@@ -303,7 +303,7 @@ class BootScene extends Phaser.Scene {
           if (bigFontData) loadFont(this, "bigFont", bigFontData);
           const gfd = this.cache.text.get("goldFontFnt");
           if (gfd && !this.cache.bitmapFont.has("goldFont")) loadFont(this, "goldFont", gfd);
-          if (window.gameCache) console.log('stats:', window.gameCache.getCacheStats());
+
           localStorage.setItem('webdash_assets_loaded', 'true');
           localStorage.setItem('webdash_last_load_time', Date.now().toString());
           this.scene.start("GameScene");

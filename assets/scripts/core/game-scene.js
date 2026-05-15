@@ -322,25 +322,19 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const sw = screenWidth;
       const sh = screenHeight;
 
-      const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
-      fadeIn.fillStyle(0x000000, 1);
-      fadeIn.fillRect(0, 0, sw, sh);
-      this.tweens.add({ targets: fadeIn, alpha: 0, duration: 300, ease: "Linear", onComplete: () => fadeIn.destroy() });
-
-      const overlay = this.add.graphics().setScrollFactor(0).setDepth(100);
-      const gradientSteps = 80;
-      for (let gi = 0; gi < gradientSteps; gi++) {
-        const t = gi / (gradientSteps - 1);
-        const r1 = Math.round(0x00 + (0x01 - 0x00) * t);
-        const g1 = Math.round(0x65 + (0x2c - 0x65) * t);
-        const b1 = Math.round(0xff + (0x71 - 0xff) * t);
-        const bandColor = (r1 << 16) | (g1 << 8) | b1;
-        const bandY = Math.floor(gi * sh / gradientSteps);
-        const bandH = Math.ceil(sh / gradientSteps) + 1;
-        overlay.fillStyle(bandColor, 1);
-        overlay.fillRect(0, bandY, sw, bandH);
-      }
-      this._creatorOverlay = overlay;
+      const bgGfx = this.add.graphics().setScrollFactor(0).setDepth(200);
+      const steps = 80;
+      for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1);
+        const r = Math.round(0xB5 + (0xC2 - 0xB5) * t);
+        const g = Math.round(0x65 + (0x72 - 0x65) * t);
+        const b = Math.round(0x2E + (0x3E - 0x2E) * t);
+        bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
+        const bandY = Math.floor(i * sh / steps);
+        const bandH = Math.ceil(sh / steps) + 1;
+        bgGfx.fillRect(0, bandY, sw, bandH);
+        }
+      const panelH  = 460;  
 
       const blocker = this.add.zone(sw / 2, sh / 2, sw, sh)
         .setScrollFactor(0).setDepth(101).setInteractive();
@@ -6224,8 +6218,6 @@ _saveEditorLevel = () => {
       settings: window.settingslist
     }
     const newLevelString = this._serializeLevel(levelData);
-    console.log(newLevelString);
-    
     let createdLevels = JSON.parse(localStorage.getItem("created_levels") || "[]");
     let levelIndex = createdLevels.findIndex(l => l.createdId === window.currentlevel[2]);
 
@@ -6729,13 +6721,15 @@ _applyMirrorEffect() {
         return grp;
     };
 
-    _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, false, null);
-    _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
-    _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
-    _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
-    _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null);
-    _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null);
-    _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null);
+    this._settingsMainBtns = [
+      _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, true,  () => { this._openAccountMenu(); }),
+      _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); }),
+      _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); }),
+      _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null),
+      _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null),
+      _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null),
+      _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null),
+    ];
 
     const lockIcon = this.add.image(containerX + 535, 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
     lockIcon.setScale(0.9);
@@ -6751,17 +6745,24 @@ _applyMirrorEffect() {
     const _0x41925a = this.textures.getFrame("GJ_WebSheet", "slidergroove.png");
     const _0x372782 = _0x41925a ? _0x41925a.width : 420;
 
+    this._settingsOptionElements = [];
+
     const createSlider = (posY, labelText, initialVal, setter) => {
-        this._settingsLayerInternal.add(this.add.bitmapText(containerX, posY - 37, "bigFont", labelText, 33).setOrigin(0.5, 0.5));
-        const barMaxW = (_0x372782 - 8) * _0x22b43a * 1.3; 
+        const lbl = this.add.bitmapText(containerX, posY - 37, "bigFont", labelText, 33).setOrigin(0.5, 0.5);
+        this._settingsLayerInternal.add(lbl);
+        this._settingsOptionElements.push(lbl);
+        const barMaxW = (_0x372782 - 8) * _0x22b43a * 1.3;
         const barStartX = containerX - barMaxW / 2 + 2.8;
         const fillW = initialVal * barMaxW;
         const fillBar = this.add.tileSprite(barStartX, posY, fillW > 0 ? fillW : 1, 18, "sliderBar").setOrigin(0, 0.5);
         this._settingsLayerInternal.add(fillBar);
-        this._settingsLayerInternal.add(this.add.image(containerX, posY, "GJ_WebSheet", "slidergroove.png").setScale(_0x22b43a * 1.3));
-        
+        this._settingsOptionElements.push(fillBar);
+        const groove = this.add.image(containerX, posY, "GJ_WebSheet", "slidergroove.png").setScale(_0x22b43a * 1.3);
+        this._settingsLayerInternal.add(groove);
+        this._settingsOptionElements.push(groove);
         const thumb = this.add.image(barStartX + fillW, posY, "GJ_WebSheet", "sliderthumb.png").setScale(_0x22b43a * 1.3).setInteractive({ draggable: true });
         this._settingsLayerInternal.add(thumb);
+        this._settingsOptionElements.push(thumb);
         thumb.on("drag", (p, dragX) => {
             thumb.x = Math.max(barStartX, Math.min(barStartX + barMaxW, dragX));
             const pct = (thumb.x - barStartX) / barMaxW;
@@ -6777,8 +6778,12 @@ _applyMirrorEffect() {
     });
     const checkboxY = sliderStartY - 10;
     const checkboxX = containerX + 280;
-    this._settingsLayerInternal.add(this.add.bitmapText(checkboxX, checkboxY - 42, "bigFont", "Menu", 20).setOrigin(0.5, 0.5));
-    this._settingsLayerInternal.add(this.add.bitmapText(checkboxX, checkboxY - 22, "bigFont", "Music", 20).setOrigin(0.5, 0.5));
+    const menuLbl1 = this.add.bitmapText(checkboxX, checkboxY - 42, "bigFont", "Menu", 20).setOrigin(0.5, 0.5);
+    this._settingsLayerInternal.add(menuLbl1);
+    this._settingsOptionElements.push(menuLbl1);
+    const menuLbl2 = this.add.bitmapText(checkboxX, checkboxY - 22, "bigFont", "Music", 20).setOrigin(0.5, 0.5);
+    this._settingsLayerInternal.add(menuLbl2);
+    this._settingsOptionElements.push(menuLbl2);
 
     const getMenuMusicEnabled = () => {
         const saved = localStorage.getItem("menuMusicEnabled");
@@ -6789,6 +6794,7 @@ _applyMirrorEffect() {
     const getTex = () => getMenuMusicEnabled() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
     const check = this.add.image(checkboxX, checkboxY + 15, "GJ_GameSheet03", getTex()).setScale(0.7).setInteractive();
     this._settingsLayerInternal.add(check);
+    this._settingsOptionElements.push(check);
     this._makeBouncyButton(check, 0.8, () => {
         const newState = !getMenuMusicEnabled();
         setMenuMusicEnabled(newState);
@@ -6806,7 +6812,18 @@ _applyMirrorEffect() {
     const _0x45fc2b = [{
       frame: "GJ_arrow_03_001.png",
       dx: -535,
-      action: () => this._hideSettingsScreen()
+      action: () => {
+        if (this._moreMenuOpen) {
+          this._moreMenuOpen = false;
+          this._clearAccountUI();
+          this._accountUIElements = [];
+          this._buildAccountUI();
+        } else if (this._accountUIElements) {
+          this._closeAccountMenu();
+        } else {
+          this._hideSettingsScreen();
+        }
+      }
     }];
     for (const _0x2d4335 of _0x45fc2b) {
       const _0xdde774 = this.add.image(containerX + _0x2d4335.dx, 30, "GJ_GameSheet03", _0x2d4335.frame).setInteractive();
@@ -6832,6 +6849,7 @@ _applyMirrorEffect() {
     });
   }
   _hideSettingsScreen() {
+    document.getElementById('account-form-overlay')?.remove();
     if (!this._settingsLayerInternal || this._settingsScreenClosing) {
       return;
     }
@@ -6876,6 +6894,427 @@ _applyMirrorEffect() {
       onComplete: _0x272eb1
     });
   }
+  // accounts
+
+  _openAccountMenu() {
+    if (this._settingsMainBtns) {
+      for (const btn of this._settingsMainBtns) {
+        if (btn && !btn.destroyed) btn.setVisible(false);
+      }
+    }
+    if (this._settingsOptionElements) {
+      for (const el of this._settingsOptionElements) {
+        if (el && !el.destroyed) el.setVisible(false);
+      }
+    }
+    this._accountUIElements = [];
+    this._buildAccountUI();
+  }
+
+  _closeAccountMenu() {
+    this._moreMenuOpen = false;
+    this._clearAccountUI();
+    if (this._settingsMainBtns) {
+      for (const btn of this._settingsMainBtns) {
+        if (btn && !btn.destroyed) btn.setVisible(true);
+      }
+    }
+    if (this._settingsOptionElements) {
+      for (const el of this._settingsOptionElements) {
+        if (el && !el.destroyed) el.setVisible(true);
+      }
+    }
+  }
+
+  _clearAccountUI() {
+    document.getElementById('account-form-overlay')?.remove();
+    if (this._accountUIElements) {
+      for (const el of this._accountUIElements) {
+        try { if (el && !el.destroyed) el.destroy(); } catch {}
+      }
+      this._accountUIElements = null;
+    }
+  }
+
+  _makeAccBtn(cx, cy, label, btnW, isActive, action) {
+    const _sBtnBorder = this.textures.get("GJ_button01").source[0].width * 0.3;
+    const _sBtnH = 62;
+    const grp = this.add.container(cx, cy);
+    const tint = isActive ? 0xffffff : 0x666666;
+    const btn9 = this._drawScale9(0, 0, btnW, _sBtnH, "GJ_button01", _sBtnBorder, tint, 1);
+    grp.add(btn9);
+    const fontSize = label.length > 8 ? 34 : 50;
+    const lbl = this.add.bitmapText(0, -5, "goldFont", label, fontSize).setOrigin(0.5, 0.5);
+    if (!isActive) lbl.setTint(0x666666);
+    grp.add(lbl);
+    if (isActive && action) {
+      const hitZone = this.add.zone(0, 0, btnW, _sBtnH).setInteractive();
+      grp.add(hitZone);
+      hitZone.on("pointerdown", () => {
+        hitZone._pressed = true;
+        this.tweens.killTweensOf(grp, "scale");
+        this.tweens.add({ targets: grp, scale: 1.26, duration: 300, ease: "Bounce.Out" });
+      });
+      hitZone.on("pointerout", () => {
+        if (hitZone._pressed) {
+          hitZone._pressed = false;
+          this.tweens.killTweensOf(grp, "scale");
+          this.tweens.add({ targets: grp, scale: 1, duration: 400, ease: "Bounce.Out" });
+        }
+      });
+      hitZone.on("pointerup", () => {
+        if (hitZone._pressed) {
+          hitZone._pressed = false;
+          this.tweens.killTweensOf(grp, "scale");
+          this.tweens.add({ targets: grp, scale: 1, duration: 400, ease: "Bounce.Out", onComplete: () => action() });
+        }
+      });
+    }
+    this._settingsLayerInternal.add(grp);
+    this._accountUIElements.push(grp);
+    return grp;
+  }
+
+  _buildAccountUI() {
+    const cX = screenWidth / 2;
+    const _sBtnW = 310;
+    const _sGap = 18;
+    const _sColL = cX - _sBtnW / 2 - _sGap / 2;
+    const _sColR = cX + _sBtnW / 2 + _sGap / 2;
+
+    const user = window.AccountAPI && window.AccountAPI.currentUser;
+
+    if (user) {
+      const nameLabel = this.add.bitmapText(cX, 110, "bigFont", "Currently signed in as: " + user.username, 32).setOrigin(0.5, 0.5);
+      this._settingsLayerInternal.add(nameLabel);
+      this._accountUIElements.push(nameLabel);
+
+      const settingsRectCenterY = 310;
+      const settingsRectHeight = 460;
+      const containerTop = settingsRectCenterY - settingsRectHeight / 2;
+      const aBtnY1 = Math.round(containerTop + settingsRectHeight * 0.27);
+      const aBtnY2 = Math.round(containerTop + settingsRectHeight * 0.50);
+      const aBtnY3 = Math.round(containerTop + settingsRectHeight * 0.73);
+
+      this._makeAccBtn(cX, aBtnY1, "Save", _sBtnW, true, () => this._doCloudSave());
+      this._makeAccBtn(cX, aBtnY2, "Load", _sBtnW, true, () => this._doCloudLoad());
+      this._makeAccBtn(cX, aBtnY3, "More", _sBtnW, true, () => this._openMoreMenu());
+    } else {
+      this._makeAccBtn(cX,     150, "Login",    _sBtnW, true,  () => this._showAccountForm('login'));
+      this._makeAccBtn(cX,     310, "Help",     _sBtnW, false, null);
+      this._makeAccBtn(cX,     470, "Register", _sBtnW, true,  () => this._showAccountForm('register'));
+    }
+  }
+
+  _openMoreMenu() {
+    this._clearAccountUI();
+    this._accountUIElements = [];
+    this._moreMenuOpen = true;
+    const cX = screenWidth / 2;
+    const _sBtnW = 310;
+    const _sGap = 14;
+    const settingsRectCenterY = 310;
+    const settingsRectHeight = 460;
+    const containerTop = settingsRectCenterY - settingsRectHeight / 2;
+    const moreY1 = Math.round(containerTop + settingsRectHeight * 0.27);
+    const moreY2 = Math.round(containerTop + settingsRectHeight * 0.50);
+    const moreY3 = Math.round(containerTop + settingsRectHeight * 0.73);
+
+    this._makeAccBtn(cX, moreY1, "Refresh Login", _sBtnW, false, null);
+    this._makeAccBtn(cX, moreY2, "Manage Account", _sBtnW, false, null);
+    this._makeAccBtn(cX, moreY3, "Unlink Account", _sBtnW, true, () => this._doLogout());
+  }
+
+  _showAccountNotice(msg, color) {
+    if (!this._settingsLayerInternal) return;
+    const notice = this.add.bitmapText(screenWidth / 2, 355, "bigFont", msg, 26).setOrigin(0.5, 0.5).setTint(color);
+    this._settingsLayerInternal.add(notice);
+    this._accountUIElements = this._accountUIElements || [];
+    this._accountUIElements.push(notice);
+    this.time.delayedCall(2800, () => { try { if (!notice.destroyed) notice.destroy(); } catch {} });
+  }
+
+  async _doCloudSave() {
+    try {
+      const save = window.AccountAPI.collectLocalData();
+      await window.AccountAPI.setCloudSave(save);
+      this._showAccountNotice('Saved to cloud!', 0x44dd44);
+    } catch (e) {
+      this._showAccountNotice(e.message || 'Save failed', 0xff5555);
+    }
+  }
+
+  async _doCloudLoad() {
+    try {
+      const save = await window.AccountAPI.getCloudSave();
+      if (!save) {
+        this._showAccountNotice('No cloud save found', 0xffaa33);
+        return;
+      }
+      window.AccountAPI.applyLocalData(save);
+      this._showAccountNotice('Loaded! Restart to apply.', 0x44dd44);
+    } catch (e) {
+      this._showAccountNotice(e.message || 'Load failed', 0xff5555);
+    }
+  }
+
+  async _doLogout() {
+    await window.AccountAPI.logout();
+    this._clearAccountUI();
+    this._accountUIElements = [];
+    this._buildAccountUI();
+  }
+
+  _showAccountForm(type) {
+    if (document.getElementById('account-form-overlay')) return;
+    const isLogin = type === 'login';
+
+    if (this.input && this.input.keyboard) this.input.keyboard.enabled = false;
+
+    if (!document.getElementById('_gdAccFormStyle')) {
+      const s = document.createElement('style');
+      s.id = '_gdAccFormStyle';
+      s.textContent = '._gd-acc-btn{transition:filter 0.12s,transform 0.12s;}._gd-acc-btn:hover:not([disabled]){filter:brightness(1.15);transform:scale(1.05);}';
+      document.head.appendChild(s);
+      const f = document.createElement('link');
+      f.rel = 'stylesheet';
+      f.href = 'https://fonts.cdnfonts.com/css/pusab';
+      document.head.appendChild(f);
+    }
+
+    const close = () => {
+      if (this.input && this.input.keyboard) this.input.keyboard.enabled = true;
+      document.getElementById('account-form-overlay')?.remove();
+    };
+
+    const overlay = document.createElement('div');
+    overlay.id = 'account-form-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.72)';
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') close(); });
+    overlay.addEventListener('keyup', e => e.stopPropagation());
+    overlay.addEventListener('keypress', e => e.stopPropagation());
+
+    const _drawBitmapText = (text, fontKey, scale) => {
+      try {
+        const fc = this.cache.bitmapFont.get(fontKey);
+        if (!fc || !fc.data) return null;
+        const chars = fc.data.chars;
+        const lineH = fc.data.lineHeight;
+        const fontImg = this.textures.get(fontKey).source[0].image;
+        let totalW = 0;
+        for (let i = 0; i < text.length; i++) {
+          const cd = chars[text.charCodeAt(i)];
+          totalW += (cd ? cd.xAdvance : 10) * scale;
+        }
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.ceil(totalW));
+        c.height = Math.max(1, Math.ceil(lineH * scale));
+        c.style.cssText = 'display:block;image-rendering:pixelated;flex-shrink:0;';
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        let x = 0;
+        for (let i = 0; i < text.length; i++) {
+          const cd = chars[text.charCodeAt(i)];
+          if (!cd || cd.width === 0) { x += (cd ? cd.xAdvance : 10) * scale; continue; }
+          ctx.drawImage(fontImg, cd.x, cd.y, cd.width, cd.height,
+            x + cd.xOffset * scale, cd.yOffset * scale, cd.width * scale, cd.height * scale);
+          x += cd.xAdvance * scale;
+        }
+        const id = ctx.getImageData(0, 0, c.width, c.height);
+        const d = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] < 20) continue;
+          if (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] < 90) {
+            d[i] = 0; d[i + 1] = 0; d[i + 2] = 0;
+          }
+        }
+        ctx.putImageData(id, 0, 0);
+        return c;
+      } catch (_) { return null; }
+    };
+
+    const _drawTinted = (text, fontKey, scale, hex) => {
+      const c = _drawBitmapText(text, fontKey, scale);
+      if (!c) return null;
+      const tr = parseInt(hex.slice(1, 3), 16);
+      const tg = parseInt(hex.slice(3, 5), 16);
+      const tb = parseInt(hex.slice(5, 7), 16);
+      const ctx = c.getContext('2d');
+      const id = ctx.getImageData(0, 0, c.width, c.height);
+      const d = id.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 20) continue;
+        if (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] >= 90) {
+          d[i] = tr; d[i + 1] = tg; d[i + 2] = tb;
+        }
+      }
+      ctx.putImageData(id, 0, 0);
+      return c;
+    };
+
+    const _makeLabel = (text) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'margin-bottom:5px;';
+      const c = _drawBitmapText(text, 'bigFont', 0.38);
+      if (c) { wrap.appendChild(c); }
+      else {
+        const s = document.createElement('span');
+        s.style.cssText = 'color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:bold;';
+        s.textContent = text;
+        wrap.appendChild(s);
+      }
+      return wrap;
+    };
+
+    const _makeInput = (phText, inputType, autocompleteVal) => {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;width:100%;margin-bottom:8px;';
+
+      const box = document.createElement('div');
+      box.style.cssText = 'position:relative;width:100%;height:62px;background:rgba(0,0,0,0.35);border-radius:10px;';
+
+      const phWrap = document.createElement('div');
+      phWrap.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;transition:opacity 0.1s;';
+      const phCanvas = _drawTinted(phText, 'bigFont', 0.42, '#5bbce4');
+      if (phCanvas) phWrap.appendChild(phCanvas);
+      box.appendChild(phWrap);
+
+      const inp = document.createElement('input');
+      inp.type = inputType;
+      inp.autocomplete = autocompleteVal;
+      inp.style.cssText = 'position:absolute;inset:0;background:transparent;border:none;outline:none;color:#fff;font-size:18px;font-family:Pusab,Helvetica,Arial,sans-serif;text-align:center;padding:0 14px;box-sizing:border-box;caret-color:#fff;';
+
+      const sync = () => { phWrap.style.opacity = inp.value ? '0' : '1'; };
+      inp.addEventListener('input', sync);
+      inp.addEventListener('focus', () => { phWrap.style.opacity = '0'; });
+      inp.addEventListener('blur', sync);
+
+      box.appendChild(inp);
+      wrapper.appendChild(box);
+      return { wrapper, inp };
+    };
+
+    const _makeBtn = (label, sprite, onClick, disabled = false) => {
+      const btn = document.createElement('button');
+      btn.className = '_gd-acc-btn';
+      btn.disabled = disabled;
+      btn.style.cssText = `background:none;border:16px solid transparent;border-image:url('assets/sprites/${sprite}') 30% fill;padding:4px 20px;cursor:${disabled ? 'default' : 'pointer'};box-sizing:border-box;min-width:100px;display:inline-flex;align-items:center;justify-content:center;opacity:${disabled ? '0.6' : '1'};`;
+      const lbl = _drawBitmapText(label, 'goldFont', 0.44);
+      if (lbl) { btn.appendChild(lbl); }
+      else {
+        const s = document.createElement('span');
+        s.style.cssText = 'color:#f0c040;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;';
+        s.textContent = label;
+        btn.appendChild(s);
+      }
+      if (!disabled && onClick) btn.onclick = onClick;
+      return btn;
+    };
+
+    const panel = document.createElement('div');
+    panel.style.cssText = `width:min(78vw,840px);max-height:90vh;overflow-y:auto;border:52px solid transparent;border-image:url('assets/sprites/GJ_square01.png') 32.5% fill;box-sizing:border-box;display:flex;flex-direction:column;`;
+
+    const titleWrap = document.createElement('div');
+    titleWrap.style.cssText = 'display:flex;justify-content:center;margin-bottom:18px;';
+    const titleText = isLogin ? 'Login' : 'Register Account';
+    const titleCanvas = _drawBitmapText(titleText, 'bigFont', 0.64);
+    if (titleCanvas) { titleWrap.appendChild(titleCanvas); }
+    else {
+      const s = document.createElement('span');
+      s.style.cssText = 'color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:30px;font-weight:bold;';
+      s.textContent = titleText;
+      titleWrap.appendChild(s);
+    }
+    panel.appendChild(titleWrap);
+
+    const { wrapper: uWrap, inp: usernameInput } = _makeInput('Username', 'text', 'username');
+    panel.appendChild(_makeLabel(isLogin ? 'Username:' : 'Username: (shown to other players)'));
+    panel.appendChild(uWrap);
+
+    panel.appendChild(_makeLabel('Password:'));
+    const { wrapper: pWrap, inp: passwordInput } = _makeInput('Password', 'password', isLogin ? 'current-password' : 'new-password');
+    panel.appendChild(pWrap);
+
+    let confirmPasswordInput = null;
+    let emailInput = null;
+    let verifyEmailInput = null;
+
+    if (!isLogin) {
+      panel.appendChild(_makeLabel('Confirm Password:'));
+      const { wrapper: cpWrap, inp: cpInp } = _makeInput('Confirm Password', 'password', 'new-password');
+      confirmPasswordInput = cpInp;
+      panel.appendChild(cpWrap);
+
+      panel.appendChild(_makeLabel('Email:'));
+      const { wrapper: eWrap, inp: eInp } = _makeInput('Email', 'email', 'email');
+      emailInput = eInp;
+      panel.appendChild(eWrap);
+
+      panel.appendChild(_makeLabel('Verify Email:'));
+      const { wrapper: veWrap, inp: veInp } = _makeInput('Verify Email', 'email', 'email');
+      verifyEmailInput = veInp;
+      panel.appendChild(veWrap);
+    }
+
+    const errLabel = document.createElement('div');
+    errLabel.style.cssText = 'color:#ff6666;min-height:18px;margin:4px 0 6px;font-size:13px;font-family:Helvetica,Arial,sans-serif;text-align:center;';
+    panel.appendChild(errLabel);
+
+    if (isLogin) {
+      const forgotWrap = document.createElement('div');
+      forgotWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;margin:6px 0 12px;';
+      forgotWrap.appendChild(_makeBtn('Forgot Username', 'GJ_button_03.png', null, true));
+      forgotWrap.appendChild(_makeBtn('Forgot Password', 'GJ_button_03.png', null, true));
+      panel.appendChild(forgotWrap);
+    }
+
+    const submitBtn = _makeBtn(isLogin ? 'Login' : 'Submit', 'GJ_button_01.png', null);
+    const cancelBtn = _makeBtn('Cancel', 'GJ_button_01.png', close);
+
+    const doSubmit = async () => {
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      errLabel.textContent = '';
+      if (!isLogin) {
+        if (password !== confirmPasswordInput.value) { errLabel.textContent = 'Passwords do not match'; return; }
+        const email = emailInput.value.trim();
+        if (email && email !== verifyEmailInput.value.trim()) { errLabel.textContent = 'Emails do not match'; return; }
+      }
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.6';
+      try {
+        if (isLogin) {
+          await window.AccountAPI.login(username, password);
+        } else {
+          await window.AccountAPI.register(username, emailInput.value.trim(), password);
+        }
+        close();
+        this._clearAccountUI();
+        this._accountUIElements = [];
+        this._buildAccountUI();
+      } catch (e) {
+        errLabel.textContent = e.message || 'Something went wrong';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+      }
+    };
+
+    submitBtn.onclick = doSubmit;
+    passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSubmit(); });
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:16px;justify-content:center;';
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(submitBtn);
+    panel.appendChild(btnRow);
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    usernameInput.focus();
+  }
+
   _showStatsScreen() {
     if (this._pauseBtn) {
       this.tweens.add({
@@ -7086,22 +7525,14 @@ _applyMirrorEffect() {
     const steps = 80;
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1);
-      const r = 0;
-      const g = Math.round(0x66 * (1 - t) + 0x33 * t);
-      const b = Math.round(0xff * (1 - t) + 0x99 * t);
+      const r = Math.round(0xB5 + (0xC2 - 0xB5) * t);
+      const g = Math.round(0x65 + (0x72 - 0x65) * t);
+      const b = Math.round(0x2E + (0x3E - 0x2E) * t);
       bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
-      bgGfx.fillRect(0, Math.floor(i * sh / steps), sw, Math.ceil(sh / steps) + 1);
+      const bandY = Math.floor(i * sh / steps);
+      const bandH = Math.ceil(sh / steps) + 1;
+      bgGfx.fillRect(0, bandY, sw, bandH);
     }
-    objects.push(bgGfx);
-    const blocker = this.add.zone(sw / 2, sh / 2, sw, sh)
-      .setScrollFactor(0).setDepth(200).setInteractive();
-    objects.push(blocker);
-    const cBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png")
-      .setScrollFactor(0).setDepth(201).setOrigin(1, 1).setFlipY(true).setAngle(90);
-    const cBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png")
-      .setScrollFactor(0).setDepth(201).setOrigin(1, 0).setFlipY(false).setAngle(90);
-    objects.push(cBL, cBR);
-    const panelW  = 712;  
     const panelH  = 460;  
     const panelCX = sw / 2;
     const panelCY = sh / 2;
@@ -7203,7 +7634,6 @@ _applyMirrorEffect() {
 
     const typeTitle = ["Daily Level", "Weekly Level", "Event Level"][type] ?? "Daily Level";
 
-    // Inject keyframe once
     if (!document.getElementById('_gdDailyStyle')) {
       const s = document.createElement('style');
       s.id = '_gdDailyStyle';
@@ -7211,7 +7641,6 @@ _applyMirrorEffect() {
       document.head.appendChild(s);
     }
 
-    // Overlay
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999;';
     document.body.appendChild(overlay);
@@ -7222,7 +7651,6 @@ _applyMirrorEffect() {
     };
     overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
 
-    // Draw a frame from a Phaser atlas onto a <canvas>
     const _drawFrame = (texKey, frameName, w, h) => {
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
@@ -7234,7 +7662,6 @@ _applyMirrorEffect() {
         const ctx = c.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         if (frame.rotated) {
-          // Stored 90° CW in atlas: JSON reports original dims, actual stored region has swapped dims
           ctx.save(); ctx.translate(0, h); ctx.rotate(-Math.PI/2);
           ctx.drawImage(img, frame.cutX, frame.cutY, frame.cutHeight, frame.cutWidth, 0, 0, h, w);
           ctx.restore();
@@ -7245,7 +7672,6 @@ _applyMirrorEffect() {
       return c;
     };
 
-    // Render a string using a Phaser bitmap font onto a <canvas>
     const _drawBitmapText = (text, fontKey, scale) => {
       try {
         const fc = this.cache.bitmapFont.get(fontKey);
