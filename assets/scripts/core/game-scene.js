@@ -3196,13 +3196,6 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
-
-    const lockIcon = this.add.image(centerX + (panelWidth / 2) + 30, centerY - (panelHeight / 2) + 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
-    lockIcon.setScale(0.75);
-    lockIcon.setInteractive();
-    this._expandHitArea(lockIcon, 1.5);
-    this._makeBouncyButton(lockIcon, 0.75, () => { this._openVaultMenu(); });
-    this._settingsPopup.add(lockIcon);
   }
   _saveSettings() {
     const settings = {
