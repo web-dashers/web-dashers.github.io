@@ -322,22 +322,22 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const sw = screenWidth;
       const sh = screenHeight;
 
-      const bgGfx = this.add.graphics().setScrollFactor(0).setDepth(200);
-      const steps = 80;
-      for (let i = 0; i < steps; i++) {
-        const t = i / (steps - 1);
-        const r = Math.round(0xB5 + (0xC2 - 0xB5) * t);
-        const g = Math.round(0x65 + (0x72 - 0x65) * t);
-        const b = Math.round(0x2E + (0x3E - 0x2E) * t);
+      const bgGfx = this.add.graphics().setScrollFactor(0).setDepth(99);
+      const gradientSteps = 80;
+      for (let gi = 0; gi < gradientSteps; gi++) {
+        const t = gi / (gradientSteps - 1);
+        const r = Math.round(0x00 + (0x00 - 0x00) * t);
+        const g = Math.round(0x65 + (0x2E - 0x65) * t);
+        const b = Math.round(0xFD + (0x73 - 0xFD) * t);
         bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
-        const bandY = Math.floor(i * sh / steps);
-        const bandH = Math.ceil(sh / steps) + 1;
-        bgGfx.fillRect(0, bandY, sw, bandH);
-        }
+        bgGfx.fillRect(0, Math.floor(gi * sh / gradientSteps), sw, Math.ceil(sh / gradientSteps) + 1);
+      }
+
       const panelH  = 460;  
 
       const blocker = this.add.zone(sw / 2, sh / 2, sw, sh)
         .setScrollFactor(0).setDepth(101).setInteractive();
+      this._creatorOverlay = bgGfx;
 
       const cornerTL = this.add.image(0,  0,  "GJ_GameSheet03", "GJ_sideArt_001.png")
         .setScrollFactor(0).setDepth(100).setOrigin(1, 0).setFlipX(false).setAngle(-90)
@@ -349,7 +349,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         .setRotation(Math.PI).setInteractive();
       this._makeBouncyButton(backBtn, 1, () => this._closeCreatorMenu());
 
-      this._creatorOverlayObjects = [overlay, blocker, cornerTL, cornerBL, backBtn];
+      this._creatorOverlayObjects = [bgGfx, blocker, cornerTL, cornerBL, backBtn];
 
       const menuButtons = [
         "GJ_createBtn_001.png",
@@ -7519,7 +7519,8 @@ _applyMirrorEffect() {
       const bandH = Math.ceil(sh / steps) + 1;
       bgGfx.fillRect(0, bandY, sw, bandH);
     }
-    const panelH  = 460;  
+    const panelW  = sw - 180;
+    const panelH  = 460;
     const panelCX = sw / 2;
     const panelCY = sh / 2;
     const panelBg = this.add.rectangle(panelCX, panelCY + 10, panelW, panelH, 0xC2723E)
