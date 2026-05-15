@@ -916,11 +916,7 @@ window.LevelObject = class LevelObject {
     return objectDef;
   }
 
-  if (this._nextObjectId === undefined) {
-    this._nextObjectId = 0;
-  }
-  const linkedObjectId = this._nextObjectId++;
-  let hasCollisionEntry = false;
+  const linkedObjectId = this.objects.length;
 
   const worldX = levelObj.x * 2;
   const worldY = levelObj.y * 2;
@@ -983,7 +979,6 @@ window.LevelObject = class LevelObject {
       }
     };
 
-    let portalBackSprite = null;
     if (isPortalFront) {
       const backFrame = frameName.replace("_front_", "_back_");
       portalBackSprite = addImageToScene(scene, spriteWorldX, baseY, backFrame);
@@ -1002,7 +997,7 @@ window.LevelObject = class LevelObject {
     }
 
     let orbGlow = null;
-    if (objectDef.glow) {
+    if (objectDef.glow && !window.isEditor) {
       orbGlow = this._addGlowSprite(scene, spriteWorldX, baseY, frameName, levelObj, worldX);
       if (orbGlow) {
         orbGlow._eeZDepth = objZDepth - 0.003;
@@ -1017,10 +1012,6 @@ window.LevelObject = class LevelObject {
 
     if (sprite) {
       this._applyVisualProps(scene, sprite, frameName, levelObj, objectDef);
-      if (portalBackSprite) {
-        portalBackSprite.x = sprite.x;
-        portalBackSprite.y = sprite.y;
-      }
       this._addVisualSprite(sprite, visualDef);
       sprite._eeWorldX = worldX;
       sprite._eeBaseY = baseY;
@@ -1273,7 +1264,6 @@ window.LevelObject = class LevelObject {
       collider.objid = levelObj.id;
       registerCollider(collider);
       this.objects.push(collider);
-      hasCollisionEntry = true;
       this._addCollisionToSection(collider);
     } else if (objectDef.type === hazardType) {
       let hitW = 0;
@@ -1305,7 +1295,6 @@ window.LevelObject = class LevelObject {
         if (hasHitboxRadius) collider.hitbox_radius = worldHitboxRadius;
         registerCollider(collider);
         this.objects.push(collider);
-        hasCollisionEntry = true;
         this._addCollisionToSection(collider);
       }
     } else if (objectDef.type === portalType) {
@@ -1350,7 +1339,6 @@ window.LevelObject = class LevelObject {
         collider.portalY = worldY;
         registerCollider(collider);
         this.objects.push(collider);
-        hasCollisionEntry = true;
         this._addCollisionToSection(collider);
       }
     } else if (objectDef.type === padType) {
@@ -1360,7 +1348,6 @@ window.LevelObject = class LevelObject {
       padObj.padId = levelObj.id;
       registerCollider(padObj);
       this.objects.push(padObj);
-      hasCollisionEntry = true;
       this._addCollisionToSection(padObj);
     } else if (objectDef.type === ringType) {
       const orbW = objectDef.gridW * a;
@@ -1371,7 +1358,6 @@ window.LevelObject = class LevelObject {
       orbObj._dashHoldTicks = 0;
       registerCollider(orbObj);
       this.objects.push(orbObj);
-      hasCollisionEntry = true;
       this._addCollisionToSection(orbObj);
     } else if (objectDef.type === coinType) {
       const coinW = (objectDef.gridW || 1) * a;
@@ -1380,7 +1366,6 @@ window.LevelObject = class LevelObject {
       coinObj.coinId = levelObj.id;
       registerCollider(coinObj);
       this.objects.push(coinObj);
-      hasCollisionEntry = true;
       this._addCollisionToSection(coinObj);
     } else if (objectDef.type === speedType) {
       const speedW = (objectDef.gridW || 1) * a;
@@ -1400,17 +1385,7 @@ window.LevelObject = class LevelObject {
       speedObj.speedId = levelObj.id;
       registerCollider(speedObj);
       this.objects.push(speedObj);
-      hasCollisionEntry = true;
       this._addCollisionToSection(speedObj);
-    }
-
-    if (!hasCollisionEntry) {
-      this.objects.push({
-        type: objectDef.type || decoType,
-        activated: false,
-        x: 0,
-        y: 0
-      });
     }
   }
 
@@ -1420,7 +1395,6 @@ window.LevelObject = class LevelObject {
   _spawnLevelObjects(_0x35f1ae) {
     const unknownObjectIds = new Set();
     this._lastObjectX = 0;
-    this._nextObjectId = 0;
 
     for (const levelObj of _0x35f1ae) {
       const objectDef = this._spawnObject(levelObj);
@@ -2152,9 +2126,6 @@ window.LevelObject = class LevelObject {
   }
   resetObjects() {
     for (let _0x3d473e of this.objects) {
-      if (!_0x3d473e) {
-        continue;
-      }
       _0x3d473e.activated = false;
       if (_0x3d473e._dashHoldTicks !== undefined) {
         _0x3d473e._dashHoldTicks = 0;

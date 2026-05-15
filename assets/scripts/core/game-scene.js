@@ -1030,106 +1030,197 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       this._searchOverlay = overlay;
       const blocker = this.add.zone(sw / 2, sh / 2, sw, sh).setScrollFactor(0).setDepth(101).setInteractive();
-      const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+      const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setScrollFactor(0).setDepth(104).setFlipX(true).setFlipY(true)
         .setRotation(Math.PI).setInteractive();
       this._makeBouncyButton(backBtn, 1, () => { this._closeSearchMenu(false, () => this._openCreatorMenu()); });
-      const inputW = 320;
-      const inputH = 44;
-      const inputX = sw / 2 - inputW / 2;
-      const inputY = sh / 2 - inputH / 2;
-      const inputBg = this.add.graphics().setScrollFactor(0).setDepth(104);
-      inputBg.fillStyle(0x000000, 0.5);
-      inputBg.fillRoundedRect(inputX, inputY, inputW, inputH, 8);
-      inputBg.lineStyle(2, 0xffffff, 0.4);
-      const canvas = this.sys.game.canvas;
-      const canvasRect = canvas.getBoundingClientRect();
-      const scaleX = canvasRect.width / sw;
-      const scaleY = canvasRect.height / sh;
-      const htmlInput = document.createElement("input");
-      htmlInput.type = "text";
-      htmlInput.placeholder = "";
-      htmlInput.maxLength = 20;
-      htmlInput.style.cssText = `
-        position: fixed;
-        left: ${canvasRect.left + inputX * scaleX}px;
-        top: ${canvasRect.top + inputY * scaleY}px;
-        width: ${inputW * scaleX}px;
-        height: ${inputH * scaleY}px;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: #ffffff;
-        font-size: ${Math.round(20 * scaleY)}px;
-        font-family: Arial, sans-serif;
-        text-align: center;
-        z-index: 9999;
-        caret-color: #ffffff;
-      `;
-      document.body.appendChild(htmlInput);
-      setTimeout(() => htmlInput.focus(), 50);
-      const placeholderLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "Enter a level, user or ID", 18)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xaaddff);
-      const typedLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "", 18)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xffffff);
-      htmlInput.style.color = "transparent";
-      htmlInput.style.caretColor = "#ffffff";
-      htmlInput.addEventListener("input", () => {
-        const val = htmlInput.value;
-        placeholderLabel.setVisible(val.length === 0);
-        typedLabel.setText(val);
-      });
-      const _repositionInput = () => {
-        const r = canvas.getBoundingClientRect();
-        const sx = r.width / sw;
-        const sy = r.height / sh;
-        htmlInput.style.left = `${r.left + inputX * sx}px`;
-        htmlInput.style.top  = `${r.top  + inputY * sy}px`;
-        htmlInput.style.width  = `${inputW * sx}px`;
-        htmlInput.style.height = `${inputH * sy}px`;
-        htmlInput.style.fontSize = `${Math.round(20 * sy)}px`;
+
+      const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 0).setFlipY(false).setAngle(90);
+      const cornerBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 1).setFlipY(true).setAngle(90);
+      const panelMarginX = sw * 0.18;
+      const panelLeft    = panelMarginX;
+      const panelRight   = sw - panelMarginX;
+      const panelW       = panelRight - panelLeft;
+      const panelRadius  = 10;
+      const panelColor   = 0x002e75; 
+      const topPanelColor = 0x00388d; 
+      const innerPanelColor = 0x002762; 
+      const filtersPanelColor = 0x00245b;  
+      const extraPanelColor = 0x001f4f;  
+      const panelAlpha   = 0.7;
+      const labelSize    = 32;
+      const labelColor   = 0xffffff;
+      const gfx          = this.add.graphics().setScrollFactor(0).setDepth(104);
+      const topPanelY  = sh * 0.10 - 40;
+      const topPanelH  = sh * 0.12;
+      gfx.fillStyle(topPanelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, topPanelY, panelW, topPanelH, panelRadius);
+      const innerPanelY = topPanelY + 10;
+      const innerPanelX = panelLeft + 10;
+      const innerPanelW = panelW * 0.57;
+      const innerPanelH = topPanelH - 20;
+      gfx.fillStyle(innerPanelColor, panelAlpha);
+      gfx.fillRoundedRect(innerPanelX, innerPanelY, innerPanelW, innerPanelH, panelRadius);
+
+      const innerBtnX = innerPanelX + innerPanelW + 20;
+      const innerBtnY = innerPanelY + (innerPanelH / 2);
+      
+      const innerBtn2 = this.add.image(innerBtnX + 137, innerBtnY, "GJ_GameSheet03", "GJ_longBtn05_001.png")
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setInteractive();
+      this._makeBouncyButton(innerBtn2, 1, () => {});
+      const innerBtn1 = this.add.image(innerBtnX + 47, innerBtnY, "GJ_GameSheet03", "GJ_longBtn06_001.png")
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setInteractive();
+      this._makeBouncyButton(innerBtn1, 1, () => {  _doSearch(); });
+      
+      const innerBtn3 = this.add.image(innerBtnX + 231, innerBtnY, "GJ_GameSheet03", "GJ_longBtn07_001.png")
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setInteractive();
+      this._makeBouncyButton(innerBtn3, 1, () => { inputText = ""; _updateInputDisplay(); });
+
+      const allowedChars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const inputMaxLen  = 64;
+      const inputCX      = innerPanelX + innerPanelW / 2;
+      const inputCY      = innerPanelY + innerPanelH / 2;
+
+      let inputText      = "";
+      let inputFocused   = false;
+      let cursorVisible  = false;
+      let cursorTimer    = null;
+      const placeholderLabel = this.add.bitmapText(inputCX - 5, inputCY, "bigFont", "Enter a level, user or id", 28)
+        .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5)
+        .setTint(0x6c99d8).setAlpha(0.85);
+      const typedLabel = this.add.bitmapText(innerPanelX + 10, inputCY, "bigFont", "", 46)
+        .setScrollFactor(0).setDepth(106).setOrigin(0, 0.5)
+        .setTint(0xffffff).setVisible(false);
+      const inputCursor = this.add.text(0, inputCY, "|", {
+        fontSize: "33px", fontFamily: "Arial", color: "#92a7c0"
+      }).setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setVisible(false);
+
+      const _updateInputDisplay = () => {
+        if (inputText === "") {
+          typedLabel.setVisible(false);
+          placeholderLabel.setVisible(true);
+        } else {
+          placeholderLabel.setVisible(false);
+          typedLabel.setText(inputText).setVisible(true);
+        }
+        if (inputFocused) {
+          const textW = inputText === "" ? 0 : typedLabel.width;
+          const textLeft = innerPanelX + 10;
+          inputCursor.x = textLeft + textW + 2;
+          inputCursor.setVisible(cursorVisible);
+        } else {
+          inputCursor.setVisible(false);
+        }
       };
-      window.addEventListener("resize", _repositionInput);
-      const statusText = this.add.text(sw / 2, inputY + inputH + 22, "", {
-        fontSize: "16px",
-        fontFamily: "Arial, sans-serif",
-        color: "#ffffff",
-        align: "center",
-        wordWrap: { width: 420 }
-      }).setScrollFactor(0).setDepth(106).setOrigin(0.5, 0).setAlpha(0);
-      this._searchOverlayObjects.push(statusText);
-      const _showStatus = (msg, color = "#ffffff", duration = 0) => {
-        statusText.setText(msg);
-        statusText.setColor(color);
-        this.tweens.killTweensOf(statusText);
-        statusText.setAlpha(1);
+
+      const _startCursorBlink = () => {
+        cursorVisible = true;
+        _updateInputDisplay();
+        if (cursorTimer) cursorTimer.remove();
+        cursorTimer = null;
       };
+
+      const _stopCursorBlink = () => {
+        if (cursorTimer) { cursorTimer.remove(); cursorTimer = null; }
+        cursorVisible = false;
+        inputCursor.setVisible(false);
+      };
+
+      const _focusInput = () => {
+        inputFocused = true;
+        _startCursorBlink();
+      };
+
+      const _blurInput = () => {
+        inputFocused = false;
+        _stopCursorBlink();
+        _updateInputDisplay();
+      };
+      const inputHitZone = this.add.zone(
+        innerPanelX + innerPanelW / 2, innerPanelY + innerPanelH / 2,
+        innerPanelW, innerPanelH
+      ).setScrollFactor(0).setDepth(107).setInteractive();
+      inputHitZone.on("pointerdown", () => _focusInput());
+
+      blocker.on("pointerdown", () => { if (inputFocused) _blurInput(); });
+      const _onKeyDown = (event) => {
+        if (!inputFocused) return;
+        event.stopPropagation();
+        if (event.key === "Backspace") {
+          if (inputText.length > 0) {
+            inputText = inputText.slice(0, -1);
+            _updateInputDisplay();
+          }
+        } else if (event.key === "Enter") {
+          _doSearch();
+        } else if (event.key.length === 1 && allowedChars.includes(event.key) && !event.ctrlKey) {
+          if (inputText.length < inputMaxLen) {
+            inputText += event.key;
+            _updateInputDisplay();
+          }
+        }
+      };
+      window.addEventListener("keydown", _onKeyDown);
+
+      const htmlInput = {
+        remove: () => {
+          window.removeEventListener("keydown", _onKeyDown);
+          _blurInput();
+        },
+        get value() { return inputText; },
+      };
+      const _repositionInput = () => {};
+      const qsLabelY  = sh * 0.195;
+      const qsPanelY  = qsLabelY + 25;
+      const qsPanelH  = sh * 0.36;
+      const qsLabel   = this.add.bitmapText(sw / 2, qsLabelY, "bigFont", "Quick Search", labelSize)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(labelColor);
+
+      gfx.fillStyle(panelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, qsPanelY, panelW, qsPanelH, panelRadius);
+      const comingSoonLabel = this.add.bitmapText(sw / 2, qsPanelY + qsPanelH / 2, "bigFont", "Coming Soon!", 42)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+      this._searchOverlayObjects.push(comingSoonLabel);
+      const filtersLabelY  = qsPanelY + qsPanelH + 24;
+      const filtersPanelY  = filtersLabelY + 20;
+      const filtersPanelH  = sh * 0.16;
+      const filtersLabel   = this.add.bitmapText(sw / 2, filtersLabelY, "bigFont", "Filters", labelSize)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(labelColor);
+
+      gfx.fillStyle(filtersPanelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, filtersPanelY, panelW, filtersPanelH, panelRadius);
+
+      const filtersComingSoon = this.add.bitmapText(sw / 2, filtersPanelY + filtersPanelH / 2, "bigFont", "Coming Soon!", 42)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+
+      const extraPanelY  = filtersPanelY + filtersPanelH + 18;
+      const extraPanelH  = sh * 0.11;
+      gfx.fillStyle(extraPanelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, extraPanelY, panelW, extraPanelH, panelRadius);
+
+      const extraComingSoon = this.add.bitmapText(sw / 2, extraPanelY + extraPanelH / 2, "bigFont", "Coming Soon!", 42)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+
+      this._searchOverlayObjects.push(gfx, qsLabel, filtersLabel, cornerBR, cornerBL,
+        placeholderLabel, typedLabel, inputCursor, inputHitZone, innerBtn1, innerBtn2, innerBtn3,
+        filtersComingSoon, extraComingSoon);
+
       let _loading = false;
       const _doSearch = async () => {
         if (_loading) return;
         const levelId = htmlInput.value.trim().replace(/\D/g, "");
-        if (!levelId) {
-          _showStatus("enter a level id", "#ff6666", 3000);
-
-          return;
-        }
+        if (!levelId) return;
         _loading = true;
         try {
           await _doSearchInner(levelId);
         } catch (err) {
-          _showStatus("error: " + err.message, "#ff5555");
         } finally {
           _loading = false;
         }
       };
       const _doSearchInner = async (levelId) => {
-        _showStatus("fetching level", "#ffb700");
-
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
-        if (!PROXY_BASE) {
-          _showStatus("no proxy configured. set window._gdProxyUrl first.", "#ff0000");
-          return;
-        }
+        if (!PROXY_BASE) return;
         const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
         const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
           method: "POST",
@@ -1139,7 +1230,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
         const rawResponse = await res.text();
         if (!rawResponse || rawResponse === "-1" || !rawResponse.includes(":")) {
-          _showStatus("level not found from servers. check the id and try again.", "#ff0000");
           return;
         }
         const gdMap = {};
@@ -1158,7 +1248,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const songKey = isCustomSong ? `ng_song_${songIdRaw}` : window.allLevels[officialSongId][0];
         window.currentlevel[0] = songKey;
         window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
-        _showStatus(`found "${levelName}"${isCustomSong ? ` — loading song #${songIdRaw}...` : ""}`, "#00ff00");
         if (isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
@@ -1178,7 +1267,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               const songArtist = (ngMap["4"]  || "Unknown").replace(/:$/, "").trim();
               const songTitle  = (ngMap["2"]  || `Song #${songIdRaw}`).replace(/:$/, "").trim();
               if (songUrl) {
-                _showStatus(`loading "${songTitle}" by ${songArtist}...`, "#00ff00");
                 const audioCtx = this.game.sound.context;
                 if (audioCtx.state === "suspended") await audioCtx.resume();
                 const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
@@ -1209,7 +1297,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           window._onlineLevelId,
           [window._onlineSongArtist || "Unknown"]
         ];
-        _showStatus(`loading string for "${levelName}"`, "#00ff00");
         this.time.delayedCall(600, () => {
           htmlInput.remove();
           window.removeEventListener("resize", _repositionInput);
@@ -1224,9 +1311,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           });
         });
       };
-      this._searchOverlayObjects = [
-        overlay, blocker, backBtn, inputBg, statusText, placeholderLabel, typedLabel
-      ];
+      this._searchOverlayObjects.push(overlay, blocker, backBtn);
       if (window.levelID) { // if there's an ID parameter, load it directly
         htmlInput.remove();
         const loadingBg = this.add.graphics().setScrollFactor(0).setDepth(1000);
@@ -1235,7 +1320,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const loadingText = this.add.bitmapText(sw / 2, sh / 2, "bigFont", "Loading level...", 30)
           .setScrollFactor(0).setDepth(1001).setOrigin(0.5);
         this._searchOverlayObjects.push(loadingBg, loadingText);
-        statusText.setDepth(1002).setY(sh / 2 + 50).setAlpha(1);
         _doSearchInner(window.levelID);
       }
       htmlInput.addEventListener("keydown", (e) => {
@@ -3196,13 +3280,6 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
-
-    const lockIcon = this.add.image(centerX + (panelWidth / 2) + 30, centerY - (panelHeight / 2) + 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
-    lockIcon.setScale(0.75);
-    lockIcon.setInteractive();
-    this._expandHitArea(lockIcon, 1.5);
-    this._makeBouncyButton(lockIcon, 0.75, () => { this._openVaultMenu(); });
-    this._settingsPopup.add(lockIcon);
   }
   _saveSettings() {
     const settings = {
