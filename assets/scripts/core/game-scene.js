@@ -317,6 +317,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     this._openCreatorMenu = () => {
       if (this._creatorOverlay) return;
+      this._creatorMenuOpen = true;
 
       const sw = screenWidth;
       const sh = screenHeight;
@@ -393,6 +394,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           .setScrollFactor(0).setDepth(104).setScale(btnScale);
         const isSearchButton  = frame === "GJ_searchBtn_001.png";
         const isFeaturedButton = frame === "GJ_featuredBtn_001.png";
+        const isEditorButton = frame === "GJ_createBtn_001.png"; 
         if (isSearchButton) {
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
@@ -405,6 +407,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             this._closeCreatorMenu(true);
             this._openOnlineLevelsScene({ type: 6 });
           }, () => true);
+        } else if (isEditorButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._closeCreatorMenu(true);
+            this._openEditorMenu();
+          }, () => true);
         } else {
           btn.setTint(0x666666);
         }
@@ -413,6 +421,591 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._searchOverlay = null;
     this._searchOverlayObjects = [];
+    this._openEditorMenu = () => {
+        if (this._editorOverlay) return;
+        const sw = screenWidth;
+        const sh = screenHeight;
+        const centerX = sw / 2;
+
+        const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
+        fadeIn.fillStyle(0x000000, 1);
+        fadeIn.fillRect(0, 0, sw, sh);
+        this.tweens.add({ targets: fadeIn, alpha: 0, duration: 300, ease: "Linear", onComplete: () => fadeIn.destroy() });
+
+        const overlay = this.add.graphics().setScrollFactor(0).setDepth(100);
+        const gradientSteps = 80;
+        for (let gi = 0; gi < gradientSteps; gi++) {
+            const t = gi / (gradientSteps - 1);
+            const r1 = Math.round(0x00 + (0x01 - 0x00) * t);
+            const g1 = Math.round(0x65 + (0x2c - 0x65) * t);
+            const b1 = Math.round(0xff + (0x71 - 0xff) * t);
+            const bandColor = (r1 << 16) | (g1 << 8) | b1;
+            overlay.fillStyle(bandColor, 1);
+            overlay.fillRect(0, Math.floor(gi * sh / gradientSteps), sw, Math.ceil(sh / gradientSteps) + 1);
+        }
+        this._editorOverlay = overlay;
+
+        const blocker = this.add.zone(centerX, sh / 2, sw, sh).setScrollFactor(0).setDepth(101).setInteractive();
+        const container = this.add.container(0, 0).setScrollFactor(0).setDepth(102);
+
+        const tableW = 712;
+        const tableH = 460;
+        const tableX = (sw - tableW) / 2;
+        const tableY = 85;
+
+        const rawData = localStorage.getItem("created_levels");
+        const createdLevels = rawData ? JSON.parse(rawData) : [];
+
+        createdLevels.sort((a, b) => {
+            const idA = parseInt(a.createdId.replace("local_", "")) || 0;
+            const idB = parseInt(b.createdId.replace("local_", "")) || 0;
+            return idB - idA;
+        });
+
+        const nameCounts = {};
+        const levelRevisions = {};
+
+        createdLevels.forEach(lvl => {
+            const name = lvl.levelName;
+            if (!nameCounts[name]) {
+                nameCounts[name] = 1;
+                levelRevisions[lvl.createdId] = "";
+            } else {
+                levelRevisions[lvl.createdId] = `Rev. ${nameCounts[name]}`;
+                nameCounts[name]++;
+            }
+        });
+
+        const lengthValues=[
+          "Tiny", "Short", "Medium", "Long", "XL"
+        ]
+
+        const listContainer = this.add.container(0, 0);
+        const maskShape = this.add.graphics().fillStyle(0xffffff).fillRect(tableX, tableY, tableW, tableH).setVisible(false);
+        const mask = maskShape.createGeometryMask();
+        listContainer.setMask(mask);
+        container.add(this.add.graphics().setScrollFactor(0).setDepth(90).fillStyle(0xc2723e, 1).fillRect(tableX, tableY, tableW, tableH));
+        container.add(listContainer);
+
+        createdLevels.forEach((level, index) => {
+            const spacing = 100;
+            const slotY = (index * spacing) + (spacing / 2);
+            
+            const isOdd = index % 2 !== 0;
+            const stripeColor = isOdd ? 0xc2723e : 0xa1582c;
+
+            const bgStripe = this.add.rectangle(centerX, slotY, tableW - 10, spacing, stripeColor, 1);
+            const separator = this.add.rectangle(centerX, slotY + (spacing / 2), tableW - 10, 1, 0x502c16, 1);
+            const nameTxt = this.add.bitmapText(tableX + 20, slotY - 22, "bigFont", level.levelName, 32).setOrigin(0, 0.5);
+            const revLabel = levelRevisions[level.createdId];
+            const revText = this.add.bitmapText(
+                nameTxt.x + nameTxt.width + 10,
+                nameTxt.y + 5,
+                "goldFont",
+                revLabel, 
+                20
+            ).setOrigin(0, 0.5);
+            const infoY = slotY + 18;
+            const lenIcon = this.add.image(tableX + 35, infoY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(0.65);
+            const lenTxt = this.add.bitmapText(lenIcon.x + 22, infoY, "bigFont", lengthValues[level.levelLength], 18).setOrigin(0, 0.5);
+            const songIcon = this.add.image(tableX + 150, infoY, "GJ_GameSheet03", "GJ_musicIcon_001.png").setScale(0.65);
+            const songTxt = this.add.bitmapText(songIcon.x + 22, infoY, "bigFont", level.song, 18).setOrigin(0, 0.5);
+            const statusIcon = this.add.image(tableX + 380, infoY, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScale(0.65).setFlipY(true).setAngle(90);
+            const statusTxt = this.add.bitmapText(statusIcon.x + 22, infoY, "bigFont", level.status, 18).setOrigin(0, 0.5);
+            
+            const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY, "GJ_button01", null, 120, 60, 24, 24, 24, 24 ).setScale(0.75).setInteractive();
+            const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 32).setOrigin(0.5).setScale(0.8);
+            
+            this._makeBouncyButton(viewBtn, 0.75, () => {
+                this._closeEditorMenu(false);
+                this._openLevelView(level);
+            });
+
+            listContainer.add([bgStripe, separator, nameTxt, revText, lenIcon, lenTxt, songIcon, songTxt, statusIcon, statusTxt, viewBtn, viewTxt]);
+        });
+        if (createdLevels.length === 0) {
+            container.add(this.add.bitmapText(centerX, tableY + (tableH/2), "bigFont", "No Levels", 30).setOrigin(0.5).setAlpha(0.5));
+        }
+        const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+        const sideScaleY = tableH / sideFrame.height;
+        container.add(this.add.image(tableX - 40, tableY, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScaleY));
+        container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
+        container.add(this.add.image(centerX, tableY - 10, "GJ_WebSheet", "GJ_table_top_001.png"));
+        container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+        container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", "My Levels", 42).setOrigin(0.5).setScale(1.1));
+
+        let startY = tableY;
+        const listHeight = createdLevels.length * 100;
+        const minY = tableY - Math.max(0, listHeight - tableH) - 10;
+        const maxY = tableY + 22;
+
+        listContainer.y = maxY;
+        this._scrollTargetY = maxY;
+        this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+            if (!this._editorOverlay) return;
+            this._scrollTargetY -= deltaY;
+            this._scrollTargetY = Phaser.Math.Clamp(this._scrollTargetY, minY, maxY);
+
+            this.tweens.add({
+                targets: listContainer,
+                y: this._scrollTargetY,
+                duration: 250,
+                ease: 'Power2',
+                overwrite: true
+            });
+        });
+        blocker.on('pointerdown', (pointer) => {
+            startY = pointer.y - listContainer.y;
+        });
+
+        blocker.on('pointermove', (pointer) => {
+            if (pointer.isDown) {
+                listContainer.y = pointer.y - startY;
+                listContainer.y = Phaser.Math.Clamp(listContainer.y, minY, maxY);
+            }
+        });
+
+        const newBtnX = sw - 60;
+        const newBtnY = sh - 55;
+        const newBtn = this.add.image(newBtnX, newBtnY, "GJ_GameSheet03", "GJ_newBtn_001.png")
+            .setScale(0.9)
+            .setInteractive();
+        
+        this._makeBouncyButton(newBtn, 0.9, () => {
+            const rawData = localStorage.getItem("created_levels");
+            let createdLevels = rawData ? JSON.parse(rawData) : [];
+
+            let counter = 0;
+            while (createdLevels.some(lvl => lvl.levelName === "Unnamed " + counter)) {
+                counter++;
+            }
+            const newName = "Unnamed " + counter;
+
+            const newLevel = {
+                levelName: newName,
+                song: "Stereo Madness",
+                songId: -1,
+                levelId: null,
+                levelString: "H4sIAAAAAAAACq1QwRHDMAhbyO0hwIlzfWWGDsAAXaHD10Z-9Ff3Ln4gG4GMeD2tFYRLaEBrWGitARCUwKTHDbEFRCT2wF3yBOrXvYVEC7wRKSi6JoirBY8FwdHB9iVJjZ5ckP1rlf19taIv7pLGh-wP43XROPq9z9mOtX1uS7LldcKKzPx41ZKwEbz0yPueUSfPF9qApx3kMlrGJE7PSBbCIlYpy5QVuheMciE0AgiaoFRUihk5I2ec0Knp1PTK9slxYDM2OIFmjL8bv-1mBmB6YrvO4UErHR4fJXMaP9sDAAA=", 
+                levelLength: 0,
+                normalBest: 0,
+                practiceBest: 0,
+                description: "",
+                version: 1,
+                status: "Unverified",
+                createdId: this._getNextLocalId()
+            };
+
+            createdLevels.push(newLevel);
+            localStorage.setItem("created_levels", JSON.stringify(createdLevels));
+
+            this._closeEditorMenu();
+            this._openLevelView(newLevel);
+            
+            this._audio.playEffect("build_01");
+        });
+        container.add(newBtn);
+
+        const importBtn = this.add.image(newBtnX, newBtnY - 90, "import").setScale(0.3).setInteractive();
+        this._makeBouncyButton(importBtn, 0.3, () => {
+            this._importGMD();
+        });
+        container.add(importBtn);
+
+        const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+            .setScrollFactor(0).setDepth(104).setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
+        
+        this._makeBouncyButton(backBtn, 1, () => {
+          this._closeEditorMenu();
+          this._openCreatorMenu(); 
+        });
+
+        this._editorObjects = [overlay, blocker, container, backBtn, maskShape];
+    };
+    this._importGMD = () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.gmd';
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target.result;
+                try {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(content, "text/xml");
+                    const keys = xmlDoc.querySelectorAll("key, k");
+                    
+                    let extracted = {
+                        name: "Imported Level",
+                        data: "",
+                        version: 1,
+                        length: 0,
+                        id: "NA",
+                        desc: "",
+                        officialSongId: 0,
+                        customSongId: 0
+                    };
+
+                    keys.forEach(keyNode => {
+                        const k = keyNode.textContent;
+                        const v = keyNode.nextElementSibling;
+                        if (!v) return;
+                        const val = v.textContent;
+
+                        if (k === "k2") extracted.name = val;
+                        if (k === "k4") extracted.data = val;
+                        if (k === "k1") extracted.id = val;
+                        if (k === "k23") extracted.length = parseInt(val) || 0;
+                        if (k === "k16") extracted.version = parseInt(val) || 1;
+                        if (k === "k8") extracted.officialSongId = parseInt(val) || 0;
+                        if (k === "k45") extracted.customSongId = parseInt(val) || 0;
+                        if (k === "k3") {
+                            try { extracted.desc = atob(val); } catch(e) { extracted.desc = val; }
+                        }
+                    });
+
+                    if (!extracted.data) throw new Error("No level string found.");
+
+                    let finalSongName = "Stereo Madness";
+                    let finalSongId = -1;
+
+                    if (extracted.customSongId > 0) {
+                        finalSongId = extracted.customSongId;
+                        finalSongName = `NG#${extracted.customSongId}`;
+                    } else {
+                        finalSongId = -extracted.officialSongId -1;
+                        try {
+                            finalSongName = window.allLevels[extracted.officialSongId][0];
+                        } catch(e) {
+                            finalSongName = "Unknown";
+                        }
+                    }
+
+                    const rawLevels = localStorage.getItem("created_levels");
+                    let createdLevels = rawLevels ? JSON.parse(rawLevels) : [];
+                    
+                    const newLevel = {
+                        levelName: extracted.name,
+                        song: finalSongName,
+                        songId: finalSongId,
+                        levelId: (extracted.id === "0" || !extracted.id) ? "NA" : extracted.id,
+                        levelString: extracted.data, 
+                        levelLength: extracted.length,
+                        normalBest: 0,
+                        practiceBest: 0,
+                        description: extracted.desc || "",
+                        version: extracted.version,
+                        status: "Unverified",
+                        createdId: this._getNextLocalId()
+                    };
+
+                    createdLevels.push(newLevel);
+                    localStorage.setItem("created_levels", JSON.stringify(createdLevels));
+                    
+                    this._closeEditorMenu(false);
+                    this._openLevelView(newLevel);
+
+                } catch (err) {
+                    console.error("GMD Import Error:", err);
+                    alert("Failed to parse .gmd: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        fileInput.click();
+    };
+    this._exportGMD = (level) => {
+        const encodedDesc = btoa(level.description || "");
+        const authorName = "Web Dashers";
+        
+        const officialSong = level.songId < 0 ? Math.abs(level.songId) : 0;
+        const customSong = level.songId > 0 ? level.songId : 0;
+
+        let xml = '<?xml version="1.0"?>';
+        xml += '<plist version="1.0" gjver="2.0">';
+        xml += '<dict>';
+        xml += '<k>kCEK</k><i>4</i>';
+        xml += `<k>k1</k><i>${level.levelId && level.levelId !== "NA" ? level.levelId.replace(/\D/g, "") : 0}</i>`;
+        xml += `<k>k18</k><i>${level.levelLength || 0}</i>`;
+        xml += `<k>k23</k><i>${level.levelLength || 0}</i>`;
+        xml += `<k>k2</k><s>${level.levelName}</s>`;
+        xml += `<k>k4</k><s>${level.levelString}</s>`;
+        xml += `<k>k3</k><s>${encodedDesc}</s>`;
+        xml += `<k>k5</k><s>${authorName}</s>`;
+        xml += '<k>k101</k><s>0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</s>';
+        xml += `<k>k8</k><i>${officialSong - 1}</i>`;
+        xml += `<k>k45</k><i>${customSong}</i>`;
+        xml += `<k>k16</k><i>${level.version || 1}</i>`;
+        xml += '<k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>47</i>';
+        xml += '<k>kI1</k><r>0</r><k>kI2</k><r>0</r><k>kI3</k><r>0.1</r>';
+        xml += '<k>kI6</k><d><k>0</k><s>0</s><k>1</k><s>0</s><k>2</k><s>0</s><k>3</k><s>0</s><k>4</k><s>0</s><k>5</k><s>0</s><k>6</k><s>0</s><k>7</k><s>0</s><k>8</k><s>0</s><k>9</k><s>0</s><k>10</k><s>0</s><k>11</k><s>0</s><k>12</k><s>0</s><k>13</k><s>0</s></d>';
+        xml += '</dict></plist>';
+        const blob = new Blob([xml], { type: 'text/xml' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const fileName = `${level.levelName.replace(/[^a-z0-9]/gi, '_')}.gmd`;
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+    this._getNextLocalId = () => {
+        const rawData = localStorage.getItem("created_levels");
+        const levels = rawData ? JSON.parse(rawData) : [];
+        let maxId = 0;
+        levels.forEach(l => {
+            if (l.createdId && typeof l.createdId === "string") {
+                const idNum = parseInt(l.createdId.split('_')[1]);
+                if (!isNaN(idNum) && idNum > maxId) {
+                    maxId = idNum;
+                }
+            }
+        });
+        return "local_" + (maxId + 1);
+    };
+    this._openLevelView = (level) => {
+        const sw = screenWidth;
+        const sh = screenHeight;
+        const centerX = sw / 2;
+        const saveToLS = (key, val) => {
+            const rawData = localStorage.getItem("created_levels");
+            let levels = rawData ? JSON.parse(rawData) : [];
+            const idx = levels.findIndex(l => l.createdId === level.createdId);
+            if (idx !== -1) {
+                levels[idx][key] = val;
+                localStorage.setItem("created_levels", JSON.stringify(levels));
+            }
+        };
+        const deleteLevel = () => {
+            if (!confirm(`Are you sure you want to delete ${level.levelName}?`)) return;
+            const rawData = localStorage.getItem("created_levels");
+            let levels = rawData ? JSON.parse(rawData) : [];
+            levels = levels.filter(l => l.createdId !== level.createdId);
+            localStorage.setItem("created_levels", JSON.stringify(levels));
+            cleanup();
+            this._openEditorMenu();
+        };
+        this._activeInput = null;
+        let cursorVisible = true;
+
+        const blocker = this.add.zone(centerX, sh / 2, sw, sh)
+            .setOrigin(0.5).setDepth(101).setInteractive();
+        blocker.on('pointerdown', () => { this._activeInput = null; });
+        const overlay = this.add.graphics().setScrollFactor(0).setDepth(102);
+        const gradientSteps = 80;
+        for (let gi = 0; gi < gradientSteps; gi++) {
+            const t = gi / (gradientSteps - 1);
+            const r1 = Math.round(0x00 + (0x01 - 0x00) * t);
+            const g1 = Math.round(0x65 + (0x2c - 0x65) * t);
+            const b1 = Math.round(0xff + (0x71 - 0xff) * t);
+            const bandColor = (r1 << 16) | (g1 << 8) | b1;
+            overlay.fillStyle(bandColor, 1);
+            overlay.fillRect(0, Math.floor(gi * sh / gradientSteps), sw, Math.ceil(sh / gradientSteps) + 1);
+        }
+
+        const container = this.add.container(0, 0).setDepth(150);
+        const boxWidth = sw * 0.6;
+        const cornerRad = 18;
+
+        const nameY = 50;
+        const nameBox = this.add.graphics().setDepth(151).setInteractive(new Phaser.Geom.Rectangle(centerX - (boxWidth / 2), nameY - 28, boxWidth, 70), Phaser.Geom.Rectangle.Contains);
+        nameBox.fillStyle(0x000000, 0.3).fillRoundedRect(centerX - (boxWidth / 2), nameY - 28, boxWidth, 70, cornerRad);
+        const titleText = this.add.bitmapText(centerX, nameY + 5, "bigFont", level.levelName, 45).setOrigin(0.5).setDepth(152);
+        const titleCursor = this.add.bitmapText(0, nameY + 5, "bigFont", "|", 45).setOrigin(0, 0.5).setDepth(153).setVisible(false);
+
+        const descY = 180;
+        const descH = 120;
+        const descBox = this.add.graphics().setDepth(151).setInteractive(new Phaser.Geom.Rectangle(centerX - (boxWidth / 2), descY - (descH / 2), boxWidth, descH), Phaser.Geom.Rectangle.Contains);
+        descBox.fillStyle(0x000000, 0.3).fillRoundedRect(centerX - (boxWidth / 2), descY - (descH / 2), boxWidth, descH, cornerRad);
+        const descText = this.add.text(centerX, descY, level.description || "Description [Optional]", {
+            fontFamily: "Helvetica, Arial, sans-serif",
+            fontSize: "22px",
+            color: "#ffffff",
+            align: "center",
+            lineSpacing: 4,
+            wordWrap: { width: boxWidth - 40, useAdvancedWrap: true }
+        }).setOrigin(0.5).setDepth(152);
+        const descCursor = this.add.text(0, 0, "|", { fontFamily: "Helvetica", fontSize: "18px", color: "#ffffff" })
+            .setOrigin(0.5).setDepth(153).setVisible(false);
+
+        const updateDisplay = () => {
+            titleText.setText(level.levelName);
+            if (this._activeInput === 'title') {
+                titleCursor.setPosition(titleText.x + (titleText.width / 2) + 2, nameY + 5).setVisible(cursorVisible);
+                descCursor.setVisible(false);
+            } 
+            else if (this._activeInput === 'desc') {
+                descText.setText(level.description || "");
+                titleCursor.setVisible(false);
+
+                const lines = descText.getWrappedText(level.description || "");
+                const lineCount = lines.length;
+                const lastLine = lines[lineCount - 1] || "";                
+                const metrics = descText.canvas.getContext('2d').measureText(lastLine);
+                const lastLineWidth = metrics.width;
+
+                const size = 22;
+                const spacing = 4;
+                const fullLineHeight = size + spacing;
+                const totalHeight = (lineCount * fullLineHeight) - spacing;
+                
+                const topOfText = descY - (totalHeight / 2);
+                const cursorY = topOfText + ((lineCount - 1) * fullLineHeight) + (size / 2);
+
+                descCursor.setPosition(centerX + (lastLineWidth / 2) + 2, cursorY).setVisible(cursorVisible);
+            } else {
+                descText.setText(level.description || "Description [Optional]");
+                titleCursor.setVisible(false);
+                descCursor.setVisible(false);
+            }
+        };
+
+        const cursorInterval = setInterval(() => {
+            cursorVisible = !cursorVisible;
+            updateDisplay();
+        }, 500);
+
+        const keyHandler = (event) => {
+            if (!this._activeInput) return;
+            if (event.key === "Backspace") {
+                if (this._activeInput === 'title') level.levelName = level.levelName.slice(0, -1);
+                else level.description = (level.description || "").slice(0, -1);
+            } else if (event.key === "Enter") {
+                this._activeInput = null;
+            } else if (event.key.length === 1) {
+                if (this._activeInput === 'title' && level.levelName.length < 20) {
+                    level.levelName += event.key;
+                } else if (this._activeInput === 'desc' && (level.description || "").length < 150) {
+                    level.description = (level.description || "") + event.key;
+                }
+            }
+            saveToLS(this._activeInput === 'title' ? "levelName" : "description", 
+                    this._activeInput === 'title' ? level.levelName : level.description);
+            cursorVisible = true;
+            updateDisplay();
+        };
+
+        window.addEventListener('keydown', keyHandler);
+        nameBox.on('pointerdown', () => { this._activeInput = 'title'; updateDisplay(); });
+        descBox.on('pointerdown', () => { this._activeInput = 'desc'; updateDisplay(); });
+
+        const cleanup = () => {
+            clearInterval(cursorInterval);
+            window.removeEventListener('keydown', keyHandler);
+            container.destroy();
+            overlay.destroy();
+            blocker.destroy();
+        };
+
+        const btnY = sh * 0.58;
+        const editBtn = this.add.image(centerX - 220, btnY, "GJ_GameSheet03", "GJ_editBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.1);
+        this._makeBouncyButton(editBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, true); });
+        const playBtn = this.add.image(centerX, btnY, "GJ_GameSheet03", "GJ_playBtn2_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.1);
+        this._makeBouncyButton(playBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, false); });
+        const shareBtn = this.add.image(centerX + 220, btnY, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.1);
+        this._makeBouncyButton(shareBtn, 1.1, () => { this._exportGMD(level); });
+        const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png").setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
+        this._makeBouncyButton(backBtn, 1, () => { cleanup(); this._openEditorMenu(); });
+        const deleteBtn = this.add.image(sw - 50, 48, "GJ_GameSheet03", "GJ_deleteBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.8);
+        this._makeBouncyButton(deleteBtn, 0.8, () => { deleteLevel(); });
+
+        const footerY = sh - 100; 
+        const subFooterY = sh - 30;
+        const lengthValues=[
+          "Tiny", "Short", "Medium", "Long", "XL"
+        ]
+
+        const lengthIcon = this.add.image(centerX - 350, footerY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(1).setDepth(152);
+        const lengthLabel = this.add.bitmapText(centerX - 310, footerY, "bigFont", lengthValues[level.levelLength], 33).setOrigin(0, 0.5).setDepth(152);
+        const songIcon = this.add.image(centerX - 160, footerY, "GJ_GameSheet03", "GJ_musicIcon_001.png").setScale(1).setDepth(152);
+        const songLabel = this.add.bitmapText(centerX - 115, footerY, "bigFont", level.song, 29).setOrigin(0, 0.5).setDepth(152);
+        const statusIcon = this.add.image(centerX + 200, footerY, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScale(1).setDepth(152).setFlipY(true).setAngle(90);
+        const statusLabel = this.add.bitmapText(centerX + 245, footerY, "bigFont", level.status, 33).setOrigin(0, 0.5).setDepth(152);
+        const versionText = this.add.bitmapText(centerX - 180, subFooterY, "goldFont", `Version: ${level.version || 1}`, 30).setOrigin(0.5).setDepth(152);
+        const idText = this.add.bitmapText(centerX + 180, subFooterY, "goldFont", `ID: ${level.levelId || "na"}`, 30).setOrigin(0.5).setDepth(152);
+
+        container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText]);
+    };
+    this._startCreatedLevel = async (level, isEditor) => {
+        const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
+        window._onlineLevelString = level.levelString;
+        window._onlineLevelName = level.levelName;
+        window._onlineLevelId = level.createdId;
+        window._onlineSongBuffer = null;
+        window._onlineSongKey = null;
+        window._onlineSongOffset = 0;
+        if (isEditor){
+          window.isEditor = true;
+        }
+        this.game.registry.set("autoStartGame", true);
+        window.currentlevel = [
+            "Placeholder",
+            level.levelName,
+            level.createdId,
+            ["Local", "SongAuthor"]
+        ];
+        if (level.songId < 0){
+          window.currentlevel[0] = window.allLevels[Math.abs(level.songId) - 1][0];
+          window.currentlevel[3] = ["Local", window.allLevels[Math.abs(level.songId) - 1][3]]
+        } else {
+          const songId = level.songId;
+          const songKey = `ng_song_${songId}`;
+          window.currentlevel[0] = songKey;
+          
+          if (PROXY_BASE && songId > 0) {
+              try {                  
+                  const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                      body: `songID=${songId}&secret=Wmfd2893gb7`
+                  });
+                  
+                  const ngText = ngRes.ok ? await ngRes.text() : "-1";
+                  if (ngText && ngText !== "-1") {
+                      const ngParts = ngText.split("~|~");
+                      const ngMap = {};
+                      for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
+
+                      const songUrl = decodeURIComponent((ngMap["10"] || "").trim());
+                      const songArtist = (ngMap["4"] || "Unknown").replace(/:$/, "").trim();
+                      const songTitle = (ngMap["2"] || `Song #${songId}`).replace(/:$/, "").trim();
+
+                      if (songUrl) {
+                          const audioCtx = this.game.sound.context;
+                          if (audioCtx.state === "suspended") await audioCtx.resume();
+                          const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                          const audioRes = await fetch(proxiedUrl);
+                          const arrayBuf = await audioRes.arrayBuffer();
+                          const decoded = await audioCtx.decodeAudioData(arrayBuf);
+                          window._onlineSongBuffer = decoded;
+                          window._onlineSongKey = songKey;
+                          window._onlineSongTitle = songTitle;
+                          window._onlineSongArtist = songArtist;
+                          
+                          window.currentlevel[3] = ["Local", window._onlineSongArtist]
+                      }
+                  }
+              } catch (err) {
+                  console.warn("Failed to load custom song", err);
+              }
+          }
+        }
+        this.scene.restart();
+    };
+    this._closeEditorMenu = () => {
+        if (this._editorObjects) {
+            this._editorObjects.forEach(obj => obj.destroy());
+        }
+        this._editorOverlay = null;
+        this._editorObjects = null;
+    };
     this._openSearchMenu = () => {
       if (this._searchOverlay) return;
       const sw = screenWidth;
@@ -1360,6 +1953,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._closeCreatorMenu = (silent = false) => {
       if (!this._creatorOverlay) return;
+      if (silent == false) this._creatorMenuOpen = false;
       const destroy = () => {
         if (this._creatorOverlayObjects) {
           for (const obj of this._creatorOverlayObjects) {
@@ -1416,6 +2010,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this._upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this._wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    this._lKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
     this._leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this._rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     this._aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -1569,12 +2164,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._pauseContainer = null;
     this._sfxVolume = localStorage.getItem("userSfxVol") ?? 1;
     this.input.on("pointerdown", () => {
-      if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon) {
+      if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon && !window.isEditor) {
         this._pushButton();
       }
     });
     this.input.on("pointerup", () => {
-      if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon) {
+      if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon && !window.isEditor) {
         this._releaseButton();
       }
     });
@@ -1964,6 +2559,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         "level_137677336": "diffIcon_00_btn_001",
         "level_116489424": "diffIcon_00_btn_001",
         "level_4284013": "diffIcon_06_btn_001",
+        "level_56199846": "diffIcon_04_btn_001",
         "level_23":       "diffIcon_10_btn_001"
       };
       const diffIconKey = levelDifficultyMap[levelId] || "diffIcon_05_btn_001";
@@ -2222,11 +2818,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(999).setVisible(false);
     this._fpsAccum = 0;
     this._fpsFrames = 0;
-    this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H).on("down", () => {
-      if (!this._settingsPopup){
-        this._fpsText.setVisible(!this._fpsText.visible);
-      }
-    });
   }
   _createStartPosGui() {
         const centerX = screenWidth / 2;
@@ -2536,17 +3127,19 @@ _buildSettingsPopup() {
     };
 
     const buildGameplayPage = (container) => {
-        createToggle(container, column1X, startY, "Show Percentage",
-            () => window.showPercentage,
+        createToggle(container, column1X, startY, "Show Percentage", 
+            () => window.showPercentage, 
             (v) => window.showPercentage = v,
             (v) => { if (this._percentageLabel) this._percentageLabel.setVisible(v); }
         );
-        createToggle(container, column1X, startY + spacingY, "Percentage Decimals",
-            () => window.percentageDecimals,
+
+        createToggle(container, column1X, startY + spacingY, "Percentage Decimals", 
+            () => window.percentageDecimals, 
             (v) => window.percentageDecimals = v
         );
-        createToggle(container, column1X, startY + (spacingY * 2), "StartPos Switcher",
-            () => window.startPosSwitcher,
+
+        createToggle(container, column1X, startY + (spacingY * 2), "StartPos Switcher", 
+            () => window.startPosSwitcher, 
             (v) => window.startPosSwitcher = v,
             (v) => {
                 if (!v) this._startPosIndex = -1;
@@ -2555,8 +3148,9 @@ _buildSettingsPopup() {
                 if (this._startPosText) this._startPosText.setText(`0/${total}`);
             }
         );
-        createToggle(container, column1X, startY + (spacingY * 3), "Noclip",
-            () => window.noClip,
+
+        createToggle(container, column1X, startY + (spacingY * 3), "Noclip", 
+            () => window.noClip, 
             (v) => window.noClip = v,
             (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); }
         );
@@ -2567,23 +3161,37 @@ _buildSettingsPopup() {
     };
 
     const buildVisualPage = (container) => {
-        createToggle(container, column1X, startY, "Show Hitboxes",
-            () => window.showHitboxes,
+        createToggle(container, column1X, startY, "Show Hitboxes", 
+            () => window.showHitboxes, 
             (v) => window.showHitboxes = v,
-            (v) => { if (!v && this._player._hitboxGraphics) this._player._hitboxGraphics.clear(); }
+            (v) => { 
+                if (!v) {
+                    this._player._hitboxGraphics.clear(); 
+                } else {
+                    this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
+                }
+            }
         );
-        createToggle(container, column1X, startY + spacingY, "Hitbox Trail",
-            () => window.showHitboxTrail,
+
+        createToggle(container, column1X, startY + (spacingY), "Hitbox Trail", 
+            () => window.showHitboxTrail, 
             (v) => window.showHitboxTrail = v,
-            (v) => { if (!v) this._hitboxTrail = []; }
+            (v) => { if (window.showHitboxes) this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY); }
         );
-        createToggle(container, column1X, startY + (spacingY * 2), "Show FPS",
-            () => this._fpsText.visible,
+        
+        createToggle(container, column1X, startY + (spacingY * 2), "Hitboxes on Death", 
+            () => window.hitboxesOnDeath, 
+            (v) => window.hitboxesOnDeath = v
+        );
+
+        createToggle(container, column1X, startY + (spacingY * 3), "Show FPS", 
+            () => this._fpsText.visible, 
             (v) => this._fpsText.visible = v,
             (v) => { if (this._fpsText) this._fpsText.setVisible(v); }
         );
-        createToggle(container, column1X, startY + (spacingY * 3), "Solid Wave Trail",
-            () => window.solidWave,
+
+        createToggle(container, column1X, startY + (spacingY * 4), "Solid Wave Trail", 
+            () => window.solidWave, 
             (v) => window.solidWave = v
         );
     };
@@ -2605,6 +3213,13 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
+
+    const lockIcon = this.add.image(centerX + (panelWidth / 2) + 30, centerY - (panelHeight / 2) + 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
+    lockIcon.setScale(0.75);
+    lockIcon.setInteractive();
+    this._expandHitArea(lockIcon, 1.5);
+    this._makeBouncyButton(lockIcon, 0.75, () => { this._openVaultMenu(); });
+    this._settingsPopup.add(lockIcon);
   }
   _saveSettings() {
     const settings = {
@@ -2616,7 +3231,8 @@ _buildSettingsPopup() {
         hitboxTrail: window.showHitboxTrail,
         showFPS: this._fpsText.visible,
         solidWaveTrail: window.solidWave,
-        noclipAccuracy: window.noClipAccuracy
+        noclipAccuracy: window.noClipAccuracy,
+        hitboxesOnDeath: window.hitboxesOnDeath
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -2631,7 +3247,8 @@ _buildSettingsPopup() {
         hitboxTrail: false,
         showFPS: false,
         solidWaveTrail: false,
-        noclipAccuracy: false
+        noclipAccuracy: false,
+        hitboxesOnDeath: false
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -2645,6 +3262,7 @@ _buildSettingsPopup() {
     this._fpsText.visible = data.showFPS;
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
+    window.hitboxesOnDeath = data.hitboxesOnDeath;
   }
   
   _buildInfoPopup() {
@@ -2652,49 +3270,293 @@ _buildSettingsPopup() {
       return;
     }
     const xPos = screenWidth / 2;
-    const _0x4c3182 = 320;
-    const _0xe2830b = 336;
-    this._infoPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
-    const _0x249eb7 = this.add.rectangle(xPos, _0x4c3182, screenWidth, screenHeight, 0, 100 / 255);
-    _0x249eb7.setInteractive();
-    this._infoPopup.add(_0x249eb7);
-    const _0x14e46f = this.textures.get("GJ_square02").source[0].width * 0.325;
-    const _0x2c64c2 = this._drawScale9(xPos, _0x4c3182, 480, _0xe2830b, "GJ_square02", _0x14e46f, 16777215, 1);
-    this._infoPopup.add(_0x2c64c2);
-    const _0x5a0f88 = this.add.image(xPos - 240 + 20, 172, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
-    this._infoPopup.add(_0x5a0f88);
-    this._expandHitArea(_0x5a0f88, 2);
-    this._makeBouncyButton(_0x5a0f88, 0.8, () => this._closeInfoPopup());
-    let yPos = 206;
-    const _0x302fca = this.add.bitmapText(xPos, yPos, "bigFont", "Credits", 40).setOrigin(0.5, 0.5);
-    this._infoPopup.add(_0x302fca);
-    yPos += 55;
-    const _0x22e4c7 = this.add.bitmapText(xPos, yPos, "goldFont", "Made by RobTop Games", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x22e4c7);
-    yPos += 35;
-    const _0x3cdf70a = this.add.bitmapText(xPos, yPos, "goldFont", "Modded by:", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70a);
-    yPos += 35;
-    const _0x3cdf70b = this.add.bitmapText(xPos, yPos, "goldFont", "breadbb, PinkDev, rohanis0000,", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70b);
-    yPos += 35;
-    const _0x3cdf70c = this.add.bitmapText(xPos, yPos, "goldFont", "bog, AntiMatter, arbstro, aloaf", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70c);
-    yPos += 35;
-    const _0x3cdf70d = this.add.bitmapText(xPos, yPos, "goldFont", "t0nchi7 and Lasokar.", 40).setOrigin(0.5, 0.5).setScale(0.6);
-    this._infoPopup.add(_0x3cdf70d);
-    yPos += 35;
-    const _0x97b2a9 = this.add.text(xPos, 463, "© 2026 RobTop Games. All rights reserved.", {
-      fontSize: "12px",
-      color: "#000000",
-      fontFamily: "Arial"
-    }).setOrigin(0.5, 0.5).setAlpha(0.7).setResolution(2);
-    this._infoPopup.add(_0x97b2a9);
+    const popupHeight = 320;
+    const popupWidth = 336;
+    this._infoPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+    const background = this.add.rectangle(xPos, popupHeight, screenWidth, screenHeight, 0, 100 / 255);
+    background.setInteractive();
+    this._infoPopup.add(background);
+    
+    const bounceContainer = this.add.container(xPos, popupHeight).setScale(0);
+    this._infoPopup.add(bounceContainer);
+    const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
+    const popupBg = this._drawScale9(0, 0, 480, popupWidth, "GJ_square02", cornerRadius, 16777215, 1);
+    bounceContainer.add(popupBg);
+    const closeBtn = this.add.image(-240 + 20, -148, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    bounceContainer.add(closeBtn);
+    this._expandHitArea(closeBtn, 2);
+    this._makeBouncyButton(closeBtn, 0.8, () => this._closeInfoPopup());
+    const title = this.add.bitmapText(0, -124, "bigFont", "Credits", 30).setOrigin(0.5, 0.5);
+    bounceContainer.add(title);
+    const scrollAreaW = 420;
+    const scrollAreaH = 230;
+    const scrollAreaX = 0;
+    const scrollAreaY = 20;
+    const scrollFrameBg = this.add.graphics();
+    scrollFrameBg.fillStyle(0x000000, 0.18);
+    scrollFrameBg.fillRoundedRect(scrollAreaX - scrollAreaW / 2, scrollAreaY - scrollAreaH / 2, scrollAreaW, scrollAreaH, 8);
+    bounceContainer.add(scrollFrameBg);
+    const contentContainer = this.add.container(0, scrollAreaY - scrollAreaH / 2 + 8);
+    bounceContainer.add(contentContainer);
+    
+    const creditsEntries = [
+      { text: "Made by RobTop Games", scale: 0.8, font: "goldFont" },
+      { text: "Modded by:", scale: 0.9, font: "bigFont" },
+      { text: "breadbb, PinkDev, rohanis0000,", scale: 0.7, font: "goldFont" },
+      { text: "bog, AntiMatter, arbstro, aloaf", scale: 0.7, font: "goldFont" },
+      { text: "Contributors:", scale: 0.9, font: "bigFont" },
+      { text: "t0nchi7 and Lasokar.", scale: 0.7, font: "goldFont" },
+      { text: "© 2026 RobTop Games. All rights reserved.", scale: 0.4, font: "Arial", color: 0x000000 },
+    ]; 
+    let yPos = 0;
+    const lineItems = [];
+    creditsEntries.forEach(entry => {
+      let txt;
+      if (entry.font === "Arial") {
+        txt = this.add.text(0, yPos, entry.text, {
+          fontSize: `${Math.round(32 * (entry.scale || 0.65))}px`,
+          fontFamily: "Arial",
+          color: entry.color ? `#${entry.color.toString(16).padStart(6, '0')}` : "#ffffff"
+        }).setOrigin(0.5, 0);
+      } else {
+        txt = this.add.bitmapText(0, yPos, entry.font || "bigFont", entry.text, 32)
+          .setOrigin(0.5, 0)
+          .setScale(entry.scale || 0.65);
+        if (entry.color != null) txt.setTint(entry.color);
+      }
+      contentContainer.add(txt);
+      lineItems.push(txt);
+      yPos += Math.round(32 * (entry.scale || 0.65)) + 10;
+    });
+    const totalContentH = yPos;
+    const maxScrollDown = Math.max(0, totalContentH - scrollAreaH + 16);
+    const maskGraphics = this.add.graphics();
+    const maskShape = this.add.graphics();
+    maskShape.fillStyle(0xffffff, 1);
+    const updateMask = () => {
+      if (!bounceContainer || !bounceContainer.active) return;
+      const wx = xPos + bounceContainer.x - xPos;
+      const s = bounceContainer.scaleX;
+      const bwx = xPos;
+      const bwy = popupHeight;
+      maskShape.clear();
+      maskShape.fillStyle(0xffffff, 1);
+      maskShape.fillRect(
+        bwx + (scrollAreaX - scrollAreaW / 2) * s,
+        bwy + (scrollAreaY - scrollAreaH / 2) * s,
+        scrollAreaW * s,
+        scrollAreaH * s
+      );
+    };
+    const geomMask = maskShape.createGeometryMask();
+    contentContainer.setMask(geomMask);
+    const maskUpdateEvent = this.events.on('postupdate', updateMask);
+    let scrollY = 0;
+    const baseContentY = scrollAreaY - scrollAreaH / 2 + 8;
+    const applyScroll = () => {
+      contentContainer.y = baseContentY - scrollY;
+    };
+    applyScroll();
+    const scrollZone = this.add.zone(scrollAreaX, scrollAreaY, scrollAreaW, scrollAreaH).setInteractive();
+    bounceContainer.add(scrollZone);
+    scrollZone.on('wheel', (_p, _dx, deltaY) => {
+      scrollY = Phaser.Math.Clamp(scrollY + deltaY * 0.6, 0, maxScrollDown);
+      applyScroll();
+    });
+
+    let dragStartY = 0;
+    let dragStartScroll = 0;
+    scrollZone.on('pointerdown', (pointer) => {
+      dragStartY = pointer.y;
+      dragStartScroll = scrollY;
+    });
+    scrollZone.on('pointermove', (pointer) => {
+      if (pointer.isDown) {
+        const dy = dragStartY - pointer.y;
+        scrollY = Phaser.Math.Clamp(dragStartScroll + dy, 0, maxScrollDown);
+        applyScroll();
+      }
+    });
+    this._infoPopupCleanup = () => {
+      this.events.off('postupdate', updateMask);
+      maskShape.destroy();
+      geomMask.destroy();
+    };
+    this.tweens.add({
+      targets: bounceContainer,
+      scale: { from: 0, to: 1 },
+      duration: 500,
+      ease: "Bounce.Out"
+    });
   }
   _closeInfoPopup() {
     if (this._infoPopup) {
+      if (this._infoPopupCleanup) {
+        this._infoPopupCleanup();
+        this._infoPopupCleanup = null;
+      }
       this._infoPopup.destroy();
       this._infoPopup = null;
+    }
+  }
+ _buildHowToPlayPopup() {
+  if (this._howToPlayPopup) {
+    return;
+  }
+  const TUTORIAL_PAGES = ["tutorial_01", "tutorial_02", "tutorial_03", "tutorial_04", "tutorial_05"];
+  const GREEN  = 0x00e719;
+  const YELLOW = 0xf8ff00;
+  const BLUE   = 0x3cadf5;
+  const TUTORIAL_DESCRIPTIONS = [
+    { fontSize: 40, lines: [
+      [{ text: "TAP", color: GREEN }, { text: " the screen to jump." }],
+      [{ text: "HOLD", color: GREEN }, { text: " down to keep jumping." }]
+    ]},
+    { fontSize: 40, lines: [
+      [{ text: "Hold", color: GREEN }, { text: " to fly up." }],
+      [{ text: "Release", color: GREEN }, { text: " to fly down." }]
+    ]},
+    { fontSize: 35, lines: [
+      [{ text: "You can enter " }, { text: "practice mode", color: BLUE }, { text: " from" }],
+      [{ text: "the pause menu." }],
+      [{ text: "Practice mode lets you place" }],
+      [{ text: "checkpoints", color: GREEN }, { text: "." }]
+    ]},
+    { fontSize: 35, lines: [
+      [{ text: "You can place checkpoints manually, or" }],
+      [{ text: "use the auto-checkpoints feature." }],
+      [{ text: "Tap the delete button to remove your" }],
+      [{ text: "last checkpoint." }]
+    ]},
+    { fontSize: 35, lines: [
+      [{ text: "Jump Orbs", color: YELLOW }, { text: " activate when you are on" }],
+      [{ text: "top of them." }],
+      [{ text: "TAP", color: GREEN }, { text: " while touching an orb to" }],
+      [{ text: "interact with it and use its effect." }]
+    ]}
+  ];
+  const TOTAL_PAGES = TUTORIAL_PAGES.length;
+  let currentPage = 0;
+
+  const xPos = screenWidth / 2;
+  const _0x4c3182 = 320;
+  this._howToPlayPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(300);
+  const _0x249eb7 = this.add.rectangle(xPos, _0x4c3182, screenWidth, screenHeight, 0, 100 / 255);
+  _0x249eb7.setInteractive();
+  this._howToPlayPopup.add(_0x249eb7);
+  const _0x14e46f = this.textures.get("GJ_square01").source[0].width * 0.325;
+  const panelContainer = this.add.container(xPos, _0x4c3182);
+  this._howToPlayPopup.add(panelContainer);
+  const _0x2c64c2 = this._drawScale9(0, 0, 830, 530, "GJ_square01", _0x14e46f, 16777215, 1);
+  panelContainer.add(_0x2c64c2);
+  const _0x5a0f88 = this.add.image(-240 - 160, 172 - _0x4c3182 - 110, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+  this._expandHitArea(_0x5a0f88, 2);
+  this._makeBouncyButton(_0x5a0f88, 0.8, () => this._closeHowToPlayPopup());
+  panelContainer.add(_0x5a0f88);
+  const howToPlayTitle = this.add.bitmapText(0, -210, "bigFont", "How To Play", 62).setOrigin(0.5, 0.5);
+  panelContainer.add(howToPlayTitle);
+  const DESC_TOP_Y = -195;
+  const DESC_BOT_Y = 15;
+  const DESC_MAX_H = DESC_BOT_Y - DESC_TOP_Y;
+
+  let descLineObjects = [];
+
+  const _buildDescLines = (pageIndex) => {
+    for (const obj of descLineObjects) obj.destroy();
+    descLineObjects = [];
+
+    const page = TUTORIAL_DESCRIPTIONS[pageIndex];
+    if (!page || !page.lines.length) return;
+
+    const fontSize = page.fontSize;
+    const lineSpacing = 0.35;
+    const lineH = fontSize * (1 + lineSpacing);
+    const startY = DESC_TOP_Y + fontSize / 0.5;
+
+    for (let i = 0; i < page.lines.length; i++) {
+      const segments = page.lines[i];
+      const lineY = startY + i * lineH;
+      if (segments.length === 1 && !segments[0].color) {
+        const obj = this.add.bitmapText(0, lineY, "bigFont", segments[0].text, fontSize)
+          .setOrigin(0.5, 0.5);
+        panelContainer.add(obj);
+        descLineObjects.push(obj);
+        continue;
+      }
+      const measured = segments.map(seg => {
+        const tmp = this.add.bitmapText(0, -9999, "bigFont", seg.text, fontSize);
+        const w = tmp.width;
+        tmp.destroy();
+        return w;
+      });
+      const totalW = measured.reduce((a, b) => a + b, 0);
+      let curX = -totalW / 2;
+
+      for (let s = 0; s < segments.length; s++) {
+        const seg = segments[s];
+        const obj = this.add.bitmapText(curX, lineY, "bigFont", seg.text, fontSize)
+          .setOrigin(0, 0.5);
+        if (seg.color) obj.setTint(seg.color);
+        panelContainer.add(obj);
+        descLineObjects.push(obj);
+        curX += measured[s];
+      }
+    }
+  };
+
+  _buildDescLines(0);
+  const tutorialImage = this.add.image(-240 + 150, 155, TUTORIAL_PAGES[0]);
+  panelContainer.add(tutorialImage);
+  const nextGroup = this.add.container(-240 + 550, 165);
+  const nextBtnW = 125, nextBtnH = 80;
+  const nextBtnBorder = this.textures.get("GJ_button01").source[0].width * 0.3;
+  const nextBtn9 = this._drawScale9(0, 0, nextBtnW, nextBtnH, "GJ_button01", nextBtnBorder, 0xffffff, 1);
+  const nextBtn = this.add.rectangle(0, 0, nextBtnW, nextBtnH).setInteractive();
+  const nextLabel = this.add.bitmapText(-5, -2.5, "bigFont", "Next", 35).setOrigin(0.5, 0.5);
+  nextGroup.add(nextBtn9);
+  nextGroup.add(nextBtn);
+  nextGroup.add(nextLabel);
+  panelContainer.add(nextGroup);
+
+  nextBtn.on("pointerdown", () => {
+    nextGroup._pressed = true;
+    this.tweens.killTweensOf(nextGroup);
+    this.tweens.add({ targets: nextGroup, scaleX: 1.26, scaleY: 1.26, duration: 300, ease: "Bounce.Out" });
+  });
+  nextBtn.on("pointerout", () => {
+    if (nextGroup._pressed) {
+      nextGroup._pressed = false;
+      this.tweens.killTweensOf(nextGroup);
+      this.tweens.add({ targets: nextGroup, scaleX: 1, scaleY: 1, duration: 400, ease: "Bounce.Out" });
+    }
+  });
+  nextBtn.on("pointerup", () => {
+    if (!nextGroup._pressed) return;
+    nextGroup._pressed = false;
+    this.tweens.killTweensOf(nextGroup);
+    nextGroup.setScale(1);
+
+    if (currentPage >= TOTAL_PAGES - 1) {
+      this._closeHowToPlayPopup();
+    } else {
+      currentPage++;
+      tutorialImage.setTexture(TUTORIAL_PAGES[currentPage]);
+      _buildDescLines(currentPage);
+      nextLabel.setText(currentPage >= TOTAL_PAGES - 1 ? "Exit" : "Next");
+    }
+  });
+  panelContainer.setScale(0);
+  this.tweens.add({
+    targets: panelContainer,
+    scale: 1,
+    duration: 400,
+    ease: "Bounce.Out"
+  });
+}
+  _closeHowToPlayPopup() {
+    if (this._howToPlayPopup) {
+      this._howToPlayPopup.destroy();
+      this._howToPlayPopup = null;
     }
   }
   _buildUpdateLogPopup() {
@@ -2962,7 +3824,7 @@ _buildSettingsPopup() {
         });
       }
     });
-    textureX.on("pointerout", () => {
+    textureX.on("pointerout", (pointer) => {
       if (textureX._pressed) {
         textureX._pressed = false;
         this.tweens.killTweensOf(textureX, "scale");
@@ -3262,6 +4124,22 @@ _buildSettingsPopup() {
         }
       });
     }
+
+    if (window.isEditor) {
+        this._cameraX = 0;
+        this._cameraY = 0;
+        this._playerWorldX = 0;
+        this._level.additiveContainer.setVisible(true);
+        this._level.container.setVisible(true);
+        this._level.topContainer.setVisible(true);
+        this._player.setCubeVisible(false);
+        this._player2.setCubeVisible(false);
+        this._attemptsLabel.setVisible(false);
+        window.selectedObjId = 1;
+        this._initEditorLogic();
+        return;
+    }
+
     this._cameraX = -centerX;
     this._cameraY = 0;
     this._cameraXRef._v = this._cameraX;
@@ -3803,7 +4681,37 @@ _buildSettingsPopup() {
     return _0xd8019e * 60;
   }
   update(_0x54fa47, deltaTime) {
+    if (window.isEditor) {
+        if (window.isEditorPause) return;
+        const pointer = this.input.activePointer;
+        this._hitObjects = this.input.hitTestPointer(pointer);
+        this._handleEditorCamera(deltaTime); 
+        this._updateEditorGrid(); 
+        if (pointer.isDown) {
+            if (this._isSwipeEnabled) {
+              if (this._hitObjects.length !== 0) return;
+                const currentGridX = Math.floor((pointer.x + this._cameraX) / 60) * 60;
+                const currentGridY = Math.floor((pointer.y + this._cameraY + 20) / 60) * 60;
 
+                if (currentGridX !== this._lastSwipeGridX || currentGridY !== this._lastSwipeGridY) {
+                    this._editorAction();
+                    this._lastSwipeGridX = currentGridX;
+                    this._lastSwipeGridY = currentGridY;
+                }
+            } else {
+                if (!this._isDragging && this._hitObjects.length !== 0) return;
+                const dragX = pointer.x - this._clickStartPos.x;
+                const dragY = pointer.y - this._clickStartPos.y;
+                const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
+                if (dragDistance > 10) {
+                    this._isDragging = true;
+                    this._cameraX = this._cameraStartX - dragX;
+                    this._cameraY = this._cameraStartY - dragY;
+                }
+            }
+        }
+        return;
+    }
     let rawPercent = (this._playerWorldX / this._level.endXPos) * 100;
     rawPercent = Math.min(100, Math.max(0, rawPercent));
     let displayValue;
@@ -3836,7 +4744,7 @@ _buildSettingsPopup() {
       this._fpsFrames = 0;
     }
     if (this._paused) {
-      if (!this._updateLogPopup && (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown) && !this._spaceWasDown && !this._settingsPopup) {
+      if (!this._updateLogPopup && (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown) && !this._spaceWasDown && !this._settingsPopup) {
         setTimeout(() => {
           this._resumeGame();
         }, 75);
@@ -3849,6 +4757,7 @@ _buildSettingsPopup() {
         this._onlineLevelsOverlay || this._settingsLayerOverlay || this._settingsPopup ||
         this._infoPopup || this._newgroundsPopup || this._statsLayerOverlay || this._updateLogPopup;
       if (!_anyOverlayOpen && (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown) && !this._spaceWasDown) {
+        if (this._creatorMenuOpen) return;
         this._spaceWasDown = true;
         if (this._levelSelectOverlay) {
           this._audio.playEffect("playSound_01", { volume: 1 });
@@ -3870,7 +4779,7 @@ _buildSettingsPopup() {
         }
       }
       this._arrowWasDown = _arrowLeft || _arrowRight;
-      this._spaceWasDown = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown;
+      this._spaceWasDown = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
       const menuDelta = Math.min(deltaTime / 1000 * 60, 2);
       const menuSpeed = 0.65;
       this._menuCameraX = (this._menuCameraX || 0) + menuDelta * playerSpeed * d * menuSpeed;
@@ -3996,7 +4905,7 @@ _buildSettingsPopup() {
           this._audio.stopMusic();
         }
         this._audio.playEffect("explode_11", {
-          volume: 0.65
+          volume: 0.65 * this._sfxVolume
         });
         this._deathSoundPlayed = true;
         this._totalDeaths++;
@@ -4227,6 +5136,1102 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     }
     this._applyMirrorEffect();
   }
+
+_handleEditorCamera = (delta) => {
+    const camSpeed = 15;
+    const cursors = this.input.keyboard.createCursorKeys();
+    const wasd = this.input.keyboard.addKeys('W,A,S,D');
+
+    if (cursors.left.isDown || wasd.A.isDown) {
+        this._cameraX -= camSpeed;
+    } else if (cursors.right.isDown || wasd.D.isDown) {
+        this._cameraX += camSpeed;
+    }
+
+    if (cursors.up.isDown || wasd.W.isDown) {
+        this._cameraY -= camSpeed;
+    } else if (cursors.down.isDown || wasd.S.isDown) {
+        this._cameraY += camSpeed;
+    }
+
+    this._level.container.x = -this._cameraX;
+    this._level.container.y = -this._cameraY;
+    this._level.additiveContainer.x = -this._cameraX;
+    this._level.additiveContainer.y = -this._cameraY;
+    this._level.topContainer.x = -this._cameraX;
+    this._level.topContainer.y = -this._cameraY;
+
+    this._bg.tilePositionX = this._cameraX * 0.1;
+    this._bg.tilePositionY = this._bgInitY + this._cameraY * 0.1;
+};
+
+_initEditorLogic = () => {
+    if (this._editorGridGraphics) this._editorGridGraphics.destroy();
+    this._editorGridGraphics = this.add.graphics().setDepth(5);
+    this._totalIds = 500; // just using the first 500 objects, could be expanded in the future when categories are added and shi but i aint doing all dat rn
+    this._editorPage = 0;
+    this._maxPerPage = 12;
+    this._isSwipeEnabled = false;
+    this._lastSwipeGridX;
+    this._lastSwipeGridY;
+    this._clickStartPos = { x: 0, y: 0 };
+    this._isDragging = false;
+    this._editorTab = "build";
+    window.editorSelectedObject = -1;
+    this.input.on('pointerdown', (pointer) => {
+        this._clickStartPos.x = pointer.x;
+        this._clickStartPos.y = pointer.y;
+        this._cameraStartX = this._cameraX;
+        this._cameraStartY = this._cameraY;
+        this._isDragging = false;
+    });
+    this.input.on('pointerup', (pointer) => {
+        if (!this._isSwipeEnabled && !this._isDragging && this._hitObjects.length === 0) {
+            this._editorAction();
+        }
+        this._lastSwipeGridX = -1;
+        this._lastSwipeGridY = -1;
+        this._isDragging = false;
+    });
+    this._createEditorGui();
+};
+
+_createEditorGui = () => {
+    const centerX = screenWidth / 2;
+    const bottomY = screenHeight - 100;
+
+    this._editorGui = this.add.container(screenWidth - 40, 40).setScrollFactor(0).setDepth(1000);
+    const editorPause = this.add.image(0, 0, "GJ_GameSheet03", "GJ_pauseBtn_001.png").setInteractive().setFlipX(true).setAngle(-90);
+    this._deleteButton = this.add.image(50, 40, "GJ_GameSheet03", "GJ_trashBtn_001.png").setInteractive();
+    this._editorGui.add(editorPause, this._deleteButton);
+    this._makeBouncyButton(editorPause, 1.0, () => this._showEditorPauseMenu(true), () => true);
+    this._makeBouncyButton(this._deleteButton, 0.9, () => this._deleteSelectedObject(), () => true);
+    this._initEditorPauseMenu();
+
+    this._toolbox = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+
+    const bg = this.add.rectangle(0, screenHeight, screenWidth, 200, 0x000000).setOrigin(0, 1).setAlpha(0.75).setInteractive();
+    this._toolbox.add(bg);
+
+    this._leftArrow = this.add.image(screenWidth / 2 - 330, screenHeight - 100, "GJ_GameSheet03", "GJ_arrow_02_001.png")
+        .setInteractive().setScale(0.7);
+
+    this._rightArrow = this.add.image(screenWidth / 2 + 330, screenHeight - 100, "GJ_GameSheet03", "GJ_arrow_02_001.png")
+        .setInteractive().setScale(0.7).setFlipX(true);
+
+    this._toolbox.add([this._leftArrow, this._rightArrow]);
+
+    const swipeX = centerX + 450;
+    const swipeY = screenHeight - 100;
+
+    this._swipeContainer = this.add.container(swipeX, swipeY).setDepth(1001);
+    this._toolbox.add(this._swipeContainer);
+
+    this._swipeBg = this.add.image(0, 0, "GJ_button01").setInteractive().setScale(0.8);
+    this._swipeText = this.add.bitmapText(-1, -2, "bigFont", "swipe", 16).setOrigin(0.5);
+
+    this._swipeContainer.add([this._swipeBg, this._swipeText]);
+
+    this._makeBouncyButton(this._swipeBg, 0.8, () => {
+        this._isSwipeEnabled = !this._isSwipeEnabled;
+
+        if (this._isSwipeEnabled) {
+            this._swipeBg.setTexture("GJ_button02");
+        } else {
+            this._swipeBg.setTexture("GJ_button01");
+        }
+    });
+
+    const tabX = (screenWidth / 2) - 475;
+    const tabYStart = screenHeight - 150;
+    const tabSpacing = 55;
+
+    this._separatorLeft = this.add.image(tabX + 100, screenHeight - 100, "GJ_GameSheet03", "edit_vLine_001.png");
+    this._toolbox.add(this._separatorLeft);
+
+    this._separatorRight = this.add.image(centerX + 375, screenHeight - 100, "GJ_GameSheet03", "edit_vLine_001.png");
+    this._toolbox.add(this._separatorRight);
+
+    const tabs = [
+        { id: "build", frame: "edit_buildBtn_001.png" },
+        { id: "edit", frame: "edit_editBtn_001.png" },
+        { id: "delete", frame: "edit_deleteBtn_001.png" }
+    ];
+
+    this._tabButtons = {};
+    tabs.forEach((tab, i) => {
+        const btn = this.add.image(tabX, tabYStart + (i * tabSpacing), "GJ_GameSheet03", tab.frame).setInteractive();
+        this._toolbox.add(btn);
+        this._tabButtons[tab.id] = btn;
+        this._makeBouncyButton(btn, 1, () => {
+            this._editorTab = tab.id;
+            this._editorPage = 0;
+            this._updateTabVisuals();
+            this._buildObjectGrid();
+        });
+    });
+
+    this._sideButtons = this.add.container(screenWidth - 48, 120).setScrollFactor(0).setDepth(1000);
+    this._copyPasteBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_duplicateObjectBtn2_001.png").setInteractive().setAngle(90).setFlipY(true).setScale(1);
+    this._deselectBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_deSelBtn2_001.png").setInteractive().setAngle(90).setFlipY(true).setScale(1);
+
+    this._sideButtons.add([this._copyPasteBtn, this._deselectBtn]);
+
+    this._makeBouncyButton(this._copyPasteBtn, 1, () => {
+        this._duplicateSelectedObject();
+    });
+
+    this._makeBouncyButton(this._deselectBtn, 1, () => {
+        this._clearEditorSelection();
+    });
+
+    this._updateEditorActionButtons();
+    this._updateTabVisuals();
+    this._buildObjectGrid();
+};
+
+_updateTabVisuals = () => {
+    Object.keys(this._tabButtons).forEach(id => {
+        const isSelected = this._editorTab === id;
+        const btn = this._tabButtons[id];
+        let frameName = btn.frame.name.replace("SBtn", "Btn");
+        if (isSelected) {
+            frameName = frameName.replace("Btn", "SBtn");
+        }
+        btn.setFrame(frameName);
+    });
+};
+
+_getSheetForFrameThingy = (frameName) => {
+    const sheets = ["GJ_WebSheet", "GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04"];
+    for (const key of sheets) {
+        if (this.textures.exists(key) && this.textures.get(key).has(frameName)) {
+            return key;
+        }
+    }
+};
+
+_buildObjectGrid = () => {
+    if (this._gridContainer) this._gridContainer.destroy();
+    if (this._pageDotsContainer) this._pageDotsContainer.destroy();
+
+    this._gridContainer = this.add.container(0, 0);
+    this._toolbox.add(this._gridContainer);
+
+    const itemsForGrid = [];
+
+    if (this._editorTab === "build") {
+        for (let i = 1; i <= this._totalIds; i++) {
+            const def = getObjectFromId(i);
+            if (def && def.frame) itemsForGrid.push({ type: "object", id: i, frame: def.frame });
+        }
+    } else if (this._editorTab === "edit") {
+        const moveActions = [
+            { dx: 0, dy: -3, icon: "edit_upBtn_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 0, dy: 3,  icon: "edit_upBtn_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: -3, dy: 0, icon: "edit_upBtn_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: 3, dy: 0,  icon: "edit_upBtn_001.png", angle: 90, scale: 1, flipX: false },
+
+            { dx: 0, dy: -60, icon: "edit_upBtn2_001.png", angle: 90, scale: 1, flipX: false },
+            { dx: 0, dy: 60,  icon: "edit_upBtn2_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: -60, dy: 0, icon: "edit_upBtn2_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 60, dy: 0,  icon: "edit_upBtn2_001.png", angle: 180, scale: 1, flipX: false },
+
+            { dx: 0, dy: -300, icon: "edit_upBtn3_001.png", angle: 90, scale: 1, flipX: false },
+            { dx: 0, dy: 300,  icon: "edit_upBtn3_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: -300, dy: 0, icon: "edit_upBtn3_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 300, dy: 0,  icon: "edit_upBtn3_001.png", angle: 180, scale: 1, flipX: false },
+
+            { dx: 0, dy: -1, icon: "edit_upBtn_001.png", angle: 0, scale: 0.7, flipX: false },
+            { dx: 0, dy: 1,  icon: "edit_upBtn_001.png", angle: 180, scale: 0.7, flipX: false },
+            { dx: -1, dy: 0, icon: "edit_upBtn_001.png", angle: 270, scale: 0.7, flipX: false },
+            { dx: 1, dy: 0,  icon: "edit_upBtn_001.png", angle: 90, scale: 0.7, flipX: false },
+
+            { dx: 0, dy: -30, icon: "edit_upBtn5_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 0, dy: 30,  icon: "edit_upBtn5_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: -30, dy: 0, icon: "edit_upBtn5_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: 30, dy: 0,  icon: "edit_upBtn5_001.png", angle: 90, scale: 1, flipX: false }
+        ];
+        moveActions.forEach(a => itemsForGrid.push({ type: "action", subType: "move", ...a }));
+
+        const flipActions = [
+            { axis: "x", icon: "edit_flipYBtn_001.png", angle: 90, scale: 0.8, flipX: false },
+            { axis: "y", icon: "edit_flipXBtn_001.png", angle: 90, scale: 0.8, flipX: false }
+        ];
+        flipActions.forEach(a => itemsForGrid.push({ type: "action", subType: "flip", ...a }));
+
+        const rotateActions = [
+            { degrees: 90,  icon: "edit_ccwBtn_001.png", angle: 0, scale: 0.8, flipX: true },
+            { degrees: -90, icon: "edit_ccwBtn_001.png", angle: 0, scale: 0.8, flipX: false },
+            { degrees: 45,  icon: "edit_rotate45rBtn_001.png", angle: 0, scale: 0.85, flipX: false },
+            { degrees: -45, icon: "edit_rotate45lBtn_001.png", angle: 0, scale: 0.85, flipX: false }
+        ];
+        rotateActions.forEach(a => itemsForGrid.push({ type: "action", subType: "rotate", ...a }));
+    } else if (this._editorTab === "delete") {
+        itemsForGrid.push({
+            type: "delete",
+            icon: "edit_delBtn_001.png"
+        });
+    }
+
+    let totalPages = 1;
+
+    if (this._editorTab === "build") {
+        totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
+    } else if (this._editorTab === "edit") {
+        totalPages = 3;
+    } else if (this._editorTab === "delete"){
+        totalPages = 1;
+    }
+
+    if (this._editorPage >= totalPages) this._editorPage = 0;
+
+    const showArrows = this._editorTab !== "delete";
+    if (this._leftArrow) {
+        this._leftArrow.setVisible(showArrows);
+        this._leftArrow.disableInteractive();
+        if (showArrows) this._leftArrow.setInteractive();
+    }
+    if (this._rightArrow) {
+        this._rightArrow.setVisible(showArrows);
+        this._rightArrow.disableInteractive();
+        if (showArrows) this._rightArrow.setInteractive();
+    }
+
+    if (showArrows) {
+        this._makeBouncyButton(this._leftArrow, 0.8, () => {
+            if (this._editorTab === "edit") {
+                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : 2;
+            } else {
+                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : totalPages - 1;
+            }
+
+            this._buildObjectGrid();
+        });
+
+        this._makeBouncyButton(this._rightArrow, 0.8, () => {
+            this._editorPage = (this._editorPage < totalPages - 1) ? this._editorPage + 1 : 0;
+            this._buildObjectGrid();
+        });
+    }
+
+    if (this._editorTab !== "delete") {
+        this._pageDotsContainer = this.add.container(0, 0);
+        this._toolbox.add(this._pageDotsContainer);
+
+        const dotSpacing = 18;
+        const dotsStartX = (screenWidth / 2) - ((totalPages - 1) * dotSpacing) / 2;
+        const dotsY = screenHeight - 10;
+
+        for (let i = 0; i < totalPages; i++) {
+            const dot = this.add.circle(
+                dotsStartX + (i * dotSpacing),
+                dotsY,
+                4,
+                i === this._editorPage ? 0xffffff : 0x888888
+            );
+            if (i === this._editorPage) {
+                dot.setStrokeStyle(1, 0xffffff, 0.5);
+            }
+            this._pageDotsContainer.add(dot);
+        }
+    }
+
+    const startIdx = this._editorPage * this._maxPerPage;
+    const pageItems = this._editorTab === "delete"
+        ? itemsForGrid
+        : itemsForGrid.slice(startIdx, startIdx + this._maxPerPage);
+
+    const paddingX = 90;
+    const paddingY = 80;
+    const cols = 6;
+    const startX = (screenWidth / 2) - ((cols - 1) * paddingX) / 2;
+    const startY = screenHeight - 140;
+
+    pageItems.forEach((item, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+
+        const x = startX + (col * paddingX);
+        const y = startY + (row * paddingY);
+
+        if (item.type === "object") {
+            const btnBg = this.add.image(x, y, "GJ_GameSheet03", "GJ_checkOff_001.png")
+                .setScale(1.2)
+                .setInteractive();
+
+            const sheet = this._getSheetForFrameThingy(item.frame);
+            const icon = this.add.image(x, y, sheet, item.frame);
+
+            const targetSize = 64;
+            const maxDim = Math.max(icon.width, icon.height);
+            const scaleMultiplier = targetSize / maxDim;
+
+            icon.setScale(Math.min(scaleMultiplier, 0.6));
+
+            if (window.selectedObjId === item.id) btnBg.setTint(0x888888);
+
+            this._gridContainer.add([btnBg, icon]);
+
+            this._makeBouncyButton(btnBg, 1.2, () => {
+                window.selectedObjId = item.id;
+                this._buildObjectGrid();
+            });
+        } else if (item.type === "action") {
+            const btn = this.add.image(x, y, "GJ_button01")
+                .setInteractive()
+                .setScale(0.92);
+
+            const icon = this.add.image(x, y, "GJ_GameSheet03", item.icon)
+                .setAngle(item.angle)
+                .setScale(item.scale)
+                .setFlipX(item.flipX);
+
+            this._gridContainer.add([btn, icon]);
+
+            this._makeBouncyButton(btn, 0.92, () => {
+                if (item.subType === "move") {
+                    this._moveObject(item.dx, item.dy);
+                } else if (item.subType === "rotate") {
+                    this._rotateObject(item.degrees);
+                } else if (item.subType === "flip") {
+                    this._flipObject(item.axis);
+                }
+            });
+        } else if (item.type === "delete") {
+            const btnBg = this.add.image(x, y, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(1.2).setInteractive();
+
+            const icon = this.add.image(x, y, "GJ_GameSheet03", item.icon);
+
+            this._deleteGridButton = btnBg;
+
+            this._gridContainer.add([btnBg, icon]);
+
+            this._makeBouncyButton(btnBg, 1.2, () => {
+                this._deleteSelectedObject();
+            });
+
+            this._updateEditorActionButtons();
+        }
+    });
+};
+
+// Helper to keep grid logic clean
+_moveObject = (dx, dy) => {
+    const selectedIndex = window.editorSelectedObject;
+    if (selectedIndex === -1) return;
+
+    const collider = this._level.objects[selectedIndex];
+    const sprites = this._level.objectSprites[selectedIndex];
+    const saveObj = window.levelObjects[selectedIndex];
+
+    if (!collider || !saveObj) return;
+
+    collider.x += dx; collider.y += dy;
+    collider._baseX += dx; collider._baseY += dy;
+    collider._origBaseX += dx; collider._origBaseY += dy;
+
+    saveObj.x += dx / 2; saveObj.y -= dy / 2;
+    if (saveObj._raw) {
+        saveObj._raw["2"] = String(saveObj.x);
+        saveObj._raw["3"] = String(saveObj.y);
+    }
+
+    if (sprites) {
+        for (const s of sprites) {
+            if (!s) continue;
+            s.x += dx; s.y += dy;
+            if (s._eeWorldX !== undefined) s._eeWorldX += dx;
+            if (s._eeBaseY !== undefined) s._eeBaseY += dy;
+            if (s._origWorldX !== undefined) s._origWorldX += dx;
+            if (s._origBaseY !== undefined) s._origBaseY += dy;
+        }
+    }
+};
+
+_rotateObject = (degrees) => {
+    const selectedIndex = window.editorSelectedObject;
+    if (selectedIndex === -1) return;
+
+    const collider = this._level.objects[selectedIndex];
+    const sprites = this._level.objectSprites[selectedIndex];
+    const saveObj = window.levelObjects[selectedIndex];
+
+    if (!saveObj) return;
+
+    saveObj.rot = (saveObj.rot || 0) + degrees;
+    
+    if (saveObj._raw) {
+        saveObj._raw["6"] = String(saveObj.rot);
+    }
+
+    if (collider) {
+        collider.rotation = saveObj.rot;
+    }
+
+    if (sprites) {
+        for (const s of sprites) {
+            if (!s) continue;
+            s.angle += degrees; 
+        }
+    }
+};
+
+_flipObject = (axis) => {
+    const selectedIndex = window.editorSelectedObject;
+    if (selectedIndex === -1) return;
+
+    const sprites = this._level.objectSprites[selectedIndex];
+    const saveObj = window.levelObjects[selectedIndex];
+
+    if (!saveObj) return;
+
+    if (axis === "x") {
+        saveObj.flipX = !saveObj.flipX;
+        if (saveObj._raw) saveObj._raw["4"] = saveObj.flipX ? "1" : "0";
+        
+        if (sprites) {
+            for (const s of sprites) {
+                if (!s) continue;
+                s.setFlipX(!s.flipX);
+                s.angle = -s.angle; 
+            }
+        }
+    } else {
+        saveObj.flipY = !saveObj.flipY;
+        if (saveObj._raw) saveObj._raw["5"] = saveObj.flipY ? "1" : "0";
+
+        if (sprites) {
+            for (const s of sprites) {
+                if (!s) continue;
+                s.setFlipY(!s.flipY);
+                s.angle = -s.angle;
+            }
+        }
+    }
+    saveObj.rot = -saveObj.rot;
+};
+
+_clearEditorSelection = () => {
+    if (this._currentSelectedSprites) {
+        for (const spr of this._currentSelectedSprites) {
+            if (!spr) continue;
+
+            if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
+                spr.setTint(spr._editorPrevTint);
+            } else {
+                spr.clearTint();
+            }
+
+            delete spr._editorPrevTint;
+        }
+    }
+
+    this._currentSelectedSprites = [];
+    this._currentSelectedSprite = null;
+    window.editorSelectedObject = -1;
+    this._updateEditorActionButtons();
+};
+
+_selectEditorObjectByIndex = (index) => {
+    this._clearEditorSelection();
+
+    const linkedSprites = this._level.objectSprites[index];
+    if (!linkedSprites || !linkedSprites.length) return;
+
+    for (const spr of linkedSprites) {
+        if (!spr) continue;
+
+        if (spr._editorPrevTint === undefined) {
+            spr._editorPrevTint =
+                spr.tintTopLeft !== undefined
+                    ? spr.tintTopLeft
+                    : null;
+        }
+
+        spr.setTint(0x00ff00);
+        this._currentSelectedSprites.push(spr);
+    }
+
+    this._currentSelectedSprite = linkedSprites[0];
+    window.editorSelectedObject = index;
+    this._updateEditorActionButtons();
+};
+
+_duplicateSelectedObject = () => {
+    const selectedIndex = window.editorSelectedObject;
+    if (selectedIndex === -1) return;
+
+    const src = window.levelObjects[selectedIndex];
+    if (!src) return;
+
+    const clone = JSON.parse(JSON.stringify(src));
+
+    window.levelObjects.push(clone);
+    this._level._spawnObject(clone);
+
+    const newIndex = this._level.objects.length - 1;
+    const newestSprites = this._level.objectSprites[newIndex];
+
+    if (newestSprites && newestSprites.length) {
+        const depthBase = {
+            "-3": -6,
+            "-1": -3,
+            0: 0,
+            1: 3,
+            3: 6,
+            5: 9
+        };
+
+        const finalDepth =
+            (depthBase[clone.zLayer] || 0) +
+            (clone.zOrder * 0.01);
+
+        for (const spr of newestSprites) {
+            if (!spr) continue;
+
+            spr.setDepth((spr._eeZDepth || finalDepth) + 10);
+
+            if (this._level.container && !this._level.container.exists(spr)) {
+                this._level.container.add(spr);
+            }
+        }
+    }
+
+    this._selectEditorObjectByIndex(newIndex);
+    this._buildObjectGrid();
+};
+
+_deleteSelectedObject = () => {
+    const selectedIndex = window.editorSelectedObject;
+    if (selectedIndex === -1) return;
+
+    this._clearEditorSelection();
+
+    const sprites = this._level.objectSprites[selectedIndex] || [];
+    for (const spr of sprites) {
+        if (spr && spr.destroy) spr.destroy();
+    }
+
+    const collider = this._level.objects[selectedIndex];
+    if (collider && collider.destroy) collider.destroy();
+
+    this._level.objectSprites.splice(selectedIndex, 1);
+    this._level.objects.splice(selectedIndex, 1);
+    window.levelObjects.splice(selectedIndex, 1);
+
+    for (let i = selectedIndex; i < this._level.objectSprites.length; i++) {
+        const list = this._level.objectSprites[i];
+        if (!list || !list.length) continue;
+
+        for (const spr of list) {
+            if (spr) spr._eeObjectId = i;
+        }
+    }
+
+    this._buildObjectGrid();
+    this._updateEditorActionButtons();
+};
+
+_updateEditorActionButtons = () => {
+    const hasSelection = window.editorSelectedObject !== -1;
+    const alpha = hasSelection ? 1 : 0.5;
+
+    if (this._copyPasteBtn) {
+        this._copyPasteBtn.setAlpha(alpha);
+
+        if (hasSelection) {
+            this._copyPasteBtn.setInteractive();
+        } else {
+            this._copyPasteBtn.disableInteractive();
+        }
+    }
+
+    if (this._deselectBtn) {
+        this._deselectBtn.setAlpha(alpha);
+
+        if (hasSelection) {
+            this._deselectBtn.setInteractive();
+        } else {
+            this._deselectBtn.disableInteractive();
+        }
+    }
+
+    if (this._deleteButton) {
+        this._deleteButton.setAlpha(alpha);
+
+        if (hasSelection) {
+            this._deleteButton.setInteractive();
+        } else {
+            this._deleteButton.disableInteractive();
+        }
+    }
+
+    if (this._editorTab == "delete") {
+        this._deleteGridButton.setAlpha(alpha);
+
+        if (hasSelection) {
+            this._deleteGridButton.setInteractive();
+        } else {
+            this._deleteGridButton.disableInteractive();
+        }
+    }
+};
+
+_updateEditorGrid = () => {
+    if (!this._editorGridGraphics) return;
+
+    const g = this._editorGridGraphics;
+    g.clear();
+    
+    const gridSize = 60;
+
+    g.lineStyle(1, 0x000000, 0.4); 
+
+    const offsetX = (-this._cameraX % gridSize);
+    const offsetY = (-this._cameraY % gridSize) - 20;
+
+    for (let x = offsetX - gridSize; x < screenWidth + gridSize; x += gridSize) {
+        g.lineBetween(x, 0, x, screenHeight);
+    }
+    for (let y = offsetY - gridSize; y < screenHeight + gridSize; y += gridSize) {
+        g.lineBetween(0, y, screenWidth, y);
+    }
+
+    const startLineX = -this._cameraX;
+    if (startLineX >= -50 && startLineX <= screenWidth + 50) {
+        g.lineStyle(1, 0xffffff, 1);
+        g.lineBetween(startLineX, 0, startLineX, screenHeight);
+    }
+
+    const groundLineY = -20+(60*8) -this._cameraY;
+    if (groundLineY >= -50 && groundLineY <= screenHeight + 50) {
+        g.lineStyle(1, 0xffffff, 1);
+        g.lineBetween(0, groundLineY, screenWidth, groundLineY);
+    }
+};
+
+_editorAction = () => {
+  if (this._editorTab === "build") {
+    this._placeObject();
+  } else if (this._editorTab === "edit") {
+    this._selectObjectAtPointer();
+  } else if (this._editorTab === "delete") {
+    this._deleteObjectAtPointer();
+  }
+}
+
+_placeObject = () => {
+    const pointer = this.input.activePointer;
+
+    const worldX = pointer.x + this._cameraX;
+    const worldY = pointer.y + this._cameraY;
+
+    const snapX = Math.floor(worldX / 60) * 60;
+    const snapY = Math.floor((worldY + 20) / 60) * 60;
+
+    const transformedX = (snapX / 2) + 15;
+    const transformedY = -(snapY / 2) + 225;
+
+    const objId = window.selectedObjId;
+    const objectDef = getObjectFromId(objId);
+
+    if (!objectDef) return;
+
+    const saveData = {
+        id: objId,
+        x: transformedX,
+        y: transformedY,
+        flipX: false,
+        flipY: false,
+        rot: 0,
+        scale: 1,
+        zLayer: objectDef.default_z_layer || 0,
+        zOrder: objectDef.default_z_order || 0,
+        groups: "",
+        color1: 0,
+        color2: 0,
+        gameMode: 0,
+        miniMode: 0,
+        speed: 0,
+        mirrored: 0,
+        flipGravity: false,
+        _raw: {
+            "1": String(objId),
+            "2": String(transformedX),
+            "3": String(transformedY),
+            "4": "0",
+            "5": "0",
+            "6": "0",
+            "21": "0",
+            "22": "0",
+            "24": String(objectDef.default_z_layer || 0),
+            "25": String(objectDef.default_z_order || 0),
+            "32": "1",
+            "57": "",
+            "kA2": "0",
+            "kA3": "0",
+            "kA4": "0",
+            "kA28": "0",
+            "kA11": "0"
+        }
+    };
+
+    window.levelObjects.push(saveData);
+    this._level._spawnObject(saveData);
+
+    const placedIndex = this._level.objectSprites.length - 1;
+    const newestSprites = this._level.objectSprites[placedIndex];
+
+    if (newestSprites && newestSprites.sprites) {
+        const depthBase = {
+            "-3": -6,
+            "-1": -3,
+            0: 0,
+            1: 3,
+            3: 6,
+            5: 9
+        };
+
+        const finalDepth =
+            (depthBase[saveData.zLayer] || 0) +
+            (saveData.zOrder * 0.01);
+
+        for (const spr of newestSprites.sprites) {
+            if (!spr) continue;
+
+            spr.setDepth((spr._eeZDepth || finalDepth) + 10);
+
+            if (this._level.container && !this._level.container.exists(spr)) {
+                this._level.container.add(spr);
+            }
+        }
+    }
+
+    if (this._currentSelectedSprites) {
+        for (const spr of this._currentSelectedSprites) {
+            if (!spr) continue;
+
+            if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
+                spr.setTint(spr._editorPrevTint);
+            } else {
+                spr.clearTint();
+            }
+
+            delete spr._editorPrevTint;
+        }
+    }
+
+    this._currentSelectedSprites = [];
+    if (newestSprites && newestSprites.length) {
+        for (const spr of newestSprites) {
+            if (!spr) continue;
+
+            if (spr._editorPrevTint === undefined) {
+                spr._editorPrevTint =
+                    spr.tintTopLeft !== undefined
+                        ? spr.tintTopLeft
+                        : null;
+            }
+
+            spr.setTint(0x00ff00);
+
+            this._currentSelectedSprites.push(spr);
+        }
+
+        this._currentSelectedSprite = newestSprites[0];
+        window.editorSelectedObject = placedIndex;
+    }
+    this._updateEditorActionButtons();
+};
+
+_selectObjectAtPointer = () => {
+    const pointer = this.input.activePointer;
+
+    if (this._currentSelectedSprites) {
+        for (const spr of this._currentSelectedSprites) {
+            if (!spr) continue;
+
+            if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
+                spr.setTint(spr._editorPrevTint);
+            } else {
+                spr.clearTint();
+            }
+
+            delete spr._editorPrevTint;
+        }
+    }
+
+    this._currentSelectedSprites = [];
+    this._currentSelectedSprite = null;
+    window.editorSelectedObject = -1;
+
+    let foundObjectIndex = -1;
+
+    for (let i = this._level.objectSprites.length - 1; i >= 0; i--) {
+        const spriteList = this._level.objectSprites[i];
+
+        if (!spriteList || !spriteList.length) continue;
+
+        for (let j = spriteList.length - 1; j >= 0; j--) {
+            const spr = spriteList[j];
+
+            if (!spr || !spr.active || !spr.visible) continue;
+
+            const bounds = spr.getBounds();
+
+            if (bounds.contains(pointer.x, pointer.y)) {
+                foundObjectIndex = i;
+                break;
+            }
+        }
+
+        if (foundObjectIndex !== -1) {
+            break;
+        }
+    }
+
+    if (foundObjectIndex === -1) {
+        return;
+    }
+    const linkedSprites = this._level.objectSprites[foundObjectIndex];
+    if (!linkedSprites || !linkedSprites.length) {
+        return;
+    }
+    for (const spr of linkedSprites) {
+        if (!spr) continue;
+        if (spr._editorPrevTint === undefined) {
+            spr._editorPrevTint =
+                spr.tintTopLeft !== undefined
+                    ? spr.tintTopLeft
+                    : null;
+        }
+        spr.setTint(0x00ff00);
+        this._currentSelectedSprites.push(spr);
+    }
+
+    this._currentSelectedSprite = linkedSprites[0];
+    window.editorSelectedObject = foundObjectIndex;
+    this._updateEditorActionButtons();
+};
+
+_deleteObjectAtPointer = () => {
+    const pointer = this.input.activePointer;
+
+    let foundObjectIndex = -1;
+
+    for (let i = this._level.objectSprites.length - 1; i >= 0; i--) {
+        const spriteList = this._level.objectSprites[i];
+        if (!spriteList || !spriteList.length) continue;
+
+        for (let j = spriteList.length - 1; j >= 0; j--) {
+            const spr = spriteList[j];
+            if (!spr || !spr.active || !spr.visible) continue;
+
+            const bounds = spr.getBounds();
+            if (bounds.contains(pointer.x, pointer.y)) {
+                foundObjectIndex = i;
+                break;
+            }
+        }
+
+        if (foundObjectIndex !== -1) break;
+    }
+
+    if (foundObjectIndex === -1) return;
+
+    if (window.editorSelectedObject === foundObjectIndex) {
+        this._clearEditorSelection();
+    }
+
+    const linkedSprites = this._level.objectSprites[foundObjectIndex];
+    const collider = this._level.objects[foundObjectIndex];
+
+    if (linkedSprites && linkedSprites.length) {
+        for (const spr of linkedSprites) {
+            if (spr && spr.destroy) spr.destroy();
+        }
+    }
+
+    if (collider && collider.destroy) {
+        collider.destroy();
+    }
+
+    this._level.objectSprites.splice(foundObjectIndex, 1);
+    this._level.objects.splice(foundObjectIndex, 1);
+    window.levelObjects.splice(foundObjectIndex, 1);
+
+    for (let i = foundObjectIndex; i < this._level.objectSprites.length; i++) {
+        const list = this._level.objectSprites[i];
+        if (!list || !list.length) continue;
+
+        for (const spr of list) {
+            if (spr) spr._eeObjectId = i;
+        }
+    }
+
+    window.editorSelectedObject = -1;
+    this._updateEditorActionButtons();
+};
+
+_initEditorPauseMenu = () => {
+    this._editorMenuContainer = this.add.container(0, 0).setDepth(2000).setVisible(false);
+
+    const bgDim = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.6)
+        .setOrigin(0)
+        .setInteractive();
+    this._editorMenuContainer.add(bgDim);
+
+    const buttonData = [
+        { text: "Resume", cb: () => this._showEditorPauseMenu(false) },
+        { 
+            text: "Save and Play", 
+            cb: async () => { 
+                this._saveEditorLevel(); 
+                await this._showLoadingBuffer("Loading...");
+                window.isEditor = false; 
+                this.game.registry.set("autoStartGame", true); 
+                this.scene.restart(); 
+            } 
+        },
+        { 
+            text: "Save and Exit", 
+            cb: async () => { 
+                this._saveEditorLevel(); 
+                await this._showLoadingBuffer("Loading...");
+                window.isEditor = false; 
+                this.scene.restart(); 
+            } 
+        },
+        { text: "Save", cb: () => this._saveEditorLevel() },
+        { text: "Exit", cb: () => { window.isEditor = false; this.scene.restart(); } }
+    ];
+
+    buttonData.forEach((data, i) => {
+        const x = screenWidth / 2;
+        const y = (screenHeight / 2) - 180 + (i * 75);
+        
+        const btnImg = this.add.nineslice(x, y, "GJ_button01", null, 450, 65, 24, 24, 24, 24 ).setScale(0.75).setInteractive();
+        const label = this.add.bitmapText(x, y - 2, "goldFont", data.text, 40).setOrigin(0.5, 0.5).setScale(0.8);
+
+        this._editorMenuContainer.add([btnImg, label]);
+
+        this._makeBouncyButton(btnImg, 0.75, () => {
+            data.cb();
+        }, () => true);
+    });
+};
+
+_showLoadingBuffer = (statusText) => {
+    return new Promise((resolve) => {
+        const overlay = this.add.graphics().setDepth(2000).setScrollFactor(0);
+        overlay.fillStyle(0x000000, 1);
+        overlay.fillRect(0, 0, screenWidth, screenHeight);
+
+        const loadingText = this.add.bitmapText(
+            screenWidth - 40, 
+            screenHeight - 20, 
+            "bigFont",
+            statusText, 
+            50
+        ).setOrigin(1).setDepth(2001).setScrollFactor(0);
+
+        setTimeout(() => {
+            resolve();
+        }, 2500);
+    });
+};
+
+_showEditorPauseMenu = (show) => {
+    this._editorMenuContainer.setVisible(show);
+    window.isEditorPaused = show;
+};
+
+_serializeLevel(levelData) {
+  const settings = levelData.settings || "";
+
+  const objectStrings = (levelData.objects || [])
+    .map(this._serializeObject)
+    .filter(Boolean);
+
+  const decompressedString = [settings, ...objectStrings].join(";");
+  const compressed = pako.deflate(decompressedString);
+
+  let binaryString = "";
+  for (let i = 0; i < compressed.length; i++) {
+    binaryString += String.fromCharCode(compressed[i]);
+  }
+
+  let base64 = btoa(binaryString);
+
+  return base64
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+_serializeObject(object) {
+  if (!object || !object.id) {
+    return "";
+  }
+
+  let objectData = { ...(object._raw || {}) };
+
+  objectData[1] = String(object.id);
+  objectData[2] = String(object.x ?? 0);
+  objectData[3] = String(object.y ?? 0);
+  objectData[4] = object.flipX ? "1" : "0";
+  objectData[5] = object.flipY ? "1" : "0";
+  objectData[6] = String(object.rot ?? 0);
+
+  objectData[32] = String(object.scale ?? 1);
+
+  objectData[24] = String(object.zLayer ?? 0);
+  objectData[25] = String(object.zOrder ?? 0);
+
+  objectData[57] = object.groups ?? "";
+
+  objectData[21] = String(object.color1 ?? 0);
+  objectData[22] = String(object.color2 ?? 0);
+
+  objectData["kA2"] = String(object.gameMode ?? 0);
+  objectData["kA3"] = String(object.miniMode ?? 0);
+  objectData["kA4"] = String(object.speed ?? 0);
+  objectData["kA28"] = String(object.mirrored ?? 0);
+  objectData["kA11"] = object.flipGravity ? "1" : "0";
+
+  const parts = [];
+
+  for (const key in objectData) {
+    if (objectData[key] === undefined) continue;
+    parts.push(key, String(objectData[key]));
+  }
+
+  return parts.join(",");
+}
+
+_saveEditorLevel = () => {
+    const levelData = {
+      objects: window.levelObjects,
+      settings: window.settingslist
+    }
+    const newLevelString = this._serializeLevel(levelData);
+    console.log(newLevelString);
+    
+    let createdLevels = JSON.parse(localStorage.getItem("created_levels") || "[]");
+    let levelIndex = createdLevels.findIndex(l => l.createdId === window.currentlevel[2]);
+
+    if (levelIndex !== -1) {
+        createdLevels[levelIndex].levelString = newLevelString;
+        createdLevels[levelIndex].lastModified = Date.now();
+        
+        localStorage.setItem("created_levels", JSON.stringify(createdLevels));
+        window._onlineLevelString = createdLevels[levelIndex].levelString;
+        window._onlineLevelName = createdLevels[levelIndex].levelName;
+        window._onlineLevelId = createdLevels[levelIndex].createdId;
+    }
+};
+
 _applyMirrorEffect() {
     const isMirrored = this._state.mirrored;
     const containers = [this._level.additiveContainer, this._level.container, this._level.topContainer];
@@ -4356,7 +6361,7 @@ _applyMirrorEffect() {
   _showCompleteEffect() {
     this._audio.fadeOutMusic(1500);
     this.sound.play("endStart_02", {
-      volume: 0.8
+      volume: 0.8 * this._sfxVolume
     });
     (function (_0x3f5321, _0x8f5267, _0x2f1e2d, _0x4b5e5b) {
       const _0x29d856 = 2;
@@ -4708,7 +6713,7 @@ _applyMirrorEffect() {
                 if (hitZone._pressed) {
                     hitZone._pressed = false;
                     this.tweens.killTweensOf(grp, "scale");
-                    this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out" });
+                    grp.setScale(baseScale);
                     action();
                 }
             });
@@ -4718,12 +6723,19 @@ _applyMirrorEffect() {
     };
 
     _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, false, null);
-    _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, false, null);
+    _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
     _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
     _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
     _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null);
     _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null);
     _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null);
+
+    const lockIcon = this.add.image(containerX + 535, 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
+    lockIcon.setScale(0.9);
+    lockIcon.setInteractive();
+    this._expandHitArea(lockIcon, 1.5);
+    this._makeBouncyButton(lockIcon, 0.9, () => { this._openVaultMenu(); });
+    this._settingsLayerInternal.add(lockIcon);
     
     const _0x45b6e4 = 0.8;
     let _0xe44f6d = 250;
