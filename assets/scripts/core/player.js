@@ -186,34 +186,48 @@ class WaveTrail {
     const n = pts.length;
     const upper = new Array(n);
     const lower = new Array(n);
-    
+
+    // precompute per-segment normals
+    const segNx = new Array(n - 1);
+    const segNy = new Array(n - 1);
+    for (let i = 0; i < n - 1; i++) {
+      const dx = pts[i + 1].x - pts[i].x;
+      const dy = pts[i + 1].y - pts[i].y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      segNx[i] = -dy / len;
+      segNy[i] = dx / len;
+    }
+
     for (let i = 0; i < n; i++) {
       const p = pts[i];
       let nx, ny;
 
       if (i === 0) {
-        const dx = pts[1].x - p.x;
-        const dy = pts[1].y - p.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        nx = -dy / len;
-        ny = dx / len;
+        nx = segNx[0]; ny = segNy[0];
       } else if (i === n - 1) {
-        const dx = p.x - pts[i - 1].x;
-        const dy = p.y - pts[i - 1].y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        nx = -dy / len;
-        ny = dx / len;
+        nx = segNx[n - 2]; ny = segNy[n - 2];
       } else {
-        const dx1 = p.x - pts[i - 1].x;
-        const dy1 = p.y - pts[i - 1].y;
-        const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) || 1;
+        // miter: intersect the two offset edge lines for a sharp corner
+        const n1x = segNx[i - 1], n1y = segNy[i - 1];
+        const n2x = segNx[i],     n2y = segNy[i];
 
-        const dx2 = pts[i + 1].x - p.x;
-        const dy2 = pts[i + 1].y - p.y;
-        const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
+        // upper edge intersection
+        const u1 = { x: pts[i - 1].x + n1x * halfW, y: pts[i - 1].y + n1y * halfW };
+        const u2 = { x: p.x          + n1x * halfW, y: p.y          + n1y * halfW };
+        const u3 = { x: p.x          + n2x * halfW, y: p.y          + n2y * halfW };
+        const u4 = { x: pts[i + 1].x + n2x * halfW, y: pts[i + 1].y + n2y * halfW };
+        const mu = this._intersect(u1, u2, u3, u4);
 
-        nx = -(dy1 / len1 + dy2 / len2) * 0.5;
-        ny = (dx1 / len1 + dx2 / len2) * 0.5;
+        // lower edge intersection
+        const l1 = { x: pts[i - 1].x - n1x * halfW, y: pts[i - 1].y - n1y * halfW };
+        const l2 = { x: p.x          - n1x * halfW, y: p.y          - n1y * halfW };
+        const l3 = { x: p.x          - n2x * halfW, y: p.y          - n2y * halfW };
+        const l4 = { x: pts[i + 1].x - n2x * halfW, y: pts[i + 1].y - n2y * halfW };
+        const ml = this._intersect(l1, l2, l3, l4);
+
+        upper[i] = mu;
+        lower[i] = ml;
+        continue;
       }
 
       upper[i] = { x: p.x + nx * halfW, y: p.y + ny * halfW };
