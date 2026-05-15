@@ -3215,7 +3215,8 @@ _buildSettingsPopup() {
         showFPS: this._fpsText.visible,
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
-        hitboxesOnDeath: window.hitboxesOnDeath
+        hitboxesOnDeath: window.hitboxesOnDeath,
+        showEditorGlow: window.showEditorGlow
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -3231,7 +3232,8 @@ _buildSettingsPopup() {
         showFPS: false,
         solidWaveTrail: false,
         noclipAccuracy: false,
-        hitboxesOnDeath: false
+        hitboxesOnDeath: false,
+        showEditorGlow: false
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -3246,6 +3248,7 @@ _buildSettingsPopup() {
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
     window.hitboxesOnDeath = data.hitboxesOnDeath;
+    window.showEditorGlow = data.showEditorGlow;
   }
   
   _buildInfoPopup() {
@@ -4122,7 +4125,6 @@ _buildSettingsPopup() {
         this._initEditorLogic();
         return;
     }
-
     this._cameraX = -centerX;
     this._cameraY = 0;
     this._cameraXRef._v = this._cameraX;
@@ -5498,7 +5500,6 @@ _buildObjectGrid = () => {
     });
 };
 
-// Helper to keep grid logic clean
 _moveObject = (dx, dy) => {
     const selectedIndex = window.editorSelectedObject;
     if (selectedIndex === -1) return;
@@ -5507,11 +5508,13 @@ _moveObject = (dx, dy) => {
     const sprites = this._level.objectSprites[selectedIndex];
     const saveObj = window.levelObjects[selectedIndex];
 
-    if (!collider || !saveObj) return;
+    if (!saveObj) return;
 
-    collider.x += dx; collider.y += dy;
-    collider._baseX += dx; collider._baseY += dy;
-    collider._origBaseX += dx; collider._origBaseY += dy;
+    if (collider) {
+      collider.x += dx; collider.y += dy;
+      collider._baseX += dx; collider._baseY += dy;
+      collider._origBaseX += dx; collider._origBaseY += dy;
+    }
 
     saveObj.x += dx / 2; saveObj.y -= dy / 2;
     if (saveObj._raw) {
@@ -5884,8 +5887,14 @@ _placeObject = () => {
 
             spr.setDepth((spr._eeZDepth || finalDepth) + 10);
 
-            if (this._level.container && !this._level.container.exists(spr)) {
-                this._level.container.add(spr);
+            if (spr._eeLayer === 2) {
+                if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
+                    this._level.topContainer.add(spr);
+                }
+            } else {
+                if (this._level.container && !this._level.container.exists(spr)) {
+                    this._level.container.add(spr);
+                }
             }
         }
     }
@@ -6102,6 +6111,25 @@ _initEditorPauseMenu = () => {
             data.cb();
         }, () => true);
     });
+
+    const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
+        const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
+        const check = this.add.image(x - 120, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
+        const txt = this.add.bitmapText(x - 70, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        container.add([check, txt]);
+
+        this._makeBouncyButton(check, 0.8, () => {
+            setVal(!getVal());
+            check.setTexture("GJ_GameSheet03", getTex());
+            if (callback) callback(getVal());
+            this._saveSettings();
+        });
+    };
+
+    createToggle(this._editorMenuContainer, 200, screenHeight - 60, "Show Glow", () => window.showEditorGlow, v => window.showEditorGlow = v,() => {
+        this._level._updateGlowVisibility();
+    }
+);
 };
 
 _showLoadingBuffer = (statusText) => {
@@ -6131,13 +6159,9 @@ _showEditorPauseMenu = (show) => {
 
 _serializeLevel(levelData) {
   const settings = levelData.settings || "";
-
-  const objectStrings = (levelData.objects || [])
-    .map(this._serializeObject)
-    .filter(Boolean);
-
+  const objectStrings = (levelData.objects || []).map(this._serializeObject).filter(Boolean);
   const decompressedString = [settings, ...objectStrings].join(";");
-  const compressed = pako.deflate(decompressedString);
+  const compressed = pako.gzip(decompressedString);
 
   let binaryString = "";
   for (let i = 0; i < compressed.length; i++) {
