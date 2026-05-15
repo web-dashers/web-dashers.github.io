@@ -5152,7 +5152,8 @@ _handleEditorCamera = (delta) => {
 _initEditorLogic = () => {
     if (this._editorGridGraphics) this._editorGridGraphics.destroy();
     this._editorGridGraphics = this.add.graphics().setDepth(5);
-    this._totalIds = 500; // just using the first 500 objects, could be expanded in the future when categories are added and shi but i aint doing all dat rn
+    const allObj = window.allobjects();
+    this._totalIds = Object.keys(allObj).length;
     this._editorPage = 0;
     this._maxPerPage = 12;
     this._isSwipeEnabled = false;
@@ -5162,6 +5163,7 @@ _initEditorLogic = () => {
     this._isDragging = false;
     this._editorTab = "build";
     window.editorSelectedObject = -1;
+    this._editorZoom = 1.0;
     this.input.on('pointerdown', (pointer) => {
         this._clickStartPos.x = pointer.x;
         this._clickStartPos.y = pointer.y;
@@ -5292,7 +5294,7 @@ _createEditorGui = () => {
 };
 
 _adjustZoom = (delta, anchorX = screenWidth / 2, anchorY = screenHeight / 2) => {
-    const oldZoom = this._editorZoom || 1.0;
+    const oldZoom = this._editorZoom;
     let newZoom = oldZoom + delta;
     newZoom = Phaser.Math.Clamp(newZoom, 0.1, 4.0);
     if (oldZoom === newZoom) return;
@@ -5341,16 +5343,48 @@ _getSheetForFrameThingy = (frameName) => {
 _buildObjectGrid = () => {
     if (this._gridContainer) this._gridContainer.destroy();
     if (this._pageDotsContainer) this._pageDotsContainer.destroy();
+    if (this._categoryContainer) this._categoryContainer.destroy();
+
+    const OBJECT_CATEGORIES = [
+        { id: "blocks",  icon: "tab1", types: ["solid", "slope"] },
+        { id: "hazards", icon: "tab2", types: ["hazard", "spike"] },
+        { id: "orbs",    icon: "tab3", types: ["ring", "pad", "portal", "speed"] },
+        { id: "deco",    icon: "tab4", types: ["deco"] },
+        { id: "triggers",icon: "tab5", types: ["trigger"] },
+    ];
 
     this._gridContainer = this.add.container(0, 0);
     this._toolbox.add(this._gridContainer);
-
+    
+    const allObjectsData = window.allobjects();
     const itemsForGrid = [];
+    this._currentBuildCategory = this._currentBuildCategory || "blocks";
 
     if (this._editorTab === "build") {
+        this._categoryContainer = this.add.container(screenWidth / 2, screenHeight - 218);
+        this._toolbox.add(this._categoryContainer);
+        const catSpacing = 85;
+        const catStartX = -((OBJECT_CATEGORIES.length - 1) * catSpacing) / 2;
+        OBJECT_CATEGORIES.forEach((cat, i) => {
+            const isSelected = this._currentBuildCategory === cat.id;
+            const btn = this.add.image(catStartX + (i * catSpacing), 0, cat.icon).setInteractive().setScale(0.12).setTint(isSelected ? 0x888888 : 0xffffff).setAlpha(isSelected ? 1 : 0.33);
+            this._categoryContainer.add(btn);
+            this._makeBouncyButton(btn, 0.12, () => {
+                this._currentBuildCategory = cat.id;
+                this._editorPage = 0;
+                this._buildObjectGrid();
+            });
+        });
+        const activeCatDef = OBJECT_CATEGORIES.find(c => c.id === this._currentBuildCategory);
         for (let i = 1; i <= this._totalIds; i++) {
             const def = getObjectFromId(i);
-            if (def && def.frame) itemsForGrid.push({ type: "object", id: i, frame: def.frame });
+            const rawDef = allObjectsData[String(i)]; 
+            
+            if (def && rawDef) {
+                if (activeCatDef.types.includes(rawDef.type)) {
+                    itemsForGrid.push({ type: "object", id: i, frame: def.frame });
+                }
+            }
         }
     } else if (this._editorTab === "edit") {
         const moveActions = [
@@ -5401,17 +5435,15 @@ _buildObjectGrid = () => {
         });
     }
 
-    let totalPages = 1;
-
     if (this._editorTab === "build") {
-        totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
+        window.totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
     } else if (this._editorTab === "edit") {
-        totalPages = 3;
+        window.totalPages = 3;
     } else if (this._editorTab === "delete"){
-        totalPages = 1;
+        window.totalPages = 1;
     }
 
-    if (this._editorPage >= totalPages) this._editorPage = 0;
+    if (this._editorPage >= window.totalPages) this._editorPage = 0;
 
     const showArrows = this._editorTab !== "delete";
     if (this._leftArrow) {
@@ -5430,14 +5462,14 @@ _buildObjectGrid = () => {
             if (this._editorTab === "edit") {
                 this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : 2;
             } else {
-                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : totalPages - 1;
+                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : window.totalPages - 1;
             }
 
             this._buildObjectGrid();
         });
 
         this._makeBouncyButton(this._rightArrow, 0.8, () => {
-            this._editorPage = (this._editorPage < totalPages - 1) ? this._editorPage + 1 : 0;
+            this._editorPage = (this._editorPage < window.totalPages - 1) ? this._editorPage + 1 : 0;
             this._buildObjectGrid();
         });
     }
@@ -5447,10 +5479,10 @@ _buildObjectGrid = () => {
         this._toolbox.add(this._pageDotsContainer);
 
         const dotSpacing = 18;
-        const dotsStartX = (screenWidth / 2) - ((totalPages - 1) * dotSpacing) / 2;
+        const dotsStartX = (screenWidth / 2) - ((window.totalPages - 1) * dotSpacing) / 2;
         const dotsY = screenHeight - 10;
 
-        for (let i = 0; i < totalPages; i++) {
+        for (let i = 0; i < window.totalPages; i++) {
             const dot = this.add.circle(
                 dotsStartX + (i * dotSpacing),
                 dotsY,
