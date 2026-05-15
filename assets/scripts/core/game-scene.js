@@ -5269,9 +5269,52 @@ _createEditorGui = () => {
         this._clearEditorSelection();
     });
 
+    this._zoomButtons = this.add.container(48, screenHeight / 2 - 20).setScrollFactor(0).setDepth(1000);
+    
+    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
+    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
+    
+    this._zoomButtons.add([zoomInBtn, zoomOutBtn]);
+
+    this._makeBouncyButton(zoomInBtn, 0.9, () => this._adjustZoom(0.1));
+    this._makeBouncyButton(zoomOutBtn, 0.9, () => this._adjustZoom(-0.1));
+
+    this._zoomText = this.add.bitmapText(screenWidth / 2, 80, "bigFont", "Zoom: 1.00x", 40).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
+
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+        const zoomAmount = deltaY > 0 ? -0.1 : 0.1;
+        this._adjustZoom(zoomAmount, pointer.x, pointer.y);
+    });
+
     this._updateEditorActionButtons();
     this._updateTabVisuals();
     this._buildObjectGrid();
+};
+
+_adjustZoom = (delta, anchorX = screenWidth / 2, anchorY = screenHeight / 2) => {
+    const oldZoom = this._editorZoom || 1.0;
+    let newZoom = oldZoom + delta;
+    newZoom = Phaser.Math.Clamp(newZoom, 0.1, 4.0);
+    if (oldZoom === newZoom) return;
+    const worldAnchorX = (this._cameraX + anchorX) / oldZoom;
+    const worldAnchorY = (this._cameraY + anchorY) / oldZoom;
+    this._editorZoom = newZoom;
+    this._level.topContainer.setScale(newZoom);
+    this._level.additiveContainer.setScale(newZoom);
+    this._level.container.setScale(newZoom);
+    this._cameraX = (worldAnchorX * newZoom) - anchorX;
+    this._cameraY = (worldAnchorY * newZoom) - anchorY;
+    this._updateEditorGrid();
+    this._zoomText.setText(`Zoom: ${newZoom.toFixed(2)}x`);
+    this._zoomText.setAlpha(1);
+    this.tweens.killTweensOf(this._zoomText);
+    this.tweens.add({
+        targets: this._zoomText,
+        alpha: 0,
+        duration: 500,
+        delay: 500,
+        ease: 'Power1'
+    });
 };
 
 _updateTabVisuals = () => {
@@ -5765,33 +5808,31 @@ _updateEditorActionButtons = () => {
 
 _updateEditorGrid = () => {
     if (!this._editorGridGraphics) return;
-
     const g = this._editorGridGraphics;
     g.clear();
-    
+    const zoom = this._editorZoom || 1.0;
     const gridSize = 60;
+    g.lineStyle(1, 0x000000, 0.4);
 
-    g.lineStyle(1, 0x000000, 0.4); 
-
-    const offsetX = (-this._cameraX % gridSize);
-    const offsetY = (-this._cameraY % gridSize) - 20;
-
-    for (let x = offsetX - gridSize; x < screenWidth + gridSize; x += gridSize) {
-        g.lineBetween(x, 0, x, screenHeight);
+    const camX = this._cameraX / zoom;
+    const camY = this._cameraY / zoom;
+    const offsetX = -camX % gridSize;
+    const offsetY = (-camY - 20) % gridSize;
+    for (let x = offsetX; x < screenWidth / zoom + gridSize; x += gridSize) {
+        g.lineBetween(x * zoom, 0, x * zoom, screenHeight);
     }
-    for (let y = offsetY - gridSize; y < screenHeight + gridSize; y += gridSize) {
-        g.lineBetween(0, y, screenWidth, y);
+    for (let y = offsetY; y < screenHeight / zoom + gridSize; y += gridSize) {
+        g.lineBetween(0, y * zoom, screenWidth, y * zoom);
     }
+    g.lineStyle(1, 0xffffff, 1);
 
-    const startLineX = -this._cameraX;
+    const startLineX = (0 * zoom) - this._cameraX;
     if (startLineX >= -50 && startLineX <= screenWidth + 50) {
-        g.lineStyle(1, 0xffffff, 1);
         g.lineBetween(startLineX, 0, startLineX, screenHeight);
     }
-
-    const groundLineY = -20+(60*8) -this._cameraY;
+    const worldGroundY = -20 + (60 * 8);
+    const groundLineY = (worldGroundY * zoom) - this._cameraY;
     if (groundLineY >= -50 && groundLineY <= screenHeight + 50) {
-        g.lineStyle(1, 0xffffff, 1);
         g.lineBetween(0, groundLineY, screenWidth, groundLineY);
     }
 };
@@ -5809,8 +5850,8 @@ _editorAction = () => {
 _placeObject = () => {
     const pointer = this.input.activePointer;
 
-    const worldX = pointer.x + this._cameraX;
-    const worldY = pointer.y + this._cameraY;
+    const worldX = (this.input.activePointer.x + this._cameraX) / this._editorZoom;
+    const worldY = (this.input.activePointer.y + this._cameraY) / this._editorZoom;
 
     const snapX = Math.floor(worldX / 60) * 60;
     const snapY = Math.floor((worldY + 20) / 60) * 60;
