@@ -1154,46 +1154,82 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const levelIdParsed = gdMap["1"] || levelId;
         const songIdRaw     = (gdMap["35"] || "").trim();
         const isCustomSong  = !!songIdRaw && songIdRaw !== "0";
+        console.log(songIdRaw);
         const officialSongId = gdMap["12"] || "0";
-        const songKey = isCustomSong ? `ng_song_${songIdRaw}` : window.allLevels[officialSongId][0];
+        const isLibrarySong = isCustomSong && parseInt(songIdRaw) >= 1000000;
+        const songKey = isCustomSong 
+          ? (isLibrarySong ? `lib_song_${songIdRaw}` : `ng_song_${songIdRaw}`) 
+          : window.allLevels[officialSongId][0];
         window.currentlevel[0] = songKey;
         window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
-        _showStatus(`found "${levelName}"${isCustomSong ? ` — loading song #${songIdRaw}...` : ""}`, "#00ff00");
+        const sourceName = isLibrarySong ? "NCS Library" : "Newgrounds";
+        _showStatus(`found "${levelName}"${isCustomSong ? ` — loading ${sourceName} #${songIdRaw}...` : ""}`, "#00ff00");
         if (isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
-          try {
             const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: `songID=${songIdRaw}&secret=Wmfd2893gb7`
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `songID=${songIdRaw}&secret=Wmfd2893gb7`
             });
             const ngText = ngRes.ok ? await ngRes.text() : "-1";
-            if (ngText && ngText !== "-1") { 
-              const ngParts = ngText.split("~|~");
-              const ngMap = {};
-              for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
-              const rawUrl  = (ngMap["10"] || "").trim();
-              const songUrl = decodeURIComponent(rawUrl);
-              const songArtist = (ngMap["4"]  || "Unknown").replace(/:$/, "").trim();
-              const songTitle  = (ngMap["2"]  || `Song #${songIdRaw}`).replace(/:$/, "").trim();
-              if (songUrl) {
-                _showStatus(`loading "${songTitle}" by ${songArtist}...`, "#00ff00");
-                const audioCtx = this.game.sound.context;
-                if (audioCtx.state === "suspended") await audioCtx.resume();
-                const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                const audioRes = await fetch(proxiedUrl);
-                if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
-                const arrayBuf = await audioRes.arrayBuffer();
-                const decoded  = await audioCtx.decodeAudioData(arrayBuf);
-                window._onlineSongBuffer = decoded;
-                window._onlineSongKey    = songKey;
-                window._onlineSongTitle  = songTitle;
-                window._onlineSongArtist = songArtist;
-              }
+
+            if (ngText && ngText !== "-1") {
+                const ngParts = ngText.split("~|~");
+                const ngMap = {};
+                for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
+
+                const songData = {
+                    id:           ngMap["1"] || songIdRaw,
+                    title:        (ngMap["2"] || "Unknown").trim(),
+                    artistID:     ngMap["3"] || "0",
+                    artistName:   (ngMap["4"] || "Unknown").trim(),
+                    sizeMB:       ngMap["5"] || "0",
+                    videoID:      ngMap["6"] || null,
+                    youtubeURL:   ngMap["7"] ? decodeURIComponent(ngMap["7"]) : null,
+                    isScouted:    ngMap["8"] === "1",
+                    priority:     ngMap["9"] || "0",
+                    rawUrl:       (ngMap["10"] || "").trim(),
+                    nongType:     parseInt(ngMap["11"] || "0"),
+                    //extraIDs:     (ngMap["12"] || "").split("."), //array
+                    isNew:        ngMap["13"] === "1",
+                    newIconType:  ngMap["14"] || "0",
+                    extraArtists: ngMap["15"] || "" 
+                };
+
+                const isNCS = isLibrarySong || songData.nongType === 1;
+                
+                let songUrl = songData.rawUrl ? decodeURIComponent(songData.rawUrl) : null;
+                
+                if (!songUrl && isNCS) {
+                    songUrl = `https://geometrydashfiles.b-cdn.net/music/${songIdRaw}.mp3`;
+                }
+
+                console.table({ ...songData, finalUrl: songUrl, isNCS });
+
+                if (songUrl) {
+                    _showStatus(`loading "${songData.title}" by ${songData.artistName}...`, "#00ff00");
+                    
+                    const audioCtx = this.game.sound.context;
+                    if (audioCtx.state === "suspended") await audioCtx.resume();
+
+                    const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                    const audioRes = await fetch(proxiedUrl);
+                    if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
+
+                    const arrayBuf = await audioRes.arrayBuffer();
+                    const decoded  = await audioCtx.decodeAudioData(arrayBuf);
+
+                    window._onlineSongBuffer = decoded;
+                    window._onlineSongKey    = songKey;
+                    window._onlineSongTitle  = songData.title;
+                    window._onlineSongArtist = songData.artistName;
+                } else {
+                    _showStatus("failed to resolve song URL", "#ff0000");
+                }
+            } else {
+                _showStatus("Song info failed to load", "#ff0000");
             }
-          } catch (songErr) {
-          }
         } else {
           window._onlineSongBuffer = null;
           window._onlineSongKey    = null;
@@ -2246,14 +2282,25 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._openSearchMenu();
     }
     if (this.game.registry.get("autoStartGame")) {
-      this.game.registry.remove("autoStartGame");
-      this._levelLabel.setVisible(false);
-      this._leftBtn.setVisible(false);
-      this._rightBtn.setVisible(false);
-      if (this._practiceModeBarContainer) {
-        this._practiceModeBarContainer.setVisible(this._practicedMode && this._practicedMode.practiceMode);
+      if (!window.settingsMap) {
+        const cachedLevelText = this.cache.text.get(window.currentlevel[2]) ||
+          ((window._onlineLevelString && window.currentlevel[2] === window._onlineLevelId) ? window._onlineLevelString : null);
+        if (cachedLevelText) {
+          this._level.loadLevel(cachedLevelText);
+        }
       }
-      this._startGame();
+      if (window.settingsMap) {
+        this.game.registry.remove("autoStartGame");
+        this._levelLabel.setVisible(false);
+        this._leftBtn.setVisible(false);
+        this._rightBtn.setVisible(false);
+        if (this._practiceModeBarContainer) {
+          this._practiceModeBarContainer.setVisible(this._practicedMode && this._practicedMode.practiceMode);
+        }
+        this._startGame();
+      } else {
+        console.warn("autoStartGame: missing settingsMap for", window.currentlevel && window.currentlevel[2]);
+      }
     }
   }
   _parseLevelColors(levelId) {
@@ -2499,6 +2546,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             this._closeLevelSelect(true);
             this._audio.stopMusic();
             this.input.enabled = true;
+            
             this.game.registry.set("autoStartGame", true);
             this.scene.restart();
           });
@@ -6577,7 +6625,7 @@ _applyMirrorEffect() {
       url: "https://discord.gg/TfEzAVWPSJ"
     }, {
       key: "downloadSteam_001",
-      url: "https://store.steampowered.com/app/322170/Geometry_Dash"
+      url: "https://github.com/web-dashers/web-dashers.github.io"
     }];
     for (let _0x10f8cc = 0; _0x10f8cc < _0x34b1bd.length; _0x10f8cc++) {
       const _0xd7310b = _0x34b1bd[_0x10f8cc];
