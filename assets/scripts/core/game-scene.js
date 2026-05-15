@@ -3214,13 +3214,6 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
-
-    const lockIcon = this.add.image(centerX + (panelWidth / 2) + 30, centerY - (panelHeight / 2) + 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
-    lockIcon.setScale(0.75);
-    lockIcon.setInteractive();
-    this._expandHitArea(lockIcon, 1.5);
-    this._makeBouncyButton(lockIcon, 0.75, () => { this._openVaultMenu(); });
-    this._settingsPopup.add(lockIcon);
   }
   _saveSettings() {
     const settings = {
@@ -3306,7 +3299,7 @@ _buildSettingsPopup() {
       { text: "breadbb, PinkDev, rohanis0000,", scale: 0.7, font: "goldFont" },
       { text: "bog, AntiMatter, arbstro, aloaf", scale: 0.7, font: "goldFont" },
       { text: "Contributors:", scale: 0.9, font: "bigFont" },
-      { text: "t0nchi7, Lasokar, and Itzar.", scale: 0.7, font: "goldFont" },
+      { text: "t0nchi7 and Lasokar.", scale: 0.7, font: "goldFont" },
       { text: "© 2026 RobTop Games. All rights reserved.", scale: 0.4, font: "Arial", color: 0x000000 },
     ]; 
     let yPos = 0;
@@ -5525,13 +5518,11 @@ _moveObject = (dx, dy) => {
     const sprites = this._level.objectSprites[selectedIndex];
     const saveObj = window.levelObjects[selectedIndex];
 
-    if (!saveObj) return;
+    if (!collider || !saveObj) return;
 
-    if (collider) {
-      collider.x += dx; collider.y += dy;
-      collider._baseX += dx; collider._baseY += dy;
-      collider._origBaseX += dx; collider._origBaseY += dy;
-    }
+    collider.x += dx; collider.y += dy;
+    collider._baseX += dx; collider._baseY += dy;
+    collider._origBaseX += dx; collider._origBaseY += dy;
 
     saveObj.x += dx / 2; saveObj.y -= dy / 2;
     if (saveObj._raw) {
@@ -5904,14 +5895,8 @@ _placeObject = () => {
 
             spr.setDepth((spr._eeZDepth || finalDepth) + 10);
 
-            if (spr._eeLayer === 2) {
-                if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
-                    this._level.topContainer.add(spr);
-                }
-            } else {
-                if (this._level.container && !this._level.container.exists(spr)) {
-                    this._level.container.add(spr);
-                }
+            if (this._level.container && !this._level.container.exists(spr)) {
+                this._level.container.add(spr);
             }
         }
     }
@@ -6721,7 +6706,8 @@ _applyMirrorEffect() {
                 if (hitZone._pressed) {
                     hitZone._pressed = false;
                     this.tweens.killTweensOf(grp, "scale");
-                    this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out", onComplete: () => { action(); } });
+                    grp.setScale(baseScale);
+                    action();
                 }
             });
         }
