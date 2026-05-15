@@ -5309,6 +5309,7 @@ _applyMirrorEffect() {
                     hitZone._pressed = false;
                     this.tweens.killTweensOf(grp, "scale");
                     this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out" });
+                    grp.setScale(baseScale)
                     action();
                 }
             });

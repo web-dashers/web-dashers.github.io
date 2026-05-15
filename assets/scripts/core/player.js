@@ -196,6 +196,18 @@ class WaveTrail {
       segNy[i] = dx / len;
     }
     const MITER_LIMIT_SQ = 4;
+
+    // precompute per-segment normals
+    const segNx = new Array(n - 1);
+    const segNy = new Array(n - 1);
+    for (let i = 0; i < n - 1; i++) {
+      const dx = pts[i + 1].x - pts[i].x;
+      const dy = pts[i + 1].y - pts[i].y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      segNx[i] = -dy / len;
+      segNy[i] = dx / len;
+    }
+
     for (let i = 0; i < n; i++) {
       const px = pts[i].x, py = pts[i].y;
       if (i === 0) {
@@ -217,7 +229,32 @@ class WaveTrail {
           const scale = dot > 1e-4 ? Math.min(halfW / dot, halfW * 2) : halfW;
           upper[i] = { x: px + mnx * scale, y: py + mny * scale };
           lower[i] = { x: px - mnx * scale, y: py - mny * scale };
-        }
+  
+        nx = segNx[0]; ny = segNy[0];
+      } else if (i === n - 1) {
+        nx = segNx[n - 2]; ny = segNy[n - 2];
+      } else {
+        // miter: intersect the two offset edge lines for a sharp corner
+        const n1x = segNx[i - 1], n1y = segNy[i - 1];
+        const n2x = segNx[i],     n2y = segNy[i];
+
+        // upper edge intersection
+        const u1 = { x: pts[i - 1].x + n1x * halfW, y: pts[i - 1].y + n1y * halfW };
+        const u2 = { x: p.x          + n1x * halfW, y: p.y          + n1y * halfW };
+        const u3 = { x: p.x          + n2x * halfW, y: p.y          + n2y * halfW };
+        const u4 = { x: pts[i + 1].x + n2x * halfW, y: pts[i + 1].y + n2y * halfW };
+        const mu = this._intersect(u1, u2, u3, u4);
+
+        // lower edge intersection
+        const l1 = { x: pts[i - 1].x - n1x * halfW, y: pts[i - 1].y - n1y * halfW };
+        const l2 = { x: p.x          - n1x * halfW, y: p.y          - n1y * halfW };
+        const l3 = { x: p.x          - n2x * halfW, y: p.y          - n2y * halfW };
+        const l4 = { x: pts[i + 1].x - n2x * halfW, y: pts[i + 1].y - n2y * halfW };
+        const ml = this._intersect(l1, l2, l3, l4);
+
+        upper[i] = mu;
+        lower[i] = ml;
+        continue;
       }
     }
     return { upper, lower };

@@ -780,6 +780,7 @@ window.LevelObject = class LevelObject {
     }
     return null;
   }
+  
   _spawnLevelObjects(_0x35f1ae) {
     const scene = this._scene;
     let _0x443c50 = new Set();
@@ -799,6 +800,265 @@ window.LevelObject = class LevelObject {
             duration: parseFloat(levelObj._raw[10] ?? 0),
             tintGround: levelObj._raw[14] === "1"
           });
+          
+  _spawnObject(levelObj) {
+  this.objectSprites = this.objectSprites || [];
+
+  const scene = this._scene;
+  const objectDef = getObjectFromId(levelObj.id);
+
+  if (objectDef && objectDef.type === triggerType) {
+    if (levelObj.id === 29 || levelObj.id === 30) {
+      this._colorTriggers.push({
+        x: levelObj.x * 2,
+        index: levelObj.id === 29 ? 1000 : 1001,
+        color: {
+          r: parseInt(levelObj._raw[7] ?? 255, 10),
+          g: parseInt(levelObj._raw[8] ?? 255, 10),
+          b: parseInt(levelObj._raw[9] ?? 255, 10)
+        },
+        duration: parseFloat(levelObj._raw[10] ?? 0),
+        tintGround: levelObj._raw[14] === "1"
+      });
+    }
+
+    if (objectDef.enterEffect) {
+      this._enterEffectTriggers.push({
+        x: levelObj.x * 2,
+        effect: objectDef.enterEffect
+      });
+    }
+
+    if (levelObj.id === 901) {
+      const _raw = levelObj._raw;
+      this._moveTriggers.push({
+        x: levelObj.x * 2,
+        duration: parseFloat(_raw[10] ?? 0),
+        easingType: parseInt(_raw[30] ?? 0, 10),
+        easingRate: parseFloat(_raw[85] ?? 2),
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        offsetX: parseFloat(_raw[28] ?? 0) * 2,
+        offsetY: parseFloat(_raw[29] ?? 0) * 2,
+        lockX: _raw[58] === "1",
+        lockY: _raw[59] === "1"
+      });
+    }
+
+    if (levelObj.id === 1007) {
+      const _raw = levelObj._raw;
+      this._alphaTriggers.push({
+        x: levelObj.x * 2,
+        duration: parseFloat(_raw[10] ?? 0),
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        targetOpacity: Math.max(0, Math.min(1, parseFloat(_raw[35] ?? 1)))
+      });
+    }
+
+    if (levelObj.id === 899) {
+      const _raw = levelObj._raw;
+      const targetChannel = parseInt(_raw[23] ?? 0, 10);
+      if (targetChannel > 0) {
+        this._colorTriggers.push({
+          x: levelObj.x * 2,
+          index: targetChannel,
+          color: {
+            r: parseInt(_raw[7] ?? 255, 10),
+            g: parseInt(_raw[8] ?? 255, 10),
+            b: parseInt(_raw[9] ?? 255, 10)
+          },
+          duration: parseFloat(_raw[10] ?? 0),
+          tintGround: _raw[14] === "1",
+          opacity: parseFloat(_raw[35] ?? 1)
+        });
+      }
+    }
+
+    if (levelObj.id === 1346) {
+      const _raw = levelObj._raw;
+      this._rotateTriggers.push({
+        x: levelObj.x * 2,
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        degrees: parseFloat(_raw[68] ?? 0),
+        duration: parseFloat(_raw[10] ?? 0),
+        easingType: parseInt(_raw[30] ?? 0, 10),
+        easingRate: parseFloat(_raw[85] ?? 2),
+        lockRotation: _raw[70] === "1",
+        times360: parseInt(_raw[69] ?? 0, 10),
+        centerGroup: parseInt(_raw[71] ?? 0, 10)
+      });
+    }
+
+    if (levelObj.id === 1006) {
+      const _raw = levelObj._raw;
+      const targetType = parseInt(_raw[52] ?? 0, 10);
+      this._pulseTriggers.push({
+        x: levelObj.x * 2,
+        targetGroup: targetType === 1 ? parseInt(_raw[51] ?? 0, 10) : 0,
+        targetChannel: targetType === 0 ? parseInt(_raw[51] ?? 0, 10) : 0,
+        targetType: targetType,
+        color: {
+          r: parseInt(_raw[7] ?? 255, 10),
+          g: parseInt(_raw[8] ?? 255, 10),
+          b: parseInt(_raw[9] ?? 255, 10)
+        },
+        fadeIn: parseFloat(_raw[45] ?? 0),
+        hold: parseFloat(_raw[46] ?? 0),
+        fadeOut: parseFloat(_raw[47] ?? 0)
+      });
+    }
+
+    if (levelObj.id === 31) {
+      this._startPositions.push({
+        x: 2 * levelObj.x,
+        y: 2 * levelObj.y,
+        gameMode: levelObj.gameMode,
+        miniMode: levelObj.miniMode,
+        speed: levelObj.speed,
+        mirrored: levelObj.mirrored,
+        gravityFlipped: levelObj.flipGravity
+      });
+    }
+
+    return objectDef;
+  }
+
+  if (this._nextObjectId === undefined) {
+    this._nextObjectId = 0;
+  }
+  const linkedObjectId = this._nextObjectId++;
+  let hasCollisionEntry = false;
+
+  const worldX = levelObj.x * 2;
+  const worldY = levelObj.y * 2;
+
+  if (worldX > this._lastObjectX) {
+    this._lastObjectX = worldX;
+  }
+
+  let frameName = objectDef ? objectDef.frame : null;
+  if (objectDef && objectDef.randomFrames) {
+    frameName = objectDef.randomFrames[Math.floor(Math.random() * objectDef.randomFrames.length)];
+  }
+
+  const registerObjectSprite = (spr) => {
+    if (!spr) return;
+    spr._eeObjectId = linkedObjectId;
+    if (!this.objectSprites[linkedObjectId]) this.objectSprites[linkedObjectId] = [];
+    this.objectSprites[linkedObjectId].push(spr);
+  };
+
+  if (frameName) {
+    const spriteWorldX = worldX;
+    const baseY = b(worldY);
+    const isPortalFront =
+      (objectDef.type === portalType || objectDef.type === speedType) &&
+      frameName.includes("_front_");
+
+    const zLayer =
+      levelObj.zLayer || (objectDef.default_z_layer !== undefined ? objectDef.default_z_layer : 0);
+    const zOrd =
+      levelObj.zOrder || (objectDef.default_z_order !== undefined ? objectDef.default_z_order : 0);
+    const depthBase = { "-3": -6, "-1": -3, 0: 0, 1: 3, 3: 6, 5: 9 };
+    const objZDepth = (depthBase[zLayer] !== undefined ? depthBase[zLayer] : 0) + zOrd * 0.01;
+
+    let col1 = levelObj.color1 || (objectDef.default_base_color_channel !== undefined ? objectDef.default_base_color_channel : 0);
+    if (col1 === 0 && (objectDef.type === solidType || objectDef.type === hazardType)) col1 = 1;
+
+    const col2 = levelObj.color2 || (objectDef.default_detail_color_channel !== undefined ? objectDef.default_detail_color_channel : -1);
+    const canColor = objectDef.can_color !== false;
+
+    const registerColor = (spr, ch) => {
+      if (ch > 0 && canColor && spr && !spr._isSaw) {
+        spr._eeColorChannel = ch;
+        if (!this._colorChannelSprites[ch]) this._colorChannelSprites[ch] = [];
+        this._colorChannelSprites[ch].push(spr);
+      }
+    };
+
+    const objGids = levelObj.groups
+      ? levelObj.groups.split(".").map(Number).filter(n => n > 0)
+      : null;
+
+    const registerToGroups = (spr, baseWorldX, baseBaseY) => {
+      if (!objGids || !objGids.length || !spr) return;
+      spr._origWorldX = baseWorldX;
+      spr._origBaseY = baseBaseY;
+      for (const gid of objGids) {
+        if (!this._groupSprites[gid]) this._groupSprites[gid] = [];
+        this._groupSprites[gid].push(spr);
+      }
+    };
+
+    let portalBackSprite = null;
+    if (isPortalFront) {
+      const backFrame = frameName.replace("_front_", "_back_");
+      portalBackSprite = addImageToScene(scene, spriteWorldX, baseY, backFrame);
+      if (portalBackSprite) {
+        portalBackSprite._eeLayer = 1;
+        portalBackSprite._eeWorldX = worldX;
+        portalBackSprite._eeBaseY = baseY;
+        portalBackSprite._eeZDepth = objZDepth - 0.005;
+        portalBackSprite._eeOrigAlpha = 1;
+        this._addToSection(portalBackSprite);
+        registerToGroups(portalBackSprite, worldX, baseY);
+        registerColor(portalBackSprite, col1);
+        registerObjectSprite(portalBackSprite);
+      }
+    }
+
+    let orbGlow = null;
+    if (objectDef.glow) {
+      orbGlow = this._addGlowSprite(scene, spriteWorldX, baseY, frameName, levelObj, worldX);
+      if (orbGlow) {
+        orbGlow._eeZDepth = objZDepth - 0.003;
+        orbGlow._eeOrigAlpha = 1;
+        registerToGroups(orbGlow, worldX, baseY);
+        registerObjectSprite(orbGlow);
+      }
+    }
+
+    const visualDef = isPortalFront ? { ...objectDef, _portalFront: true } : objectDef;
+    const sprite = addImageToScene(scene, spriteWorldX, baseY, frameName);
+
+    if (sprite) {
+      this._applyVisualProps(scene, sprite, frameName, levelObj, objectDef);
+      if (portalBackSprite) {
+        portalBackSprite.x = sprite.x;
+        portalBackSprite.y = sprite.y;
+      }
+      this._addVisualSprite(sprite, visualDef);
+      sprite._eeWorldX = worldX;
+      sprite._eeBaseY = baseY;
+      sprite._eeZDepth = objZDepth;
+      sprite._eeOrigAlpha = 1;
+      registerColor(sprite, col1);
+      this._addToSection(sprite);
+      registerObjectSprite(sprite);
+
+      if (objGids && objGids.length) {
+        sprite._eeGroups = objGids;
+        registerToGroups(sprite, sprite._eeWorldX, sprite._eeBaseY);
+      }
+
+      if (objectDef && objectDef.animFrames) {
+        sprite._animFrames = objectDef.animFrames;
+        sprite._animInterval = objectDef.animInterval || 100;
+        sprite._animIdx = 0;
+        sprite._animScene = scene;
+        window._animatedSprites.push(sprite);
+      }
+
+      if (objectDef && objectDef.type === ringType) {
+        sprite.setScale(0.75);
+        sprite._eeAudioScale = true;
+        sprite._orbId = levelObj.id;
+        this._orbSprites.push(sprite);
+
+        if (orbGlow) {
+          orbGlow.setScale(0.75);
+          orbGlow._eeAudioScale = true;
+          orbGlow._orbId = levelObj.id;
+          this._orbSprites.push(orbGlow);
         }
         if (objectDef.enterEffect) {
           this._enterEffectTriggers.push({
@@ -1303,6 +1563,168 @@ window.LevelObject = class LevelObject {
           this.objects.push(speedobject);
           this._addCollisionToSection(speedobject);
         }
+    };
+
+    if (objectDef.type === solidType && objectDef.gridW > 0 && objectDef.gridH > 0) {
+      const w = objectDef.gridW * a;
+      const h = objectDef.gridH * a;
+      const collider = new Collider(solidType, worldX, worldY, w, h, levelObj.rot || 0);
+      collider.objid = levelObj.id;
+      registerCollider(collider);
+      this.objects.push(collider);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(collider);
+    } else if (objectDef.type === hazardType) {
+      let hitW = 0;
+      let hitH = 0;
+
+      if (
+        objectDef.spriteW > 0 &&
+        objectDef.spriteH > 0 &&
+        objectDef.hitboxScaleX !== undefined &&
+        objectDef.hitboxScaleY !== undefined
+      ) {
+        hitW = objectDef.spriteW * objectDef.hitboxScaleX * 2;
+        hitH = objectDef.spriteH * objectDef.hitboxScaleY * 2;
+      } else if (objectDef.gridW > 0 && objectDef.gridH > 0) {
+        hitW = objectDef.gridW * 12;
+        hitH = objectDef.gridH * 24;
+      }
+
+      const hasHitboxRadius = objectDef.hitbox_radius !== undefined && objectDef.hitbox_radius !== null;
+      const worldHitboxRadius = hasHitboxRadius ? objectDef.hitbox_radius * 2 : 0;
+
+      if (hasHitboxRadius && hitW === 0) {
+        hitW = worldHitboxRadius * 2;
+        hitH = worldHitboxRadius * 2;
+      }
+
+      if (hitW > 0 && hitH > 0) {
+        const collider = new Collider(hazardType, worldX, worldY, hitW, hitH, levelObj.rot || 0);
+        if (hasHitboxRadius) collider.hitbox_radius = worldHitboxRadius;
+        registerCollider(collider);
+        this.objects.push(collider);
+        hasCollisionEntry = true;
+        this._addCollisionToSection(collider);
+      }
+    } else if (objectDef.type === portalType) {
+      const portalW = objectDef.gridW * a;
+      const portalH = objectDef.gridH * a;
+      const portalSub = objectDef.sub || {
+        10: "gravity_flip",
+        11: "gravity_normal",
+        12: "cube",
+        13: "fly",
+        45: "mirrora",
+        46: "mirrorb",
+        47: "ball",
+        660: "wave",
+        111: "ufo",
+        1331: "spider",
+        286: "dual_on",
+        287: "dual_off"
+      }[levelObj.id];
+
+      const portalColliderType = {
+        gravity_flip: "portal_gravity_down",
+        gravity_normal: "portal_gravity_up",
+        [flyPortal]: "portal_fly",
+        fly: "portal_fly",
+        [cubePortal]: "portal_cube",
+        cube: "portal_cube",
+        ball: "portal_ball",
+        wave: portalWaveType,
+        ufo: portalUfoType,
+        spider: "portal_spider",
+        mirrora: "portal_mirror_on",
+        mirrorb: "portal_mirror_off",
+        shrink: "portal_mini_on",
+        grow: "portal_mini_off",
+        dual_on: "portal_dual_on",
+        dual_off: "portal_dual_off"
+      }[portalSub] || null;
+
+      if (portalColliderType) {
+        const collider = new Collider(portalColliderType, worldX, worldY, portalW, portalH, levelObj.rot || 0);
+        collider.portalY = worldY;
+        registerCollider(collider);
+        this.objects.push(collider);
+        hasCollisionEntry = true;
+        this._addCollisionToSection(collider);
+      }
+    } else if (objectDef.type === padType) {
+      const padW = objectDef.gridW * a;
+      const padH = objectDef.gridH * a;
+      const padObj = new Collider(jumpPadType, worldX, worldY, padW, padH, levelObj.rot || 0);
+      padObj.padId = levelObj.id;
+      registerCollider(padObj);
+      this.objects.push(padObj);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(padObj);
+    } else if (objectDef.type === ringType) {
+      const orbW = objectDef.gridW * a;
+      const orbH = objectDef.gridH * a;
+      const orbObj = new Collider(jumpRingType, worldX, worldY, orbW, orbH, levelObj.rot || 0);
+      orbObj.orbId = levelObj.id;
+      orbObj.orbRotation = levelObj.rot || 0;
+      orbObj._dashHoldTicks = 0;
+      registerCollider(orbObj);
+      this.objects.push(orbObj);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(orbObj);
+    } else if (objectDef.type === coinType) {
+      const coinW = (objectDef.gridW || 1) * a;
+      const coinH = (objectDef.gridH || 1) * a;
+      const coinObj = new Collider(coinType, worldX, worldY, coinW, coinH, levelObj.rot || 0);
+      coinObj.coinId = levelObj.id;
+      registerCollider(coinObj);
+      this.objects.push(coinObj);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(coinObj);
+    } else if (objectDef.type === speedType) {
+      const speedW = (objectDef.gridW || 1) * a;
+      const speedH = (objectDef.gridH || 1) * a;
+      const speedObj = new Collider(speedType, worldX, worldY, speedW, speedH, levelObj.rot || 0);
+      speedObj.portalY = worldY;
+
+      const speedMap = {
+        200: SpeedPortal.HALF,
+        201: SpeedPortal.ONE_TIMES,
+        202: SpeedPortal.TWO_TIMES,
+        203: SpeedPortal.THREE_TIMES,
+        1334: SpeedPortal.FOUR_TIMES
+      };
+
+      speedObj.speedValue = speedMap[levelObj.id] ?? SpeedPortal.ONE_TIMES;
+      speedObj.speedId = levelObj.id;
+      registerCollider(speedObj);
+      this.objects.push(speedObj);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(speedObj);
+    }
+
+    if (!hasCollisionEntry) {
+      this.objects.push({
+        type: objectDef.type || decoType,
+        activated: false,
+        x: 0,
+        y: 0
+      });
+    }
+  }
+
+  return objectDef;
+}
+
+  _spawnLevelObjects(_0x35f1ae) {
+    const unknownObjectIds = new Set();
+    this._lastObjectX = 0;
+    this._nextObjectId = 0;
+
+    for (const levelObj of _0x35f1ae) {
+      const objectDef = this._spawnObject(levelObj);
+      if (!objectDef) {
+        unknownObjectIds.add(levelObj.id);
       }
     }
     _0x443c50.size;
@@ -2023,6 +2445,9 @@ window.LevelObject = class LevelObject {
   }
   resetObjects() {
     for (let _0x3d473e of this.objects) {
+      if (!_0x3d473e) {
+        continue;
+      }
       _0x3d473e.activated = false;
       if (_0x3d473e._dashHoldTicks !== undefined) {
         _0x3d473e._dashHoldTicks = 0;
