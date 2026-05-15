@@ -2483,13 +2483,30 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       } else {
         if (ptr.x >= cardX - cardW/2 && ptr.x <= cardX + cardW/2 &&
             ptr.y >= cardY - cardH/2 && ptr.y <= cardY + cardH/2) {
+          this.input.enabled = false;
+          const lvl = window.currentlevel; 
+          const songID = lvl[0];
+          const levelFileName = lvl[2];
+          const songFileName = lvl[4] ? lvl[4] : lvl[1].replaceAll(" ", "");
+          const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Downloading Level Assets...", 20).setOrigin(0.5).setDepth(200);
+          
+          this.load.text(levelFileName, "assets/levels/" + levelFileName.split("_")[1] + ".txt");
+          this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
+
+          this.load.once("complete", () => {
+            loadingText.destroy();
+            this._audio.playEffect("playSound_01", { volume: 1 });
+            this._closeLevelSelect(true);
+            this._audio.stopMusic();
+            this.input.enabled = true;
+            this.game.registry.set("autoStartGame", true);
+            this.scene.restart();
+          });
+          this.load.start();
+
           this.tweens.killTweensOf(cardBounceContainer, "scale");
           cardBounceContainer.setScale(1);
-          this._audio.playEffect("playSound_01", { volume: 1 });
-          this._closeLevelSelect(true);
-          this._audio.stopMusic();
-          this.game.registry.set("autoStartGame", true);
-          this.scene.restart();
+
         } else {
           this.tweens.killTweensOf(cardBounceContainer, "scale");
           this.tweens.add({ targets: cardBounceContainer, scale: 1, duration: 200, ease: "Quad.Out" });
@@ -4385,9 +4402,10 @@ _buildSettingsPopup() {
       this._state.mirrored = pos.mirrored;
       this._level.fastForwardTriggers(pos.x, this._colorManager);
     }
-
-    this._audio.reset();
-    this._audio.startMusic(musicOffset);
+    if (!this._practicedMode.practiceMode) {
+      this._audio.reset();
+      this._audio.startMusic(musicOffset);
+    }
     this._paused = false;
     if (this._pauseContainer) {
       this._pauseContainer.destroy();
@@ -4819,8 +4837,8 @@ _buildSettingsPopup() {
       }
       return;
     }
-    let _0x368ad9 = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
-    if (!this._updateLogPopup && _0x368ad9 && !this._spaceWasDown) {
+    let _0x368ad9 = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown;
+    if (!this._updateLogPopup && _0x368ad9 && (!this._spaceWasDown || !this._state.upKeyDown)) {
       this._pushButton();
     } else if (!_0x368ad9 && this._spaceWasDown) {
       this._releaseButton();
