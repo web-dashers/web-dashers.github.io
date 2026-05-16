@@ -2267,7 +2267,370 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       this._startGame();
     }
+    const pageUpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PAGE_UP);
+    pageUpKey.on("down", () => {
+      this.showPopup({
+        title: "Test Popup",
+        content: "im <cr>gay</c> i like <cy>femboys</c>\nthis is a test to see if <cg>newlines</c> work in this <co>fuckass</c> popup",
+        button1: "Confirm",
+        button2: "Cancel",
+        func1: () => console.log("Button 1 pressed"),
+        func2: null 
+      });
+    });
   }
+
+  closePopup() {
+    if (this._currentPopup) {
+      this._currentPopup.destroy();
+      this._currentPopup = null;
+    }
+  }
+
+  showPopup(options) {
+    this.closePopup();
+    // default values:
+    const {
+      title = "Popup", // title
+      content = "",    // content
+      button1 = "OK",  // button 1 text
+      button2 = null,  // button 2 text (leave blank if u dont want a button2)
+      func1 = null,    // function thats called when button1 is pressed (leave blank if you just want it to close the popup)
+      func2 = null,    // function thats called when button2 is pressed (leave blank if you just want it to close the popup)
+      type1 = 1,       // color of button 1, 1 = green, 2 = blue, 3 = pink, 4 = grey, 5 = dark grey, 6 = red
+      type2 = 1,       // color of button 2, 1 = green, 2 = blue, 3 = pink, 4 = grey, 5 = dark grey, 6 = red
+      width = 450,     // width (minimum 450)
+      height = 300     // height (minimum 300)
+    } = options;
+
+    const sw = screenWidth;
+    const sh = screenHeight;
+    const popupWidth = Math.max(450, width);
+    const popupHeight = Math.max(300, height);
+    const centerX = sw / 2;
+    const centerY = sh / 2;
+
+    const mainContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(300);
+    this._currentPopup = mainContainer;
+
+    const background = this.add.rectangle(centerX, centerY, sw, sh, 0, 100 / 255);
+    background.setInteractive();
+    mainContainer.add(background);
+
+    const bounceContainer = this.add.container(centerX, centerY).setScale(0);
+    mainContainer.add(bounceContainer);
+
+    const cornerRadius = this.textures.get("square01_001").source[0].width * 0.325;
+    const panelBg = this._drawScale9(0, 0, popupWidth, popupHeight, "square01_001", cornerRadius, 16777215, 1);
+    bounceContainer.add(panelBg);
+
+    const titleText = this.add.bitmapText(0, -(popupHeight / 2 - 50), "goldFont", title, 45)
+      .setOrigin(0.5, 0.5);
+    bounceContainer.add(titleText);
+
+    const wrapWidth = popupWidth - 80;
+    const fontSize = 22;
+    const lineHeight = Math.round(fontSize * 1.25);
+    const baseStyle = { fontSize: `${fontSize}px`, fontFamily: "Helvetica, Arial, sans-serif", color: "#ffffff" };
+
+    const tagMap = {
+      "b": "#4A52E1",
+      "g": "#40E348",
+      "l": "#60ABEF",
+      "j": "#32C8FF",
+      "y": "#FFFF00",
+      "o": "#FF5A4B",
+      "r": "#FF5A5A",
+      "p": "#FF00FF",
+      "a": "#9632FF",
+      "d": "#FF96FF",
+      "c": "#FFFF96",
+      "f": "#96FFFF",
+      "s": "#FFDC41",
+      "":  "#FF0000"
+    };
+
+    const segments = [];
+    let remaining = content || "";
+    const openTagRe = /<c([a-z]{0,2})>/i;
+    while (remaining.length) {
+      const m = remaining.match(openTagRe);
+      if (!m) {
+        segments.push({ text: remaining, color: baseStyle.color });
+        break;
+      }
+      const idx = m.index;
+      if (idx > 0) {
+        segments.push({ text: remaining.slice(0, idx), color: baseStyle.color });
+      }
+      const tagName = (m[1] || "").toLowerCase();
+      const start = idx + m[0].length;
+      const endTag = remaining.indexOf("</c>", start);
+      const inner = endTag === -1 ? remaining.slice(start) : remaining.slice(start, endTag);
+      const color = tagMap.hasOwnProperty(tagName) ? tagMap[tagName] : baseStyle.color;
+      segments.push({ text: inner, color });
+      if (endTag === -1) break;
+      remaining = remaining.slice(endTag + 4);
+    }
+
+    const tokens = [];
+    segments.forEach(seg => {
+      const parts = seg.text.split(/(\n|\s+)/);
+      parts.forEach(p => {
+        if (!p) return;
+        tokens.push({ text: p, color: seg.color });
+      });
+    });
+
+    const lines = [];
+    let currentLine = [];
+    let currentText = "";
+    const measurer = this.add.text(0, 0, "", baseStyle).setVisible(false);
+
+    const pushCurrentLine = () => {
+      if (currentLine.length) {
+        lines.push(currentLine);
+        currentLine = [];
+        currentText = "";
+      }
+    };
+
+    const splitLongToken = (tok) => {
+      const parts = [];
+      let s = tok.text;
+      while (s.length) {
+        // find max prefix that fits
+        let fit = 0;
+        for (let i = 1; i <= s.length; i++) {
+          measurer.setText(s.slice(0, i));
+          if (measurer.width <= wrapWidth) fit = i; else break;
+        }
+        if (fit === 0) fit = 1; // at least one char
+        parts.push({ text: s.slice(0, fit), color: tok.color });
+        s = s.slice(fit);
+      }
+      return parts;
+    };
+
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      // explicit newline token
+      if (t.text === "\n") {
+        pushCurrentLine();
+        continue;
+      }
+
+      // if token is purely whitespace, treat normally but allow it to cause wrap
+      if (/^\s+$/.test(t.text)) {
+        const candidate = currentText + t.text;
+        measurer.setText(candidate);
+        if (measurer.width > wrapWidth && currentLine.length > 0) {
+          pushCurrentLine();
+        } else {
+          currentLine.push(t);
+          currentText = candidate;
+        }
+        continue;
+      }
+
+      // token contains visible characters; if it's wider than wrapWidth on its own, split it
+      measurer.setText(t.text);
+      if (measurer.width > wrapWidth) {
+        // if current line has content, push it first
+        if (currentLine.length > 0) pushCurrentLine();
+        const pieces = splitLongToken(t);
+        for (let pi = 0; pi < pieces.length; pi++) {
+          const piece = pieces[pi];
+          currentLine.push(piece);
+          currentText += piece.text;
+          // if piece doesn't fit further (shouldn't), push line
+          measurer.setText(currentText);
+          if (measurer.width >= wrapWidth) {
+            pushCurrentLine();
+          }
+        }
+        continue;
+      }
+
+      // normal token: see if adding it would overflow
+      const candidate = currentText + t.text;
+      measurer.setText(candidate);
+      if (measurer.width > wrapWidth && currentLine.length > 0) {
+        pushCurrentLine();
+        currentLine.push(t);
+        currentText = t.text;
+      } else {
+        currentLine.push(t);
+        currentText = candidate;
+      }
+    }
+    if (currentLine.length) lines.push(currentLine);
+    measurer.destroy();
+
+    const contentContainer = this.add.container(0, -10);
+    const totalHeight = lines.length * lineHeight;
+    let yOffset = - (totalHeight / 2) + (lineHeight / 2);
+    for (let li = 0; li < lines.length; li++) {
+      const line = lines[li];
+      // measure line width
+      const tmp = this.add.text(0, 0, line.map(s => s.text).join(''), baseStyle).setVisible(false);
+      const lineW = tmp.width;
+      tmp.destroy();
+      const startX = -lineW / 2;
+      const lineGroup = this.add.container(startX, yOffset);
+      // place segments by accumulating x; avoid using container.width which is unreliable
+      let childX = 0;
+      for (let si = 0; si < line.length; si++) {
+        const seg = line[si];
+        const txt = this.add.text(childX, 0, seg.text, { fontSize: baseStyle.fontSize, fontFamily: baseStyle.fontFamily, color: seg.color }).setOrigin(0, 0.5);
+        lineGroup.add(txt);
+        childX += txt.width;
+      }
+      contentContainer.add(lineGroup);
+      yOffset += lineHeight;
+    }
+    bounceContainer.add(contentContainer);
+
+    const buttonHeight = 60;
+    const baseButtonWidth = 160;
+
+    const _btnTexKey = (type) => {
+      const key = "GJ_button" + String(type).padStart(2, "0");
+      return this.textures.exists(key) ? key : "GJ_button01";
+    };
+    const btn1Tex = _btnTexKey(type1);
+    const btn2Tex = _btnTexKey(type2);
+
+    const button1Label = this.add.bitmapText(0, -2, "goldFont", button1, 36).setOrigin(0.5, 0.5);
+    const measured1 = Math.round(button1Label.width || 0);
+    const btn1W = Math.max(baseButtonWidth, measured1 + 48);
+
+    let measured2 = 0;
+    let btn2W = 0;
+    if (button2) {
+      const tmpLabel = this.add.bitmapText(0, -2, "goldFont", button2, 36).setOrigin(0.5, 0.5).setVisible(false);
+      measured2 = Math.round(tmpLabel.width || 0);
+      btn2W = Math.max(baseButtonWidth, measured2 + 48);
+      tmpLabel.destroy();
+    }
+
+    const buttonY = popupHeight / 2 - 60;
+    let button1X = 0;
+    let button2X = 0;
+    if (button2) {
+      const spacing = 20;
+      const total = btn1W + btn2W + spacing;
+      button1X = - (total / 2) + (btn1W / 2);
+      button2X = (total / 2) - (btn2W / 2);
+    } else {
+      button1X = 0;
+    }
+
+    const button1Group = this.add.container(button1X, buttonY);
+    const btn1Border = this.textures.get(btn1Tex).source[0].width * 0.3;
+    const button1Bg = this._drawScale9(0, 0, btn1W, buttonHeight, btn1Tex, btn1Border, 0xffffff, 1);
+    const button1Hit = this.add.rectangle(0, 0, btn1W, buttonHeight).setInteractive();
+
+    button1Group.add(button1Bg);
+    button1Group.add(button1Hit);
+    button1Group.add(button1Label);
+    bounceContainer.add(button1Group);
+
+    button1Hit.on("pointerdown", () => {
+      button1Group._pressed = true;
+      this.tweens.killTweensOf(button1Group);
+      this.tweens.add({
+        targets: button1Group,
+        scaleX: 1.15,
+        scaleY: 1.15,
+        duration: 300,
+        ease: "Bounce.Out"
+      });
+    });
+
+    button1Hit.on("pointerout", () => {
+      if (button1Group._pressed) {
+        button1Group._pressed = false;
+        this.tweens.killTweensOf(button1Group);
+        this.tweens.add({
+          targets: button1Group,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 400,
+          ease: "Bounce.Out"
+        });
+      }
+    });
+
+    button1Hit.on("pointerup", () => {
+      if (!button1Group._pressed) return;
+      button1Group._pressed = false;
+      this.tweens.killTweensOf(button1Group);
+      button1Group.setScale(1);
+      this.closePopup();
+      if (func1) func1();
+    });
+
+    if (button2) {
+      const button2Label = this.add.bitmapText(0, -2, "goldFont", button2, 36).setOrigin(0.5, 0.5);
+      const measured2 = Math.round(button2Label.width || 0);
+      const btn2W = Math.max(baseButtonWidth, measured2 + 48);
+
+      const button2Group = this.add.container(button2X, buttonY);
+      const btn2Border = this.textures.get(btn2Tex).source[0].width * 0.3;
+      const button2Bg = this._drawScale9(0, 0, btn2W, buttonHeight, btn2Tex, btn2Border, 0xffffff, 1);
+      const button2Hit = this.add.rectangle(0, 0, btn2W, buttonHeight).setInteractive();
+
+      button2Group.add(button2Bg);
+      button2Group.add(button2Hit);
+      button2Group.add(button2Label);
+      bounceContainer.add(button2Group);
+
+      button2Hit.on("pointerdown", () => {
+        button2Group._pressed = true;
+        this.tweens.killTweensOf(button2Group);
+        this.tweens.add({
+          targets: button2Group,
+          scaleX: 1.15,
+          scaleY: 1.15,
+          duration: 300,
+          ease: "Bounce.Out"
+        });
+      });
+
+      button2Hit.on("pointerout", () => {
+        if (button2Group._pressed) {
+          button2Group._pressed = false;
+          this.tweens.killTweensOf(button2Group);
+          this.tweens.add({
+            targets: button2Group,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 400,
+            ease: "Bounce.Out"
+          });
+        }
+      });
+
+      button2Hit.on("pointerup", () => {
+        if (!button2Group._pressed) return;
+        button2Group._pressed = false;
+        this.tweens.killTweensOf(button2Group);
+        button2Group.setScale(1);
+        this.closePopup();
+        if (func2) func2();
+      });
+    }
+
+    // Bounce in animation
+    this.tweens.add({
+      targets: bounceContainer,
+      scale: { from: 0, to: 1 },
+      duration: 500,
+      ease: "Bounce.Out"
+    });
+  }
+
   _parseLevelColors(levelId) {
     const LEVEL_COLORS = [
       0x0100f5,0xf902f8,0xf90285,0xfa0102,
@@ -6952,7 +7315,15 @@ _applyMirrorEffect() {
         if (hitZone._pressed) {
           hitZone._pressed = false;
           this.tweens.killTweensOf(grp, "scale");
-          this.tweens.add({ targets: grp, scale: 1, duration: 400, ease: "Bounce.Out", onComplete: () => action() });
+          this.tweens.add({
+            targets: grp,
+            scale: 1,
+            duration: 400,
+            ease: "Bounce.Out",
+            onComplete: () => {
+              this.time.delayedCall(0, () => action());
+            }
+          });
         }
       });
     }
@@ -6996,6 +7367,7 @@ _applyMirrorEffect() {
     this._clearAccountUI();
     this._accountUIElements = [];
     this._moreMenuOpen = true;
+    const user = window.AccountAPI && window.AccountAPI.currentUser;
     const cX = screenWidth / 2;
     const _sBtnW = 310;
     const _sGap = 14;
@@ -7006,9 +7378,45 @@ _applyMirrorEffect() {
     const moreY2 = Math.round(containerTop + settingsRectHeight * 0.50);
     const moreY3 = Math.round(containerTop + settingsRectHeight * 0.73);
 
+    const openUnlinkPopup2 = () => {
+      this.showPopup({
+        title: "Warning",
+        content: "This will <cr>delete</c> ALL <cl>save data</c>.\nDo you want to continue?\n<cy>You cannot undo this action.</c>",
+        button1: "Cancel",
+        button2: "DELETE",
+        func2: () => {
+          this._doUnlinkAccount();
+        },
+        func1: () => {
+          openUnlinkPopup1();
+        },
+        type1: 1,
+        type2: 6,
+        width: 520,
+        height: 340
+      });
+    };
+
+    const openUnlinkPopup1 = () => {
+      this.showPopup({
+        title: "Unlink Account",
+        content: "Are you sure you want to <cg>unlink</c> from the account <cl>" + user.username + "</c>? <cy>Unlinking will delete all browser data from this device.</c>",
+        button1: "Cancel",
+        button2: "Unlink",
+        func2: () => {
+          openUnlinkPopup2();
+        },
+        func1: null,
+        type1: 1,
+        type2: 4,
+        width: 520,
+        height: 340
+      });
+    };
+
     this._makeAccBtn(cX, moreY1, "Refresh Login", _sBtnW, false, null);
     this._makeAccBtn(cX, moreY2, "Manage Account", _sBtnW, false, null);
-    this._makeAccBtn(cX, moreY3, "Unlink Account", _sBtnW, true, () => this._doLogout());
+    this._makeAccBtn(cX, moreY3, "Unlink Account", _sBtnW, true, () => openUnlinkPopup1());
   }
 
   _showAccountNotice(msg, color) {
@@ -7049,6 +7457,19 @@ _applyMirrorEffect() {
     this._clearAccountUI();
     this._accountUIElements = [];
     this._buildAccountUI();
+  }
+
+  async _doUnlinkAccount() {
+    try {
+      await window.AccountAPI.unlinkAccount();
+      this._showAccountNotice('Account unlinked', 0x44dd44);
+    } catch (e) {
+      this._showAccountNotice(e.message || 'Unlink failed', 0xff5555);
+    }
+
+    this.time.delayedCall(250, () => {
+      window.location.reload();
+    });
   }
 
   _showAccountForm(type) {
@@ -7250,8 +7671,8 @@ _applyMirrorEffect() {
     if (isLogin) {
       const forgotWrap = document.createElement('div');
       forgotWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;margin:6px 0 12px;';
-      forgotWrap.appendChild(_makeBtn('Forgot Username', 'GJ_button_03.png', null, true));
-      forgotWrap.appendChild(_makeBtn('Forgot Password', 'GJ_button_03.png', null, true));
+      forgotWrap.appendChild(_makeBtn('Forgot Username', 'GJ_button_05.png', null, true));
+      forgotWrap.appendChild(_makeBtn('Forgot Password', 'GJ_button_05.png', null, true));
       panel.appendChild(forgotWrap);
     }
 

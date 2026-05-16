@@ -53,6 +53,49 @@ window.AccountAPI = {
     this.currentUser = null;
   },
 
+  clearClientData() {
+    try {
+      const keys = [
+        'gd_settings', 'gd_totalAttempts', 'gd_totalJumps', 'gd_totalDeaths',
+        'gd_completedLevels', 'created_levels', 'iconMainColor', 'iconSecondaryColor',
+        'iconCurrentPlayer', 'iconCurrentShip', 'iconCurrentBall', 'iconCurrentWave',
+        'iconCurrentSpider', 'iconCurrentBird', 'userMusicVol', 'userSfxVol',
+        'menuMusicEnabled',
+      ];
+      for (const key of keys) {
+        localStorage.removeItem(key);
+      }
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('bestPercent_') || key.startsWith('practiceBestPercent_'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {}
+
+    try {
+      sessionStorage.clear();
+    } catch {}
+
+    try {
+      const cookies = document.cookie ? document.cookie.split(';') : [];
+      for (const cookie of cookies) {
+        const eqIndex = cookie.indexOf('=');
+        const name = (eqIndex >= 0 ? cookie.slice(0, eqIndex) : cookie).trim();
+        if (!name) continue;
+        const expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        const path = 'path=/';
+        document.cookie = `${name}=; ${expires}; ${path}`;
+        document.cookie = `${name}=; ${expires}; ${path}; domain=${location.hostname}`;
+      }
+    } catch {}
+  },
+
+  async unlinkAccount() {
+    await this.logout();
+    this.clearClientData();
+  },
+
   async getCloudSave() {
     const res = await fetch(this._url('/api/saves'), { credentials: 'include' });
     const data = await res.json();
