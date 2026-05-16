@@ -269,6 +269,29 @@ class BootScene extends Phaser.Scene {
       this.load.image("GJ_moveBtn", "assets/sprites/GJ_moveBtn.png");
       this.load.image("GJ_moveSBtn", "assets/sprites/GJ_moveSBtn.png");
       this.load.image("slidergroove2", "assets/sprites/slidergroove2.png");
+      // Geode assets
+      this.load.image("geode-logo-outline-gold", "assets/geode/geode-logo-outline-gold.png");
+      this.load.image("geode-circle", "assets/geode/geode-circle.png");
+      this.load.image("baseCircle_MediumAlt_Green", "assets/geode/baseCircle_MediumAlt_Green.png");
+      this.load.image("mods-list-top-gd", "assets/geode/mods-list-top-gd.png");
+      this.load.image("mods-list-bottom-gd", "assets/geode/mods-list-bottom-gd.png");
+      this.load.image("mods-list-side-gd", "assets/geode/mods-list-side-gd.png");
+      this.load.image("mods-list-top", "assets/geode/mods-list-top.png");
+      this.load.image("mods-list-bottom", "assets/geode/mods-list-bottom.png");
+      this.load.image("mods-list-side", "assets/geode/mods-list-side.png");
+      this.load.image("GE_square01", "assets/geode/GE_square01.png");
+      this.load.image("GE_square02", "assets/geode/GE_square02.png");
+      this.load.image("GE_square03", "assets/geode/GE_square03.png");
+      this.load.image("geode-tab-bg", "assets/geode/tab-bg.png");
+      this.load.image("geode-download", "assets/geode/download.png");
+      this.load.image("geode-globe", "assets/geode/globe.png");
+      this.load.image("geode-search", "assets/geode/search.png");
+      this.load.image("geode-settings", "assets/geode/settings.png");
+      this.load.image("geode-reload", "assets/geode/reload.png");
+      this.load.image("swelve-layer0", "assets/geode/swelve-layer0.png");
+      this.load.image("swelve-layer1", "assets/geode/swelve-layer1.png");
+      this.load.image("swelve-layer2", "assets/geode/swelve-layer2.png");
+      this.load.image("swelve-layer3", "assets/geode/swelve-layer3.png");
 
       for (let i = 1; i < 23; i++) {
         let index = i - 1;
