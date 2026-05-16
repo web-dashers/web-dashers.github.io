@@ -2267,18 +2267,18 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       this._startGame();
     }
-    const pageUpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PAGE_UP);
-    pageUpKey.on("down", () => {
+      const pageUpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PAGE_UP);
+    /*pageUpKey.on("down", () => {
       this.showPopup({
         title: "Test Popup",
-        content: "im <cr>gay</c> i like <cy>femboys</c>\nthis is a test to see if <cg>newlines</c> work in this <co>fuckass</c> popup",
+        content: "im <cr>gay</c> i like <cy>femboys</c>\nthis is a test to see if <cg>newlines</c> work in this <co>fuckass</c> popup\n why would you un-comment this out i hate you",
         button1: "Confirm",
         button2: "Cancel",
         func1: () => console.log("Button 1 pressed"),
         func2: null 
       });
-    });
-  }
+    }); */
+  } 
 
   closePopup() {
     if (this._currentPopup) {
