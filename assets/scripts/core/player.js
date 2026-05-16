@@ -2050,6 +2050,12 @@ _updateWaveJump() {
             this._playPortalShine(gameObj, 2);
             this.flipGravity(true, 0.5);
           }
+        } else if (_colType === "portal_gravity_toggle") {
+          if (!gameObj.activated) {
+            gameObj.activated = true;
+            this._playPortalShine(gameObj, 2);
+            this.flipGravity(!this.p.gravityFlipped, 0.5);
+          }
         } else if (_colType === "portal_mirror_on") {
           if (!gameObj.activated) {
             gameObj.activated = true;
@@ -2608,7 +2614,7 @@ _updateWaveJump() {
         hitboxColor = 16729156;
       } else if (nearObject.type === "portal_fly" || nearObject.type === "portal_cube" || nearObject.type === "portal_ball" || nearObject.type === portalWaveType || nearObject.type === portalUfoType) {
         hitboxColor = 4491519;
-      } else if (nearObject.type === "portal_gravity_down" || nearObject.type === "portal_gravity_up") {
+      } else if (nearObject.type === "portal_gravity_down" || nearObject.type === "portal_gravity_up" || nearObject.type === "portal_gravity_toggle") {
         hitboxColor = 16776960;
       } else if (nearObject.type === "portal_mirror_on" || nearObject.type === "portal_mirror_off") {
         hitboxColor = 16744448;
