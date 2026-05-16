@@ -1322,12 +1322,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._searchOverlayObjects.push(loadingBg, loadingText);
         _doSearchInner(window.levelID);
       }
-      htmlInput.addEventListener("keydown", (e) => {
+      window.addEventListener("keydown", (e) => {
         if (e.key === "Enter") _doSearch();
         e.stopPropagation();
       });
-      htmlInput.addEventListener("keyup", (e) => e.stopPropagation());
-      htmlInput.addEventListener("keypress", (e) => e.stopPropagation());
+      window.addEventListener("keyup", (e) => e.stopPropagation());
+      window.addEventListener("keypress", (e) => e.stopPropagation());
       this._searchHtmlInput = htmlInput;
       this._searchInputResizeFn = _repositionInput;
     };
