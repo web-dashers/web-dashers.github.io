@@ -1,4 +1,5 @@
 .DS_Store
-server.js
 /.claude
-.gitignore
+/node_modules
+/server.js
+*.env*
