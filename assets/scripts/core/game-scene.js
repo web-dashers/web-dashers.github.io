@@ -1360,17 +1360,17 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           window._onlineSongKey    = null;
           window._onlineSongArtist = null;
         }
-        window._onlineLevelString = levelString;
-        window._onlineLevelName   = levelName;
-        window._onlineLevelId     = "online_" + levelIdParsed;
+        window._onlineLevelString = levelData.string;
+        window._onlineLevelName   = levelData.title;
+        window._onlineLevelId     = "online_" + levelData.id;
         this.game.registry.set("autoStartGame", true);
         window.currentlevel = [
           songKey,
-          levelName,
+          window._onlineLevelName,
           window._onlineLevelId,
           [window._onlineSongArtist || "Unknown"]
         ];
-        _showStatus(`loading string for "${levelName}"`, "#00ff00");
+        _showStatus(`loading string for "${window._onlineLevelName}"`, "#00ff00");
         this.time.delayedCall(600, () => {
           htmlInput.remove();
           window.removeEventListener("resize", _repositionInput);
