@@ -411,20 +411,32 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             this._openEditorMenu();
           }, () => true);
         } else if (isDailyButton) {
+          btn.disableInteractive();
+          btn.setTint(0x666666);
+          /*
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
             this._openDailyLevelScene(0);
           }, () => true);
+          */
         } else if (isWeeklyButton) {
+          btn.disableInteractive();
+          btn.setTint(0x666666);
+          /*
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
             this._openDailyLevelScene(1);
           }, () => true);
+          */
         } else if (isEventButton) {
+          btn.disableInteractive();
+          btn.setTint(0x666666);
+          /*
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
             this._openDailyLevelScene(2);
           }, () => true);
+          */
         } else {
           btn.setTint(0x666666);
         }
@@ -3744,7 +3756,7 @@ _buildSettingsPopup() {
       { text: "breadbb, PinkDev, rohanis0000,", scale: 0.7, font: "goldFont" },
       { text: "bog, AntiMatter, arbstro, aloaf", scale: 0.7, font: "goldFont" },
       { text: "Contributors:", scale: 0.9, font: "bigFont" },
-      { text: "t0nchi7 and Lasokar.", scale: 0.7, font: "goldFont" },
+      { text: "t0nchi7, Itzar, and Lasokar.", scale: 0.7, font: "goldFont" },
       { text: "© 2026 RobTop Games. All rights reserved.", scale: 0.4, font: "Arial", color: 0x000000 },
     ]; 
     let yPos = 0;
@@ -7591,31 +7603,27 @@ _applyMirrorEffect() {
   _buildAccountUI() {
     const cX = screenWidth / 2;
     const _sBtnW = 310;
-    const _sGap = 18;
-    const _sColL = cX - _sBtnW / 2 - _sGap / 2;
-    const _sColR = cX + _sBtnW / 2 + _sGap / 2;
 
     const user = window.AccountAPI && window.AccountAPI.currentUser;
+    const settingsRectCenterY = 310;
+    const settingsRectHeight = 460;
+    const containerTop = settingsRectCenterY - settingsRectHeight / 2;
+    const aBtnY1 = Math.round(containerTop + settingsRectHeight * 0.27);
+    const aBtnY2 = Math.round(containerTop + settingsRectHeight * 0.50);
+    const aBtnY3 = Math.round(containerTop + settingsRectHeight * 0.73);
 
     if (user) {
       const nameLabel = this.add.bitmapText(cX, 110, "bigFont", "Currently signed in as: " + user.username, 32).setOrigin(0.5, 0.5);
       this._settingsLayerInternal.add(nameLabel);
       this._accountUIElements.push(nameLabel);
 
-      const settingsRectCenterY = 310;
-      const settingsRectHeight = 460;
-      const containerTop = settingsRectCenterY - settingsRectHeight / 2;
-      const aBtnY1 = Math.round(containerTop + settingsRectHeight * 0.27);
-      const aBtnY2 = Math.round(containerTop + settingsRectHeight * 0.50);
-      const aBtnY3 = Math.round(containerTop + settingsRectHeight * 0.73);
-
       this._makeAccBtn(cX, aBtnY1, "Save", _sBtnW, true, () => this._doCloudSave());
       this._makeAccBtn(cX, aBtnY2, "Load", _sBtnW, true, () => this._doCloudLoad());
       this._makeAccBtn(cX, aBtnY3, "More", _sBtnW, true, () => this._openMoreMenu());
     } else {
-      this._makeAccBtn(cX,     150, "Login",    _sBtnW, true,  () => this._showAccountForm('login'));
-      this._makeAccBtn(cX,     310, "Help",     _sBtnW, false, null);
-      this._makeAccBtn(cX,     470, "Register", _sBtnW, true,  () => this._showAccountForm('register'));
+      this._makeAccBtn(cX, aBtnY1, "Login",    _sBtnW, true,  () => this._showAccountForm('login'));
+      this._makeAccBtn(cX, aBtnY2, "Help",     _sBtnW, false, null);
+      this._makeAccBtn(cX, aBtnY3, "Register", _sBtnW, true,  () => this._showAccountForm('register'));
     }
   }
 
@@ -7626,7 +7634,6 @@ _applyMirrorEffect() {
     const user = window.AccountAPI && window.AccountAPI.currentUser;
     const cX = screenWidth / 2;
     const _sBtnW = 310;
-    const _sGap = 14;
     const settingsRectCenterY = 310;
     const settingsRectHeight = 460;
     const containerTop = settingsRectCenterY - settingsRectHeight / 2;
@@ -7724,7 +7731,9 @@ _applyMirrorEffect() {
     }
 
     this.time.delayedCall(250, () => {
-      window.location.reload();
+      this._clearAccountUI();
+      this._accountUIElements = [];
+      this._buildAccountUI();
     });
   }
 
@@ -7765,13 +7774,15 @@ _applyMirrorEffect() {
         const chars = fc.data.chars;
         const lineH = fc.data.lineHeight;
         const fontImg = this.textures.get(fontKey).source[0].image;
-        let totalW = 0;
+        let cx = 0, maxRight = 0;
         for (let i = 0; i < text.length; i++) {
           const cd = chars[text.charCodeAt(i)];
-          totalW += (cd ? cd.xAdvance : 10) * scale;
+          if (cd && cd.width > 0) maxRight = Math.max(maxRight, cx + (cd.xOffset + cd.width) * scale);
+          cx += (cd ? cd.xAdvance : 10) * scale;
         }
+        const canvasW = Math.max(1, Math.ceil(Math.max(cx, maxRight)));
         const c = document.createElement('canvas');
-        c.width = Math.max(1, Math.ceil(totalW));
+        c.width = canvasW;
         c.height = Math.max(1, Math.ceil(lineH * scale));
         c.style.cssText = 'display:block;image-rendering:pixelated;flex-shrink:0;';
         const ctx = c.getContext('2d');
@@ -7819,11 +7830,11 @@ _applyMirrorEffect() {
     const _makeLabel = (text) => {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'margin-bottom:5px;';
-      const c = _drawBitmapText(text, 'bigFont', 0.38);
+      const c = _drawBitmapText(text, 'bigFont', 0.48);
       if (c) { wrap.appendChild(c); }
       else {
         const s = document.createElement('span');
-        s.style.cssText = 'color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:bold;';
+        s.style.cssText = 'color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:17px;font-weight:bold;';
         s.textContent = text;
         wrap.appendChild(s);
       }
@@ -7835,53 +7846,181 @@ _applyMirrorEffect() {
       wrapper.style.cssText = 'position:relative;width:100%;margin-bottom:8px;';
 
       const box = document.createElement('div');
-      box.style.cssText = 'position:relative;width:100%;height:62px;background:rgba(0,0,0,0.35);border-radius:10px;';
+      box.style.cssText = 'position:relative;width:100%;height:72px;background:rgba(0,0,0,0.35);border-radius:10px;';
 
       const phWrap = document.createElement('div');
       phWrap.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;transition:opacity 0.1s;';
-      const phCanvas = _drawTinted(phText, 'bigFont', 0.42, '#5bbce4');
-      if (phCanvas) phWrap.appendChild(phCanvas);
+      const phCanvas = _drawTinted(phText, 'bigFont', 0.56, '#5bbce4');
+      if (phCanvas) { phCanvas.style.filter = 'drop-shadow(1px 1px 0px rgba(0,0,0,0.35))'; phWrap.appendChild(phCanvas); }
       box.appendChild(phWrap);
 
       const inp = document.createElement('input');
       inp.type = inputType;
       inp.autocomplete = autocompleteVal;
-      inp.style.cssText = 'position:absolute;inset:0;background:transparent;border:none;outline:none;color:#fff;font-size:18px;font-family:Pusab,Helvetica,Arial,sans-serif;text-align:center;padding:0 14px;box-sizing:border-box;caret-color:#fff;';
-
-      const sync = () => { phWrap.style.opacity = inp.value ? '0' : '1'; };
-      inp.addEventListener('input', sync);
-      inp.addEventListener('focus', () => { phWrap.style.opacity = '0'; });
-      inp.addEventListener('blur', sync);
-
+      inp.style.cssText = 'position:absolute;inset:0;background:transparent;border:none;outline:none;color:transparent;font-size:26px;font-family:Pusab,Helvetica,Arial,sans-serif;text-align:center;padding:0 14px;box-sizing:border-box;caret-color:#fff;';
       box.appendChild(inp);
+
+      const typedWrap = document.createElement('div');
+      typedWrap.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;';
+      box.appendChild(typedWrap);
+
+      let _typedCanvas = null;
+      const _renderTyped = () => {
+        if (_typedCanvas) { _typedCanvas.remove(); _typedCanvas = null; }
+        phWrap.style.opacity = inp.value ? '0' : '1';
+        if (!inp.value) return;
+        let c;
+        if (inputType === 'password') {
+          try {
+            const fc = this.cache.bitmapFont.get('bigFont');
+            const lineH = (fc && fc.data) ? fc.data.lineHeight : 32;
+            const scale = 0.56;
+            const dotR = Math.round(5 * scale);
+            const spacing = Math.round(18 * scale);
+            const totalW = Math.max(1, inp.value.length * spacing);
+            const h = Math.max(1, Math.ceil(lineH * scale));
+            c = document.createElement('canvas');
+            c.width = totalW; c.height = h;
+            c.style.cssText = 'display:block;image-rendering:pixelated;flex-shrink:0;';
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < inp.value.length; i++) {
+              ctx.beginPath();
+              ctx.arc(i * spacing + spacing / 2, h / 2, dotR, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } catch(_) {}
+        } else {
+          c = _drawTinted(inp.value, 'bigFont', 0.56, '#ffffff');
+        }
+        if (c) {
+          c.style.filter = 'drop-shadow(1px 1px 0px rgba(0,0,0,0.5))';
+          typedWrap.appendChild(c);
+          _typedCanvas = c;
+        }
+      };
+
+      inp.addEventListener('input', _renderTyped);
+      inp.addEventListener('focus', () => { phWrap.style.opacity = '0'; });
+      inp.addEventListener('blur', () => { phWrap.style.opacity = inp.value ? '0' : '1'; });
+
       wrapper.appendChild(box);
       return { wrapper, inp };
     };
 
-    const _makeBtn = (label, sprite, onClick, disabled = false) => {
+    const _drawBtnCanvas = (texKey, w, h, tint) => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.style.cssText = 'position:absolute;inset:0;image-rendering:pixelated;';
+      try {
+        const tex = this.textures.get(texKey);
+        const src = tex.source[0];
+        const img = src.image;
+        const iw = src.width, ih = src.height;
+        const b = Math.round(iw * 0.3);
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0,    0,    b,      b,      0,   0,   b,      b);
+        ctx.drawImage(img, iw-b, 0,    b,      b,      w-b, 0,   b,      b);
+        ctx.drawImage(img, 0,    ih-b, b,      b,      0,   h-b, b,      b);
+        ctx.drawImage(img, iw-b, ih-b, b,      b,      w-b, h-b, b,      b);
+        ctx.drawImage(img, b,    0,    iw-2*b, b,      b,   0,   w-2*b,  b);
+        ctx.drawImage(img, b,    ih-b, iw-2*b, b,      b,   h-b, w-2*b,  b);
+        ctx.drawImage(img, 0,    b,    b,      ih-2*b, 0,   b,   b,      h-2*b);
+        ctx.drawImage(img, iw-b, b,    b,      ih-2*b, w-b, b,   b,      h-2*b);
+        ctx.drawImage(img, b,    b,    iw-2*b, ih-2*b, b,   b,   w-2*b,  h-2*b);
+        if (tint) {
+          const tr = ((tint >> 16) & 0xff) / 255;
+          const tg = ((tint >>  8) & 0xff) / 255;
+          const tb = ( tint        & 0xff) / 255;
+          const id = ctx.getImageData(0, 0, w, h);
+          const d = id.data;
+          for (let i = 0; i < d.length; i += 4) {
+            d[i]   = Math.round(d[i]   * tr);
+            d[i+1] = Math.round(d[i+1] * tg);
+            d[i+2] = Math.round(d[i+2] * tb);
+          }
+          ctx.putImageData(id, 0, 0);
+        }
+      } catch(_) {}
+      return c;
+    };
+
+    const _bounceOut = t => {
+      const n1 = 7.5625, d1 = 2.75;
+      if (t < 1/d1) return n1*t*t;
+      if (t < 2/d1) return n1*(t -= 1.5/d1)*t + 0.75;
+      if (t < 2.5/d1) return n1*(t -= 2.25/d1)*t + 0.9375;
+      return n1*(t -= 2.625/d1)*t + 0.984375;
+    };
+
+    const _tweenBtnScale = (el, from, to, duration) => {
+      if (el._raf) { cancelAnimationFrame(el._raf); el._raf = null; }
+      const t0 = performance.now();
+      const tick = now => {
+        const p = Math.min(1, (now - t0) / duration);
+        el._scale = from + (to - from) * _bounceOut(p);
+        el.style.transform = `scale(${el._scale})`;
+        if (p < 1) el._raf = requestAnimationFrame(tick);
+        else el._raf = null;
+      };
+      el._raf = requestAnimationFrame(tick);
+    };
+
+    const _makeBtn = (label, texKey, onClick, disabled = false, primary = false) => {
+      const btnH = primary ? 90 : 60;
+      const textScale = primary ? 1.0 : 0.62;
+      const lbl = disabled
+        ? _drawTinted(label, 'goldFont', textScale, '#666666')
+        : _drawBitmapText(label, 'goldFont', textScale);
+      const lblW = lbl ? lbl.width : label.length * 10;
+      const btnW = Math.max(primary ? 210 : 130, lblW + (primary ? 96 : 60));
       const btn = document.createElement('button');
-      btn.className = '_gd-acc-btn';
       btn.disabled = disabled;
-      btn.style.cssText = `background:none;border:16px solid transparent;border-image:url('assets/sprites/${sprite}') 30% fill;padding:4px 20px;cursor:${disabled ? 'default' : 'pointer'};box-sizing:border-box;min-width:100px;display:inline-flex;align-items:center;justify-content:center;opacity:${disabled ? '0.6' : '1'};`;
-      const lbl = _drawBitmapText(label, 'goldFont', 0.44);
-      if (lbl) { btn.appendChild(lbl); }
-      else {
+      btn.style.cssText = `position:relative;background:none;border:none;padding:0;width:${btnW}px;height:${btnH}px;cursor:${disabled ? 'default' : 'pointer'};display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;transform-origin:center center;`;
+      btn.appendChild(_drawBtnCanvas(texKey, btnW, btnH, disabled ? 0x666666 : 0));
+      if (lbl) {
+        lbl.style.position = 'relative';
+        lbl.style.zIndex = '1';
+        btn.appendChild(lbl);
+      } else {
         const s = document.createElement('span');
-        s.style.cssText = 'color:#f0c040;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;';
+        s.style.cssText = `position:relative;z-index:1;color:${disabled ? '#666' : '#f0c040'};font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;`;
         s.textContent = label;
         btn.appendChild(s);
       }
-      if (!disabled && onClick) btn.onclick = onClick;
+      if (!disabled) {
+        btn._scale = 1;
+        btn._pressed = false;
+        btn.addEventListener('pointerdown', () => {
+          btn._pressed = true;
+          _tweenBtnScale(btn, btn._scale, 1.15, 300);
+        });
+        btn.addEventListener('pointerout', () => {
+          if (btn._pressed) {
+            btn._pressed = false;
+            _tweenBtnScale(btn, btn._scale, 1, 400);
+          }
+        });
+        btn.addEventListener('pointerup', () => {
+          if (!btn._pressed) return;
+          btn._pressed = false;
+          if (btn._raf) { cancelAnimationFrame(btn._raf); btn._raf = null; }
+          btn._scale = 1;
+          btn.style.transform = 'scale(1)';
+        });
+        if (onClick) btn.onclick = onClick;
+      }
       return btn;
     };
 
     const panel = document.createElement('div');
-    panel.style.cssText = `width:min(78vw,840px);max-height:90vh;overflow-y:auto;border:52px solid transparent;border-image:url('assets/sprites/GJ_square01.png') 32.5% fill;box-sizing:border-box;display:flex;flex-direction:column;`;
+    panel.style.cssText = `width:min(90vw,960px);padding:${isLogin ? '22px 60px 18px' : '0 60px'};border:52px solid transparent;border-image:url('assets/sprites/GJ_square01.png') 32.5% fill;box-sizing:border-box;display:flex;flex-direction:column;`;
 
     const titleWrap = document.createElement('div');
     titleWrap.style.cssText = 'display:flex;justify-content:center;margin-bottom:18px;';
     const titleText = isLogin ? 'Login' : 'Register Account';
-    const titleCanvas = _drawBitmapText(titleText, 'bigFont', 0.64);
+    const titleCanvas = _drawBitmapText(titleText, 'bigFont', 0.78);
     if (titleCanvas) { titleWrap.appendChild(titleCanvas); }
     else {
       const s = document.createElement('span');
@@ -7909,31 +8048,31 @@ _applyMirrorEffect() {
       confirmPasswordInput = cpInp;
       panel.appendChild(cpWrap);
 
-      panel.appendChild(_makeLabel('Email:'));
+      panel.appendChild(_makeLabel('Email: (optional)'));
       const { wrapper: eWrap, inp: eInp } = _makeInput('Email', 'email', 'email');
       emailInput = eInp;
       panel.appendChild(eWrap);
 
-      panel.appendChild(_makeLabel('Verify Email:'));
+      panel.appendChild(_makeLabel('Verify Email: (optional)'));
       const { wrapper: veWrap, inp: veInp } = _makeInput('Verify Email', 'email', 'email');
       verifyEmailInput = veInp;
       panel.appendChild(veWrap);
     }
 
     const errLabel = document.createElement('div');
-    errLabel.style.cssText = 'color:#ff6666;min-height:18px;margin:4px 0 6px;font-size:13px;font-family:Helvetica,Arial,sans-serif;text-align:center;';
+    errLabel.style.cssText = 'color:#ff6666;min-height:20px;margin:4px 0 6px;font-size:15px;font-family:Helvetica,Arial,sans-serif;text-align:center;';
     panel.appendChild(errLabel);
 
     if (isLogin) {
       const forgotWrap = document.createElement('div');
       forgotWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;margin:6px 0 12px;';
-      forgotWrap.appendChild(_makeBtn('Forgot Username', 'GJ_button_05.png', null, true));
-      forgotWrap.appendChild(_makeBtn('Forgot Password', 'GJ_button_05.png', null, true));
+      forgotWrap.appendChild(_makeBtn('Forgot Username', 'GJ_button05', null, true));
+      forgotWrap.appendChild(_makeBtn('Forgot Password', 'GJ_button05', null, true));
       panel.appendChild(forgotWrap);
     }
 
-    const submitBtn = _makeBtn(isLogin ? 'Login' : 'Submit', 'GJ_button_01.png', null);
-    const cancelBtn = _makeBtn('Cancel', 'GJ_button_01.png', close);
+    const submitBtn = _makeBtn(isLogin ? 'Login' : 'Submit', 'GJ_button01', null, false, true);
+    const cancelBtn = _makeBtn('Cancel', 'GJ_button01', close, false, true);
 
     const doSubmit = async () => {
       const username = usernameInput.value.trim();
@@ -7945,7 +8084,7 @@ _applyMirrorEffect() {
         if (email && email !== verifyEmailInput.value.trim()) { errLabel.textContent = 'Emails do not match'; return; }
       }
       submitBtn.disabled = true;
-      submitBtn.style.opacity = '0.6';
+      submitBtn.style.cursor = 'default';
       try {
         if (isLogin) {
           await window.AccountAPI.login(username, password);
@@ -7960,7 +8099,7 @@ _applyMirrorEffect() {
         errLabel.textContent = e.message || 'Something went wrong';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
       }
     };
 
@@ -8188,15 +8327,14 @@ _applyMirrorEffect() {
     const steps = 80;
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1);
-      const r = Math.round(0xB5 + (0xC2 - 0xB5) * t);
-      const g = Math.round(0x65 + (0x72 - 0x65) * t);
-      const b = Math.round(0x2E + (0x3E - 0x2E) * t);
+      const r = 0x00;
+      const g = Math.round(0x65 + (0x2E - 0x65) * t);
+      const b = Math.round(0xFD + (0x73 - 0xFD) * t);
       bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
-      const bandY = Math.floor(i * sh / steps);
-      const bandH = Math.ceil(sh / steps) + 1;
-      bgGfx.fillRect(0, bandY, sw, bandH);
+      bgGfx.fillRect(0, Math.floor(i * sh / steps), sw, Math.ceil(sh / steps) + 1);
     }
-    const panelW  = sw - 180;
+    objects.push(bgGfx);
+    const panelW  = sw - 425;
     const panelH  = 460;
     const panelCX = sw / 2;
     const panelCY = sh / 2;
@@ -8293,7 +8431,7 @@ _applyMirrorEffect() {
              panelCX, panelCY, addRow, clearRows, prevBtn, nextBtn,
              pageLbl, closeOverlay, redrawStripes: _redrawStripes };
   }
-  async _openDailyLevelScene(type) {
+  async _openDailyLevelScene(type) { /*
     if (this._dailyLevelOverlay) return;
 
     const typeTitle = ["Daily Level", "Weekly Level", "Event Level"][type] ?? "Daily Level";
@@ -8517,12 +8655,10 @@ _applyMirrorEffect() {
       stats.appendChild(_s('GJ_timeIcon_001.png', ['Tiny','Short','Medium','Long','XL'][Math.min(length,4)]??'XL'));
       right.appendChild(stats);
 
-      /*
-        const timeLabel=['New level in:'];
-        const te=document.createElement('div'); te.style.cssText='display:flex;align-items:center;';
-        te.appendChild(_drawBitmapText(timeLabel+' '+_fmtTime(secondsRemaining),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:timeLabel+' '+_fmtTime(secondsRemaining)}));
-        right.appendChild(te);
-      } */
+      // const timeLabel=['New level in:'];
+      // const te=document.createElement('div'); te.style.cssText='display:flex;align-items:center;';
+      // te.appendChild(_drawBitmapText(timeLabel+' '+_fmtTime(secondsRemaining),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:timeLabel+' '+_fmtTime(secondsRemaining)}));
+      // right.appendChild(te);
       if(levelIndex){
         const ie=document.createElement('div'); ie.style.cssText='display:flex;align-items:center;opacity:0.75;';
         ie.appendChild(_drawBitmapText('#'+levelIndex,'goldFont',0.2)||Object.assign(document.createElement('span'),{textContent:'#'+levelIndex}));
@@ -8537,7 +8673,7 @@ _applyMirrorEffect() {
       e.appendChild(_drawBitmapText(String(err?.message||err).slice(0,40),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:String(err?.message||err).slice(0,80)}));
       body.appendChild(e);
     }
-  }
+  */ }
   _openOnlineLevelsScene(params = {}) {
     if (this._onlineLevelsOverlay) return;
 
