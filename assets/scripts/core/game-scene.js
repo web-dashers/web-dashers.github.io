@@ -1142,35 +1142,72 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           _showStatus("level not found from servers. check the id and try again.", "#ff0000");
           return;
         }
-        const gdMap = {};
-        const _gdMatches = [...rawResponse.matchAll(/(?:^|:)(\d+):/g)];
-        for (let i = 0; i < _gdMatches.length; i++) {
-          const valueStart = _gdMatches[i].index + _gdMatches[i][0].length;
-          const valueEnd   = i + 1 < _gdMatches.length ? _gdMatches[i + 1].index : rawResponse.length;
-          gdMap[_gdMatches[i][1]] = rawResponse.slice(valueStart, valueEnd);
+
+        const responseSegments = rawResponse.split("#");
+        const lvlParts = responseSegments[0].split(":");
+        const lvlMap = {};
+        for (let i = 0; i + 1 < lvlParts.length; i += 2) {
+          lvlMap[lvlParts[i]] = lvlParts[i + 1];
         }
-        const levelString   = gdMap["4"] || null;
-        const levelName     = gdMap["2"] || "Online Level";
-        const levelIdParsed = gdMap["1"] || levelId;
-        const songIdRaw     = (gdMap["35"] || "").trim();
-        const isCustomSong  = !!songIdRaw && songIdRaw !== "0";
-        console.log(songIdRaw);
-        const officialSongId = gdMap["12"] || "0";
-        const isLibrarySong = isCustomSong && parseInt(songIdRaw) >= 1000000;
-        const songKey = isCustomSong 
-          ? (isLibrarySong ? `lib_song_${songIdRaw}` : `ng_song_${songIdRaw}`) 
-          : window.allLevels[officialSongId][0];
+
+        const levelData = {
+          // Core Level Info
+          id:             lvlMap["1"] || levelId,
+          title:          (lvlMap["2"] || "Online Level").trim(),
+          description:    lvlMap["3"] ? atob(lvlMap["3"].replace(/-/g, '+').replace(/_/g, '/')) : "", // Base64 decoded
+          string:         lvlMap["4"] || null, // The raw level data string
+          version:        parseInt(lvlMap["5"]) || 1,
+          
+          // User / Author Info
+          playerID:       lvlMap["6"] || null,
+          accountID:      lvlMap["57"] || null, // The author's accountID returned by the server
+
+          // Song Info
+          officialSong:   lvlMap["12"] || "0",
+          customSongID:   (lvlMap["35"] || "").trim(),
+          isCustomSong:   !!(lvlMap["35"] || "").trim() && (lvlMap["35"] || "").trim() !== "0",
+          isLibrarySong:  !!(lvlMap["35"] || "").trim() && (lvlMap["35"] || "").trim() !== "0" && parseInt((lvlMap["35"] || "").trim()) >= 1000000,
+          offset:         parseFloat(lvlMap["45"] || "0") || 0,
+
+          // Gameplay Details
+          difficulty:     parseInt(lvlMap["9"]) || 0, // Auto, Easy, Normal, Hard, Harder, Insane
+          stars:          parseInt(lvlMap["18"]) || 0,
+          diamonds:       parseInt(lvlMap["46"]) || 0,
+          orbs:           parseInt(lvlMap["48"]) || 0,
+          length:         parseInt(lvlMap["15"]) || 0, // 0=Tiny, 1=Small, 2=Medium, 3=Long, 4=XL, 5=Platformer
+          gameVersion:    parseInt(lvlMap["13"]) || 22, // The game version the level was created in (e.g. 22 = 2.2)
+          binaryVersion:  parseInt(lvlMap["52"]) || 0,  // The build version used to upload
+
+          // Meta / Social Counters
+          downloads:      parseInt(lvlMap["10"]) || 0,
+          likes:          parseInt(lvlMap["14"]) || 0,
+          objects:        parseInt(lvlMap["45"]) || 0, // Object count (Note: 45 can double as audio offset or object count depending on context)
+          ts:             lvlMap["28"] || null, // Upload/Update timestamp hint
+          
+          // Technical / Security Verification keys sent back by server
+          chk:            lvlMap["chk"] || null,
+          rs:             lvlMap["rs"] || null
+        };
+
+        const { string, ...tableFriendlyData } = levelData;
+        console.table(tableFriendlyData);
+        
+        const songKey = levelData.isCustomSong 
+          ? (levelData.isLibrarySong ? `lib_song_${levelData.customSongID}` : `ng_song_${levelData.customSongID}`) 
+          : window.allLevels[levelData.officialSong][0];
+          
         window.currentlevel[0] = songKey;
-        window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
-        const sourceName = isLibrarySong ? "NCS Library" : "Newgrounds";
-        _showStatus(`found "${levelName}"${isCustomSong ? ` — loading ${sourceName} #${songIdRaw}...` : ""}`, "#00ff00");
-        if (isCustomSong) {
+        window._onlineSongOffset = levelData.offset;
+        
+        const sourceName = levelData.isLibrarySong ? "NCS Library" : "Newgrounds";
+        _showStatus(`found "${levelData.title}"${levelData.isCustomSong ? ` — loading ${sourceName} #${levelData.customSongID}...` : ""}`, "#00ff00");;
+        if (levelData.isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
             const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: `songID=${songIdRaw}&secret=Wmfd2893gb7`
+                body: `songID=${levelData.customSongID}&secret=Wmfd2893gb7`
             });
             const ngText = ngRes.ok ? await ngRes.text() : "-1";
 
@@ -1180,7 +1217,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
 
                 const songData = {
-                    id:           ngMap["1"] || songIdRaw,
+                    id:           ngMap["1"] || levelData.customSongID,
                     title:        (ngMap["2"] || "Unknown").trim(),
                     artistID:     ngMap["3"] || "0",
                     artistName:   (ngMap["4"] || "Unknown").trim(),
@@ -1197,105 +1234,103 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                     extraArtists: ngMap["15"] || "" 
                 };
 
-                const isNCS = isLibrarySong || songData.nongType === 1;
-                
+                const isNCS = levelData.isLibrarySong || songData.nongType === 1;
                 let songUrl = songData.rawUrl ? decodeURIComponent(songData.rawUrl) : null;
                 
                 if (!songUrl && isNCS) {
-    const songId = songIdRaw;
-    const path = `/music/${songId}.mp3`;
-        
-    function generateCdnAuth(path) {
-        const SALT = "8501f9c2-75ba-4230-8188-51037c4da102";
-        const expires = Math.floor(Date.now() / 1000) + 3600;
-        const inputString = `${SALT}${path}${expires}`;
+                  const songId = levelData.customSongID;
+                  const path = `/music/${songId}.mp3`;
+                      
+                  function generateCdnAuth(path) {
+                      const SALT = "8501f9c2-75ba-4230-8188-51037c4da102";
+                      const expires = Math.floor(Date.now() / 1000) + 3600;
+                      const inputString = `${SALT}${path}${expires}`;
 
-        const md5Cycle = (x, k) => {
-            let a = x[0], b = x[1], c = x[2], d = x[3];
-            const f = (p, q, r, s, x, sft, t) => {
-                let val = p + (q & r | ~q & s) + x + t;
-                return ((val << sft) | (val >>> (32 - sft))) + q;
-            };
-            const g = (p, q, r, s, x, sft, t) => {
-                let val = p + (q & s | r & ~s) + x + t;
-                return ((val << sft) | (val >>> (32 - sft))) + q;
-            };
-            const h = (p, q, r, s, x, sft, t) => {
-                let val = p + (q ^ r ^ s) + x + t;
-                return ((val << sft) | (val >>> (32 - sft))) + q;
-            };
-            const i = (p, q, r, s, x, sft, t) => {
-                let val = p + (r ^ (q | ~s)) + x + t;
-                return ((val << sft) | (val >>> (32 - sft))) + q;
-            };
+                      const md5Cycle = (x, k) => {
+                          let a = x[0], b = x[1], c = x[2], d = x[3];
+                          const f = (p, q, r, s, x, sft, t) => {
+                              let val = p + (q & r | ~q & s) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+                          const g = (p, q, r, s, x, sft, t) => {
+                              let val = p + (q & s | r & ~s) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+                          const h = (p, q, r, s, x, sft, t) => {
+                              let val = p + (q ^ r ^ s) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+                          const i = (p, q, r, s, x, sft, t) => {
+                              let val = p + (r ^ (q | ~s)) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
 
-            a = f(a, b, c, d, k[0], 7, -680876936); d = f(d, a, b, c, k[1], 12, -389564586);
-            c = f(c, d, a, b, k[2], 17, 606105819); b = f(b, c, d, a, k[3], 22, -1044525330);
-            a = f(a, b, c, d, k[4], 7, -176418897); d = f(d, a, b, c, k[5], 12, 1200080426);
-            c = f(c, d, a, b, k[6], 17, -1473231341); b = f(b, c, d, a, k[7], 22, -45705983);
-            a = f(a, b, c, d, k[8], 7, 1770035416); d = f(d, a, b, c, k[9], 12, -1958414417);
-            c = f(c, d, a, b, k[10], 17, -42063); b = f(b, c, d, a, k[11], 22, -1990404162);
-            a = f(a, b, c, d, k[12], 7, 1804603682); d = f(d, a, b, c, k[13], 12, -40341101);
-            c = f(c, d, a, b, k[14], 17, -1502002290); b = f(b, c, d, a, k[15], 22, 1236535329);
+                          a = f(a, b, c, d, k[0], 7, -680876936); d = f(d, a, b, c, k[1], 12, -389564586);
+                          c = f(c, d, a, b, k[2], 17, 606105819); b = f(b, c, d, a, k[3], 22, -1044525330);
+                          a = f(a, b, c, d, k[4], 7, -176418897); d = f(d, a, b, c, k[5], 12, 1200080426);
+                          c = f(c, d, a, b, k[6], 17, -1473231341); b = f(b, c, d, a, k[7], 22, -45705983);
+                          a = f(a, b, c, d, k[8], 7, 1770035416); d = f(d, a, b, c, k[9], 12, -1958414417);
+                          c = f(c, d, a, b, k[10], 17, -42063); b = f(b, c, d, a, k[11], 22, -1990404162);
+                          a = f(a, b, c, d, k[12], 7, 1804603682); d = f(d, a, b, c, k[13], 12, -40341101);
+                          c = f(c, d, a, b, k[14], 17, -1502002290); b = f(b, c, d, a, k[15], 22, 1236535329);
 
-            a = g(a, b, c, d, k[1], 5, -165796510); d = g(d, a, b, c, k[6], 9, -1069501632);
-            c = g(c, d, a, b, k[11], 14, 643717713); b = g(b, c, d, a, k[0], 20, -373897302);
-            a = g(a, b, c, d, k[5], 5, -701558691); d = g(d, a, b, c, k[10], 9, 38016083);
-            c = g(c, d, a, b, k[15], 14, -660478335); b = g(b, c, d, a, k[4], 20, -405537848);
-            a = g(a, b, c, d, k[9], 5, 568446438); d = g(d, a, b, c, k[14], 9, -1019803690);
-            c = g(c, d, a, b, k[3], 14, -187363961); b = g(b, c, d, a, k[8], 20, 1163531501);
-            a = g(a, b, c, d, k[13], 5, -1444681467); d = g(d, a, b, c, k[2], 9, -51403784);
-            c = g(c, d, a, b, k[7], 14, 1735328473); b = g(b, c, d, a, k[12], 20, -1926607734);
+                          a = g(a, b, c, d, k[1], 5, -165796510); d = g(d, a, b, c, k[6], 9, -1069501632);
+                          c = g(c, d, a, b, k[11], 14, 643717713); b = g(b, c, d, a, k[0], 20, -373897302);
+                          a = g(a, b, c, d, k[5], 5, -701558691); d = g(d, a, b, c, k[10], 9, 38016083);
+                          c = g(c, d, a, b, k[15], 14, -660478335); b = g(b, c, d, a, k[4], 20, -405537848);
+                          a = g(a, b, c, d, k[9], 5, 568446438); d = g(d, a, b, c, k[14], 9, -1019803690);
+                          c = g(c, d, a, b, k[3], 14, -187363961); b = g(b, c, d, a, k[8], 20, 1163531501);
+                          a = g(a, b, c, d, k[13], 5, -1444681467); d = g(d, a, b, c, k[2], 9, -51403784);
+                          c = g(c, d, a, b, k[7], 14, 1735328473); b = g(b, c, d, a, k[12], 20, -1926607734);
 
-            a = h(a, b, c, d, k[5], 4, -378558); d = h(d, a, b, c, k[8], 11, -2022574463);
-            c = h(c, d, a, b, k[11], 16, 1839030562); b = h(b, c, d, a, k[14], 23, -35309556);
-            a = h(a, b, c, d, k[1], 4, -1530992060); d = h(d, a, b, c, k[4], 11, 1272893353);
-            c = h(c, d, a, b, k[7], 16, -155497632); b = h(b, c, d, a, k[10], 23, -1094730640);
-            a = h(a, b, c, d, k[13], 4, 681279174); d = h(d, a, b, c, k[0], 11, -358537222);
-            c = h(c, d, a, b, k[3], 16, -722521979); b = h(b, c, d, a, k[6], 23, 76029189);
-            a = h(a, b, c, d, k[9], 4, -640364487); d = h(d, a, b, c, k[12], 11, -421815835);
-            c = h(c, d, a, b, k[15], 16, 530742520); b = h(b, c, d, a, k[2], 23, -995338651);
+                          a = h(a, b, c, d, k[5], 4, -378558); d = h(d, a, b, c, k[8], 11, -2022574463);
+                          c = h(c, d, a, b, k[11], 16, 1839030562); b = h(b, c, d, a, k[14], 23, -35309556);
+                          a = h(a, b, c, d, k[1], 4, -1530992060); d = h(d, a, b, c, k[4], 11, 1272893353);
+                          c = h(c, d, a, b, k[7], 16, -155497632); b = h(b, c, d, a, k[10], 23, -1094730640);
+                          a = h(a, b, c, d, k[13], 4, 681279174); d = h(d, a, b, c, k[0], 11, -358537222);
+                          c = h(c, d, a, b, k[3], 16, -722521979); b = h(b, c, d, a, k[6], 23, 76029189);
+                          a = h(a, b, c, d, k[9], 4, -640364487); d = h(d, a, b, c, k[12], 11, -421815835);
+                          c = h(c, d, a, b, k[15], 16, 530742520); b = h(b, c, d, a, k[2], 23, -995338651);
 
-            a = i(a, b, c, d, k[0], 6, -198630844); d = i(d, a, b, c, k[7], 10, 1126891415);
-            c = i(c, d, a, b, k[14], 15, -1416354905); b = i(b, c, d, a, k[5], 21, -57434055);
-            a = i(a, b, c, d, k[12], 6, 1700485571); d = i(d, a, b, c, k[3], 10, -1894986606);
-            c = i(c, d, a, b, k[10], 15, -1051523); b = i(b, c, d, a, k[1], 21, -2054922799);
-            a = i(a, b, c, d, k[8], 6, 1873313359); d = i(d, a, b, c, k[15], 10, -30611744);
-            c = i(c, d, a, b, k[6], 15, -1560198380); b = i(b, c, d, a, k[13], 21, 1309151649);
-            a = i(a, b, c, d, k[4], 6, -145523070); d = i(d, a, b, c, k[11], 10, -1120210379);
-            c = i(c, d, a, b, k[2], 15, 718787259); b = i(b, c, d, a, k[9], 21, -343485551);
+                          a = i(a, b, c, d, k[0], 6, -198630844); d = i(d, a, b, c, k[7], 10, 1126891415);
+                          c = i(c, d, a, b, k[14], 15, -1416354905); b = i(b, c, d, a, k[5], 21, -57434055);
+                          a = i(a, b, c, d, k[12], 6, 1700485571); d = i(d, a, b, c, k[3], 10, -1894986606);
+                          c = i(c, d, a, b, k[10], 15, -1051523); b = i(b, c, d, a, k[1], 21, -2054922799);
+                          a = i(a, b, c, d, k[8], 6, 1873313359); d = i(d, a, b, c, k[15], 10, -30611744);
+                          c = i(c, d, a, b, k[6], 15, -1560198380); b = i(b, c, d, a, k[13], 21, 1309151649);
+                          a = i(a, b, c, d, k[4], 6, -145523070); d = i(d, a, b, c, k[11], 10, -1120210379);
+                          c = i(c, d, a, b, k[2], 15, 718787259); b = i(b, c, d, a, k[9], 21, -343485551);
 
-            x[0] = (x[0] + a) | 0; x[1] = (x[1] + b) | 0;
-            x[2] = (x[2] + c) | 0; x[3] = (x[3] + d) | 0;
-        };
+                          x[0] = (x[0] + a) | 0; x[1] = (x[1] + b) | 0;
+                          x[2] = (x[2] + c) | 0; x[3] = (x[3] + d) | 0;
+                      };
 
-        const md5Raw = (str) => {
-            let n = str.length, state = [1732584193, -271733879, -1732584194, 271733878], i;
-            let words = [];
-            for (i = 0; i <= n; i++) words[i >> 2] |= (str.charCodeAt(i) || 128) << ((i % 4) << 3);
-            words[(((n + 8) >> 6) << 4) + 14] = n * 8;
-            for (i = 0; i < words.length; i += 16) md5Cycle(state, words.slice(i, i + 16));
-            return state.map(val => [val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xFF]).flat();
-        };
+                      const md5Raw = (str) => {
+                          let n = str.length, state = [1732584193, -271733879, -1732584194, 271733878], i;
+                          let words = [];
+                          for (i = 0; i <= n; i++) words[i >> 2] |= (str.charCodeAt(i) || 128) << ((i % 4) << 3);
+                          words[(((n + 8) >> 6) << 4) + 14] = n * 8;
+                          for (i = 0; i < words.length; i += 16) md5Cycle(state, words.slice(i, i + 16));
+                          return state.map(val => [val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xFF]).flat();
+                      };
 
-        const hashBytes = md5Raw(inputString);
-        const binaryStr = String.fromCharCode(...hashBytes);
-        const token = btoa(binaryStr)
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
+                      const hashBytes = md5Raw(inputString);
+                      const binaryStr = String.fromCharCode(...hashBytes);
+                      const token = btoa(binaryStr)
+                          .replace(/\+/g, '-')
+                          .replace(/\//g, '_')
+                          .replace(/=+$/, '');
 
-        return { token, expires };
-    }
+                      return { token, expires };
+                  }
 
-    const auth = generateCdnAuth("/sfx/sfxlibrary_version.txt");
-    console.log(auth.token, auth.expires);
+                  const auth = generateCdnAuth(path);
 
-    songUrl = `https://geometrydashfiles.b-cdn.net${path}?token=${auth.token}&expires=${auth.expires}`;
-    
-    console.log("Generated NCS URL:", songUrl); }
+                  songUrl = `https://geometrydashfiles.b-cdn.net${path}?token=${auth.token}&expires=${auth.expires}`;
+                }
 
-                console.table({ ...songData, finalUrl: songUrl, isNCS });
+                console.table({ ...songData});
+                console.log(songUrl);
 
                 if (songUrl) {
                     _showStatus(`loading "${songData.title}" by ${songData.artistName}...`, "#00ff00");
