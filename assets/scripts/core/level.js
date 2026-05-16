@@ -1329,6 +1329,7 @@ window.LevelObject = class LevelObject {
       const portalColliderType = {
         gravity_flip: "portal_gravity_down",
         gravity_normal: "portal_gravity_up",
+        gravity_toggle: "portal_gravity_toggle",
         [flyPortal]: "portal_fly",
         fly: "portal_fly",
         [cubePortal]: "portal_cube",
