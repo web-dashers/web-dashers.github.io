@@ -1312,7 +1312,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         });
       };
       this._searchOverlayObjects.push(overlay, blocker, backBtn);
-      if (window.levelID) { // if there's an ID parameter, load it directly
+      if (window.levelID && !window.alreadydownloaded) { // if there's an ID parameter, load it directly
+        window.alreadydownloaded = true;
         htmlInput.remove();
         const loadingBg = this.add.graphics().setScrollFactor(0).setDepth(1000);
         loadingBg.fillStyle(0x000000, 1);
