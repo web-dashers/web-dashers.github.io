@@ -4748,7 +4748,7 @@ _buildSettingsPopup() {
         this._hitObjects = this.input.hitTestPointer(pointer);
         this._handleEditorCamera(deltaTime); 
         this._updateEditorGrid(); 
-        if (pointer.isDown) {
+        if (pointer.isDown && !this._isDraggingSlider) {
             if (this._isSwipeEnabled) {
               if (this._hitObjects.length !== 0) return;
                 const currentGridX = Math.floor((pointer.x + this._cameraX) / 60) * 60;
@@ -4771,6 +4771,7 @@ _buildSettingsPopup() {
                 }
             }
         }
+        this._updateEditorTimeline();
         return;
     }
     let rawPercent = (this._playerWorldX / this._level.endXPos) * 100;
@@ -5238,6 +5239,7 @@ _initEditorLogic = () => {
     this._lastSwipeGridY;
     this._clickStartPos = { x: 0, y: 0 };
     this._isDragging = false;
+    this._isDraggingSlider = false;
     this._editorTab = "build";
     window.editorSelectedObject = -1;
     this._editorZoom = 1.0;
@@ -5249,12 +5251,13 @@ _initEditorLogic = () => {
         this._isDragging = false;
     });
     this.input.on('pointerup', (pointer) => {
-        if (!this._isSwipeEnabled && !this._isDragging && this._hitObjects.length === 0) {
+        if (!this._isSwipeEnabled && !this._isDragging && !this._isDraggingSlider && this._hitObjects.length === 0) {
             this._editorAction();
         }
         this._lastSwipeGridX = -1;
         this._lastSwipeGridY = -1;
         this._isDragging = false;
+        this._isDraggingSlider = false;
     });
     this._createEditorGui();
 };
@@ -5368,6 +5371,7 @@ _createEditorGui = () => {
     this._updateEditorActionButtons();
     this._updateTabVisuals();
     this._buildObjectGrid();
+    this._initEditorTimeline();
 };
 
 _adjustZoom = (delta, anchorX = screenWidth / 2, anchorY = screenHeight / 2) => {
@@ -6250,7 +6254,7 @@ _initEditorPauseMenu = () => {
 
     buttonData.forEach((data, i) => {
         const x = screenWidth / 2;
-        const y = (screenHeight / 2) - 180 + (i * 75);
+        const y = (screenHeight / 2) - 150 + (i * 70);
         
         const btnImg = this.add.nineslice(x, y, "GJ_button01", null, 450, 65, 24, 24, 24, 24 ).setScale(0.75).setInteractive();
         const label = this.add.bitmapText(x, y - 2, "goldFont", data.text, 40).setOrigin(0.5, 0.5).setScale(0.8);
@@ -6386,6 +6390,76 @@ _saveEditorLevel = () => {
         window._onlineLevelName = createdLevels[levelIndex].levelName;
         window._onlineLevelId = createdLevels[levelIndex].createdId;
     }
+};
+
+_initEditorTimeline = () => {
+    const y = 40;
+    this._timelineContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
+    const width = screenWidth / 3;
+    const groove = this.add.image(screenWidth / 2, y, "slidergroove2").setDisplaySize(width, 26);
+    const thumb = this.add.image(screenWidth / 2, y, "GJ_moveBtn").setScale(0.4).setInteractive({ draggable: true });
+    this._timelineContainer.add([groove, thumb]);
+    this._timelineSlider = {width, groove, thumb, y };
+    const startX = screenWidth / 2 - (width / 2);
+    thumb.on("dragstart", () => {
+        this._isDraggingSlider = true;
+        thumb.setTexture("GJ_moveSBtn");
+    });
+    thumb.on("drag", (pointer, dragX) => {
+        const minX = startX;
+        const maxX = startX + width;
+        thumb.x = Phaser.Math.Clamp(dragX, minX, maxX);
+        const pct = (thumb.x - minX) / width;
+        const levelWidth = this._getEditorLevelWidth();
+        this._cameraX = pct * levelWidth;
+        this._level.container.x = -this._cameraX;
+        this._level.container.y = -this._cameraY;
+        this._level.additiveContainer.x = -this._cameraX;
+        this._level.additiveContainer.y = -this._cameraY;
+        this._level.topContainer.x = -this._cameraX;
+        this._level.topContainer.y = -this._cameraY;
+        this._bg.tilePositionX = this._cameraX * 0.1;
+    });
+    thumb.on("dragend", () => {
+        thumb.setTexture("GJ_moveBtn");
+    });
+};
+
+_getEditorLevelWidth = () => {
+    let furthestX = 0;
+
+    for (const obj of window.levelObjects) {
+        if (!obj) continue;
+
+        const worldX = (obj.x - 15) * 2;
+
+        if (worldX > furthestX) {
+            furthestX = worldX;
+        }
+    }
+
+    return Math.max(screenWidth, furthestX + screenWidth/2);
+};
+
+_updateEditorTimeline = () => {
+    if (!this._timelineSlider) return;
+
+    const {
+        width,
+        thumb,
+    } = this._timelineSlider;
+
+    const levelWidth = this._getEditorLevelWidth();
+
+    const pct = Phaser.Math.Clamp(
+        this._cameraX / levelWidth,
+        0,
+        1
+    );
+
+    const startX = screenWidth / 2 - (width / 2);
+
+    thumb.x = startX + (pct * width);
 };
 
 _applyMirrorEffect() {

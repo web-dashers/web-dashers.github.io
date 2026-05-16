@@ -266,6 +266,9 @@ class BootScene extends Phaser.Scene {
       this.load.image("tab3", "assets/sprites/tab3.png");
       this.load.image("tab4", "assets/sprites/tab4.png");
       this.load.image("tab5", "assets/sprites/tab5.png");
+      this.load.image("GJ_moveBtn", "assets/sprites/GJ_moveBtn.png");
+      this.load.image("GJ_moveSBtn", "assets/sprites/GJ_moveSBtn.png");
+      this.load.image("slidergroove2", "assets/sprites/slidergroove2.png");
 
       for (let i = 1; i < 23; i++) {
         let index = i - 1;
