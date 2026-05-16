@@ -300,16 +300,16 @@ class WaveTrail {
     }
   }
 }
-function ds(scene, _0x592bc1, _0x4d69dc, _0xfb965c, _0x43d3fd, _0x5bbdf1) {
-  let _0x221d10 = getAtlasFrame(scene, _0xfb965c);
-  if (!_0x221d10) {
+function ds(scene, x, y, frameName, depth, isVisible) {
+  let atlasData = getAtlasFrame(scene, frameName);
+  if (!atlasData) {
     return null;
   }
-  let _0x38da45 = scene.add.image(_0x592bc1, _0x4d69dc, _0x221d10.atlas, _0x221d10.frame);
-  _0x38da45.setDepth(_0x43d3fd);
-  _0x38da45.setVisible(_0x5bbdf1);
+  let image = scene.add.image(x, y, atlasData.atlas, atlasData.frame);
+  image.setDepth(depth);
+  image.setVisible(isVisible);
   return {
-    sprite: _0x38da45
+    sprite: image
   };
 }
 
@@ -808,7 +808,8 @@ class PlayerObject {
     this._aboveContainer.y = cameraY;
 if (this.p.isFlying || this.p.isUfo) {
       const _0x3904f8 = 10;
-      const playerOffset = this.p.gravityFlipped ? -30 : 10; 
+      const _miniS = this.p.isMini ? 0.6 : 1;
+      const playerOffset = this.p.gravityFlipped ? (-30 * _miniS) : (10 * _miniS);  
       const cosRotation = Math.cos(playerRotation);
       const sinRotation = Math.sin(playerRotation);
 	    const mirrored = this.p.mirrored ? -1 : 1;
@@ -820,10 +821,10 @@ if (this.p.isFlying || this.p.isUfo) {
       if (this.p.isFlying) {
         for (const layer of this._shipLayers) {
           if (layer) {
-            layer.sprite.x = _0x7f0705 + _0x1b1d28;
-            layer.sprite.y = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? -20 : 0);
-            layer.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
             const _miniS = this.p.isMini ? 0.6 : 1;
+            layer.sprite.x = _0x7f0705 + _0x1b1d28;
+            layer.sprite.y = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? (-20 * _miniS) : 0)
+            layer.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
             layer.sprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
             layer.sprite.scaleX = this.p.mirrored ? -_miniS : _miniS;
           }
@@ -845,10 +846,10 @@ if (this.p.isFlying || this.p.isUfo) {
       
       for (const playerLayerItem of this._playerLayers) {
         if (playerLayerItem) {
-          playerLayerItem.sprite.x = _0x7f0705 + _0x562424;
-          playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9)+(this.p.isMini?8:0) + (this.p.gravityFlipped ? -20 : 0);
-          playerLayerItem.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
           const _miniS = this.p.isMini ? 0.6 : 1;
+          playerLayerItem.sprite.x = _0x7f0705 + _0x562424;
+          playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9) + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
+          playerLayerItem.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
           const _shipCubeS = _miniS * 0.55;
           playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
           playerLayerItem.sprite.scaleX = this.p.mirrored ? -_shipCubeS : _shipCubeS;
@@ -928,7 +929,7 @@ if (this.p.isFlying || this.p.isUfo) {
     if (!this._scene._slideIn){
       if (!this._hitboxTrail) this._hitboxTrail = [];
       if (!this.p.isDead) {
-        this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y });
+        this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y, rotation: this._rotation });
         if (this._hitboxTrail.length > 180) this._hitboxTrail.shift();
       }
       if (window.showHitboxes || this.p.isDead && window.hitboxesOnDeath) {
@@ -958,16 +959,16 @@ if (this.p.isFlying || this.p.isUfo) {
     this._streak.start();
     this.setWaveVisible(false);
     this.setShipVisible(true);
-    for (const _0xc1f7c3 of this._playerLayers) {
-      if (_0xc1f7c3) {
-        _0xc1f7c3.sprite.setScale(0.55);
+    for (const layer of this._playerLayers) {
+      if (layer) {
+        layer.sprite.setScale(0.55);
       }
     }
-    let _0x17d728 = this.p.y;
+    let spawnY = this.p.y;
     if (_0xeb37c6) {
-      _0x17d728 = _0xeb37c6.portalY !== undefined ? _0xeb37c6.portalY : _0xeb37c6.y;
+      spawnY = _0xeb37c6.portalY !== undefined ? _0xeb37c6.portalY : _0xeb37c6.y;
     }
-    this._gameLayer.setFlyMode(true, _0x17d728, f, false);
+    this._gameLayer.setFlyMode(true, spawnY, f, false);
   }
   exitShipMode() {
     if (this.p.isFlying) {
@@ -993,9 +994,9 @@ if (this.p.isFlying || this.p.isUfo) {
       this.setBallVisible(this.p.isBall);
       this.setWaveVisible(this.p.isWave);
       this.setSpiderVisible(false);
-      for (const _0xe1b715 of this._playerLayers) {
-        if (_0xe1b715) {
-          _0xe1b715.sprite.setScale(1);
+      for (const layer of this._playerLayers) {
+        if (layer) {
+          layer.sprite.setScale(1);
         }
       }
       this._gameLayer.setFlyMode(false, 0);
@@ -1795,15 +1796,32 @@ _updateBallJump(_0x2fe319) {
       }
     }
   }
-  _updateWaveJump() {
-    const _0x1a4d8f = (this.p.isMini ? 22.7720072 : 11.3860036) * (playerSpeed / 11.540004);
-    let _0x312a7f = (this.p.upKeyDown ? 1 : -1) * this.flipMod() * _0x1a4d8f;
+_updateWaveJump() {
+    const _baseSpeed = this.p.isMini ? 22.7720072 : 11.3860036;
+    const _speedMod = (playerSpeed / 11.540004);
+    const _waveVel = _baseSpeed * _speedMod;
+    const isPushingUp = this.p.upKeyDown; 
+    let _0x312a7f = (isPushingUp ? 1 : -1) * this.flipMod() * _waveVel;
+
+    if (this.p.onGround || this.p.onCeiling) {
+        const movingAwayFromCeiling = this.p.onCeiling && !isPushingUp;
+        const movingAwayFromFloor = this.p.onGround && isPushingUp;
+
+        if (movingAwayFromCeiling || movingAwayFromFloor) {
+            this.p.onGround = false;
+            this.p.onCeiling = false;
+        } else {
+            _0x312a7f = 0;
+        }
+    }
+
+    this.p.yVelocity = _0x312a7f;
     this.p.canJump = false;
     this.p.isJumping = false;
-    this.p.yVelocity = _0x312a7f;
+
     const _waveAngle = this.p.isMini ? Math.atan(0.5) : Math.PI / 4;
     this._rotation = _0x312a7f === 0 ? 0 : _0x312a7f > 0 ? -_waveAngle : _waveAngle;
-  }
+}
   _updateUfoJump(_dt) {
     const _ufoJump = this.p.isMini ? 13.296 : 13.742;
     const _ufoThreshold = 3.832796;
@@ -2031,6 +2049,12 @@ _updateBallJump(_0x2fe319) {
             gameObj.activated = true;
             this._playPortalShine(gameObj, 2);
             this.flipGravity(true, 0.5);
+          }
+        } else if (_colType === "portal_gravity_toggle") {
+          if (!gameObj.activated) {
+            gameObj.activated = true;
+            this._playPortalShine(gameObj, 2);
+            this.flipGravity(!this.p.gravityFlipped, 0.5);
           }
         } else if (_colType === "portal_mirror_on") {
           if (!gameObj.activated) {
@@ -2590,7 +2614,7 @@ _updateBallJump(_0x2fe319) {
         hitboxColor = 16729156;
       } else if (nearObject.type === "portal_fly" || nearObject.type === "portal_cube" || nearObject.type === "portal_ball" || nearObject.type === portalWaveType || nearObject.type === portalUfoType) {
         hitboxColor = 4491519;
-      } else if (nearObject.type === "portal_gravity_down" || nearObject.type === "portal_gravity_up") {
+      } else if (nearObject.type === "portal_gravity_down" || nearObject.type === "portal_gravity_up" || nearObject.type === "portal_gravity_toggle") {
         hitboxColor = 16776960;
       } else if (nearObject.type === "portal_mirror_on" || nearObject.type === "portal_mirror_off") {
         hitboxColor = 16744448;
@@ -2649,6 +2673,29 @@ _updateBallJump(_0x2fe319) {
             graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
             graphics.strokeCircle((trailX - playerSize) + hitboxsize / 2, (trailY - playerSize) + hitboxsize / 2, hitboxsize / 2);
 
+            // box that rotates with the player (dark red)
+            graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
+            {
+              const cx = (trailX - playerSize) + hitboxsize / 2;
+              const cy = (trailY - playerSize) + hitboxsize / 2;
+              const hw = hitboxsize / 2;
+              const cos = Math.cos(pos.rotation ?? 0);
+              const sin = Math.sin(pos.rotation ?? 0);
+              const corners = [
+                { x: cx - hw * cos + hw * sin, y: cy - hw * sin - hw * cos },
+                { x: cx + hw * cos + hw * sin, y: cy + hw * sin - hw * cos },
+                { x: cx + hw * cos - hw * sin, y: cy + hw * sin + hw * cos },
+                { x: cx - hw * cos - hw * sin, y: cy - hw * sin + hw * cos },
+              ];
+              graphics.beginPath();
+              graphics.moveTo(corners[0].x, corners[0].y);
+              graphics.lineTo(corners[1].x, corners[1].y);
+              graphics.lineTo(corners[2].x, corners[2].y);
+              graphics.lineTo(corners[3].x, corners[3].y);
+              graphics.closePath();
+              graphics.strokePath();
+            }
+
             graphics.lineStyle(1, hexToHexadecimal("0000ff"), 1);
           }
 
@@ -2668,6 +2715,29 @@ _updateBallJump(_0x2fe319) {
       // inner circle (dark red)
       graphics.lineStyle(2, hexToHexadecimal("b30001"), 0.8);
       graphics.strokeCircle((_playerDrawX - playerSize)+hitboxsize/2, (_0x1e788a - playerSize)+hitboxsize/2, hitboxsize/2);
+
+      // box that rotates with the player (dark red)
+      graphics.lineStyle(2, hexToHexadecimal("b30001"), 0.8);
+      {
+        const cx = (_playerDrawX - playerSize) + hitboxsize / 2;
+        const cy = (_0x1e788a - playerSize) + hitboxsize / 2;
+        const hw = hitboxsize / 2;
+        const cos = Math.cos(this._rotation);
+        const sin = Math.sin(this._rotation);
+        const corners = [
+          { x: cx - hw * cos + hw * sin, y: cy - hw * sin - hw * cos },
+          { x: cx + hw * cos + hw * sin, y: cy + hw * sin - hw * cos },
+          { x: cx + hw * cos - hw * sin, y: cy + hw * sin + hw * cos },
+          { x: cx - hw * cos - hw * sin, y: cy - hw * sin + hw * cos },
+        ];
+        graphics.beginPath();
+        graphics.moveTo(corners[0].x, corners[0].y);
+        graphics.lineTo(corners[1].x, corners[1].y);
+        graphics.lineTo(corners[2].x, corners[2].y);
+        graphics.lineTo(corners[3].x, corners[3].y);
+        graphics.closePath();
+        graphics.strokePath();
+      }
 
       graphics.lineStyle(2, hexToHexadecimal("0000ff"), 1);
     }

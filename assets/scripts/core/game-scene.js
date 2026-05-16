@@ -703,7 +703,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                     } else {
                         finalSongId = -extracted.officialSongId -1;
                         try {
-                            finalSongName = window.allLevels[extracted.officialSongId][0];
+                            finalSongName = window.allLevels[extracted.officialSongId][1];
                         } catch(e) {
                             finalSongName = "Unknown";
                         }
@@ -1054,106 +1054,197 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       this._searchOverlay = overlay;
       const blocker = this.add.zone(sw / 2, sh / 2, sw, sh).setScrollFactor(0).setDepth(101).setInteractive();
-      const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+      const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setScrollFactor(0).setDepth(104).setFlipX(true).setFlipY(true)
         .setRotation(Math.PI).setInteractive();
       this._makeBouncyButton(backBtn, 1, () => { this._closeSearchMenu(false, () => this._openCreatorMenu()); });
-      const inputW = 320;
-      const inputH = 44;
-      const inputX = sw / 2 - inputW / 2;
-      const inputY = sh / 2 - inputH / 2;
-      const inputBg = this.add.graphics().setScrollFactor(0).setDepth(104);
-      inputBg.fillStyle(0x000000, 0.5);
-      inputBg.fillRoundedRect(inputX, inputY, inputW, inputH, 8);
-      inputBg.lineStyle(2, 0xffffff, 0.4);
-      const canvas = this.sys.game.canvas;
-      const canvasRect = canvas.getBoundingClientRect();
-      const scaleX = canvasRect.width / sw;
-      const scaleY = canvasRect.height / sh;
-      const htmlInput = document.createElement("input");
-      htmlInput.type = "text";
-      htmlInput.placeholder = "";
-      htmlInput.maxLength = 20;
-      htmlInput.style.cssText = `
-        position: fixed;
-        left: ${canvasRect.left + inputX * scaleX}px;
-        top: ${canvasRect.top + inputY * scaleY}px;
-        width: ${inputW * scaleX}px;
-        height: ${inputH * scaleY}px;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: #ffffff;
-        font-size: ${Math.round(20 * scaleY)}px;
-        font-family: Arial, sans-serif;
-        text-align: center;
-        z-index: 9999;
-        caret-color: #ffffff;
-      `;
-      document.body.appendChild(htmlInput);
-      setTimeout(() => htmlInput.focus(), 50);
-      const placeholderLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "Enter a level, user or ID", 18)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xaaddff);
-      const typedLabel = this.add.bitmapText(sw / 2, inputY + inputH / 2, "bigFont", "", 18)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xffffff);
-      htmlInput.style.color = "transparent";
-      htmlInput.style.caretColor = "#ffffff";
-      htmlInput.addEventListener("input", () => {
-        const val = htmlInput.value;
-        placeholderLabel.setVisible(val.length === 0);
-        typedLabel.setText(val);
-      });
-      const _repositionInput = () => {
-        const r = canvas.getBoundingClientRect();
-        const sx = r.width / sw;
-        const sy = r.height / sh;
-        htmlInput.style.left = `${r.left + inputX * sx}px`;
-        htmlInput.style.top  = `${r.top  + inputY * sy}px`;
-        htmlInput.style.width  = `${inputW * sx}px`;
-        htmlInput.style.height = `${inputH * sy}px`;
-        htmlInput.style.fontSize = `${Math.round(20 * sy)}px`;
+
+      const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 0).setFlipY(false).setAngle(90);
+      const cornerBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 1).setFlipY(true).setAngle(90);
+      const panelMarginX = sw * 0.18;
+      const panelLeft    = panelMarginX;
+      const panelRight   = sw - panelMarginX;
+      const panelW       = panelRight - panelLeft;
+      const panelRadius  = 10;
+      const panelColor   = 0x002e75; 
+      const topPanelColor = 0x00388d; 
+      const innerPanelColor = 0x002762; 
+      const filtersPanelColor = 0x00245b;  
+      const extraPanelColor = 0x001f4f;  
+      const panelAlpha   = 0.7;
+      const labelSize    = 32;
+      const labelColor   = 0xffffff;
+      const gfx          = this.add.graphics().setScrollFactor(0).setDepth(104);
+      const topPanelY  = sh * 0.10 - 40;
+      const topPanelH  = sh * 0.12;
+      gfx.fillStyle(topPanelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, topPanelY, panelW, topPanelH, panelRadius);
+      const innerPanelY = topPanelY + 10;
+      const innerPanelX = panelLeft + 10;
+      const innerPanelW = panelW * 0.57;
+      const innerPanelH = topPanelH - 20;
+      gfx.fillStyle(innerPanelColor, panelAlpha);
+      gfx.fillRoundedRect(innerPanelX, innerPanelY, innerPanelW, innerPanelH, panelRadius);
+
+      const innerBtnX = innerPanelX + innerPanelW + 20;
+      const innerBtnY = innerPanelY + (innerPanelH / 2);
+      
+      const innerBtn2 = this.add.image(innerBtnX + 137, innerBtnY, "GJ_GameSheet03", "GJ_longBtn05_001.png")
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setInteractive();
+      this._makeBouncyButton(innerBtn2, 1, () => {});
+      const innerBtn1 = this.add.image(innerBtnX + 47, innerBtnY, "GJ_GameSheet03", "GJ_longBtn06_001.png")
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setInteractive();
+      this._makeBouncyButton(innerBtn1, 1, () => {  _doSearch(); });
+      
+      const innerBtn3 = this.add.image(innerBtnX + 231, innerBtnY, "GJ_GameSheet03", "GJ_longBtn07_001.png")
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setInteractive();
+      this._makeBouncyButton(innerBtn3, 1, () => { inputText = ""; _updateInputDisplay(); });
+
+      const allowedChars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const inputMaxLen  = 64;
+      const inputCX      = innerPanelX + innerPanelW / 2;
+      const inputCY      = innerPanelY + innerPanelH / 2;
+
+      let inputText      = "";
+      let inputFocused   = false;
+      let cursorVisible  = false;
+      let cursorTimer    = null;
+      const placeholderLabel = this.add.bitmapText(inputCX - 5, inputCY, "bigFont", "Enter a level, user or id", 28)
+        .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5)
+        .setTint(0x6c99d8).setAlpha(0.85);
+      const typedLabel = this.add.bitmapText(innerPanelX + 10, inputCY, "bigFont", "", 46)
+        .setScrollFactor(0).setDepth(106).setOrigin(0, 0.5)
+        .setTint(0xffffff).setVisible(false);
+      const inputCursor = this.add.text(0, inputCY, "|", {
+        fontSize: "33px", fontFamily: "Arial", color: "#92a7c0"
+      }).setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setVisible(false);
+
+      const _updateInputDisplay = () => {
+        if (inputText === "") {
+          typedLabel.setVisible(false);
+          placeholderLabel.setVisible(true);
+        } else {
+          placeholderLabel.setVisible(false);
+          typedLabel.setText(inputText).setVisible(true);
+        }
+        if (inputFocused) {
+          const textW = inputText === "" ? 0 : typedLabel.width;
+          const textLeft = innerPanelX + 10;
+          inputCursor.x = textLeft + textW + 2;
+          inputCursor.setVisible(cursorVisible);
+        } else {
+          inputCursor.setVisible(false);
+        }
       };
-      window.addEventListener("resize", _repositionInput);
-      const statusText = this.add.text(sw / 2, inputY + inputH + 22, "", {
-        fontSize: "16px",
-        fontFamily: "Arial, sans-serif",
-        color: "#ffffff",
-        align: "center",
-        wordWrap: { width: 420 }
-      }).setScrollFactor(0).setDepth(106).setOrigin(0.5, 0).setAlpha(0);
-      this._searchOverlayObjects.push(statusText);
-      const _showStatus = (msg, color = "#ffffff", duration = 0) => {
-        statusText.setText(msg);
-        statusText.setColor(color);
-        this.tweens.killTweensOf(statusText);
-        statusText.setAlpha(1);
+
+      const _startCursorBlink = () => {
+        cursorVisible = true;
+        _updateInputDisplay();
+        if (cursorTimer) cursorTimer.remove();
+        cursorTimer = null;
       };
+
+      const _stopCursorBlink = () => {
+        if (cursorTimer) { cursorTimer.remove(); cursorTimer = null; }
+        cursorVisible = false;
+        inputCursor.setVisible(false);
+      };
+
+      const _focusInput = () => {
+        inputFocused = true;
+        _startCursorBlink();
+      };
+
+      const _blurInput = () => {
+        inputFocused = false;
+        _stopCursorBlink();
+        _updateInputDisplay();
+      };
+      const inputHitZone = this.add.zone(
+        innerPanelX + innerPanelW / 2, innerPanelY + innerPanelH / 2,
+        innerPanelW, innerPanelH
+      ).setScrollFactor(0).setDepth(107).setInteractive();
+      inputHitZone.on("pointerdown", () => _focusInput());
+
+      blocker.on("pointerdown", () => { if (inputFocused) _blurInput(); });
+      const _onKeyDown = (event) => {
+        if (!inputFocused) return;
+        event.stopPropagation();
+        if (event.key === "Backspace") {
+          if (inputText.length > 0) {
+            inputText = inputText.slice(0, -1);
+            _updateInputDisplay();
+          }
+        } else if (event.key === "Enter") {
+          _doSearch();
+        } else if (event.key.length === 1 && allowedChars.includes(event.key) && !event.ctrlKey) {
+          if (inputText.length < inputMaxLen) {
+            inputText += event.key;
+            _updateInputDisplay();
+          }
+        }
+      };
+      window.addEventListener("keydown", _onKeyDown);
+
+      const htmlInput = {
+        remove: () => {
+          window.removeEventListener("keydown", _onKeyDown);
+          _blurInput();
+        },
+        get value() { return inputText; },
+      };
+      const _repositionInput = () => {};
+      const qsLabelY  = sh * 0.195;
+      const qsPanelY  = qsLabelY + 25;
+      const qsPanelH  = sh * 0.36;
+      const qsLabel   = this.add.bitmapText(sw / 2, qsLabelY, "bigFont", "Quick Search", labelSize)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(labelColor);
+
+      gfx.fillStyle(panelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, qsPanelY, panelW, qsPanelH, panelRadius);
+      const comingSoonLabel = this.add.bitmapText(sw / 2, qsPanelY + qsPanelH / 2, "bigFont", "Coming Soon!", 42)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+      this._searchOverlayObjects.push(comingSoonLabel);
+      const filtersLabelY  = qsPanelY + qsPanelH + 24;
+      const filtersPanelY  = filtersLabelY + 20;
+      const filtersPanelH  = sh * 0.16;
+      const filtersLabel   = this.add.bitmapText(sw / 2, filtersLabelY, "bigFont", "Filters", labelSize)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(labelColor);
+
+      gfx.fillStyle(filtersPanelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, filtersPanelY, panelW, filtersPanelH, panelRadius);
+
+      const filtersComingSoon = this.add.bitmapText(sw / 2, filtersPanelY + filtersPanelH / 2, "bigFont", "Coming Soon!", 42)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+
+      const extraPanelY  = filtersPanelY + filtersPanelH + 18;
+      const extraPanelH  = sh * 0.11;
+      gfx.fillStyle(extraPanelColor, panelAlpha);
+      gfx.fillRoundedRect(panelLeft, extraPanelY, panelW, extraPanelH, panelRadius);
+
+      const extraComingSoon = this.add.bitmapText(sw / 2, extraPanelY + extraPanelH / 2, "bigFont", "Coming Soon!", 42)
+        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+
+      this._searchOverlayObjects.push(gfx, qsLabel, filtersLabel, cornerBR, cornerBL,
+        placeholderLabel, typedLabel, inputCursor, inputHitZone, innerBtn1, innerBtn2, innerBtn3,
+        filtersComingSoon, extraComingSoon);
+
       let _loading = false;
       const _doSearch = async () => {
         if (_loading) return;
         const levelId = htmlInput.value.trim().replace(/\D/g, "");
-        if (!levelId) {
-          _showStatus("enter a level id", "#ff6666", 3000);
-
-          return;
-        }
+        if (!levelId) return;
         _loading = true;
         try {
           await _doSearchInner(levelId);
         } catch (err) {
-          _showStatus("error: " + err.message, "#ff5555");
         } finally {
           _loading = false;
         }
       };
       const _doSearchInner = async (levelId) => {
-        _showStatus("fetching level", "#ffb700");
-
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
-        if (!PROXY_BASE) {
-          _showStatus("no proxy configured. set window._gdProxyUrl first.", "#ff0000");
-          return;
-        }
+        if (!PROXY_BASE) return;
         const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
         const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
           method: "POST",
@@ -1163,7 +1254,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
         const rawResponse = await res.text();
         if (!rawResponse || rawResponse === "-1" || !rawResponse.includes(":")) {
-          _showStatus("level not found from servers. check the id and try again.", "#ff0000");
           return;
         }
         const gdMap = {};
@@ -1182,7 +1272,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const songKey = isCustomSong ? `ng_song_${songIdRaw}` : window.allLevels[officialSongId][0];
         window.currentlevel[0] = songKey;
         window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
-        _showStatus(`found "${levelName}"${isCustomSong ? ` — loading song #${songIdRaw}...` : ""}`, "#00ff00");
         if (isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
@@ -1202,7 +1291,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               const songArtist = (ngMap["4"]  || "Unknown").replace(/:$/, "").trim();
               const songTitle  = (ngMap["2"]  || `Song #${songIdRaw}`).replace(/:$/, "").trim();
               if (songUrl) {
-                _showStatus(`loading "${songTitle}" by ${songArtist}...`, "#00ff00");
                 const audioCtx = this.game.sound.context;
                 if (audioCtx.state === "suspended") await audioCtx.resume();
                 const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
@@ -1233,7 +1321,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           window._onlineLevelId,
           [window._onlineSongArtist || "Unknown"]
         ];
-        _showStatus(`loading string for "${levelName}"`, "#00ff00");
         this.time.delayedCall(600, () => {
           htmlInput.remove();
           window.removeEventListener("resize", _repositionInput);
@@ -1248,10 +1335,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           });
         });
       };
-      this._searchOverlayObjects = [
-        overlay, blocker, backBtn, inputBg, statusText, placeholderLabel, typedLabel
-      ];
-      if (window.levelID) { // if there's an ID parameter, load it directly
+      this._searchOverlayObjects.push(overlay, blocker, backBtn);
+      if (window.levelID && !window.alreadydownloaded) { // if there's an ID parameter, load it directly
+        window.alreadydownloaded = true;
         htmlInput.remove();
         const loadingBg = this.add.graphics().setScrollFactor(0).setDepth(1000);
         loadingBg.fillStyle(0x000000, 1);
@@ -1259,15 +1345,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const loadingText = this.add.bitmapText(sw / 2, sh / 2, "bigFont", "Loading level...", 30)
           .setScrollFactor(0).setDepth(1001).setOrigin(0.5);
         this._searchOverlayObjects.push(loadingBg, loadingText);
-        statusText.setDepth(1002).setY(sh / 2 + 50).setAlpha(1);
         _doSearchInner(window.levelID);
       }
-      htmlInput.addEventListener("keydown", (e) => {
+      window.addEventListener("keydown", (e) => {
         if (e.key === "Enter") _doSearch();
         e.stopPropagation();
       });
-      htmlInput.addEventListener("keyup", (e) => e.stopPropagation());
-      htmlInput.addEventListener("keypress", (e) => e.stopPropagation());
+      window.addEventListener("keyup", (e) => e.stopPropagation());
+      window.addEventListener("keypress", (e) => e.stopPropagation());
       this._searchHtmlInput = htmlInput;
       this._searchInputResizeFn = _repositionInput;
     };
@@ -3595,7 +3680,8 @@ _buildSettingsPopup() {
         showFPS: this._fpsText.visible,
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
-        hitboxesOnDeath: window.hitboxesOnDeath
+        hitboxesOnDeath: window.hitboxesOnDeath,
+        showEditorGlow: window.showEditorGlow
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -3611,7 +3697,8 @@ _buildSettingsPopup() {
         showFPS: false,
         solidWaveTrail: false,
         noclipAccuracy: false,
-        hitboxesOnDeath: false
+        hitboxesOnDeath: false,
+        showEditorGlow: false
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -3626,6 +3713,7 @@ _buildSettingsPopup() {
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
     window.hitboxesOnDeath = data.hitboxesOnDeath;
+    window.showEditorGlow = data.showEditorGlow;
   }
   
   _buildInfoPopup() {
@@ -4502,7 +4590,6 @@ _buildSettingsPopup() {
         this._initEditorLogic();
         return;
     }
-
     this._cameraX = -centerX;
     this._cameraY = 0;
     this._cameraXRef._v = this._cameraX;
@@ -5049,7 +5136,7 @@ _buildSettingsPopup() {
         this._hitObjects = this.input.hitTestPointer(pointer);
         this._handleEditorCamera(deltaTime); 
         this._updateEditorGrid(); 
-        if (pointer.isDown) {
+        if (pointer.isDown && !this._isDraggingSlider) {
             if (this._isSwipeEnabled) {
               if (this._hitObjects.length !== 0) return;
                 const currentGridX = Math.floor((pointer.x + this._cameraX) / 60) * 60;
@@ -5072,6 +5159,7 @@ _buildSettingsPopup() {
                 }
             }
         }
+        this._updateEditorTimeline();
         return;
     }
     let rawPercent = (this._playerWorldX / this._level.endXPos) * 100;
@@ -5530,7 +5618,8 @@ _handleEditorCamera = (delta) => {
 _initEditorLogic = () => {
     if (this._editorGridGraphics) this._editorGridGraphics.destroy();
     this._editorGridGraphics = this.add.graphics().setDepth(5);
-    this._totalIds = 500; // just using the first 500 objects, could be expanded in the future when categories are added and shi but i aint doing all dat rn
+    const allObj = window.allobjects();
+    this._totalIds = Object.keys(allObj).length;
     this._editorPage = 0;
     this._maxPerPage = 12;
     this._isSwipeEnabled = false;
@@ -5538,8 +5627,10 @@ _initEditorLogic = () => {
     this._lastSwipeGridY;
     this._clickStartPos = { x: 0, y: 0 };
     this._isDragging = false;
+    this._isDraggingSlider = false;
     this._editorTab = "build";
     window.editorSelectedObject = -1;
+    this._editorZoom = 1.0;
     this.input.on('pointerdown', (pointer) => {
         this._clickStartPos.x = pointer.x;
         this._clickStartPos.y = pointer.y;
@@ -5548,12 +5639,13 @@ _initEditorLogic = () => {
         this._isDragging = false;
     });
     this.input.on('pointerup', (pointer) => {
-        if (!this._isSwipeEnabled && !this._isDragging && this._hitObjects.length === 0) {
+        if (!this._isSwipeEnabled && !this._isDragging && !this._isDraggingSlider && this._hitObjects.length === 0) {
             this._editorAction();
         }
         this._lastSwipeGridX = -1;
         this._lastSwipeGridY = -1;
         this._isDragging = false;
+        this._isDraggingSlider = false;
     });
     this._createEditorGui();
 };
@@ -5647,9 +5739,53 @@ _createEditorGui = () => {
         this._clearEditorSelection();
     });
 
+    this._zoomButtons = this.add.container(48, screenHeight / 2 - 20).setScrollFactor(0).setDepth(1000);
+    
+    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
+    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
+    
+    this._zoomButtons.add([zoomInBtn, zoomOutBtn]);
+
+    this._makeBouncyButton(zoomInBtn, 0.9, () => this._adjustZoom(0.1));
+    this._makeBouncyButton(zoomOutBtn, 0.9, () => this._adjustZoom(-0.1));
+
+    this._zoomText = this.add.bitmapText(screenWidth / 2, 80, "bigFont", "Zoom: 1.00x", 40).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
+
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+        const zoomAmount = deltaY > 0 ? -0.1 : 0.1;
+        this._adjustZoom(zoomAmount, pointer.x, pointer.y);
+    });
+
     this._updateEditorActionButtons();
     this._updateTabVisuals();
     this._buildObjectGrid();
+    this._initEditorTimeline();
+};
+
+_adjustZoom = (delta, anchorX = screenWidth / 2, anchorY = screenHeight / 2) => {
+    const oldZoom = this._editorZoom;
+    let newZoom = oldZoom + delta;
+    newZoom = Phaser.Math.Clamp(newZoom, 0.1, 4.0);
+    if (oldZoom === newZoom) return;
+    const worldAnchorX = (this._cameraX + anchorX) / oldZoom;
+    const worldAnchorY = (this._cameraY + anchorY) / oldZoom;
+    this._editorZoom = newZoom;
+    this._level.topContainer.setScale(newZoom);
+    this._level.additiveContainer.setScale(newZoom);
+    this._level.container.setScale(newZoom);
+    this._cameraX = (worldAnchorX * newZoom) - anchorX;
+    this._cameraY = (worldAnchorY * newZoom) - anchorY;
+    this._updateEditorGrid();
+    this._zoomText.setText(`Zoom: ${newZoom.toFixed(2)}x`);
+    this._zoomText.setAlpha(1);
+    this.tweens.killTweensOf(this._zoomText);
+    this.tweens.add({
+        targets: this._zoomText,
+        alpha: 0,
+        duration: 500,
+        delay: 500,
+        ease: 'Power1'
+    });
 };
 
 _updateTabVisuals = () => {
@@ -5676,16 +5812,48 @@ _getSheetForFrameThingy = (frameName) => {
 _buildObjectGrid = () => {
     if (this._gridContainer) this._gridContainer.destroy();
     if (this._pageDotsContainer) this._pageDotsContainer.destroy();
+    if (this._categoryContainer) this._categoryContainer.destroy();
+
+    const OBJECT_CATEGORIES = [
+        { id: "blocks",  icon: "tab1", types: ["solid", "slope"] },
+        { id: "hazards", icon: "tab2", types: ["hazard", "spike"] },
+        { id: "orbs",    icon: "tab3", types: ["ring", "pad", "portal", "speed"] },
+        { id: "deco",    icon: "tab4", types: ["deco"] },
+        { id: "triggers",icon: "tab5", types: ["trigger"] },
+    ];
 
     this._gridContainer = this.add.container(0, 0);
     this._toolbox.add(this._gridContainer);
-
+    
+    const allObjectsData = window.allobjects();
     const itemsForGrid = [];
+    this._currentBuildCategory = this._currentBuildCategory || "blocks";
 
     if (this._editorTab === "build") {
+        this._categoryContainer = this.add.container(screenWidth / 2, screenHeight - 218);
+        this._toolbox.add(this._categoryContainer);
+        const catSpacing = 85;
+        const catStartX = -((OBJECT_CATEGORIES.length - 1) * catSpacing) / 2;
+        OBJECT_CATEGORIES.forEach((cat, i) => {
+            const isSelected = this._currentBuildCategory === cat.id;
+            const btn = this.add.image(catStartX + (i * catSpacing), 0, cat.icon).setInteractive().setScale(0.12).setTint(isSelected ? 0x888888 : 0xffffff).setAlpha(isSelected ? 1 : 0.33);
+            this._categoryContainer.add(btn);
+            this._makeBouncyButton(btn, 0.12, () => {
+                this._currentBuildCategory = cat.id;
+                this._editorPage = 0;
+                this._buildObjectGrid();
+            });
+        });
+        const activeCatDef = OBJECT_CATEGORIES.find(c => c.id === this._currentBuildCategory);
         for (let i = 1; i <= this._totalIds; i++) {
             const def = getObjectFromId(i);
-            if (def && def.frame) itemsForGrid.push({ type: "object", id: i, frame: def.frame });
+            const rawDef = allObjectsData[String(i)]; 
+            
+            if (def && rawDef) {
+                if (activeCatDef.types.includes(rawDef.type)) {
+                    itemsForGrid.push({ type: "object", id: i, frame: def.frame });
+                }
+            }
         }
     } else if (this._editorTab === "edit") {
         const moveActions = [
@@ -5736,17 +5904,15 @@ _buildObjectGrid = () => {
         });
     }
 
-    let totalPages = 1;
-
     if (this._editorTab === "build") {
-        totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
+        window.totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
     } else if (this._editorTab === "edit") {
-        totalPages = 3;
+        window.totalPages = 3;
     } else if (this._editorTab === "delete"){
-        totalPages = 1;
+        window.totalPages = 1;
     }
 
-    if (this._editorPage >= totalPages) this._editorPage = 0;
+    if (this._editorPage >= window.totalPages) this._editorPage = 0;
 
     const showArrows = this._editorTab !== "delete";
     if (this._leftArrow) {
@@ -5765,14 +5931,14 @@ _buildObjectGrid = () => {
             if (this._editorTab === "edit") {
                 this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : 2;
             } else {
-                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : totalPages - 1;
+                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : window.totalPages - 1;
             }
 
             this._buildObjectGrid();
         });
 
         this._makeBouncyButton(this._rightArrow, 0.8, () => {
-            this._editorPage = (this._editorPage < totalPages - 1) ? this._editorPage + 1 : 0;
+            this._editorPage = (this._editorPage < window.totalPages - 1) ? this._editorPage + 1 : 0;
             this._buildObjectGrid();
         });
     }
@@ -5782,10 +5948,10 @@ _buildObjectGrid = () => {
         this._toolbox.add(this._pageDotsContainer);
 
         const dotSpacing = 18;
-        const dotsStartX = (screenWidth / 2) - ((totalPages - 1) * dotSpacing) / 2;
+        const dotsStartX = (screenWidth / 2) - ((window.totalPages - 1) * dotSpacing) / 2;
         const dotsY = screenHeight - 10;
 
-        for (let i = 0; i < totalPages; i++) {
+        for (let i = 0; i < window.totalPages; i++) {
             const dot = this.add.circle(
                 dotsStartX + (i * dotSpacing),
                 dotsY,
@@ -5878,7 +6044,6 @@ _buildObjectGrid = () => {
     });
 };
 
-// Helper to keep grid logic clean
 _moveObject = (dx, dy) => {
     const selectedIndex = window.editorSelectedObject;
     if (selectedIndex === -1) return;
@@ -5887,11 +6052,13 @@ _moveObject = (dx, dy) => {
     const sprites = this._level.objectSprites[selectedIndex];
     const saveObj = window.levelObjects[selectedIndex];
 
-    if (!collider || !saveObj) return;
+    if (!saveObj) return;
 
-    collider.x += dx; collider.y += dy;
-    collider._baseX += dx; collider._baseY += dy;
-    collider._origBaseX += dx; collider._origBaseY += dy;
+    if (collider) {
+      collider.x += dx; collider.y += dy;
+      collider._baseX += dx; collider._baseY += dy;
+      collider._origBaseX += dx; collider._origBaseY += dy;
+    }
 
     saveObj.x += dx / 2; saveObj.y -= dy / 2;
     if (saveObj._raw) {
@@ -6142,33 +6309,31 @@ _updateEditorActionButtons = () => {
 
 _updateEditorGrid = () => {
     if (!this._editorGridGraphics) return;
-
     const g = this._editorGridGraphics;
     g.clear();
-    
+    const zoom = this._editorZoom || 1.0;
     const gridSize = 60;
+    g.lineStyle(1, 0x000000, 0.4);
 
-    g.lineStyle(1, 0x000000, 0.4); 
-
-    const offsetX = (-this._cameraX % gridSize);
-    const offsetY = (-this._cameraY % gridSize) - 20;
-
-    for (let x = offsetX - gridSize; x < screenWidth + gridSize; x += gridSize) {
-        g.lineBetween(x, 0, x, screenHeight);
+    const camX = this._cameraX / zoom;
+    const camY = this._cameraY / zoom;
+    const offsetX = -camX % gridSize;
+    const offsetY = (-camY - 20) % gridSize;
+    for (let x = offsetX; x < screenWidth / zoom + gridSize; x += gridSize) {
+        g.lineBetween(x * zoom, 0, x * zoom, screenHeight);
     }
-    for (let y = offsetY - gridSize; y < screenHeight + gridSize; y += gridSize) {
-        g.lineBetween(0, y, screenWidth, y);
+    for (let y = offsetY; y < screenHeight / zoom + gridSize; y += gridSize) {
+        g.lineBetween(0, y * zoom, screenWidth, y * zoom);
     }
+    g.lineStyle(1, 0xffffff, 1);
 
-    const startLineX = -this._cameraX;
+    const startLineX = (0 * zoom) - this._cameraX;
     if (startLineX >= -50 && startLineX <= screenWidth + 50) {
-        g.lineStyle(1, 0xffffff, 1);
         g.lineBetween(startLineX, 0, startLineX, screenHeight);
     }
-
-    const groundLineY = -20+(60*8) -this._cameraY;
+    const worldGroundY = -20 + (60 * 8);
+    const groundLineY = (worldGroundY * zoom) - this._cameraY;
     if (groundLineY >= -50 && groundLineY <= screenHeight + 50) {
-        g.lineStyle(1, 0xffffff, 1);
         g.lineBetween(0, groundLineY, screenWidth, groundLineY);
     }
 };
@@ -6186,8 +6351,8 @@ _editorAction = () => {
 _placeObject = () => {
     const pointer = this.input.activePointer;
 
-    const worldX = pointer.x + this._cameraX;
-    const worldY = pointer.y + this._cameraY;
+    const worldX = (this.input.activePointer.x + this._cameraX) / this._editorZoom;
+    const worldY = (this.input.activePointer.y + this._cameraY) / this._editorZoom;
 
     const snapX = Math.floor(worldX / 60) * 60;
     const snapY = Math.floor((worldY + 20) / 60) * 60;
@@ -6264,8 +6429,14 @@ _placeObject = () => {
 
             spr.setDepth((spr._eeZDepth || finalDepth) + 10);
 
-            if (this._level.container && !this._level.container.exists(spr)) {
-                this._level.container.add(spr);
+            if (spr._eeLayer === 2) {
+                if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
+                    this._level.topContainer.add(spr);
+                }
+            } else {
+                if (this._level.container && !this._level.container.exists(spr)) {
+                    this._level.container.add(spr);
+                }
             }
         }
     }
@@ -6471,7 +6642,7 @@ _initEditorPauseMenu = () => {
 
     buttonData.forEach((data, i) => {
         const x = screenWidth / 2;
-        const y = (screenHeight / 2) - 180 + (i * 75);
+        const y = (screenHeight / 2) - 150 + (i * 70);
         
         const btnImg = this.add.nineslice(x, y, "GJ_button01", null, 450, 65, 24, 24, 24, 24 ).setScale(0.75).setInteractive();
         const label = this.add.bitmapText(x, y - 2, "goldFont", data.text, 40).setOrigin(0.5, 0.5).setScale(0.8);
@@ -6482,6 +6653,25 @@ _initEditorPauseMenu = () => {
             data.cb();
         }, () => true);
     });
+
+    const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
+        const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
+        const check = this.add.image(x - 120, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
+        const txt = this.add.bitmapText(x - 70, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        container.add([check, txt]);
+
+        this._makeBouncyButton(check, 0.8, () => {
+            setVal(!getVal());
+            check.setTexture("GJ_GameSheet03", getTex());
+            if (callback) callback(getVal());
+            this._saveSettings();
+        });
+    };
+
+    createToggle(this._editorMenuContainer, 200, screenHeight - 60, "Show Glow", () => window.showEditorGlow, v => window.showEditorGlow = v,() => {
+        this._level._updateGlowVisibility();
+    }
+);
 };
 
 _showLoadingBuffer = (statusText) => {
@@ -6511,13 +6701,9 @@ _showEditorPauseMenu = (show) => {
 
 _serializeLevel(levelData) {
   const settings = levelData.settings || "";
-
-  const objectStrings = (levelData.objects || [])
-    .map(this._serializeObject)
-    .filter(Boolean);
-
+  const objectStrings = (levelData.objects || []).map(this._serializeObject).filter(Boolean);
   const decompressedString = [settings, ...objectStrings].join(";");
-  const compressed = pako.deflate(decompressedString);
+  const compressed = pako.gzip(decompressedString);
 
   let binaryString = "";
   for (let i = 0; i < compressed.length; i++) {
@@ -6590,6 +6776,76 @@ _saveEditorLevel = () => {
         window._onlineLevelName = createdLevels[levelIndex].levelName;
         window._onlineLevelId = createdLevels[levelIndex].createdId;
     }
+};
+
+_initEditorTimeline = () => {
+    const y = 40;
+    this._timelineContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
+    const width = screenWidth / 3;
+    const groove = this.add.image(screenWidth / 2, y, "slidergroove2").setDisplaySize(width, 26);
+    const thumb = this.add.image(screenWidth / 2, y, "GJ_moveBtn").setScale(0.4).setInteractive({ draggable: true });
+    this._timelineContainer.add([groove, thumb]);
+    this._timelineSlider = {width, groove, thumb, y };
+    const startX = screenWidth / 2 - (width / 2);
+    thumb.on("dragstart", () => {
+        this._isDraggingSlider = true;
+        thumb.setTexture("GJ_moveSBtn");
+    });
+    thumb.on("drag", (pointer, dragX) => {
+        const minX = startX;
+        const maxX = startX + width;
+        thumb.x = Phaser.Math.Clamp(dragX, minX, maxX);
+        const pct = (thumb.x - minX) / width;
+        const levelWidth = this._getEditorLevelWidth();
+        this._cameraX = pct * levelWidth;
+        this._level.container.x = -this._cameraX;
+        this._level.container.y = -this._cameraY;
+        this._level.additiveContainer.x = -this._cameraX;
+        this._level.additiveContainer.y = -this._cameraY;
+        this._level.topContainer.x = -this._cameraX;
+        this._level.topContainer.y = -this._cameraY;
+        this._bg.tilePositionX = this._cameraX * 0.1;
+    });
+    thumb.on("dragend", () => {
+        thumb.setTexture("GJ_moveBtn");
+    });
+};
+
+_getEditorLevelWidth = () => {
+    let furthestX = 0;
+
+    for (const obj of window.levelObjects) {
+        if (!obj) continue;
+
+        const worldX = (obj.x - 15) * 2;
+
+        if (worldX > furthestX) {
+            furthestX = worldX;
+        }
+    }
+
+    return Math.max(screenWidth, furthestX + screenWidth/2);
+};
+
+_updateEditorTimeline = () => {
+    if (!this._timelineSlider) return;
+
+    const {
+        width,
+        thumb,
+    } = this._timelineSlider;
+
+    const levelWidth = this._getEditorLevelWidth();
+
+    const pct = Phaser.Math.Clamp(
+        this._cameraX / levelWidth,
+        0,
+        1
+    );
+
+    const startX = screenWidth / 2 - (width / 2);
+
+    thumb.x = startX + (pct * width);
 };
 
 _applyMirrorEffect() {
@@ -7046,7 +7302,7 @@ _applyMirrorEffect() {
     const _makeSettingsBtn = (cx, cy, label, btnW, isActive, action) => {
         const grp = this.add.container(cx, cy);
         const tint = isActive ? 0xffffff : 0x666666;
-        const btn9 = this._drawScale9(0, 0, btnW, _sBtnH, "GJ_button01", _sBtnBorder, tint, 1);
+        const btn9 = this.add.nineslice(0, 0, "GJ_button01", null, btnW, _sBtnH, _sBtnBorder, _sBtnBorder, _sBtnBorder, _sBtnBorder).setOrigin(0.5).setTint(tint);
         grp.add(btn9);
         const fontSize = label === "How To Play" ? 41 : 50;
         const lbl = this.add.bitmapText(0, -5, "goldFont", label, fontSize).setOrigin(0.5, 0.5);
