@@ -2748,35 +2748,32 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       } else {
         if (ptr.x >= cardX - cardW/2 && ptr.x <= cardX + cardW/2 &&
             ptr.y >= cardY - cardH/2 && ptr.y <= cardY + cardH/2) {
-          this.input.enabled = false;
-          const lvl = window.currentlevel; 
-          const songID = lvl[0];
-          const levelFileName = lvl[2];
-          const songFileName = lvl[4] ? lvl[4] : lvl[1].replaceAll(" ", "");
-          const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Downloading Level Assets...", 20).setOrigin(0.5).setDepth(200);
-          
-          this.load.text(levelFileName, "assets/levels/" + levelFileName.split("_")[1] + ".txt");
-          this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
-
-          this.load.once("complete", () => {
-            loadingText.destroy();
-            this._audio.playEffect("playSound_01", { volume: 1 });
-            this._closeLevelSelect(true);
-            this._audio.stopMusic();
-            this.input.enabled = true;
             
-            this.game.registry.set("autoStartGame", true);
-            this.scene.restart();
-          });
-          this.load.start();
+            this.input.enabled = false;
+            this.tweens.killTweensOf(cardBounceContainer, "scale");
+            cardBounceContainer.setScale(1);
 
-          this.tweens.killTweensOf(cardBounceContainer, "scale");
-          cardBounceContainer.setScale(1);
-          this._audio.playEffect("playSound_01", { volume: 1 });
-          this._closeLevelSelect(true);
-          this._audio.stopMusic();
-          this.game.registry.set("autoStartGame", true);
-          this.scene.restart();
+            const lvl = window.currentlevel; 
+            const songID = lvl[0];
+            const levelFileName = lvl[2];
+            const songFileName = lvl[4] ? lvl[4] : lvl[1].replaceAll(" ", "");
+            
+            const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Downloading Level Assets...", 20).setOrigin(0.5).setDepth(200);
+            
+            this.load.text(levelFileName, "assets/levels/" + levelFileName.split("_")[1] + ".txt");
+            this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
+
+            this.load.once("complete", () => {
+                loadingText.destroy();
+                this._audio.playEffect("playSound_01", { volume: 1 });
+                this._closeLevelSelect(true);
+                this._audio.stopMusic();
+                this.input.enabled = true;
+                this.game.registry.set("autoStartGame", true);
+                this.scene.restart(); 
+            });
+
+            this.load.start();
         } else {
           this.tweens.killTweensOf(cardBounceContainer, "scale");
           this.tweens.add({ targets: cardBounceContainer, scale: 1, duration: 200, ease: "Quad.Out" });
