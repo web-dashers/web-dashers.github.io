@@ -1333,25 +1333,36 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 console.log(songUrl);
 
                 if (songUrl) {
-                    _showStatus(`loading "${songData.title}" by ${songData.artistName}...`, "#00ff00");
-                    
-                    const audioCtx = this.game.sound.context;
-                    if (audioCtx.state === "suspended") await audioCtx.resume();
+                  _showStatus(`loading "${songData.title}" by ${songData.artistName}...`, "#00ff00");
+                  
+                  const audioCtx = this.game.sound.context;
+                  if (audioCtx.state === "suspended") await audioCtx.resume();
 
-                    const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                    const audioRes = await fetch(proxiedUrl);
-                    if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
+                  window._onlineSongKey    = songKey;
+                  window._onlineSongTitle  = songData.title;
+                  window._onlineSongArtist = songData.artistName;
 
-                    const arrayBuf = await audioRes.arrayBuffer();
-                    const decoded  = await audioCtx.decodeAudioData(arrayBuf);
+                  try {
+                      const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                      const audioRes = await fetch(proxiedUrl);
+                      
+                      if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
 
-                    window._onlineSongBuffer = decoded;
-                    window._onlineSongKey    = songKey;
-                    window._onlineSongTitle  = songData.title;
-                    window._onlineSongArtist = songData.artistName;
-                } else {
-                    _showStatus("failed to resolve song URL", "#ff0000");
-                }
+                      const arrayBuf = await audioRes.arrayBuffer();
+                      const decoded  = await audioCtx.decodeAudioData(arrayBuf);
+
+                      window._onlineSongBuffer = decoded;
+                      _showStatus(`loaded "${songData.title}" successfully!`, "#00ff00");
+
+                  } catch (error) {
+                      console.error("Failed to load audio via proxy:", error.message);
+                      _showStatus(`failed to load audio: ${songData.title}`, "#ffaa00");
+                      
+                      window._onlineSongBuffer = null;
+                  }
+              } else {
+                  _showStatus("failed to resolve song URL", "#ff0000");
+              }
             } else {
                 _showStatus("Song info failed to load", "#ff0000");
             }
