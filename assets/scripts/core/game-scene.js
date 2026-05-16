@@ -1188,10 +1188,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           chk:            lvlMap["chk"] || null,
           rs:             lvlMap["rs"] || null
         };
-
+        console.groupCollapsed("level data");
         const { string, ...tableFriendlyData } = levelData;
         console.table(tableFriendlyData);
-        
+        console.groupEnd();
+
         const songKey = levelData.isCustomSong 
           ? (levelData.isLibrarySong ? `lib_song_${levelData.customSongID}` : `ng_song_${levelData.customSongID}`) 
           : window.allLevels[levelData.officialSong][0];
@@ -1328,9 +1329,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
                   songUrl = `https://geometrydashfiles.b-cdn.net${path}?token=${auth.token}&expires=${auth.expires}`;
                 }
-
+                
+                console.groupCollapsed("song data");
                 console.table({ ...songData});
                 console.log(songUrl);
+                console.groupEnd();
 
                 if (songUrl) {
                   _showStatus(`loading "${songData.title}" by ${songData.artistName}...`, "#00ff00");
