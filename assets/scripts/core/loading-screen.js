@@ -261,6 +261,14 @@ class BootScene extends Phaser.Scene {
       this.load.image("tutorial_03", "assets/sprites/tutorial_03.png");
       this.load.image("tutorial_04", "assets/sprites/tutorial_04.png");
       this.load.image("tutorial_05", "assets/sprites/tutorial_05.png");
+      this.load.image("tab1", "assets/sprites/tab1.png");
+      this.load.image("tab2", "assets/sprites/tab2.png");
+      this.load.image("tab3", "assets/sprites/tab3.png");
+      this.load.image("tab4", "assets/sprites/tab4.png");
+      this.load.image("tab5", "assets/sprites/tab5.png");
+      this.load.image("GJ_moveBtn", "assets/sprites/GJ_moveBtn.png");
+      this.load.image("GJ_moveSBtn", "assets/sprites/GJ_moveSBtn.png");
+      this.load.image("slidergroove2", "assets/sprites/slidergroove2.png");
 
       for (let i = 1; i < 23; i++) {
         let index = i - 1;
@@ -281,10 +289,10 @@ class BootScene extends Phaser.Scene {
       this.load.audio("menu_music", "assets/music/menuLoop.mp3");
       this.load.audio("StayInsideMe", "assets/music/StayInsideMe.mp3");
 
-      /*for (const lvlarray of window.allLevels) {
+      for (const lvlarray of window.allLevels) {
         this.load.text(lvlarray[2], "assets/levels/" + lvlarray[2].split("_")[1] + ".txt");
         this.load.audio(lvlarray[0], "assets/music/" + (lvlarray[4] ? lvlarray[4] : lvlarray[1].replaceAll(" ", "")) + ".mp3");
-      }*/
+      }
 
       this.load.audio("explode_11", "assets/sfx/explode_11.ogg");
       this.load.audio("endStart_02", "assets/sfx/endStart_02.ogg");

@@ -762,6 +762,12 @@ window.LevelObject = class LevelObject {
       return null;
     }
   }
+  _updateGlowVisibility = () => {
+      if (!this._glowSprites) return;
+      for (const glow of this._glowSprites) {
+          glow.setVisible(!window.isEditor || window.showEditorGlow);
+      }
+  };
   _addGlowSprite(scene, x, y, frameName, objectData, worldX) {
     let glowFrameName = this._getGlowFrameName(frameName);
     if (!glowFrameName) {
@@ -775,6 +781,11 @@ window.LevelObject = class LevelObject {
       this._applyVisualProps(scene, glowSprite, glowFrameName, objectData);
       glowSprite.setBlendMode(S);
       glowSprite._eeLayer = 0;
+      if (!this._glowSprites) {
+        this._glowSprites = [];
+      }
+      this._glowSprites.push(glowSprite);
+      glowSprite.setVisible(!window.isEditor || window.showEditorGlow);
       if (worldX !== undefined) {
         glowSprite._eeWorldX = worldX;
         glowSprite._eeBaseY = y;
@@ -977,6 +988,7 @@ window.LevelObject = class LevelObject {
       const backFrame = frameName.replace("_front_", "_back_");
       portalBackSprite = addImageToScene(scene, spriteWorldX, baseY, backFrame);
       if (portalBackSprite) {
+        this._applyVisualProps(scene, portalBackSprite, backFrame, levelObj);
         portalBackSprite._eeLayer = 1;
         portalBackSprite._eeWorldX = worldX;
         portalBackSprite._eeBaseY = baseY;

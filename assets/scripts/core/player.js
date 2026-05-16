@@ -929,7 +929,7 @@ if (this.p.isFlying || this.p.isUfo) {
     if (!this._scene._slideIn){
       if (!this._hitboxTrail) this._hitboxTrail = [];
       if (!this.p.isDead) {
-        this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y });
+        this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y, rotation: this._rotation });
         if (this._hitboxTrail.length > 180) this._hitboxTrail.shift();
       }
       if (window.showHitboxes || this.p.isDead && window.hitboxesOnDeath) {
@@ -2667,6 +2667,29 @@ _updateWaveJump() {
             graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
             graphics.strokeCircle((trailX - playerSize) + hitboxsize / 2, (trailY - playerSize) + hitboxsize / 2, hitboxsize / 2);
 
+            // box that rotates with the player (dark red)
+            graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
+            {
+              const cx = (trailX - playerSize) + hitboxsize / 2;
+              const cy = (trailY - playerSize) + hitboxsize / 2;
+              const hw = hitboxsize / 2;
+              const cos = Math.cos(pos.rotation ?? 0);
+              const sin = Math.sin(pos.rotation ?? 0);
+              const corners = [
+                { x: cx - hw * cos + hw * sin, y: cy - hw * sin - hw * cos },
+                { x: cx + hw * cos + hw * sin, y: cy + hw * sin - hw * cos },
+                { x: cx + hw * cos - hw * sin, y: cy + hw * sin + hw * cos },
+                { x: cx - hw * cos - hw * sin, y: cy - hw * sin + hw * cos },
+              ];
+              graphics.beginPath();
+              graphics.moveTo(corners[0].x, corners[0].y);
+              graphics.lineTo(corners[1].x, corners[1].y);
+              graphics.lineTo(corners[2].x, corners[2].y);
+              graphics.lineTo(corners[3].x, corners[3].y);
+              graphics.closePath();
+              graphics.strokePath();
+            }
+
             graphics.lineStyle(1, hexToHexadecimal("0000ff"), 1);
           }
 
@@ -2686,6 +2709,29 @@ _updateWaveJump() {
       // inner circle (dark red)
       graphics.lineStyle(2, hexToHexadecimal("b30001"), 0.8);
       graphics.strokeCircle((_playerDrawX - playerSize)+hitboxsize/2, (_0x1e788a - playerSize)+hitboxsize/2, hitboxsize/2);
+
+      // box that rotates with the player (dark red)
+      graphics.lineStyle(2, hexToHexadecimal("b30001"), 0.8);
+      {
+        const cx = (_playerDrawX - playerSize) + hitboxsize / 2;
+        const cy = (_0x1e788a - playerSize) + hitboxsize / 2;
+        const hw = hitboxsize / 2;
+        const cos = Math.cos(this._rotation);
+        const sin = Math.sin(this._rotation);
+        const corners = [
+          { x: cx - hw * cos + hw * sin, y: cy - hw * sin - hw * cos },
+          { x: cx + hw * cos + hw * sin, y: cy + hw * sin - hw * cos },
+          { x: cx + hw * cos - hw * sin, y: cy + hw * sin + hw * cos },
+          { x: cx - hw * cos - hw * sin, y: cy - hw * sin + hw * cos },
+        ];
+        graphics.beginPath();
+        graphics.moveTo(corners[0].x, corners[0].y);
+        graphics.lineTo(corners[1].x, corners[1].y);
+        graphics.lineTo(corners[2].x, corners[2].y);
+        graphics.lineTo(corners[3].x, corners[3].y);
+        graphics.closePath();
+        graphics.strokePath();
+      }
 
       graphics.lineStyle(2, hexToHexadecimal("0000ff"), 1);
     }
