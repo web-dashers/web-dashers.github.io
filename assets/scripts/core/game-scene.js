@@ -322,22 +322,28 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const sw = screenWidth;
       const sh = screenHeight;
 
-      const bgGfx = this.add.graphics().setScrollFactor(0).setDepth(99);
+      const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
+      fadeIn.fillStyle(0x000000, 1);
+      fadeIn.fillRect(0, 0, sw, sh);
+      this.tweens.add({ targets: fadeIn, alpha: 0, duration: 300, ease: "Linear", onComplete: () => fadeIn.destroy() });
+
+      const overlay = this.add.graphics().setScrollFactor(0).setDepth(100);
       const gradientSteps = 80;
       for (let gi = 0; gi < gradientSteps; gi++) {
         const t = gi / (gradientSteps - 1);
-        const r = Math.round(0x00 + (0x00 - 0x00) * t);
-        const g = Math.round(0x65 + (0x2E - 0x65) * t);
-        const b = Math.round(0xFD + (0x73 - 0xFD) * t);
-        bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
-        bgGfx.fillRect(0, Math.floor(gi * sh / gradientSteps), sw, Math.ceil(sh / gradientSteps) + 1);
+        const r1 = Math.round(0x00 + (0x01 - 0x00) * t);
+        const g1 = Math.round(0x65 + (0x2c - 0x65) * t);
+        const b1 = Math.round(0xff + (0x71 - 0xff) * t);
+        const bandColor = (r1 << 16) | (g1 << 8) | b1;
+        const bandY = Math.floor(gi * sh / gradientSteps);
+        const bandH = Math.ceil(sh / gradientSteps) + 1;
+        overlay.fillStyle(bandColor, 1);
+        overlay.fillRect(0, bandY, sw, bandH);
       }
-
-      const panelH  = 460;  
+      this._creatorOverlay = overlay;
 
       const blocker = this.add.zone(sw / 2, sh / 2, sw, sh)
         .setScrollFactor(0).setDepth(101).setInteractive();
-      this._creatorOverlay = bgGfx;
 
       const cornerTL = this.add.image(0,  0,  "GJ_GameSheet03", "GJ_sideArt_001.png")
         .setScrollFactor(0).setDepth(100).setOrigin(1, 0).setFlipX(false).setAngle(-90)
@@ -349,7 +355,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         .setRotation(Math.PI).setInteractive();
       this._makeBouncyButton(backBtn, 1, () => this._closeCreatorMenu());
 
-      this._creatorOverlayObjects = [bgGfx, blocker, cornerTL, cornerBL, backBtn];
+      this._creatorOverlayObjects = [overlay, blocker, cornerTL, cornerBL, backBtn];
 
       const menuButtons = [
         "GJ_createBtn_001.png",
@@ -388,10 +394,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           .setScrollFactor(0).setDepth(104).setScale(btnScale);
         const isSearchButton  = frame === "GJ_searchBtn_001.png";
         const isFeaturedButton = frame === "GJ_featuredBtn_001.png";
-        const isEditorButton  = frame === "GJ_createBtn_001.png";
-        const isDailyButton   = frame === "GJ_dailyBtn_001.png";
-        const isWeeklyButton  = frame === "GJ_weeklyBtn_001.png";
-        const isEventButton   = frame === "GJ_eventBtn_001.png";
+        const isEditorButton = frame === "GJ_createBtn_001.png"; 
         if (isSearchButton) {
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
@@ -409,21 +412,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           this._makeBouncyButton(btn, btnScale, () => {
             this._closeCreatorMenu(true);
             this._openEditorMenu();
-          }, () => true);
-        } else if (isDailyButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._openDailyLevelScene(0);
-          }, () => true);
-        } else if (isWeeklyButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._openDailyLevelScene(1);
-          }, () => true);
-        } else if (isEventButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._openDailyLevelScene(2);
           }, () => true);
         } else {
           btn.setTint(0x666666);
@@ -691,7 +679,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                     } else {
                         finalSongId = -extracted.officialSongId -1;
                         try {
-                            finalSongName = window.allLevels[extracted.officialSongId][1];
+                            finalSongName = window.allLevels[extracted.officialSongId][0];
                         } catch(e) {
                             finalSongName = "Unknown";
                         }
@@ -1324,8 +1312,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         });
       };
       this._searchOverlayObjects.push(overlay, blocker, backBtn);
-      if (window.levelID && !window.alreadydownloaded) { // if there's an ID parameter, load it directly
-        window.alreadydownloaded = true;
+      if (window.levelID) { // if there's an ID parameter, load it directly
         htmlInput.remove();
         const loadingBg = this.add.graphics().setScrollFactor(0).setDepth(1000);
         loadingBg.fillStyle(0x000000, 1);
@@ -1335,12 +1322,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._searchOverlayObjects.push(loadingBg, loadingText);
         _doSearchInner(window.levelID);
       }
-      window.addEventListener("keydown", (e) => {
+      htmlInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") _doSearch();
         e.stopPropagation();
       });
-      window.addEventListener("keyup", (e) => e.stopPropagation());
-      window.addEventListener("keypress", (e) => e.stopPropagation());
+      htmlInput.addEventListener("keyup", (e) => e.stopPropagation());
+      htmlInput.addEventListener("keypress", (e) => e.stopPropagation());
       this._searchHtmlInput = htmlInput;
       this._searchInputResizeFn = _repositionInput;
     };
@@ -2352,370 +2339,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       this._startGame();
     }
-      const pageUpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.PAGE_UP);
-    /*pageUpKey.on("down", () => {
-      this.showPopup({
-        title: "Test Popup",
-        content: "im <cr>gay</c> i like <cy>femboys</c>\nthis is a test to see if <cg>newlines</c> work in this <co>fuckass</c> popup\n why would you un-comment this out i hate you",
-        button1: "Confirm",
-        button2: "Cancel",
-        func1: () => console.log("Button 1 pressed"),
-        func2: null 
-      });
-    }); */
-  } 
-
-  closePopup() {
-    if (this._currentPopup) {
-      this._currentPopup.destroy();
-      this._currentPopup = null;
-    }
   }
-
-  showPopup(options) {
-    this.closePopup();
-    // default values:
-    const {
-      title = "Popup", // title
-      content = "",    // content
-      button1 = "OK",  // button 1 text
-      button2 = null,  // button 2 text (leave blank if u dont want a button2)
-      func1 = null,    // function thats called when button1 is pressed (leave blank if you just want it to close the popup)
-      func2 = null,    // function thats called when button2 is pressed (leave blank if you just want it to close the popup)
-      type1 = 1,       // color of button 1, 1 = green, 2 = blue, 3 = pink, 4 = grey, 5 = dark grey, 6 = red
-      type2 = 1,       // color of button 2, 1 = green, 2 = blue, 3 = pink, 4 = grey, 5 = dark grey, 6 = red
-      width = 450,     // width (minimum 450)
-      height = 300     // height (minimum 300)
-    } = options;
-
-    const sw = screenWidth;
-    const sh = screenHeight;
-    const popupWidth = Math.max(450, width);
-    const popupHeight = Math.max(300, height);
-    const centerX = sw / 2;
-    const centerY = sh / 2;
-
-    const mainContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(300);
-    this._currentPopup = mainContainer;
-
-    const background = this.add.rectangle(centerX, centerY, sw, sh, 0, 100 / 255);
-    background.setInteractive();
-    mainContainer.add(background);
-
-    const bounceContainer = this.add.container(centerX, centerY).setScale(0);
-    mainContainer.add(bounceContainer);
-
-    const cornerRadius = this.textures.get("square01_001").source[0].width * 0.325;
-    const panelBg = this._drawScale9(0, 0, popupWidth, popupHeight, "square01_001", cornerRadius, 16777215, 1);
-    bounceContainer.add(panelBg);
-
-    const titleText = this.add.bitmapText(0, -(popupHeight / 2 - 50), "goldFont", title, 45)
-      .setOrigin(0.5, 0.5);
-    bounceContainer.add(titleText);
-
-    const wrapWidth = popupWidth - 80;
-    const fontSize = 22;
-    const lineHeight = Math.round(fontSize * 1.25);
-    const baseStyle = { fontSize: `${fontSize}px`, fontFamily: "Helvetica, Arial, sans-serif", color: "#ffffff" };
-
-    const tagMap = {
-      "b": "#4A52E1",
-      "g": "#40E348",
-      "l": "#60ABEF",
-      "j": "#32C8FF",
-      "y": "#FFFF00",
-      "o": "#FF5A4B",
-      "r": "#FF5A5A",
-      "p": "#FF00FF",
-      "a": "#9632FF",
-      "d": "#FF96FF",
-      "c": "#FFFF96",
-      "f": "#96FFFF",
-      "s": "#FFDC41",
-      "":  "#FF0000"
-    };
-
-    const segments = [];
-    let remaining = content || "";
-    const openTagRe = /<c([a-z]{0,2})>/i;
-    while (remaining.length) {
-      const m = remaining.match(openTagRe);
-      if (!m) {
-        segments.push({ text: remaining, color: baseStyle.color });
-        break;
-      }
-      const idx = m.index;
-      if (idx > 0) {
-        segments.push({ text: remaining.slice(0, idx), color: baseStyle.color });
-      }
-      const tagName = (m[1] || "").toLowerCase();
-      const start = idx + m[0].length;
-      const endTag = remaining.indexOf("</c>", start);
-      const inner = endTag === -1 ? remaining.slice(start) : remaining.slice(start, endTag);
-      const color = tagMap.hasOwnProperty(tagName) ? tagMap[tagName] : baseStyle.color;
-      segments.push({ text: inner, color });
-      if (endTag === -1) break;
-      remaining = remaining.slice(endTag + 4);
-    }
-
-    const tokens = [];
-    segments.forEach(seg => {
-      const parts = seg.text.split(/(\n|\s+)/);
-      parts.forEach(p => {
-        if (!p) return;
-        tokens.push({ text: p, color: seg.color });
-      });
-    });
-
-    const lines = [];
-    let currentLine = [];
-    let currentText = "";
-    const measurer = this.add.text(0, 0, "", baseStyle).setVisible(false);
-
-    const pushCurrentLine = () => {
-      if (currentLine.length) {
-        lines.push(currentLine);
-        currentLine = [];
-        currentText = "";
-      }
-    };
-
-    const splitLongToken = (tok) => {
-      const parts = [];
-      let s = tok.text;
-      while (s.length) {
-        // find max prefix that fits
-        let fit = 0;
-        for (let i = 1; i <= s.length; i++) {
-          measurer.setText(s.slice(0, i));
-          if (measurer.width <= wrapWidth) fit = i; else break;
-        }
-        if (fit === 0) fit = 1; // at least one char
-        parts.push({ text: s.slice(0, fit), color: tok.color });
-        s = s.slice(fit);
-      }
-      return parts;
-    };
-
-    for (let i = 0; i < tokens.length; i++) {
-      const t = tokens[i];
-      // explicit newline token
-      if (t.text === "\n") {
-        pushCurrentLine();
-        continue;
-      }
-
-      // if token is purely whitespace, treat normally but allow it to cause wrap
-      if (/^\s+$/.test(t.text)) {
-        const candidate = currentText + t.text;
-        measurer.setText(candidate);
-        if (measurer.width > wrapWidth && currentLine.length > 0) {
-          pushCurrentLine();
-        } else {
-          currentLine.push(t);
-          currentText = candidate;
-        }
-        continue;
-      }
-
-      // token contains visible characters; if it's wider than wrapWidth on its own, split it
-      measurer.setText(t.text);
-      if (measurer.width > wrapWidth) {
-        // if current line has content, push it first
-        if (currentLine.length > 0) pushCurrentLine();
-        const pieces = splitLongToken(t);
-        for (let pi = 0; pi < pieces.length; pi++) {
-          const piece = pieces[pi];
-          currentLine.push(piece);
-          currentText += piece.text;
-          // if piece doesn't fit further (shouldn't), push line
-          measurer.setText(currentText);
-          if (measurer.width >= wrapWidth) {
-            pushCurrentLine();
-          }
-        }
-        continue;
-      }
-
-      // normal token: see if adding it would overflow
-      const candidate = currentText + t.text;
-      measurer.setText(candidate);
-      if (measurer.width > wrapWidth && currentLine.length > 0) {
-        pushCurrentLine();
-        currentLine.push(t);
-        currentText = t.text;
-      } else {
-        currentLine.push(t);
-        currentText = candidate;
-      }
-    }
-    if (currentLine.length) lines.push(currentLine);
-    measurer.destroy();
-
-    const contentContainer = this.add.container(0, -10);
-    const totalHeight = lines.length * lineHeight;
-    let yOffset = - (totalHeight / 2) + (lineHeight / 2);
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li];
-      // measure line width
-      const tmp = this.add.text(0, 0, line.map(s => s.text).join(''), baseStyle).setVisible(false);
-      const lineW = tmp.width;
-      tmp.destroy();
-      const startX = -lineW / 2;
-      const lineGroup = this.add.container(startX, yOffset);
-      // place segments by accumulating x; avoid using container.width which is unreliable
-      let childX = 0;
-      for (let si = 0; si < line.length; si++) {
-        const seg = line[si];
-        const txt = this.add.text(childX, 0, seg.text, { fontSize: baseStyle.fontSize, fontFamily: baseStyle.fontFamily, color: seg.color }).setOrigin(0, 0.5);
-        lineGroup.add(txt);
-        childX += txt.width;
-      }
-      contentContainer.add(lineGroup);
-      yOffset += lineHeight;
-    }
-    bounceContainer.add(contentContainer);
-
-    const buttonHeight = 60;
-    const baseButtonWidth = 160;
-
-    const _btnTexKey = (type) => {
-      const key = "GJ_button" + String(type).padStart(2, "0");
-      return this.textures.exists(key) ? key : "GJ_button01";
-    };
-    const btn1Tex = _btnTexKey(type1);
-    const btn2Tex = _btnTexKey(type2);
-
-    const button1Label = this.add.bitmapText(0, -2, "goldFont", button1, 36).setOrigin(0.5, 0.5);
-    const measured1 = Math.round(button1Label.width || 0);
-    const btn1W = Math.max(baseButtonWidth, measured1 + 48);
-
-    let measured2 = 0;
-    let btn2W = 0;
-    if (button2) {
-      const tmpLabel = this.add.bitmapText(0, -2, "goldFont", button2, 36).setOrigin(0.5, 0.5).setVisible(false);
-      measured2 = Math.round(tmpLabel.width || 0);
-      btn2W = Math.max(baseButtonWidth, measured2 + 48);
-      tmpLabel.destroy();
-    }
-
-    const buttonY = popupHeight / 2 - 60;
-    let button1X = 0;
-    let button2X = 0;
-    if (button2) {
-      const spacing = 20;
-      const total = btn1W + btn2W + spacing;
-      button1X = - (total / 2) + (btn1W / 2);
-      button2X = (total / 2) - (btn2W / 2);
-    } else {
-      button1X = 0;
-    }
-
-    const button1Group = this.add.container(button1X, buttonY);
-    const btn1Border = this.textures.get(btn1Tex).source[0].width * 0.3;
-    const button1Bg = this._drawScale9(0, 0, btn1W, buttonHeight, btn1Tex, btn1Border, 0xffffff, 1);
-    const button1Hit = this.add.rectangle(0, 0, btn1W, buttonHeight).setInteractive();
-
-    button1Group.add(button1Bg);
-    button1Group.add(button1Hit);
-    button1Group.add(button1Label);
-    bounceContainer.add(button1Group);
-
-    button1Hit.on("pointerdown", () => {
-      button1Group._pressed = true;
-      this.tweens.killTweensOf(button1Group);
-      this.tweens.add({
-        targets: button1Group,
-        scaleX: 1.15,
-        scaleY: 1.15,
-        duration: 300,
-        ease: "Bounce.Out"
-      });
-    });
-
-    button1Hit.on("pointerout", () => {
-      if (button1Group._pressed) {
-        button1Group._pressed = false;
-        this.tweens.killTweensOf(button1Group);
-        this.tweens.add({
-          targets: button1Group,
-          scaleX: 1,
-          scaleY: 1,
-          duration: 400,
-          ease: "Bounce.Out"
-        });
-      }
-    });
-
-    button1Hit.on("pointerup", () => {
-      if (!button1Group._pressed) return;
-      button1Group._pressed = false;
-      this.tweens.killTweensOf(button1Group);
-      button1Group.setScale(1);
-      this.closePopup();
-      if (func1) func1();
-    });
-
-    if (button2) {
-      const button2Label = this.add.bitmapText(0, -2, "goldFont", button2, 36).setOrigin(0.5, 0.5);
-      const measured2 = Math.round(button2Label.width || 0);
-      const btn2W = Math.max(baseButtonWidth, measured2 + 48);
-
-      const button2Group = this.add.container(button2X, buttonY);
-      const btn2Border = this.textures.get(btn2Tex).source[0].width * 0.3;
-      const button2Bg = this._drawScale9(0, 0, btn2W, buttonHeight, btn2Tex, btn2Border, 0xffffff, 1);
-      const button2Hit = this.add.rectangle(0, 0, btn2W, buttonHeight).setInteractive();
-
-      button2Group.add(button2Bg);
-      button2Group.add(button2Hit);
-      button2Group.add(button2Label);
-      bounceContainer.add(button2Group);
-
-      button2Hit.on("pointerdown", () => {
-        button2Group._pressed = true;
-        this.tweens.killTweensOf(button2Group);
-        this.tweens.add({
-          targets: button2Group,
-          scaleX: 1.15,
-          scaleY: 1.15,
-          duration: 300,
-          ease: "Bounce.Out"
-        });
-      });
-
-      button2Hit.on("pointerout", () => {
-        if (button2Group._pressed) {
-          button2Group._pressed = false;
-          this.tweens.killTweensOf(button2Group);
-          this.tweens.add({
-            targets: button2Group,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 400,
-            ease: "Bounce.Out"
-          });
-        }
-      });
-
-      button2Hit.on("pointerup", () => {
-        if (!button2Group._pressed) return;
-        button2Group._pressed = false;
-        this.tweens.killTweensOf(button2Group);
-        button2Group.setScale(1);
-        this.closePopup();
-        if (func2) func2();
-      });
-    }
-
-    // Bounce in animation
-    this.tweens.add({
-      targets: bounceContainer,
-      scale: { from: 0, to: 1 },
-      duration: 500,
-      ease: "Bounce.Out"
-    });
-  }
-
   _parseLevelColors(levelId) {
     const LEVEL_COLORS = [
       0x0100f5,0xf902f8,0xf90285,0xfa0102,
@@ -3668,8 +3292,7 @@ _buildSettingsPopup() {
         showFPS: this._fpsText.visible,
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
-        hitboxesOnDeath: window.hitboxesOnDeath,
-        showEditorGlow: window.showEditorGlow
+        hitboxesOnDeath: window.hitboxesOnDeath
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -3685,8 +3308,7 @@ _buildSettingsPopup() {
         showFPS: false,
         solidWaveTrail: false,
         noclipAccuracy: false,
-        hitboxesOnDeath: false,
-        showEditorGlow: false
+        hitboxesOnDeath: false
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -3701,7 +3323,6 @@ _buildSettingsPopup() {
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
     window.hitboxesOnDeath = data.hitboxesOnDeath;
-    window.showEditorGlow = data.showEditorGlow;
   }
   
   _buildInfoPopup() {
@@ -4578,6 +4199,7 @@ _buildSettingsPopup() {
         this._initEditorLogic();
         return;
     }
+
     this._cameraX = -centerX;
     this._cameraY = 0;
     this._cameraXRef._v = this._cameraX;
@@ -5124,7 +4746,7 @@ _buildSettingsPopup() {
         this._hitObjects = this.input.hitTestPointer(pointer);
         this._handleEditorCamera(deltaTime); 
         this._updateEditorGrid(); 
-        if (pointer.isDown && !this._isDraggingSlider) {
+        if (pointer.isDown) {
             if (this._isSwipeEnabled) {
               if (this._hitObjects.length !== 0) return;
                 const currentGridX = Math.floor((pointer.x + this._cameraX) / 60) * 60;
@@ -5147,7 +4769,6 @@ _buildSettingsPopup() {
                 }
             }
         }
-        this._updateEditorTimeline();
         return;
     }
     let rawPercent = (this._playerWorldX / this._level.endXPos) * 100;
@@ -5606,8 +5227,7 @@ _handleEditorCamera = (delta) => {
 _initEditorLogic = () => {
     if (this._editorGridGraphics) this._editorGridGraphics.destroy();
     this._editorGridGraphics = this.add.graphics().setDepth(5);
-    const allObj = window.allobjects();
-    this._totalIds = Object.keys(allObj).length;
+    this._totalIds = 500; // just using the first 500 objects, could be expanded in the future when categories are added and shi but i aint doing all dat rn
     this._editorPage = 0;
     this._maxPerPage = 12;
     this._isSwipeEnabled = false;
@@ -5615,10 +5235,8 @@ _initEditorLogic = () => {
     this._lastSwipeGridY;
     this._clickStartPos = { x: 0, y: 0 };
     this._isDragging = false;
-    this._isDraggingSlider = false;
     this._editorTab = "build";
     window.editorSelectedObject = -1;
-    this._editorZoom = 1.0;
     this.input.on('pointerdown', (pointer) => {
         this._clickStartPos.x = pointer.x;
         this._clickStartPos.y = pointer.y;
@@ -5627,13 +5245,12 @@ _initEditorLogic = () => {
         this._isDragging = false;
     });
     this.input.on('pointerup', (pointer) => {
-        if (!this._isSwipeEnabled && !this._isDragging && !this._isDraggingSlider && this._hitObjects.length === 0) {
+        if (!this._isSwipeEnabled && !this._isDragging && this._hitObjects.length === 0) {
             this._editorAction();
         }
         this._lastSwipeGridX = -1;
         this._lastSwipeGridY = -1;
         this._isDragging = false;
-        this._isDraggingSlider = false;
     });
     this._createEditorGui();
 };
@@ -5727,53 +5344,9 @@ _createEditorGui = () => {
         this._clearEditorSelection();
     });
 
-    this._zoomButtons = this.add.container(48, screenHeight / 2 - 20).setScrollFactor(0).setDepth(1000);
-    
-    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
-    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
-    
-    this._zoomButtons.add([zoomInBtn, zoomOutBtn]);
-
-    this._makeBouncyButton(zoomInBtn, 0.9, () => this._adjustZoom(0.1));
-    this._makeBouncyButton(zoomOutBtn, 0.9, () => this._adjustZoom(-0.1));
-
-    this._zoomText = this.add.bitmapText(screenWidth / 2, 80, "bigFont", "Zoom: 1.00x", 40).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
-
-    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-        const zoomAmount = deltaY > 0 ? -0.1 : 0.1;
-        this._adjustZoom(zoomAmount, pointer.x, pointer.y);
-    });
-
     this._updateEditorActionButtons();
     this._updateTabVisuals();
     this._buildObjectGrid();
-    this._initEditorTimeline();
-};
-
-_adjustZoom = (delta, anchorX = screenWidth / 2, anchorY = screenHeight / 2) => {
-    const oldZoom = this._editorZoom;
-    let newZoom = oldZoom + delta;
-    newZoom = Phaser.Math.Clamp(newZoom, 0.1, 4.0);
-    if (oldZoom === newZoom) return;
-    const worldAnchorX = (this._cameraX + anchorX) / oldZoom;
-    const worldAnchorY = (this._cameraY + anchorY) / oldZoom;
-    this._editorZoom = newZoom;
-    this._level.topContainer.setScale(newZoom);
-    this._level.additiveContainer.setScale(newZoom);
-    this._level.container.setScale(newZoom);
-    this._cameraX = (worldAnchorX * newZoom) - anchorX;
-    this._cameraY = (worldAnchorY * newZoom) - anchorY;
-    this._updateEditorGrid();
-    this._zoomText.setText(`Zoom: ${newZoom.toFixed(2)}x`);
-    this._zoomText.setAlpha(1);
-    this.tweens.killTweensOf(this._zoomText);
-    this.tweens.add({
-        targets: this._zoomText,
-        alpha: 0,
-        duration: 500,
-        delay: 500,
-        ease: 'Power1'
-    });
 };
 
 _updateTabVisuals = () => {
@@ -5800,48 +5373,16 @@ _getSheetForFrameThingy = (frameName) => {
 _buildObjectGrid = () => {
     if (this._gridContainer) this._gridContainer.destroy();
     if (this._pageDotsContainer) this._pageDotsContainer.destroy();
-    if (this._categoryContainer) this._categoryContainer.destroy();
-
-    const OBJECT_CATEGORIES = [
-        { id: "blocks",  icon: "tab1", types: ["solid", "slope"] },
-        { id: "hazards", icon: "tab2", types: ["hazard", "spike"] },
-        { id: "orbs",    icon: "tab3", types: ["ring", "pad", "portal", "speed"] },
-        { id: "deco",    icon: "tab4", types: ["deco"] },
-        { id: "triggers",icon: "tab5", types: ["trigger"] },
-    ];
 
     this._gridContainer = this.add.container(0, 0);
     this._toolbox.add(this._gridContainer);
-    
-    const allObjectsData = window.allobjects();
+
     const itemsForGrid = [];
-    this._currentBuildCategory = this._currentBuildCategory || "blocks";
 
     if (this._editorTab === "build") {
-        this._categoryContainer = this.add.container(screenWidth / 2, screenHeight - 218);
-        this._toolbox.add(this._categoryContainer);
-        const catSpacing = 85;
-        const catStartX = -((OBJECT_CATEGORIES.length - 1) * catSpacing) / 2;
-        OBJECT_CATEGORIES.forEach((cat, i) => {
-            const isSelected = this._currentBuildCategory === cat.id;
-            const btn = this.add.image(catStartX + (i * catSpacing), 0, cat.icon).setInteractive().setScale(0.12).setTint(isSelected ? 0x888888 : 0xffffff).setAlpha(isSelected ? 1 : 0.33);
-            this._categoryContainer.add(btn);
-            this._makeBouncyButton(btn, 0.12, () => {
-                this._currentBuildCategory = cat.id;
-                this._editorPage = 0;
-                this._buildObjectGrid();
-            });
-        });
-        const activeCatDef = OBJECT_CATEGORIES.find(c => c.id === this._currentBuildCategory);
         for (let i = 1; i <= this._totalIds; i++) {
             const def = getObjectFromId(i);
-            const rawDef = allObjectsData[String(i)]; 
-            
-            if (def && rawDef) {
-                if (activeCatDef.types.includes(rawDef.type)) {
-                    itemsForGrid.push({ type: "object", id: i, frame: def.frame });
-                }
-            }
+            if (def && def.frame) itemsForGrid.push({ type: "object", id: i, frame: def.frame });
         }
     } else if (this._editorTab === "edit") {
         const moveActions = [
@@ -5892,15 +5433,17 @@ _buildObjectGrid = () => {
         });
     }
 
+    let totalPages = 1;
+
     if (this._editorTab === "build") {
-        window.totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
+        totalPages = Math.ceil(itemsForGrid.length / this._maxPerPage);
     } else if (this._editorTab === "edit") {
-        window.totalPages = 3;
+        totalPages = 3;
     } else if (this._editorTab === "delete"){
-        window.totalPages = 1;
+        totalPages = 1;
     }
 
-    if (this._editorPage >= window.totalPages) this._editorPage = 0;
+    if (this._editorPage >= totalPages) this._editorPage = 0;
 
     const showArrows = this._editorTab !== "delete";
     if (this._leftArrow) {
@@ -5919,14 +5462,14 @@ _buildObjectGrid = () => {
             if (this._editorTab === "edit") {
                 this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : 2;
             } else {
-                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : window.totalPages - 1;
+                this._editorPage = (this._editorPage > 0) ? this._editorPage - 1 : totalPages - 1;
             }
 
             this._buildObjectGrid();
         });
 
         this._makeBouncyButton(this._rightArrow, 0.8, () => {
-            this._editorPage = (this._editorPage < window.totalPages - 1) ? this._editorPage + 1 : 0;
+            this._editorPage = (this._editorPage < totalPages - 1) ? this._editorPage + 1 : 0;
             this._buildObjectGrid();
         });
     }
@@ -5936,10 +5479,10 @@ _buildObjectGrid = () => {
         this._toolbox.add(this._pageDotsContainer);
 
         const dotSpacing = 18;
-        const dotsStartX = (screenWidth / 2) - ((window.totalPages - 1) * dotSpacing) / 2;
+        const dotsStartX = (screenWidth / 2) - ((totalPages - 1) * dotSpacing) / 2;
         const dotsY = screenHeight - 10;
 
-        for (let i = 0; i < window.totalPages; i++) {
+        for (let i = 0; i < totalPages; i++) {
             const dot = this.add.circle(
                 dotsStartX + (i * dotSpacing),
                 dotsY,
@@ -6032,6 +5575,7 @@ _buildObjectGrid = () => {
     });
 };
 
+// Helper to keep grid logic clean
 _moveObject = (dx, dy) => {
     const selectedIndex = window.editorSelectedObject;
     if (selectedIndex === -1) return;
@@ -6040,13 +5584,11 @@ _moveObject = (dx, dy) => {
     const sprites = this._level.objectSprites[selectedIndex];
     const saveObj = window.levelObjects[selectedIndex];
 
-    if (!saveObj) return;
+    if (!collider || !saveObj) return;
 
-    if (collider) {
-      collider.x += dx; collider.y += dy;
-      collider._baseX += dx; collider._baseY += dy;
-      collider._origBaseX += dx; collider._origBaseY += dy;
-    }
+    collider.x += dx; collider.y += dy;
+    collider._baseX += dx; collider._baseY += dy;
+    collider._origBaseX += dx; collider._origBaseY += dy;
 
     saveObj.x += dx / 2; saveObj.y -= dy / 2;
     if (saveObj._raw) {
@@ -6297,31 +5839,33 @@ _updateEditorActionButtons = () => {
 
 _updateEditorGrid = () => {
     if (!this._editorGridGraphics) return;
+
     const g = this._editorGridGraphics;
     g.clear();
-    const zoom = this._editorZoom || 1.0;
+    
     const gridSize = 60;
-    g.lineStyle(1, 0x000000, 0.4);
 
-    const camX = this._cameraX / zoom;
-    const camY = this._cameraY / zoom;
-    const offsetX = -camX % gridSize;
-    const offsetY = (-camY - 20) % gridSize;
-    for (let x = offsetX; x < screenWidth / zoom + gridSize; x += gridSize) {
-        g.lineBetween(x * zoom, 0, x * zoom, screenHeight);
-    }
-    for (let y = offsetY; y < screenHeight / zoom + gridSize; y += gridSize) {
-        g.lineBetween(0, y * zoom, screenWidth, y * zoom);
-    }
-    g.lineStyle(1, 0xffffff, 1);
+    g.lineStyle(1, 0x000000, 0.4); 
 
-    const startLineX = (0 * zoom) - this._cameraX;
+    const offsetX = (-this._cameraX % gridSize);
+    const offsetY = (-this._cameraY % gridSize) - 20;
+
+    for (let x = offsetX - gridSize; x < screenWidth + gridSize; x += gridSize) {
+        g.lineBetween(x, 0, x, screenHeight);
+    }
+    for (let y = offsetY - gridSize; y < screenHeight + gridSize; y += gridSize) {
+        g.lineBetween(0, y, screenWidth, y);
+    }
+
+    const startLineX = -this._cameraX;
     if (startLineX >= -50 && startLineX <= screenWidth + 50) {
+        g.lineStyle(1, 0xffffff, 1);
         g.lineBetween(startLineX, 0, startLineX, screenHeight);
     }
-    const worldGroundY = -20 + (60 * 8);
-    const groundLineY = (worldGroundY * zoom) - this._cameraY;
+
+    const groundLineY = -20+(60*8) -this._cameraY;
     if (groundLineY >= -50 && groundLineY <= screenHeight + 50) {
+        g.lineStyle(1, 0xffffff, 1);
         g.lineBetween(0, groundLineY, screenWidth, groundLineY);
     }
 };
@@ -6339,8 +5883,8 @@ _editorAction = () => {
 _placeObject = () => {
     const pointer = this.input.activePointer;
 
-    const worldX = (this.input.activePointer.x + this._cameraX) / this._editorZoom;
-    const worldY = (this.input.activePointer.y + this._cameraY) / this._editorZoom;
+    const worldX = pointer.x + this._cameraX;
+    const worldY = pointer.y + this._cameraY;
 
     const snapX = Math.floor(worldX / 60) * 60;
     const snapY = Math.floor((worldY + 20) / 60) * 60;
@@ -6417,14 +5961,8 @@ _placeObject = () => {
 
             spr.setDepth((spr._eeZDepth || finalDepth) + 10);
 
-            if (spr._eeLayer === 2) {
-                if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
-                    this._level.topContainer.add(spr);
-                }
-            } else {
-                if (this._level.container && !this._level.container.exists(spr)) {
-                    this._level.container.add(spr);
-                }
+            if (this._level.container && !this._level.container.exists(spr)) {
+                this._level.container.add(spr);
             }
         }
     }
@@ -6630,7 +6168,7 @@ _initEditorPauseMenu = () => {
 
     buttonData.forEach((data, i) => {
         const x = screenWidth / 2;
-        const y = (screenHeight / 2) - 150 + (i * 70);
+        const y = (screenHeight / 2) - 180 + (i * 75);
         
         const btnImg = this.add.nineslice(x, y, "GJ_button01", null, 450, 65, 24, 24, 24, 24 ).setScale(0.75).setInteractive();
         const label = this.add.bitmapText(x, y - 2, "goldFont", data.text, 40).setOrigin(0.5, 0.5).setScale(0.8);
@@ -6641,25 +6179,6 @@ _initEditorPauseMenu = () => {
             data.cb();
         }, () => true);
     });
-
-    const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
-        const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
-        const check = this.add.image(x - 120, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
-        const txt = this.add.bitmapText(x - 70, y, "bigFont", label, 25).setOrigin(0, 0.5);
-        container.add([check, txt]);
-
-        this._makeBouncyButton(check, 0.8, () => {
-            setVal(!getVal());
-            check.setTexture("GJ_GameSheet03", getTex());
-            if (callback) callback(getVal());
-            this._saveSettings();
-        });
-    };
-
-    createToggle(this._editorMenuContainer, 200, screenHeight - 60, "Show Glow", () => window.showEditorGlow, v => window.showEditorGlow = v,() => {
-        this._level._updateGlowVisibility();
-    }
-);
 };
 
 _showLoadingBuffer = (statusText) => {
@@ -6689,9 +6208,13 @@ _showEditorPauseMenu = (show) => {
 
 _serializeLevel(levelData) {
   const settings = levelData.settings || "";
-  const objectStrings = (levelData.objects || []).map(this._serializeObject).filter(Boolean);
+
+  const objectStrings = (levelData.objects || [])
+    .map(this._serializeObject)
+    .filter(Boolean);
+
   const decompressedString = [settings, ...objectStrings].join(";");
-  const compressed = pako.gzip(decompressedString);
+  const compressed = pako.deflate(decompressedString);
 
   let binaryString = "";
   for (let i = 0; i < compressed.length; i++) {
@@ -6752,6 +6275,8 @@ _saveEditorLevel = () => {
       settings: window.settingslist
     }
     const newLevelString = this._serializeLevel(levelData);
+    console.log(newLevelString);
+    
     let createdLevels = JSON.parse(localStorage.getItem("created_levels") || "[]");
     let levelIndex = createdLevels.findIndex(l => l.createdId === window.currentlevel[2]);
 
@@ -6764,76 +6289,6 @@ _saveEditorLevel = () => {
         window._onlineLevelName = createdLevels[levelIndex].levelName;
         window._onlineLevelId = createdLevels[levelIndex].createdId;
     }
-};
-
-_initEditorTimeline = () => {
-    const y = 40;
-    this._timelineContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
-    const width = screenWidth / 3;
-    const groove = this.add.image(screenWidth / 2, y, "slidergroove2").setDisplaySize(width, 26);
-    const thumb = this.add.image(screenWidth / 2, y, "GJ_moveBtn").setScale(0.4).setInteractive({ draggable: true });
-    this._timelineContainer.add([groove, thumb]);
-    this._timelineSlider = {width, groove, thumb, y };
-    const startX = screenWidth / 2 - (width / 2);
-    thumb.on("dragstart", () => {
-        this._isDraggingSlider = true;
-        thumb.setTexture("GJ_moveSBtn");
-    });
-    thumb.on("drag", (pointer, dragX) => {
-        const minX = startX;
-        const maxX = startX + width;
-        thumb.x = Phaser.Math.Clamp(dragX, minX, maxX);
-        const pct = (thumb.x - minX) / width;
-        const levelWidth = this._getEditorLevelWidth();
-        this._cameraX = pct * levelWidth;
-        this._level.container.x = -this._cameraX;
-        this._level.container.y = -this._cameraY;
-        this._level.additiveContainer.x = -this._cameraX;
-        this._level.additiveContainer.y = -this._cameraY;
-        this._level.topContainer.x = -this._cameraX;
-        this._level.topContainer.y = -this._cameraY;
-        this._bg.tilePositionX = this._cameraX * 0.1;
-    });
-    thumb.on("dragend", () => {
-        thumb.setTexture("GJ_moveBtn");
-    });
-};
-
-_getEditorLevelWidth = () => {
-    let furthestX = 0;
-
-    for (const obj of window.levelObjects) {
-        if (!obj) continue;
-
-        const worldX = (obj.x - 15) * 2;
-
-        if (worldX > furthestX) {
-            furthestX = worldX;
-        }
-    }
-
-    return Math.max(screenWidth, furthestX + screenWidth/2);
-};
-
-_updateEditorTimeline = () => {
-    if (!this._timelineSlider) return;
-
-    const {
-        width,
-        thumb,
-    } = this._timelineSlider;
-
-    const levelWidth = this._getEditorLevelWidth();
-
-    const pct = Phaser.Math.Clamp(
-        this._cameraX / levelWidth,
-        0,
-        1
-    );
-
-    const startX = screenWidth / 2 - (width / 2);
-
-    thumb.x = startX + (pct * width);
 };
 
 _applyMirrorEffect() {
@@ -7290,7 +6745,7 @@ _applyMirrorEffect() {
     const _makeSettingsBtn = (cx, cy, label, btnW, isActive, action) => {
         const grp = this.add.container(cx, cy);
         const tint = isActive ? 0xffffff : 0x666666;
-        const btn9 = this.add.nineslice(0, 0, "GJ_button01", null, btnW, _sBtnH, _sBtnBorder, _sBtnBorder, _sBtnBorder, _sBtnBorder).setOrigin(0.5).setTint(tint);
+        const btn9 = this._drawScale9(0, 0, btnW, _sBtnH, "GJ_button01", _sBtnBorder, tint, 1);
         grp.add(btn9);
         const fontSize = label === "How To Play" ? 41 : 50;
         const lbl = this.add.bitmapText(0, -5, "goldFont", label, fontSize).setOrigin(0.5, 0.5);
@@ -7326,15 +6781,13 @@ _applyMirrorEffect() {
         return grp;
     };
 
-    this._settingsMainBtns = [
-      _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, true,  () => { this._openAccountMenu(); }),
-      _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); }),
-      _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); }),
-      _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null),
-      _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null),
-      _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null),
-      _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null),
-    ];
+    _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, false, null);
+    _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
+    _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
+    _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
+    _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null);
+    _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null);
+    _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null);
 
     const lockIcon = this.add.image(containerX + 535, 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
     lockIcon.setScale(0.9);
@@ -7350,24 +6803,17 @@ _applyMirrorEffect() {
     const _0x41925a = this.textures.getFrame("GJ_WebSheet", "slidergroove.png");
     const _0x372782 = _0x41925a ? _0x41925a.width : 420;
 
-    this._settingsOptionElements = [];
-
     const createSlider = (posY, labelText, initialVal, setter) => {
-        const lbl = this.add.bitmapText(containerX, posY - 37, "bigFont", labelText, 33).setOrigin(0.5, 0.5);
-        this._settingsLayerInternal.add(lbl);
-        this._settingsOptionElements.push(lbl);
-        const barMaxW = (_0x372782 - 8) * _0x22b43a * 1.3;
+        this._settingsLayerInternal.add(this.add.bitmapText(containerX, posY - 37, "bigFont", labelText, 33).setOrigin(0.5, 0.5));
+        const barMaxW = (_0x372782 - 8) * _0x22b43a * 1.3; 
         const barStartX = containerX - barMaxW / 2 + 2.8;
         const fillW = initialVal * barMaxW;
         const fillBar = this.add.tileSprite(barStartX, posY, fillW > 0 ? fillW : 1, 18, "sliderBar").setOrigin(0, 0.5);
         this._settingsLayerInternal.add(fillBar);
-        this._settingsOptionElements.push(fillBar);
-        const groove = this.add.image(containerX, posY, "GJ_WebSheet", "slidergroove.png").setScale(_0x22b43a * 1.3);
-        this._settingsLayerInternal.add(groove);
-        this._settingsOptionElements.push(groove);
+        this._settingsLayerInternal.add(this.add.image(containerX, posY, "GJ_WebSheet", "slidergroove.png").setScale(_0x22b43a * 1.3));
+        
         const thumb = this.add.image(barStartX + fillW, posY, "GJ_WebSheet", "sliderthumb.png").setScale(_0x22b43a * 1.3).setInteractive({ draggable: true });
         this._settingsLayerInternal.add(thumb);
-        this._settingsOptionElements.push(thumb);
         thumb.on("drag", (p, dragX) => {
             thumb.x = Math.max(barStartX, Math.min(barStartX + barMaxW, dragX));
             const pct = (thumb.x - barStartX) / barMaxW;
@@ -7383,12 +6829,8 @@ _applyMirrorEffect() {
     });
     const checkboxY = sliderStartY - 10;
     const checkboxX = containerX + 280;
-    const menuLbl1 = this.add.bitmapText(checkboxX, checkboxY - 42, "bigFont", "Menu", 20).setOrigin(0.5, 0.5);
-    this._settingsLayerInternal.add(menuLbl1);
-    this._settingsOptionElements.push(menuLbl1);
-    const menuLbl2 = this.add.bitmapText(checkboxX, checkboxY - 22, "bigFont", "Music", 20).setOrigin(0.5, 0.5);
-    this._settingsLayerInternal.add(menuLbl2);
-    this._settingsOptionElements.push(menuLbl2);
+    this._settingsLayerInternal.add(this.add.bitmapText(checkboxX, checkboxY - 42, "bigFont", "Menu", 20).setOrigin(0.5, 0.5));
+    this._settingsLayerInternal.add(this.add.bitmapText(checkboxX, checkboxY - 22, "bigFont", "Music", 20).setOrigin(0.5, 0.5));
 
     const getMenuMusicEnabled = () => {
         const saved = localStorage.getItem("menuMusicEnabled");
@@ -7399,7 +6841,6 @@ _applyMirrorEffect() {
     const getTex = () => getMenuMusicEnabled() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
     const check = this.add.image(checkboxX, checkboxY + 15, "GJ_GameSheet03", getTex()).setScale(0.7).setInteractive();
     this._settingsLayerInternal.add(check);
-    this._settingsOptionElements.push(check);
     this._makeBouncyButton(check, 0.8, () => {
         const newState = !getMenuMusicEnabled();
         setMenuMusicEnabled(newState);
@@ -7417,18 +6858,7 @@ _applyMirrorEffect() {
     const _0x45fc2b = [{
       frame: "GJ_arrow_03_001.png",
       dx: -535,
-      action: () => {
-        if (this._moreMenuOpen) {
-          this._moreMenuOpen = false;
-          this._clearAccountUI();
-          this._accountUIElements = [];
-          this._buildAccountUI();
-        } else if (this._accountUIElements) {
-          this._closeAccountMenu();
-        } else {
-          this._hideSettingsScreen();
-        }
-      }
+      action: () => this._hideSettingsScreen()
     }];
     for (const _0x2d4335 of _0x45fc2b) {
       const _0xdde774 = this.add.image(containerX + _0x2d4335.dx, 30, "GJ_GameSheet03", _0x2d4335.frame).setInteractive();
@@ -7454,7 +6884,6 @@ _applyMirrorEffect() {
     });
   }
   _hideSettingsScreen() {
-    document.getElementById('account-form-overlay')?.remove();
     if (!this._settingsLayerInternal || this._settingsScreenClosing) {
       return;
     }
@@ -7499,485 +6928,6 @@ _applyMirrorEffect() {
       onComplete: _0x272eb1
     });
   }
-  // accounts
-
-  _openAccountMenu() {
-    if (this._settingsMainBtns) {
-      for (const btn of this._settingsMainBtns) {
-        if (btn && !btn.destroyed) btn.setVisible(false);
-      }
-    }
-    if (this._settingsOptionElements) {
-      for (const el of this._settingsOptionElements) {
-        if (el && !el.destroyed) el.setVisible(false);
-      }
-    }
-    this._accountUIElements = [];
-    this._buildAccountUI();
-  }
-
-  _closeAccountMenu() {
-    this._moreMenuOpen = false;
-    this._clearAccountUI();
-    if (this._settingsMainBtns) {
-      for (const btn of this._settingsMainBtns) {
-        if (btn && !btn.destroyed) btn.setVisible(true);
-      }
-    }
-    if (this._settingsOptionElements) {
-      for (const el of this._settingsOptionElements) {
-        if (el && !el.destroyed) el.setVisible(true);
-      }
-    }
-  }
-
-  _clearAccountUI() {
-    document.getElementById('account-form-overlay')?.remove();
-    if (this._accountUIElements) {
-      for (const el of this._accountUIElements) {
-        try { if (el && !el.destroyed) el.destroy(); } catch {}
-      }
-      this._accountUIElements = null;
-    }
-  }
-
-  _makeAccBtn(cx, cy, label, btnW, isActive, action) {
-    const _sBtnBorder = this.textures.get("GJ_button01").source[0].width * 0.3;
-    const _sBtnH = 62;
-    const grp = this.add.container(cx, cy);
-    const tint = isActive ? 0xffffff : 0x666666;
-    const btn9 = this._drawScale9(0, 0, btnW, _sBtnH, "GJ_button01", _sBtnBorder, tint, 1);
-    grp.add(btn9);
-    const fontSize = label.length > 8 ? 34 : 50;
-    const lbl = this.add.bitmapText(0, -5, "goldFont", label, fontSize).setOrigin(0.5, 0.5);
-    if (!isActive) lbl.setTint(0x666666);
-    grp.add(lbl);
-    if (isActive && action) {
-      const hitZone = this.add.zone(0, 0, btnW, _sBtnH).setInteractive();
-      grp.add(hitZone);
-      hitZone.on("pointerdown", () => {
-        hitZone._pressed = true;
-        this.tweens.killTweensOf(grp, "scale");
-        this.tweens.add({ targets: grp, scale: 1.26, duration: 300, ease: "Bounce.Out" });
-      });
-      hitZone.on("pointerout", () => {
-        if (hitZone._pressed) {
-          hitZone._pressed = false;
-          this.tweens.killTweensOf(grp, "scale");
-          this.tweens.add({ targets: grp, scale: 1, duration: 400, ease: "Bounce.Out" });
-        }
-      });
-      hitZone.on("pointerup", () => {
-        if (hitZone._pressed) {
-          hitZone._pressed = false;
-          this.tweens.killTweensOf(grp, "scale");
-          this.tweens.add({
-            targets: grp,
-            scale: 1,
-            duration: 400,
-            ease: "Bounce.Out",
-            onComplete: () => {
-              this.time.delayedCall(0, () => action());
-            }
-          });
-        }
-      });
-    }
-    this._settingsLayerInternal.add(grp);
-    this._accountUIElements.push(grp);
-    return grp;
-  }
-
-  _buildAccountUI() {
-    const cX = screenWidth / 2;
-    const _sBtnW = 310;
-    const _sGap = 18;
-    const _sColL = cX - _sBtnW / 2 - _sGap / 2;
-    const _sColR = cX + _sBtnW / 2 + _sGap / 2;
-
-    const user = window.AccountAPI && window.AccountAPI.currentUser;
-
-    if (user) {
-      const nameLabel = this.add.bitmapText(cX, 110, "bigFont", "Currently signed in as: " + user.username, 32).setOrigin(0.5, 0.5);
-      this._settingsLayerInternal.add(nameLabel);
-      this._accountUIElements.push(nameLabel);
-
-      const settingsRectCenterY = 310;
-      const settingsRectHeight = 460;
-      const containerTop = settingsRectCenterY - settingsRectHeight / 2;
-      const aBtnY1 = Math.round(containerTop + settingsRectHeight * 0.27);
-      const aBtnY2 = Math.round(containerTop + settingsRectHeight * 0.50);
-      const aBtnY3 = Math.round(containerTop + settingsRectHeight * 0.73);
-
-      this._makeAccBtn(cX, aBtnY1, "Save", _sBtnW, true, () => this._doCloudSave());
-      this._makeAccBtn(cX, aBtnY2, "Load", _sBtnW, true, () => this._doCloudLoad());
-      this._makeAccBtn(cX, aBtnY3, "More", _sBtnW, true, () => this._openMoreMenu());
-    } else {
-      this._makeAccBtn(cX,     150, "Login",    _sBtnW, true,  () => this._showAccountForm('login'));
-      this._makeAccBtn(cX,     310, "Help",     _sBtnW, false, null);
-      this._makeAccBtn(cX,     470, "Register", _sBtnW, true,  () => this._showAccountForm('register'));
-    }
-  }
-
-  _openMoreMenu() {
-    this._clearAccountUI();
-    this._accountUIElements = [];
-    this._moreMenuOpen = true;
-    const user = window.AccountAPI && window.AccountAPI.currentUser;
-    const cX = screenWidth / 2;
-    const _sBtnW = 310;
-    const _sGap = 14;
-    const settingsRectCenterY = 310;
-    const settingsRectHeight = 460;
-    const containerTop = settingsRectCenterY - settingsRectHeight / 2;
-    const moreY1 = Math.round(containerTop + settingsRectHeight * 0.27);
-    const moreY2 = Math.round(containerTop + settingsRectHeight * 0.50);
-    const moreY3 = Math.round(containerTop + settingsRectHeight * 0.73);
-
-    const openUnlinkPopup2 = () => {
-      this.showPopup({
-        title: "Warning",
-        content: "This will <cr>delete</c> ALL <cl>save data</c>.\nDo you want to continue?\n<cy>You cannot undo this action.</c>",
-        button1: "Cancel",
-        button2: "DELETE",
-        func2: () => {
-          this._doUnlinkAccount();
-        },
-        func1: () => {
-          openUnlinkPopup1();
-        },
-        type1: 1,
-        type2: 6,
-        width: 520,
-        height: 340
-      });
-    };
-
-    const openUnlinkPopup1 = () => {
-      this.showPopup({
-        title: "Unlink Account",
-        content: "Are you sure you want to <cg>unlink</c> from the account <cl>" + user.username + "</c>? <cy>Unlinking will delete all browser data from this device.</c>",
-        button1: "Cancel",
-        button2: "Unlink",
-        func2: () => {
-          openUnlinkPopup2();
-        },
-        func1: null,
-        type1: 1,
-        type2: 4,
-        width: 520,
-        height: 340
-      });
-    };
-
-    this._makeAccBtn(cX, moreY1, "Refresh Login", _sBtnW, false, null);
-    this._makeAccBtn(cX, moreY2, "Manage Account", _sBtnW, false, null);
-    this._makeAccBtn(cX, moreY3, "Unlink Account", _sBtnW, true, () => openUnlinkPopup1());
-  }
-
-  _showAccountNotice(msg, color) {
-    if (!this._settingsLayerInternal) return;
-    const notice = this.add.bitmapText(screenWidth / 2, 355, "bigFont", msg, 26).setOrigin(0.5, 0.5).setTint(color);
-    this._settingsLayerInternal.add(notice);
-    this._accountUIElements = this._accountUIElements || [];
-    this._accountUIElements.push(notice);
-    this.time.delayedCall(2800, () => { try { if (!notice.destroyed) notice.destroy(); } catch {} });
-  }
-
-  async _doCloudSave() {
-    try {
-      const save = window.AccountAPI.collectLocalData();
-      await window.AccountAPI.setCloudSave(save);
-      this._showAccountNotice('Saved to cloud!', 0x44dd44);
-    } catch (e) {
-      this._showAccountNotice(e.message || 'Save failed', 0xff5555);
-    }
-  }
-
-  async _doCloudLoad() {
-    try {
-      const save = await window.AccountAPI.getCloudSave();
-      if (!save) {
-        this._showAccountNotice('No cloud save found', 0xffaa33);
-        return;
-      }
-      window.AccountAPI.applyLocalData(save);
-      this._showAccountNotice('Loaded! Restart to apply.', 0x44dd44);
-    } catch (e) {
-      this._showAccountNotice(e.message || 'Load failed', 0xff5555);
-    }
-  }
-
-  async _doLogout() {
-    await window.AccountAPI.logout();
-    this._clearAccountUI();
-    this._accountUIElements = [];
-    this._buildAccountUI();
-  }
-
-  async _doUnlinkAccount() {
-    try {
-      await window.AccountAPI.unlinkAccount();
-      this._showAccountNotice('Account unlinked', 0x44dd44);
-    } catch (e) {
-      this._showAccountNotice(e.message || 'Unlink failed', 0xff5555);
-    }
-
-    this.time.delayedCall(250, () => {
-      window.location.reload();
-    });
-  }
-
-  _showAccountForm(type) {
-    if (document.getElementById('account-form-overlay')) return;
-    const isLogin = type === 'login';
-
-    if (this.input && this.input.keyboard) this.input.keyboard.enabled = false;
-
-    if (!document.getElementById('_gdAccFormStyle')) {
-      const s = document.createElement('style');
-      s.id = '_gdAccFormStyle';
-      s.textContent = '._gd-acc-btn{transition:filter 0.12s,transform 0.12s;}._gd-acc-btn:hover:not([disabled]){filter:brightness(1.15);transform:scale(1.05);}';
-      document.head.appendChild(s);
-      const f = document.createElement('link');
-      f.rel = 'stylesheet';
-      f.href = 'https://fonts.cdnfonts.com/css/pusab';
-      document.head.appendChild(f);
-    }
-
-    const close = () => {
-      if (this.input && this.input.keyboard) this.input.keyboard.enabled = true;
-      document.getElementById('account-form-overlay')?.remove();
-    };
-
-    const overlay = document.createElement('div');
-    overlay.id = 'account-form-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.72)';
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-    overlay.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') close(); });
-    overlay.addEventListener('keyup', e => e.stopPropagation());
-    overlay.addEventListener('keypress', e => e.stopPropagation());
-
-    const _drawBitmapText = (text, fontKey, scale) => {
-      try {
-        const fc = this.cache.bitmapFont.get(fontKey);
-        if (!fc || !fc.data) return null;
-        const chars = fc.data.chars;
-        const lineH = fc.data.lineHeight;
-        const fontImg = this.textures.get(fontKey).source[0].image;
-        let totalW = 0;
-        for (let i = 0; i < text.length; i++) {
-          const cd = chars[text.charCodeAt(i)];
-          totalW += (cd ? cd.xAdvance : 10) * scale;
-        }
-        const c = document.createElement('canvas');
-        c.width = Math.max(1, Math.ceil(totalW));
-        c.height = Math.max(1, Math.ceil(lineH * scale));
-        c.style.cssText = 'display:block;image-rendering:pixelated;flex-shrink:0;';
-        const ctx = c.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        let x = 0;
-        for (let i = 0; i < text.length; i++) {
-          const cd = chars[text.charCodeAt(i)];
-          if (!cd || cd.width === 0) { x += (cd ? cd.xAdvance : 10) * scale; continue; }
-          ctx.drawImage(fontImg, cd.x, cd.y, cd.width, cd.height,
-            x + cd.xOffset * scale, cd.yOffset * scale, cd.width * scale, cd.height * scale);
-          x += cd.xAdvance * scale;
-        }
-        const id = ctx.getImageData(0, 0, c.width, c.height);
-        const d = id.data;
-        for (let i = 0; i < d.length; i += 4) {
-          if (d[i + 3] < 20) continue;
-          if (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] < 90) {
-            d[i] = 0; d[i + 1] = 0; d[i + 2] = 0;
-          }
-        }
-        ctx.putImageData(id, 0, 0);
-        return c;
-      } catch (_) { return null; }
-    };
-
-    const _drawTinted = (text, fontKey, scale, hex) => {
-      const c = _drawBitmapText(text, fontKey, scale);
-      if (!c) return null;
-      const tr = parseInt(hex.slice(1, 3), 16);
-      const tg = parseInt(hex.slice(3, 5), 16);
-      const tb = parseInt(hex.slice(5, 7), 16);
-      const ctx = c.getContext('2d');
-      const id = ctx.getImageData(0, 0, c.width, c.height);
-      const d = id.data;
-      for (let i = 0; i < d.length; i += 4) {
-        if (d[i + 3] < 20) continue;
-        if (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] >= 90) {
-          d[i] = tr; d[i + 1] = tg; d[i + 2] = tb;
-        }
-      }
-      ctx.putImageData(id, 0, 0);
-      return c;
-    };
-
-    const _makeLabel = (text) => {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'margin-bottom:5px;';
-      const c = _drawBitmapText(text, 'bigFont', 0.38);
-      if (c) { wrap.appendChild(c); }
-      else {
-        const s = document.createElement('span');
-        s.style.cssText = 'color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:bold;';
-        s.textContent = text;
-        wrap.appendChild(s);
-      }
-      return wrap;
-    };
-
-    const _makeInput = (phText, inputType, autocompleteVal) => {
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:relative;width:100%;margin-bottom:8px;';
-
-      const box = document.createElement('div');
-      box.style.cssText = 'position:relative;width:100%;height:62px;background:rgba(0,0,0,0.35);border-radius:10px;';
-
-      const phWrap = document.createElement('div');
-      phWrap.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;transition:opacity 0.1s;';
-      const phCanvas = _drawTinted(phText, 'bigFont', 0.42, '#5bbce4');
-      if (phCanvas) phWrap.appendChild(phCanvas);
-      box.appendChild(phWrap);
-
-      const inp = document.createElement('input');
-      inp.type = inputType;
-      inp.autocomplete = autocompleteVal;
-      inp.style.cssText = 'position:absolute;inset:0;background:transparent;border:none;outline:none;color:#fff;font-size:18px;font-family:Pusab,Helvetica,Arial,sans-serif;text-align:center;padding:0 14px;box-sizing:border-box;caret-color:#fff;';
-
-      const sync = () => { phWrap.style.opacity = inp.value ? '0' : '1'; };
-      inp.addEventListener('input', sync);
-      inp.addEventListener('focus', () => { phWrap.style.opacity = '0'; });
-      inp.addEventListener('blur', sync);
-
-      box.appendChild(inp);
-      wrapper.appendChild(box);
-      return { wrapper, inp };
-    };
-
-    const _makeBtn = (label, sprite, onClick, disabled = false) => {
-      const btn = document.createElement('button');
-      btn.className = '_gd-acc-btn';
-      btn.disabled = disabled;
-      btn.style.cssText = `background:none;border:16px solid transparent;border-image:url('assets/sprites/${sprite}') 30% fill;padding:4px 20px;cursor:${disabled ? 'default' : 'pointer'};box-sizing:border-box;min-width:100px;display:inline-flex;align-items:center;justify-content:center;opacity:${disabled ? '0.6' : '1'};`;
-      const lbl = _drawBitmapText(label, 'goldFont', 0.44);
-      if (lbl) { btn.appendChild(lbl); }
-      else {
-        const s = document.createElement('span');
-        s.style.cssText = 'color:#f0c040;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;';
-        s.textContent = label;
-        btn.appendChild(s);
-      }
-      if (!disabled && onClick) btn.onclick = onClick;
-      return btn;
-    };
-
-    const panel = document.createElement('div');
-    panel.style.cssText = `width:min(78vw,840px);max-height:90vh;overflow-y:auto;border:52px solid transparent;border-image:url('assets/sprites/GJ_square01.png') 32.5% fill;box-sizing:border-box;display:flex;flex-direction:column;`;
-
-    const titleWrap = document.createElement('div');
-    titleWrap.style.cssText = 'display:flex;justify-content:center;margin-bottom:18px;';
-    const titleText = isLogin ? 'Login' : 'Register Account';
-    const titleCanvas = _drawBitmapText(titleText, 'bigFont', 0.64);
-    if (titleCanvas) { titleWrap.appendChild(titleCanvas); }
-    else {
-      const s = document.createElement('span');
-      s.style.cssText = 'color:#fff;font-family:Helvetica,Arial,sans-serif;font-size:30px;font-weight:bold;';
-      s.textContent = titleText;
-      titleWrap.appendChild(s);
-    }
-    panel.appendChild(titleWrap);
-
-    const { wrapper: uWrap, inp: usernameInput } = _makeInput('Username', 'text', 'username');
-    panel.appendChild(_makeLabel(isLogin ? 'Username:' : 'Username: (shown to other players)'));
-    panel.appendChild(uWrap);
-
-    panel.appendChild(_makeLabel('Password:'));
-    const { wrapper: pWrap, inp: passwordInput } = _makeInput('Password', 'password', isLogin ? 'current-password' : 'new-password');
-    panel.appendChild(pWrap);
-
-    let confirmPasswordInput = null;
-    let emailInput = null;
-    let verifyEmailInput = null;
-
-    if (!isLogin) {
-      panel.appendChild(_makeLabel('Confirm Password:'));
-      const { wrapper: cpWrap, inp: cpInp } = _makeInput('Confirm Password', 'password', 'new-password');
-      confirmPasswordInput = cpInp;
-      panel.appendChild(cpWrap);
-
-      panel.appendChild(_makeLabel('Email:'));
-      const { wrapper: eWrap, inp: eInp } = _makeInput('Email', 'email', 'email');
-      emailInput = eInp;
-      panel.appendChild(eWrap);
-
-      panel.appendChild(_makeLabel('Verify Email:'));
-      const { wrapper: veWrap, inp: veInp } = _makeInput('Verify Email', 'email', 'email');
-      verifyEmailInput = veInp;
-      panel.appendChild(veWrap);
-    }
-
-    const errLabel = document.createElement('div');
-    errLabel.style.cssText = 'color:#ff6666;min-height:18px;margin:4px 0 6px;font-size:13px;font-family:Helvetica,Arial,sans-serif;text-align:center;';
-    panel.appendChild(errLabel);
-
-    if (isLogin) {
-      const forgotWrap = document.createElement('div');
-      forgotWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;margin:6px 0 12px;';
-      forgotWrap.appendChild(_makeBtn('Forgot Username', 'GJ_button_05.png', null, true));
-      forgotWrap.appendChild(_makeBtn('Forgot Password', 'GJ_button_05.png', null, true));
-      panel.appendChild(forgotWrap);
-    }
-
-    const submitBtn = _makeBtn(isLogin ? 'Login' : 'Submit', 'GJ_button_01.png', null);
-    const cancelBtn = _makeBtn('Cancel', 'GJ_button_01.png', close);
-
-    const doSubmit = async () => {
-      const username = usernameInput.value.trim();
-      const password = passwordInput.value;
-      errLabel.textContent = '';
-      if (!isLogin) {
-        if (password !== confirmPasswordInput.value) { errLabel.textContent = 'Passwords do not match'; return; }
-        const email = emailInput.value.trim();
-        if (email && email !== verifyEmailInput.value.trim()) { errLabel.textContent = 'Emails do not match'; return; }
-      }
-      submitBtn.disabled = true;
-      submitBtn.style.opacity = '0.6';
-      try {
-        if (isLogin) {
-          await window.AccountAPI.login(username, password);
-        } else {
-          await window.AccountAPI.register(username, emailInput.value.trim(), password);
-        }
-        close();
-        this._clearAccountUI();
-        this._accountUIElements = [];
-        this._buildAccountUI();
-      } catch (e) {
-        errLabel.textContent = e.message || 'Something went wrong';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-      }
-    };
-
-    submitBtn.onclick = doSubmit;
-    passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSubmit(); });
-
-    const btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:flex;gap:16px;justify-content:center;';
-    btnRow.appendChild(cancelBtn);
-    btnRow.appendChild(submitBtn);
-    panel.appendChild(btnRow);
-
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-    usernameInput.focus();
-  }
-
   _showStatsScreen() {
     if (this._pauseBtn) {
       this.tweens.add({
@@ -8188,16 +7138,23 @@ _applyMirrorEffect() {
     const steps = 80;
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1);
-      const r = Math.round(0xB5 + (0xC2 - 0xB5) * t);
-      const g = Math.round(0x65 + (0x72 - 0x65) * t);
-      const b = Math.round(0x2E + (0x3E - 0x2E) * t);
+      const r = 0;
+      const g = Math.round(0x66 * (1 - t) + 0x33 * t);
+      const b = Math.round(0xff * (1 - t) + 0x99 * t);
       bgGfx.fillStyle((r << 16) | (g << 8) | b, 1);
-      const bandY = Math.floor(i * sh / steps);
-      const bandH = Math.ceil(sh / steps) + 1;
-      bgGfx.fillRect(0, bandY, sw, bandH);
+      bgGfx.fillRect(0, Math.floor(i * sh / steps), sw, Math.ceil(sh / steps) + 1);
     }
-    const panelW  = sw - 180;
-    const panelH  = 460;
+    objects.push(bgGfx);
+    const blocker = this.add.zone(sw / 2, sh / 2, sw, sh)
+      .setScrollFactor(0).setDepth(200).setInteractive();
+    objects.push(blocker);
+    const cBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png")
+      .setScrollFactor(0).setDepth(201).setOrigin(1, 1).setFlipY(true).setAngle(90);
+    const cBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png")
+      .setScrollFactor(0).setDepth(201).setOrigin(1, 0).setFlipY(false).setAngle(90);
+    objects.push(cBL, cBR);
+    const panelW  = 712;  
+    const panelH  = 460;  
     const panelCX = sw / 2;
     const panelCY = sh / 2;
     const panelBg = this.add.rectangle(panelCX, panelCY + 10, panelW, panelH, 0xC2723E)
@@ -8292,251 +7249,6 @@ _applyMirrorEffect() {
     return { overlay: bgGfx, objects, listLeft, listTop, panelW, panelH,
              panelCX, panelCY, addRow, clearRows, prevBtn, nextBtn,
              pageLbl, closeOverlay, redrawStripes: _redrawStripes };
-  }
-  async _openDailyLevelScene(type) {
-    if (this._dailyLevelOverlay) return;
-
-    const typeTitle = ["Daily Level", "Weekly Level", "Event Level"][type] ?? "Daily Level";
-
-    if (!document.getElementById('_gdDailyStyle')) {
-      const s = document.createElement('style');
-      s.id = '_gdDailyStyle';
-      s.textContent = '@keyframes _gdSpin{to{transform:rotate(360deg)}}';
-      document.head.appendChild(s);
-    }
-
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    document.body.appendChild(overlay);
-    this._dailyLevelOverlay = overlay;
-
-    const _close = () => {
-      if (this._dailyLevelOverlay) { this._dailyLevelOverlay.remove(); this._dailyLevelOverlay = null; }
-    };
-    overlay.addEventListener('click', e => { if (e.target === overlay) _close(); });
-
-    const _drawFrame = (texKey, frameName, w, h) => {
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      c.style.cssText = `width:${w}px;height:${h}px;image-rendering:pixelated;display:block;`;
-      try {
-        const tex = this.textures.get(texKey);
-        const frame = tex.get(frameName);
-        const img = tex.source[0].image;
-        const ctx = c.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        if (frame.rotated) {
-          ctx.save(); ctx.translate(0, h); ctx.rotate(-Math.PI/2);
-          ctx.drawImage(img, frame.cutX, frame.cutY, frame.cutHeight, frame.cutWidth, 0, 0, h, w);
-          ctx.restore();
-        } else {
-          ctx.drawImage(img, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, w, h);
-        }
-      } catch(_) {}
-      return c;
-    };
-
-    const _drawBitmapText = (text, fontKey, scale) => {
-      try {
-        const fc = this.cache.bitmapFont.get(fontKey);
-        if (!fc || !fc.data) return null;
-        const chars = fc.data.chars;
-        const lineH = fc.data.lineHeight;
-        const fontImg = this.textures.get(fontKey).source[0].image;
-        let totalW = 0;
-        for (let i = 0; i < text.length; i++) {
-          const cd = chars[text.charCodeAt(i)];
-          totalW += (cd ? cd.xAdvance : 10) * scale;
-        }
-        const canvasW = Math.max(1, Math.ceil(totalW));
-        const canvasH = Math.max(1, Math.ceil(lineH * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = canvasW; canvas.height = canvasH;
-        canvas.style.cssText = `display:block;image-rendering:pixelated;`;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        let x = 0;
-        for (let i = 0; i < text.length; i++) {
-          const cd = chars[text.charCodeAt(i)];
-          if (!cd || cd.width === 0) { x += (cd ? cd.xAdvance : 10) * scale; continue; }
-          ctx.drawImage(fontImg, cd.x, cd.y, cd.width, cd.height,
-            x + cd.xOffset * scale, cd.yOffset * scale, cd.width * scale, cd.height * scale);
-          x += cd.xAdvance * scale;
-        }
-        return canvas;
-      } catch(_) { return null; }
-    };
-
-    const panel = document.createElement('div');
-    panel.style.cssText = `width:500px;max-width:95vw;transform:scale(0);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);border:52px solid transparent;border-image:url('assets/sprites/GJ_square01.png') 32.5% fill;box-sizing:border-box;`;
-    overlay.appendChild(panel);
-    requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.transform = 'scale(1)'; }));
-
-    const header = document.createElement('div');
-    header.style.cssText = 'padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid rgba(200,149,42,0.45);';
-    const titleEl = document.createElement('div');
-    titleEl.style.cssText = 'display:flex;align-items:center;';
-    titleEl.appendChild(_drawBitmapText(typeTitle, 'goldFont', 0.3) || (() => { const s=document.createElement('span'); s.textContent=typeTitle; return s; })());
-    const xBtn = document.createElement('button');
-    xBtn.style.cssText = 'background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.75;transition:opacity 0.15s;';
-    xBtn.appendChild(_drawFrame('GJ_GameSheet03', 'GJ_closeBtn_001.png', 28, 28));
-    xBtn.onmouseenter = () => xBtn.style.opacity = '1';
-    xBtn.onmouseleave = () => xBtn.style.opacity = '0.75';
-    xBtn.onclick = _close;
-    header.appendChild(titleEl); header.appendChild(xBtn);
-    panel.appendChild(header);
-
-    const body = document.createElement('div');
-    body.style.cssText = 'padding:28px;display:flex;align-items:center;justify-content:center;min-height:130px;';
-    const spinner = document.createElement('img');
-    spinner.src = 'assets/sprites/loadingCircle.png';
-    spinner.style.cssText = 'width:64px;height:64px;animation:_gdSpin 0.75s linear infinite;image-rendering:pixelated;';
-    body.appendChild(spinner);
-    panel.appendChild(body);
-
-    const footer = document.createElement('div');
-    footer.style.cssText = 'padding:10px 20px;display:flex;justify-content:center;';
-    const okBtn = document.createElement('button');
-    okBtn.style.cssText = `background:none;border:24px solid transparent;border-image:url('assets/sprites/GJ_button_01.png') 30% fill;padding:4px 28px;cursor:pointer;transition:filter 0.15s,transform 0.1s;box-sizing:border-box;min-width:110px;display:flex;align-items:center;justify-content:center;`;
-    okBtn.appendChild(_drawBitmapText('OK', 'bigFont', 0.3) || (() => { const s=document.createElement('span'); s.textContent='OK'; return s; })());
-    okBtn.onmouseenter = () => { okBtn.style.filter = 'brightness(1.15)'; okBtn.style.transform = 'scale(1.05)'; };
-    okBtn.onmouseleave = () => { okBtn.style.filter = ''; okBtn.style.transform = ''; };
-    okBtn.onclick = _close;
-    footer.appendChild(okBtn);
-    panel.appendChild(footer);
-
-    const UDID      = "S1525563882685027288177222016278245"; // used to help stop rate limiting, i have no idea if this literally does anything and i cant be fucked to generate a new udid for every user on the website. maybe someone else can do it
-    const CACHE_KEY = ["gd_lvl_cache_0","gd_lvl_cache_1","gd_lvl_cache_2"][type];
-    const _cacheExpiry = () => {
-      if (type === 0) {
-        const r = new Date(); r.setUTCHours(23,0,0,0);
-        if (Date.now() >= r.getTime()) r.setUTCDate(r.getUTCDate()+1);
-        return r.getTime();
-      }
-      return type === 1 ? Date.now()+48*3600*1000 : Date.now()+2*3600*1000;
-    };
-    const _readCache  = () => { try { const c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); return c&&Date.now()<c.expires?c:null; } catch(_){return null;} };
-    const _writeCache = (d,e) => { try { localStorage.setItem(CACHE_KEY,JSON.stringify({expires:e,...d})); } catch(_){} };
-    const _fmtNum = n => { n=Math.abs(parseInt(n)||0); return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n); };
-    const _fmtTime = s => { s=parseInt(s)||0; if(s<=0)return'Soon'; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); if(h>=24){const d=Math.floor(h/24);return`${d}d ${h%24}h`;} return h?`${h}h ${m}m`:`${m}m`; };
-    const _parseKV = str => { const m={},p=str.split(':'); for(let i=0;i+1<p.length;i+=2)m[p[i]]=p[i+1]; return m; };
-
-    try {
-      const PROXY = (window._gdProxyUrl||'').replace(/\/$/,'');
-      if (!PROXY) throw new Error('no proxy configured');
-
-      let levelIndex, secondsRemaining, levelName, downloads, likes, length,
-          stars, coins, coinsVerified, isDemon, demonDiff, creatorName;
-
-      const cached = _readCache();
-      if (cached) {
-        ({levelIndex,creatorName,levelName,downloads,likes,length,stars,coins,coinsVerified,isDemon,demonDiff} = cached);
-        secondsRemaining = Math.max(0, Math.floor((cached.expires-Date.now())/1000));
-      } else {
-        levelIndex=''; secondsRemaining=0;
-        try {
-          const dr = await fetch(`${PROXY}/getGJDailyLevel.php`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`secret=Wmfd2893gb7&type=${type}&udid=${UDID}`});
-          const dt = await dr.text(), dp = dt.split('|');
-          if (dp.length>=2&&/^\d+$/.test(dp[0].trim())){levelIndex=dp[0].trim();secondsRemaining=parseInt(dp[1])||0;}
-        } catch(_){}
-
-        const dlId=[-1,-2,-3][type]??-1;
-        const lr = await fetch(`${PROXY}/downloadGJLevel22.php`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`levelID=${dlId}&secret=Wmfd2893gb7&udid=${UDID}`});
-        const lvlText = await lr.text();
-        if (!lvlText||lvlText.trim()==='-1') throw new Error(`${['Daily','Weekly','Event'][type]??'Daily'} level unavailable`);
-
-        const hp=lvlText.split('#'), kv=_parseKV(hp[0]);
-        creatorName='';
-        for(let i=1;i<hp.length;i++){const cp=hp[i].split(':');if(cp.length>=3&&/^\d+$/.test(cp[0])&&cp[1]&&/^\d+$/.test(cp[2])){creatorName=cp[1];break;}}
-        if(!creatorName) creatorName='Player '+(kv['6']||'?');
-
-        levelName=kv['2']||'Unknown'; downloads=parseInt(kv['10'])||0; likes=parseInt(kv['14'])||0;
-        length=parseInt(kv['15'])||0; stars=parseInt(kv['18'])||0; coins=parseInt(kv['37'])||0;
-        coinsVerified=kv['38']==='1'; isDemon=parseInt(kv['17'])===1; demonDiff=parseInt(kv['43']);
-
-        const expires=_cacheExpiry();
-        _writeCache({levelIndex,creatorName,levelName,downloads,likes,length,stars,coins,coinsVerified,isDemon,demonDiff},expires);
-        if(!secondsRemaining) secondsRemaining=Math.max(0,Math.floor((expires-Date.now())/1000));
-      }
-
-      let diffFrame;
-      if (isDemon){const dm={3:'diffIcon_07_btn_001.png',4:'diffIcon_08_btn_001.png',0:'diffIcon_06_btn_001.png',6:'diffIcon_09_btn_001.png',7:'diffIcon_10_btn_001.png'};diffFrame=dm[demonDiff]??'diffIcon_06_btn_001.png';}
-      else if(stars===1)diffFrame='diffIcon_auto_btn_001.png';
-      else if(stars===2)diffFrame='diffIcon_01_btn_001.png';
-      else if(stars===3)diffFrame='diffIcon_02_btn_001.png';
-      else if(stars<=5)diffFrame='diffIcon_03_btn_001.png';
-      else if(stars<=7)diffFrame='diffIcon_04_btn_001.png';
-      else if(stars<=9)diffFrame='diffIcon_05_btn_001.png';
-      else diffFrame='diffIcon_00_btn_001.png';
-
-      body.innerHTML='';
-      body.style.cssText='padding:18px 20px;display:flex;gap:18px;align-items:flex-start;';
-
-      const left=document.createElement('div');
-      left.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;min-width:72px;';
-      left.appendChild(_drawFrame('GJ_GameSheet03',diffFrame,64,64));
-
-      const starsRow=document.createElement('div');
-      starsRow.style.cssText='display:flex;align-items:center;gap:4px;';
-      starsRow.appendChild(_drawFrame('GJ_GameSheet03',stars>0?'GJ_starsIcon_001.png':'GJ_starsIcon_gray_001.png',18,18));
-      starsRow.appendChild(_drawBitmapText(String(stars),'bigFont',0.22)||Object.assign(document.createElement('span'),{textContent:String(stars)}));
-      left.appendChild(starsRow);
-
-      if(coins>0){
-        const cr=document.createElement('div'); cr.style.cssText='display:flex;gap:3px;';
-        for(let c=0;c<Math.min(coins,3);c++){
-          const cc=_drawFrame('GJ_GameSheet03','usercoin_small01_001.png',18,18);
-          if(!coinsVerified)cc.style.filter='grayscale(1) brightness(0.55)';
-          cr.appendChild(cc);
-        }
-        left.appendChild(cr);
-      }
-      body.appendChild(left);
-
-      const right=document.createElement('div');
-      right.style.cssText='flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden;';
-
-      const _truncName = levelName.length > 28 ? levelName.slice(0,27)+'...' : levelName;
-      right.appendChild(_drawBitmapText(_truncName, 'bigFont', 0.4)||Object.assign(document.createElement('div'),{textContent:_truncName}));
-      right.appendChild(_drawBitmapText('by '+creatorName, 'goldFont', 0.38)||Object.assign(document.createElement('div'),{textContent:'by '+creatorName}));
-
-      const sep=document.createElement('div'); sep.style.cssText='height:1px;background:rgba(255,255,255,0.1);margin:2px 0;';
-      right.appendChild(sep);
-
-      const stats=document.createElement('div');
-      stats.style.cssText='display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
-      const _s=(frameKey, val) => {
-        const e=document.createElement('span');
-        e.style.cssText='display:flex;align-items:center;gap:3px;';
-        e.appendChild(_drawFrame('GJ_GameSheet03', frameKey, 18, 18));
-        e.appendChild(_drawBitmapText(val,'bigFont',0.22)||Object.assign(document.createElement('span'),{textContent:val}));
-        return e;
-      };
-      stats.appendChild(_s('GJ_downloadsIcon_001.png', _fmtNum(downloads)));
-      stats.appendChild(_s('GJ_likesIcon_001.png', _fmtNum(likes)));
-      stats.appendChild(_s('GJ_timeIcon_001.png', ['Tiny','Short','Medium','Long','XL'][Math.min(length,4)]??'XL'));
-      right.appendChild(stats);
-
-      /*
-        const timeLabel=['New level in:'];
-        const te=document.createElement('div'); te.style.cssText='display:flex;align-items:center;';
-        te.appendChild(_drawBitmapText(timeLabel+' '+_fmtTime(secondsRemaining),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:timeLabel+' '+_fmtTime(secondsRemaining)}));
-        right.appendChild(te);
-      } */
-      if(levelIndex){
-        const ie=document.createElement('div'); ie.style.cssText='display:flex;align-items:center;opacity:0.75;';
-        ie.appendChild(_drawBitmapText('#'+levelIndex,'goldFont',0.2)||Object.assign(document.createElement('span'),{textContent:'#'+levelIndex}));
-        right.appendChild(ie);
-      }
-      body.appendChild(right);
-
-    } catch(err) {
-      body.innerHTML='';
-      body.style.cssText='padding:28px;display:flex;align-items:center;justify-content:center;';
-      const e=document.createElement('div'); e.style.cssText='display:flex;align-items:center;';
-      e.appendChild(_drawBitmapText(String(err?.message||err).slice(0,40),'bigFont',0.2)||Object.assign(document.createElement('span'),{textContent:String(err?.message||err).slice(0,80)}));
-      body.appendChild(e);
-    }
   }
   _openOnlineLevelsScene(params = {}) {
     if (this._onlineLevelsOverlay) return;
