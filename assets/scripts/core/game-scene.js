@@ -8087,9 +8087,6 @@ _applyMirrorEffect() {
     const geodeLogoBtn = this.add.image(cx - frameW / 2 + 34, topBarY, "geode-logo-outline-gold")
       .setOrigin(0.5, 0.5).setScale(0.28);
     this._geodeLayerInternal.add(geodeLogoBtn);
-    const geodeTitleTxt = this.add.bitmapText(cx - frameW / 2 + 68, topBarY - 4, "bigFont", "Geode", 36)
-      .setOrigin(0, 0.5).setTint(0x4dff7c);
-    this._geodeLayerInternal.add(geodeTitleTxt);
     const geodeSubTxt = this.add.bitmapText(cx - frameW / 2 + 68, topBarY + 16, "goldFont", "Mod Loader", 18)
       .setOrigin(0, 0.5).setTint(0xcccccc);
     this._geodeLayerInternal.add(geodeSubTxt);
