@@ -284,10 +284,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     // Geode button - baseCircle_MediumAlt_Green + geode-logo-outline-gold (no label, bigger logo)
     const _gx = centerX + 380;
     const _gy = screenHeight - 80;
+    // Circle same scale as other bottom buttons (0.44), logo bigger inside (0.40)
     this._menuGeodeCircle = this.add.image(_gx, _gy, "baseCircle_MediumAlt_Green")
-      .setScrollFactor(0).setDepth(30).setScale(0.46);
+      .setScrollFactor(0).setDepth(30).setScale(0.44);
     this._menuGeodeLogo = this.add.image(_gx, _gy - 2, "geode-logo-outline-gold")
-      .setScrollFactor(0).setDepth(31).setScale(0.42);
+      .setScrollFactor(0).setDepth(31).setScale(0.40);
     const _geodeHitZone = this.add.zone(_gx, _gy, 90, 90).setScrollFactor(0).setDepth(32).setInteractive();
     this._expandHitArea(_geodeHitZone, 1.1);
     this._makeBouncyButton(_geodeHitZone, 1, () => {
@@ -4069,6 +4070,8 @@ _buildSettingsPopup() {
     if (this._menuAchievementsBtn) {
       this._menuAchievementsBtn.setVisible(false);
     }
+    if (this._menuGeodeCircle) { this._menuGeodeCircle.setVisible(false); }
+    if (this._menuGeodeLogo) { this._menuGeodeLogo.setVisible(false); }
     if (this._menuStatsBtn) {
       this._menuStatsBtn.setVisible(false);
     }
@@ -7859,148 +7862,153 @@ _applyMirrorEffect() {
     const cx = screenWidth / 2;
     const cy = screenHeight / 2;
 
-    // Dim overlay
-    this._achieveLayerOverlay = this.add.rectangle(cx, cy, screenWidth, screenHeight, 0x000000, 0)
+    this._achieveOverlay = this.add.rectangle(cx, cy, screenWidth, screenHeight, 0x000000, 0)
       .setScrollFactor(0).setDepth(200).setInteractive();
-    this.tweens.add({ targets: this._achieveLayerOverlay, alpha: 0.5, duration: 350 });
+    this.tweens.add({ targets: this._achieveOverlay, alpha: 0.5, duration: 300 });
 
-    // All popup content in one camera-fixed container, slides up
-    this._achieveContainer = this.add.container(cx, cy).setScrollFactor(0).setDepth(201);
-    this._achieveContainer.y = cy + screenHeight;
-    this.tweens.add({
-      targets: this._achieveContainer, y: cy, duration: 500, ease: "Back.Out"
-    });
+    // Single container, slides up as one unit — mask will work correctly
+    this._achieveContainer = this.add.container(cx, cy + screenHeight).setScrollFactor(0).setDepth(201);
+    this.tweens.add({ targets: this._achieveContainer, y: cy, duration: 480, ease: 'Back.Out' });
 
-    // Dimensions (relative to container center)
     const W = Math.min(700, screenWidth - 40);
     const H = Math.min(450, screenHeight - 80);
-    const halfW = W / 2, halfH = H / 2;
+    const hw = W / 2, hh = H / 2;
 
-    // Brown panel background
+    // Brown background panel
     this._achieveContainer.add(this.add.rectangle(0, 0, W, H, 0xac531e));
 
-    // GD table frame sprites
-    const topImg = this.add.image(0, -halfH, "GJ_WebSheet", "GJ_table_top_001.png").setOrigin(0.5, 1);
-    this._achieveContainer.add(topImg);
-    const botImg = this.add.image(0, halfH, "GJ_WebSheet", "GJ_table_bottom_001.png").setOrigin(0.5, 0);
-    this._achieveContainer.add(botImg);
-    // Side borders
-    const sideW = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png") ? this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png").width : 40;
+    // GD table frame — top, bottom, sides
+    const topSprite = this.add.image(0, -hh, 'GJ_WebSheet', 'GJ_table_top_001.png').setOrigin(0.5, 1);
+    this._achieveContainer.add(topSprite);
+    this._achieveContainer.add(this.add.image(0, hh, 'GJ_WebSheet', 'GJ_table_bottom_001.png').setOrigin(0.5, 0));
     const sideScaleY = H / 256;
-    this._achieveContainer.add(this.add.image(-halfW - sideW * 0.5, -halfH, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0.5, 0).setScale(1, sideScaleY));
-    this._achieveContainer.add(this.add.image(halfW + sideW * 0.5, -halfH, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0.5, 0).setFlipX(true).setScale(1, sideScaleY));
+    this._achieveContainer.add(this.add.image(-hw - 18, -hh, 'GJ_WebSheet', 'GJ_table_side_001.png').setOrigin(1, 0).setScale(1, sideScaleY));
+    this._achieveContainer.add(this.add.image(hw + 18, -hh, 'GJ_WebSheet', 'GJ_table_side_001.png').setOrigin(0, 0).setFlipX(true).setScale(1, sideScaleY));
+
     // Chains
-    this._achieveContainer.add(this.add.image(-W * 0.35, topImg.y - 20, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
-    this._achieveContainer.add(this.add.image(W * 0.35, topImg.y - 20, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
+    this._achieveContainer.add(this.add.image(-hw * 0.7, topSprite.y - 20, 'GJ_WebSheet', 'chain_01_001.png').setOrigin(0.5, 1));
+    this._achieveContainer.add(this.add.image(hw * 0.7, topSprite.y - 20, 'GJ_WebSheet', 'chain_01_001.png').setOrigin(0.5, 1));
 
     // Title
-    this._achieveContainer.add(this.add.bitmapText(0, -halfH + 22, "bigFont", "Achievements", 46).setOrigin(0.5, 0.5));
+    this._achieveContainer.add(this.add.bitmapText(0, -hh + 26, 'bigFont', 'Achievements', 44).setOrigin(0.5, 0.5));
 
-    // Page counter (top-right)
-    const totalRows = 24;
-    const visibleRows = 5;
-    const pageLabel = this.add.bitmapText(halfW - 10, -halfH - 24, "goldFont", "1 to 5 of " + totalRows, 22).setOrigin(1, 0.5).setTint(0xffdd00);
-    this._achieveContainer.add(pageLabel);
-
-    // Achievements data
+    // Page label (top-right, gold, like real GD)
     const achievements = [
-      { title: "Stereo Madness!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 1 },
-      { title: "Back on Track!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 2 },
-      { title: "Polargeist!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 3 },
-      { title: "Dry Out!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 4 },
-      { title: "Base After Base!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 5 },
-      { title: "Cant Let Go!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 6 },
-      { title: "Jumper!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 7 },
-      { title: "Time Machine!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 8 },
-      { title: "Cycles!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 9 },
-      { title: "xStep!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 10 },
-      { title: "Clutterfunk!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 11 },
-      { title: "Theory of Everything!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 12 },
-      { title: "Electroman Adventures!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 13 },
-      { title: "Clubstep!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 14 },
-      { title: "Electrodynamix!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 15 },
-      { title: "Hexagon Force!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 16 },
-      { title: "Blast Processing!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 17 },
-      { title: "Theory of Everything 2!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 18 },
-      { title: "Geometrical Dominator!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 19 },
-      { title: "Deadlocked!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 20 },
-      { title: "Fingerdash!", desc: "Complete in Normal mode", done: (window._completedLevels||0) >= 21 },
-      { title: "Web Dasher!", desc: "Play Web Dashers for the first time", done: true },
-      { title: "First Jump!", desc: "Jump for the first time", done: (this._totalJumps||0) >= 1 },
-      { title: "100 Jumps!", desc: "Jump 100 times total", done: (this._totalJumps||0) >= 100 },
+      { title: 'Stereo Madness!',          desc: 'Complete "Stereo Madness" in Normal mode',         done: (window._completedLevels||0) >= 1 },
+      { title: 'Back on Track!',           desc: 'Complete "Back on Track" in Normal mode',           done: (window._completedLevels||0) >= 2 },
+      { title: 'Polargeist!',              desc: 'Complete "Polargeist" in Normal mode',              done: (window._completedLevels||0) >= 3 },
+      { title: 'Dry Out!',                 desc: 'Complete "Dry Out" in Normal mode',                 done: (window._completedLevels||0) >= 4 },
+      { title: 'Base After Base!',         desc: 'Complete "Base After Base" in Normal mode',         done: (window._completedLevels||0) >= 5 },
+      { title: 'Cant Let Go!',             desc: 'Complete "Cant Let Go" in Normal mode',             done: (window._completedLevels||0) >= 6 },
+      { title: 'Jumper!',                  desc: 'Complete "Jumper" in Normal mode',                  done: (window._completedLevels||0) >= 7 },
+      { title: 'Time Machine!',            desc: 'Complete "Time Machine" in Normal mode',            done: (window._completedLevels||0) >= 8 },
+      { title: 'Cycles!',                  desc: 'Complete "Cycles" in Normal mode',                  done: (window._completedLevels||0) >= 9 },
+      { title: 'xStep!',                   desc: 'Complete "xStep" in Normal mode',                   done: (window._completedLevels||0) >= 10 },
+      { title: 'Clutterfunk!',             desc: 'Complete "Clutterfunk" in Normal mode',             done: (window._completedLevels||0) >= 11 },
+      { title: 'Theory of Everything!',    desc: 'Complete "Theory of Everything" in Normal mode',    done: (window._completedLevels||0) >= 12 },
+      { title: 'Electroman Adventures!',   desc: 'Complete "Electroman Adventures" in Normal mode',   done: (window._completedLevels||0) >= 13 },
+      { title: 'Clubstep!',               desc: 'Complete "Clubstep" in Normal mode',                done: (window._completedLevels||0) >= 14 },
+      { title: 'Electrodynamix!',          desc: 'Complete "Electrodynamix" in Normal mode',          done: (window._completedLevels||0) >= 15 },
+      { title: 'Hexagon Force!',           desc: 'Complete "Hexagon Force" in Normal mode',           done: (window._completedLevels||0) >= 16 },
+      { title: 'Blast Processing!',        desc: 'Complete "Blast Processing" in Normal mode',        done: (window._completedLevels||0) >= 17 },
+      { title: 'Theory of Everything 2!',  desc: 'Complete "Theory of Everything 2" in Normal mode',  done: (window._completedLevels||0) >= 18 },
+      { title: 'Geometrical Dominator!',   desc: 'Complete "Geometrical Dominator" in Normal mode',   done: (window._completedLevels||0) >= 19 },
+      { title: 'Deadlocked!',              desc: 'Complete "Deadlocked" in Normal mode',              done: (window._completedLevels||0) >= 20 },
+      { title: 'Fingerdash!',              desc: 'Complete "Fingerdash" in Normal mode',              done: (window._completedLevels||0) >= 21 },
+      { title: 'Web Dasher!',              desc: 'Play Web Dashers for the first time',               done: true },
+      { title: 'First Jump!',              desc: 'Jump for the first time',                           done: (this._totalJumps||0) >= 1 },
+      { title: '100 Jumps!',              desc: 'Jump 100 times total',                              done: (this._totalJumps||0) >= 100 },
     ];
 
-    // Row layout (relative to container center)
     const rowH = 68;
-    const listTop = -halfH + 52;   // top of first row, relative to container center
+    const visibleRows = 5;
+    const listTop = -hh + 58;   // relative to container center
     const listH = visibleRows * rowH;
-    const rowW = W - 8;
-    let scrollOffset = 0;
+    const rowW = W - 6;
+    let page = 0;
+    const totalPages = Math.ceil(achievements.length / visibleRows);
 
-    // Row sub-container (stays inside achieveContainer)
+    const pageLabel = this.add.bitmapText(hw - 4, -hh - 20, 'goldFont',
+      '1 to ' + visibleRows + ' of ' + achievements.length, 22).setOrigin(1, 0.5).setTint(0xffdd00);
+    this._achieveContainer.add(pageLabel);
+
+    // Row sub-container (children positioned relative to achieveContainer center)
     const rowContainer = this.add.container(0, 0);
     this._achieveContainer.add(rowContainer);
 
-    // Render rows
     const buildRows = () => {
       rowContainer.removeAll(true);
-      achievements.forEach((ach, i) => {
-        const rowY = listTop + i * rowH - scrollOffset + rowH / 2;
-        // Cull rows outside visible window
-        if (rowY + rowH / 2 < listTop - rowH || rowY - rowH / 2 > listTop + listH + rowH) return;
-
+      const startIdx = page * visibleRows;
+      const slice = achievements.slice(startIdx, startIdx + visibleRows);
+      slice.forEach((ach, i) => {
+        const rowY = listTop + i * rowH + rowH / 2;
         const bgColor = i % 2 === 0 ? 0xcf6d30 : 0xac531e;
         rowContainer.add(this.add.rectangle(0, rowY, rowW, rowH - 3, bgColor));
 
-        const iconX = -halfW + 44;
-        if (ach.done) {
-          const ico = this.add.image(iconX, rowY, "GJ_GameSheet03", "GJ_achImage_001.png").setScale(0.48);
-          rowContainer.add(ico);
-          const chk = this.add.image(iconX + 20, rowY + 18, "GJ_GameSheet03", "GJ_checkOn_001.png").setScale(0.48);
-          rowContainer.add(chk);
-        } else {
-          rowContainer.add(this.add.image(iconX, rowY, "GJ_GameSheet03", "GJ_lockGray_001.png").setScale(0.5));
+        const iconX = -hw + 38;
+        // Icon on the left: achImage (the GD achievement icon square)
+        const ico = this.add.image(iconX, rowY, 'GJ_GameSheet03', 'GJ_achImage_001.png').setScale(0.62);
+        if (!ach.done) ico.setTint(0x888888);
+        rowContainer.add(ico);
+
+        // If locked, draw the padlock ON TOP of the icon (rotated:true in atlas, fix with setAngle(-90))
+        if (!ach.done) {
+          const lock = this.add.image(iconX, rowY, 'GJ_GameSheet03', 'GJ_lockGray_001.png').setScale(0.55).setAngle(-90);
+          rowContainer.add(lock);
         }
 
-        const titleTxt = this.add.bitmapText(-halfW + 90, rowY - 10, "goldFont", ach.title, 26).setOrigin(0, 0.5);
-        if (!ach.done) titleTxt.setTint(0x999999);
+        // Title (bold gold) — top of row
+        const titleTxt = this.add.bitmapText(-hw + 76, rowY - 12, 'bigFont', ach.title, 24).setOrigin(0, 0.5);
+        if (!ach.done) titleTxt.setTint(0xaaaaaa);
         rowContainer.add(titleTxt);
 
-        const descTxt = this.add.bitmapText(-halfW + 90, rowY + 16, "goldFont", ach.desc, 18).setOrigin(0, 0.5);
-        if (!ach.done) descTxt.setTint(0x666666);
+        // Description — smaller, below title
+        const descTxt = this.add.bitmapText(-hw + 76, rowY + 16, 'goldFont', ach.desc, 18).setOrigin(0, 0.5);
+        if (!ach.done) descTxt.setTint(0x777777);
         rowContainer.add(descTxt);
+
+        // Green checkmark on the RIGHT side if completed (like real GD)
+        if (ach.done) {
+          const chk = this.add.image(hw - 28, rowY, 'GJ_GameSheet03', 'GJ_checkOn_001.png').setScale(0.6);
+          rowContainer.add(chk);
+        }
       });
 
-      // Apply graphics mask at the visible area (world space)
+      const first = page * visibleRows + 1;
+      const last = Math.min(first + visibleRows - 1, achievements.length);
+      pageLabel.setText(first + ' to ' + last + ' of ' + achievements.length);
+
+      // Redraw mask using container's CURRENT screen position
+      const screenContY = this._achieveContainer ? this._achieveContainer.y : cy;
       const maskGfx = this.make.graphics({ x: 0, y: 0, add: false });
       maskGfx.fillStyle(0xffffff);
-      maskGfx.fillRect(cx - halfW + 4, cy + listTop - rowH / 2, rowW, listH + rowH / 2);
+      maskGfx.fillRect(cx - hw + 3, screenContY + listTop, rowW, listH);
       rowContainer.setMask(maskGfx.createGeometryMask());
     };
+
     buildRows();
 
-    // Scroll arrows (right side, relative to container)
-    const arrowX = halfW + 30;
-    const upArrow = this.add.image(arrowX, listTop + rowH * 0.5, "GJ_GameSheet03", "navArrowBtn_001.png")
-      .setScale(0.6).setFlipY(true).setInteractive();
+    // After tween settles, redraw mask at correct screen position
+    this.time.delayedCall(520, () => { if (this._achieveContainer) buildRows(); });
+
+    // Scroll arrows (right of frame)
+    const arrowX = hw + 32;
+    const upArrow = this.add.image(arrowX, listTop + rowH / 2, 'GJ_GameSheet03', 'navArrowBtn_001.png')
+      .setScale(0.65).setFlipY(true).setInteractive();
     this._achieveContainer.add(upArrow);
-    const dnArrow = this.add.image(arrowX, listTop + listH - rowH * 0.5, "GJ_GameSheet03", "navArrowBtn_001.png")
-      .setScale(0.6).setInteractive();
+    const dnArrow = this.add.image(arrowX, listTop + listH - rowH / 2, 'GJ_GameSheet03', 'navArrowBtn_001.png')
+      .setScale(0.65).setInteractive();
     this._achieveContainer.add(dnArrow);
 
-    const updateScroll = (dir) => {
-      scrollOffset = Math.max(0, Math.min(scrollOffset + dir * rowH, (achievements.length - visibleRows) * rowH));
-      const first = Math.floor(scrollOffset / rowH) + 1;
-      const last = Math.min(first + visibleRows - 1, achievements.length);
-      pageLabel.setText(first + " to " + last + " of " + achievements.length);
-      buildRows();
-    };
-
-    this._makeBouncyButton(upArrow, 0.6, () => updateScroll(-1));
-    this._makeBouncyButton(dnArrow, 0.6, () => updateScroll(1));
+    this._makeBouncyButton(upArrow, 0.65, () => {
+      if (page > 0) { page--; buildRows(); }
+    });
+    this._makeBouncyButton(dnArrow, 0.65, () => {
+      if (page < totalPages - 1) { page++; buildRows(); }
+    });
 
     // Back button
-    const backBtn = this.add.image(-halfW - 60, -halfH - 8, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive();
+    const backBtn = this.add.image(-hw - 55, -hh + 10, 'GJ_GameSheet03', 'GJ_arrow_03_001.png').setInteractive();
     this._achieveContainer.add(backBtn);
     this._makeBouncyButton(backBtn, 1, () => this._hideAchievementsScreen());
   }
@@ -8008,16 +8016,12 @@ _applyMirrorEffect() {
   _hideAchievementsScreen() {
     if (!this._achieveContainer) return;
     const cleanup = () => {
-      if (this._achieveLayerOverlay) { this._achieveLayerOverlay.destroy(); this._achieveLayerOverlay = null; }
+      if (this._achieveOverlay) { this._achieveOverlay.destroy(); this._achieveOverlay = null; }
       if (this._achieveContainer) { this._achieveContainer.destroy(); this._achieveContainer = null; }
       this._achievementsPopup = false;
     };
-    this.tweens.add({ targets: this._achieveLayerOverlay, alpha: 0, duration: 300 });
-    this.tweens.add({
-      targets: this._achieveContainer,
-      y: screenHeight + 400, duration: 400, ease: "Quad.In",
-      onComplete: cleanup
-    });
+    this.tweens.add({ targets: this._achieveOverlay, alpha: 0, duration: 280 });
+    this.tweens.add({ targets: this._achieveContainer, y: cy + screenHeight, duration: 380, ease: 'Quad.In', onComplete: cleanup });
   }
 
   _showGeodeMenu() {
@@ -8027,191 +8031,216 @@ _applyMirrorEffect() {
     const cx = screenWidth / 2;
     const cy = screenHeight / 2;
 
-    // Dim overlay
-    this._geodeLayerOverlay = this.add.rectangle(cx, cy, screenWidth, screenHeight, 0x000000, 0)
-      .setScrollFactor(0).setDepth(200).setInteractive();
-    this.tweens.add({ targets: this._geodeLayerOverlay, alpha: 0.6, duration: 350 });
-
-    // Main container slides up
-    this._geodeContainer = this.add.container(cx, cy + screenHeight).setScrollFactor(0).setDepth(201);
-    this.tweens.add({
-      targets: this._geodeContainer, y: cy, duration: 500, ease: "Back.Out"
-    });
-
-    const W = Math.min(500, screenWidth - 60);
-    const H = Math.min(350, screenHeight - 100);
-    const halfW = W / 2, halfH = H / 2;
-
-    // ── SwelvyBG: 6 tiling wave layers with real Geode colors ─────────────
-    // Colors from GeodeStyle.cpp: swelvy-bg-0 through swelvy-bg-5
+    // Full-screen SwelvyBG — renders BEHIND the panel, fills the whole screen
+    // Colors from GeodeStyle.cpp swelvy-bg-0..5
     const swelvyColors = [0xf4d48e, 0xf5ae7d, 0xec897c, 0xd56985, 0xad5492, 0x714a9a];
-    const swelvyKeys = ["swelve-layer3","swelve-layer0","swelve-layer1","swelve-layer2","swelve-layer1","swelve-layer0"];
-    const layerH = H / 6;
-    const speeds = [5, -4, 7, -3, 6, -5];
+    const swelvyKeys = ['swelve-layer3','swelve-layer0','swelve-layer1','swelve-layer2','swelve-layer1','swelve-layer0'];
+    this._geodeSwelvyContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(199);
     this._geodeSwelyLayers = [];
     swelvyKeys.forEach((key, i) => {
       try {
-        const ly = -halfH + i * layerH + layerH / 2;
-        const tl = this.add.tileSprite(0, ly, W, layerH + 2, key)
-          .setTint(swelvyColors[i]).setAlpha(i === 0 ? 1 : 0.85);
-        this._geodeContainer.add(tl);
-        this._geodeSwelyLayers.push({ sprite: tl, speed: speeds[i] });
+        const layerH = screenHeight / 6;
+        const ly = i * layerH + layerH / 2;
+        const tl = this.add.tileSprite(cx, ly, screenWidth, layerH + 2, key)
+          .setTint(swelvyColors[i]);
+        this._geodeSwelvyContainer.add(tl);
+        this._geodeSwelyLayers.push({ sprite: tl, speed: (i % 2 === 0 ? 1 : -1) * (3 + i * 0.8) });
       } catch(e) {}
     });
     this._geodeActive = true;
 
-    // ── Frame borders: mods-list-top-gd, sides, bottom ───────────────────
-    // Scale top/bottom to frame width
-    const topBorderImg = this.add.image(0, -halfH, "mods-list-top-gd").setOrigin(0.5, 1);
-    topBorderImg.setScale((W + 60) / topBorderImg.width, 50 / topBorderImg.height);
-    this._geodeContainer.add(topBorderImg);
+    // Dim overlay on top of swelvy, behind panel
+    this._geodeOverlay = this.add.rectangle(cx, cy, screenWidth, screenHeight, 0x000000, 0)
+      .setScrollFactor(0).setDepth(200).setInteractive();
+    this.tweens.add({ targets: this._geodeOverlay, alpha: 0.35, duration: 300 });
 
-    const botBorderImg = this.add.image(0, halfH, "mods-list-bottom-gd").setOrigin(0.5, 0);
-    botBorderImg.setScale((W + 60) / botBorderImg.width, 50 / botBorderImg.height);
-    this._geodeContainer.add(botBorderImg);
+    // Panel container slides up
+    this._geodeContainer = this.add.container(cx, cy + screenHeight).setScrollFactor(0).setDepth(201);
+    this.tweens.add({ targets: this._geodeContainer, y: cy, duration: 480, ease: 'Back.Out' });
 
-    const sideImg = this.add.image(-halfW, -halfH, "mods-list-side-gd").setOrigin(1, 0).setScale(0.7, H / 256);
-    this._geodeContainer.add(sideImg);
-    const sideImgR = this.add.image(halfW, -halfH, "mods-list-side-gd").setOrigin(0, 0).setFlipX(true).setScale(0.7, H / 256);
-    this._geodeContainer.add(sideImgR);
+    const W = Math.min(480, screenWidth - 80);
+    const H = Math.min(320, screenHeight - 120);
+    const hw = W / 2, hh = H / 2;
 
-    // ── Inner content bg: exact color from GeodeStyle "mod-list-bg" = rgb(25,17,37) ──
-    const innerBg = this.add.rectangle(0, 0, W, H, 0x191125, 1);
-    this._geodeContainer.add(innerBg);
+    // ── Frame borders (mods-list-top/side/bottom — default Geode theme, not GD) ──
+    const topBorder = this.add.image(0, -hh, 'mods-list-top').setOrigin(0.5, 1);
+    topBorder.setScale((W + 40) / topBorder.width, 55 / topBorder.height);
+    this._geodeContainer.add(topBorder);
 
-    // ── Header bar (brown for GD theme: rgb(168,85,44)) ───────────────────
-    const headerH = 46;
-    const headerBg = this.add.rectangle(0, -halfH + headerH / 2, W, headerH, 0xa8552c, 1);
-    this._geodeContainer.add(headerBg);
+    const botBorder = this.add.image(0, hh, 'mods-list-bottom').setOrigin(0.5, 0);
+    botBorder.setScale((W + 40) / botBorder.width, 55 / botBorder.height);
+    this._geodeContainer.add(botBorder);
 
-    // Geode logo + title in header
-    const geoLogo = this.add.image(-halfW + 30, -halfH + headerH / 2, "geode-logo-outline-gold").setScale(0.24).setOrigin(0.5, 0.5);
-    this._geodeContainer.add(geoLogo);
-    const geoTitle = this.add.bitmapText(-halfW + 52, -halfH + headerH / 2 - 4, "bigFont", "Geode", 30)
-      .setOrigin(0, 0.5).setTint(0x00ff00);
-    this._geodeContainer.add(geoTitle);
-    const geoSub = this.add.bitmapText(-halfW + 54, -halfH + headerH / 2 + 13, "goldFont", "Mod Loader", 16)
-      .setOrigin(0, 0.5).setTint(0xd4a742);
-    this._geodeContainer.add(geoSub);
+    this._geodeContainer.add(this.add.image(-hw, -hh, 'mods-list-side').setOrigin(1, 0).setScale(0.65, H / 256));
+    this._geodeContainer.add(this.add.image(hw, -hh, 'mods-list-side').setOrigin(0, 0).setFlipX(true).setScale(0.65, H / 256));
 
-    // ── Tabs row: "Installed / Featured / Download / Recent" ─────────────
-    // From GeodeStyle.cpp:
-    //   tab-bg.png (NineSlice), scale 0.8, content size = (tabWidth, 35)
-    //   deselected color: rgb(26,24,29)   selected: rgb(168,147,185)
-    const tabsY = -halfH + headerH + 18;
-    const tabLabels = ["Installed", "Featured", "Download", "Recent"];
-    const tabIcons = ["geode-download", null, "geode-globe", null];
-    const tabIconsGD = [null, "GJ_starsIcon_001.png", null, "GJ_timeIcon_001.png"];
-    const tabCount = tabLabels.length;
-    const tabW = (W - 10) / tabCount;
-    const tabH = 30;
+    // ── Inner bg: mod-list-bg = rgb(25,17,37) ────────────────────────────
+    this._geodeContainer.add(this.add.rectangle(0, 0, W, H, 0x191125));
+
+    // ── Header area (top of inner panel) ─────────────────────────────────
+    const headerH = 42;
+    const headerY = -hh + headerH / 2;
+
+    // Geode logo + title
+    const gLogo = this.add.image(-hw + 28, headerY, 'geode-logo-outline-gold').setScale(0.22).setOrigin(0.5, 0.5);
+    this._geodeContainer.add(gLogo);
+    this._geodeContainer.add(
+      this.add.bitmapText(-hw + 48, headerY - 5, 'bigFont', 'Geode', 28).setOrigin(0, 0.5).setTint(0x00ff00)
+    );
+    this._geodeContainer.add(
+      this.add.bitmapText(-hw + 50, headerY + 12, 'goldFont', 'Mod Loader', 15).setOrigin(0, 0.5).setTint(0xd4a742)
+    );
+
+    // Page indicator top-right (blue dot + text like real Geode)
+    const pageIndicator = this.add.bitmapText(hw - 6, -hh + 8, 'goldFont', 'Page 1/1 (Total 0)', 14)
+      .setOrigin(1, 0).setTint(0x00aaff);
+    this._geodeContainer.add(pageIndicator);
+
+    // Thin separator line below header
+    this._geodeContainer.add(this.add.rectangle(0, -hh + headerH, W, 2, 0x2a1f3d));
+
+    // ── Tabs: Installed / Featured / Download / Recent ────────────────────
+    // Colors from GeodeStyle.cpp:
+    //   deselected bg: rgb(26,24,29) = 0x1a181d
+    //   selected bg:   rgb(168,147,185) = 0xa893b9
+    const tabsY = -hh + headerH + 18;
+    const tabDefs = [
+      { label: 'Installed', iconKey: 'geode-download',     gdFrame: null },
+      { label: 'Featured',  iconKey: null,                  gdFrame: 'GJ_starsIcon_001.png' },
+      { label: 'Download',  iconKey: 'geode-globe',         gdFrame: null },
+      { label: 'Recent',    iconKey: null,                  gdFrame: 'GJ_timeIcon_001.png' },
+    ];
+    const tabW = (W - 8) / tabDefs.length;
+    const tabH = 28;
     let activeTab = 0;
     const tabBgs = [], tabTxts = [];
 
-    tabLabels.forEach((lbl, i) => {
-      const tx = -halfW + 5 + tabW * i + tabW / 2;
-      // Tab background using tab-bg image as nine-slice approximation (scaled rect + image)
-      const deselColor = 0x1a181d;  // rgb(26,24,29)
-      const selColor   = 0xa893b9;  // rgb(168,147,185)
-      const tbg = this.add.image(tx, tabsY, "geode-tab-bg")
-        .setScale(tabW / 220, tabH / 220)
-        .setTint(i === 0 ? selColor : deselColor);
+    tabDefs.forEach((td, i) => {
+      const tx = -hw + 4 + tabW * i + tabW / 2;
+      const selColor = 0xa893b9, deselColor = 0x1a181d;
+      const tbg = this.add.image(tx, tabsY, 'geode-tab-bg')
+        .setScale(tabW / 220, tabH / 220).setTint(i === 0 ? selColor : deselColor);
       this._geodeContainer.add(tbg);
       tabBgs.push(tbg);
 
-      // Icon
-      const iconX = tx - tabW * 0.3;
-      const iconY = tabsY;
-      if (tabIcons[i]) {
-        const ico = this.add.image(iconX, iconY, tabIcons[i]).setScale(0.09).setTint(i === 0 ? 0x000000 : 0xffffff);
-        this._geodeContainer.add(ico);
-      } else if (tabIconsGD[i]) {
-        const ico = this.add.image(iconX, iconY, "GJ_GameSheet03", tabIconsGD[i]).setScale(0.5).setTint(i === 0 ? 0x000000 : 0xffffff);
-        this._geodeContainer.add(ico);
+      // Icon (small, left of label)
+      const iconX = tx - tabW * 0.28;
+      if (td.iconKey) {
+        this._geodeContainer.add(
+          this.add.image(iconX, tabsY, td.iconKey).setScale(0.08).setTint(i === 0 ? 0x000000 : 0xffffff)
+        );
+      } else if (td.gdFrame) {
+        this._geodeContainer.add(
+          this.add.image(iconX, tabsY, 'GJ_GameSheet03', td.gdFrame).setScale(0.45).setTint(i === 0 ? 0x000000 : 0xffffff)
+        );
       }
 
-      const t = this.add.bitmapText(tx + (tabIcons[i] || tabIconsGD[i] ? tabW * 0.1 : 0), tabsY, "bigFont", lbl, 16)
+      const lbl = this.add.bitmapText(tx + tabW * 0.08, tabsY, 'bigFont', td.label, 14)
         .setOrigin(0.5, 0.5).setTint(i === 0 ? 0x000000 : 0xffffff);
-      this._geodeContainer.add(t);
-      tabTxts.push(t);
+      this._geodeContainer.add(lbl);
+      tabTxts.push(lbl);
 
-      const hz = this.add.zone(tx, tabsY, tabW, tabH + 6).setInteractive();
+      const hz = this.add.zone(tx, tabsY, tabW, tabH + 4).setInteractive();
       this._geodeContainer.add(hz);
-      hz.on("pointerup", () => {
+      hz.on('pointerup', () => {
         activeTab = i;
         tabBgs.forEach((b, j) => b.setTint(j === i ? 0xa893b9 : 0x1a181d));
-        tabTxts.forEach((tl, j) => tl.setTint(j === i ? 0x000000 : 0xffffff));
+        tabTxts.forEach((t, j) => t.setTint(j === i ? 0x000000 : 0xffffff));
         buildModList(i);
       });
     });
 
-    // ── Mod list area ─────────────────────────────────────────────────────
-    const listTop = -halfH + headerH + tabH + 10;
-    const listH = H - headerH - tabH - 55;  // leave room for bottom bar
-    const installedMods = JSON.parse(localStorage.getItem("webdash_geode_mods") || "[]");
-    const rowH = 55;
+    // ── Search bar below tabs (mod-list-search-bg = rgb(83,65,109)) ──────
+    const searchY = tabsY + tabH / 2 + 14;
+    this._geodeContainer.add(this.add.rectangle(0, searchY, W - 8, 22, 0x53416d));
+    this._geodeContainer.add(
+      this.add.bitmapText(-hw + 16, searchY, 'goldFont', 'Search Mods', 16).setOrigin(0, 0.5).setTint(0x888888)
+    );
+    this._geodeContainer.add(
+      this.add.image(hw - 16, searchY, 'geode-search').setScale(0.07).setTint(0x888888)
+    );
+
+    // ── Mod list ──────────────────────────────────────────────────────────
+    const listTop = searchY + 14;
+    const listH = hh - listTop - 22;  // bottom bar space
+    const rowH = 52;
+    const installedMods = JSON.parse(localStorage.getItem('webdash_geode_mods') || '[]');
     let scrollOffset = 0;
 
     const modContainer = this.add.container(0, 0);
     this._geodeContainer.add(modContainer);
 
-    // Page indicator (top-right, like real Geode "Page 1/6 (Total 53)")
-    const pageIndicator = this.add.bitmapText(halfW - 6, -halfH + 8, "goldFont", "Page 1/1 (Total 0)", 16)
-      .setOrigin(1, 0.5).setTint(0x00aaff);
-    this._geodeContainer.add(pageIndicator);
-
     const buildModList = (tabIdx) => {
       modContainer.removeAll(true);
+
       if (tabIdx === 0) {
-        pageIndicator.setText("Page 1/1 (Total " + installedMods.length + ")");
+        pageIndicator.setText('Page 1/1 (Total ' + installedMods.length + ')');
         if (installedMods.length === 0) {
-          const noMods = this.add.bitmapText(0, listTop + listH / 2 - 16, "bigFont", "No mods installed", 26)
-            .setOrigin(0.5, 0.5).setTint(0xffffff);
-          modContainer.add(noMods);
-          const hint = this.add.bitmapText(0, listTop + listH / 2 + 18, "goldFont", "Browse other tabs to find mods!", 18)
-            .setOrigin(0.5, 0.5).setTint(0x888888);
-          modContainer.add(hint);
+          modContainer.add(
+            this.add.bitmapText(0, listTop + listH / 2 - 14, 'bigFont', 'No mods installed', 24)
+              .setOrigin(0.5, 0.5).setTint(0xffffff)
+          );
+          modContainer.add(
+            this.add.bitmapText(0, listTop + listH / 2 + 16, 'goldFont', 'Browse other tabs to find mods!', 17)
+              .setOrigin(0.5, 0.5).setTint(0x888888)
+          );
         } else {
           installedMods.forEach((mod, i) => {
             const ry = listTop + i * rowH - scrollOffset + rowH / 2;
-            if (ry + rowH < listTop || ry > listTop + listH) return;
-            const rowBg = this.add.rectangle(0, ry, W - 10, rowH - 3, i % 2 === 0 ? 0x1e1429 : 0x191125);
-            rowBg.setStrokeStyle(1, 0x333344);
-            modContainer.add(rowBg);
-            modContainer.add(this.add.bitmapText(-halfW + 12, ry - 10, "goldFont", mod.name || "?", 20).setOrigin(0, 0.5));
-            modContainer.add(this.add.bitmapText(-halfW + 12, ry + 12, "goldFont", (mod.version || "v1.0") + " by " + (mod.dev || "?"), 15).setOrigin(0, 0.5).setTint(0x78ff64));
+            if (ry + rowH < listTop || ry - rowH > listTop + listH) return;
+            const rb = this.add.rectangle(0, ry, W - 8, rowH - 2, i % 2 === 0 ? 0x1e1429 : 0x191125);
+            modContainer.add(rb);
+            modContainer.add(
+              this.add.bitmapText(-hw + 10, ry - 9, 'goldFont', mod.name || '?', 19).setOrigin(0, 0.5)
+            );
+            modContainer.add(
+              this.add.bitmapText(-hw + 10, ry + 11, 'goldFont', (mod.version || 'v1.0') + ' by ' + (mod.dev || '?'), 14)
+                .setOrigin(0, 0.5).setTint(0x78ff64)
+            );
           });
         }
       } else {
-        pageIndicator.setText("Page 1/1 (Total 0)");
-        modContainer.add(this.add.bitmapText(0, listTop + listH / 2 - 16, "bigFont", "Coming Soon!", 30).setOrigin(0.5, 0.5).setTint(0xffffff));
-        modContainer.add(this.add.bitmapText(0, listTop + listH / 2 + 20, "goldFont", "Online mod browsing not available yet.", 18).setOrigin(0.5, 0.5).setTint(0x888888));
+        pageIndicator.setText('Page 1/1 (Total 0)');
+        modContainer.add(
+          this.add.bitmapText(0, listTop + listH / 2 - 14, 'bigFont', 'Coming Soon!', 28).setOrigin(0.5, 0.5).setTint(0xffffff)
+        );
+        modContainer.add(
+          this.add.bitmapText(0, listTop + listH / 2 + 20, 'goldFont', 'Online browsing not available yet.', 17)
+            .setOrigin(0.5, 0.5).setTint(0x888888)
+        );
       }
 
-      // Clipping mask (screen-space, updates per call)
+      // Mask redrawn using container's actual screen Y at call time
+      const screenY = this._geodeContainer ? this._geodeContainer.y : cy;
       const mg = this.make.graphics({ x: 0, y: 0, add: false });
       mg.fillStyle(0xffffff);
-      mg.fillRect(cx - halfW + 4, cy + listTop - 2, W - 8, listH + 2);
+      mg.fillRect(cx - hw + 4, screenY + listTop, W - 8, listH);
       modContainer.setMask(mg.createGeometryMask());
     };
-    buildModList(0);
 
-    // ── Left side action buttons (settings, reload) ───────────────────────
-    const actBtnX = -halfW - 32;
-    const reloadBtn2 = this.add.image(actBtnX, halfH - 70, "geode-reload").setInteractive().setScale(0.22).setTint(0xffffff);
-    this._geodeContainer.add(reloadBtn2);
-    this._makeBouncyButton(reloadBtn2, 0.22, () => {});
-    const settingsBtn3 = this.add.image(actBtnX, halfH - 30, "geode-settings").setInteractive().setScale(0.22).setTint(0xffffff);
-    this._geodeContainer.add(settingsBtn3);
-    this._makeBouncyButton(settingsBtn3, 0.22, () => {});
+    buildModList(0);
+    // Redraw mask once panel has fully settled
+    this.time.delayedCall(520, () => { if (this._geodeContainer) buildModList(activeTab); });
+
+    // ── Left sidebar action buttons ───────────────────────────────────────
+    const sbX = -hw - 28;
+    const reloadBtn = this.add.image(sbX, hh - 60, 'geode-reload').setInteractive().setScale(0.2).setTint(0xffffff);
+    this._geodeContainer.add(reloadBtn);
+    this._makeBouncyButton(reloadBtn, 0.2, () => {});
+
+    const settingsBtn = this.add.image(sbX, hh - 24, 'geode-settings').setInteractive().setScale(0.2).setTint(0xffffff);
+    this._geodeContainer.add(settingsBtn);
+    this._makeBouncyButton(settingsBtn, 0.2, () => {});
 
     // ── Bottom bar ────────────────────────────────────────────────────────
-    const bbY = halfH - 18;
-    this._geodeContainer.add(this.add.rectangle(0, bbY, W, 34, 0x0a0a14, 0.9));
-    this._geodeContainer.add(this.add.bitmapText(0, bbY, "goldFont", "geode-sdk.org", 18).setOrigin(0.5, 0.5).setTint(0xaaaaaa));
+    const bbY = hh - 14;
+    this._geodeContainer.add(this.add.rectangle(0, bbY, W, 26, 0x0a0a14, 0.9));
+    this._geodeContainer.add(
+      this.add.bitmapText(0, bbY, 'goldFont', 'geode-sdk.org', 16).setOrigin(0.5, 0.5).setTint(0x888888)
+    );
 
     // ── Back button ───────────────────────────────────────────────────────
-    const backBtn = this.add.image(-halfW - 52, -halfH + headerH / 2, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+    const backBtn = this.add.image(-hw - 50, -hh + headerH / 2, 'GJ_GameSheet03', 'GJ_arrow_03_001.png')
       .setInteractive().setScale(0.85);
     this._geodeContainer.add(backBtn);
     this._makeBouncyButton(backBtn, 0.85, () => this._hideGeodeMenu());
@@ -8222,16 +8251,14 @@ _applyMirrorEffect() {
     this._geodeActive = false;
     this._geodeSwelyLayers = null;
     const cleanup = () => {
-      if (this._geodeLayerOverlay) { this._geodeLayerOverlay.destroy(); this._geodeLayerOverlay = null; }
+      if (this._geodeOverlay) { this._geodeOverlay.destroy(); this._geodeOverlay = null; }
       if (this._geodeContainer) { this._geodeContainer.destroy(); this._geodeContainer = null; }
+      if (this._geodeSwelvyContainer) { this._geodeSwelvyContainer.destroy(); this._geodeSwelvyContainer = null; }
       this._geodePopup = false;
     };
-    this.tweens.add({ targets: this._geodeLayerOverlay, alpha: 0, duration: 300 });
-    this.tweens.add({
-      targets: this._geodeContainer,
-      y: screenHeight + 400, duration: 400, ease: "Quad.In",
-      onComplete: cleanup
-    });
+    this.tweens.add({ targets: this._geodeOverlay, alpha: 0, duration: 280 });
+    this.tweens.add({ targets: this._geodeSwelvyContainer, alpha: 0, duration: 280 });
+    this.tweens.add({ targets: this._geodeContainer, y: cy + screenHeight, duration: 380, ease: 'Quad.In', onComplete: cleanup });
   }
 
 }
