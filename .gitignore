@@ -1,5 +1,4 @@
 .DS_Store
 /.claude
 /node_modules
-/server.js
 *.env*
