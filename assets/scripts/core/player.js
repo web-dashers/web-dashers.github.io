@@ -1639,8 +1639,9 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     const _flipMod = this.p.gravityFlipped ? -1 : 1;
     const _targetRad = -this.p.currentSlopeDir * (this.p.currentSlopeAngle || 0) * _flipMod;
-    const _t = Math.min(dt, 0.47250000000000003 * dt);
-    this._rotation = this.slerp2D(this._rotation, _targetRad, _t);
+    const _angleDiff = Math.atan2(Math.sin(_targetRad - this._rotation), Math.cos(_targetRad - this._rotation));
+    const _maxStep = Math.max(0.035, dt * 12);
+    this._rotation += Math.max(-_maxStep, Math.min(_maxStep, _angleDiff));
   }
   updateBallRoll(_0x1dd8af, onSurface) {
     const _0x136f29 = this.p.gravityFlipped ? -1 : 1;
@@ -2523,6 +2524,7 @@ _updateBallJump(_0x2fe319) {
       const _slopeDir = gameObj.slopeDir || 1;
       const _playerUphill = _slopeDir < 0;
       this.p.slopeVelocity = _slopeVelMult * _slopeYVel * this.flipMod() * (_playerUphill ? -1 : 1);
+      this.stopRotation();
       if (!this.p.isFlying) this._checkSnapJump(gameObj);
     } else if (_ceilingSlopeHit) {
       const gameObj = _ceilingSlopeHit.obj;
@@ -2534,6 +2536,7 @@ _updateBallJump(_0x2fe319) {
       this.p.isOnSlope = true;
       this.p.currentSlopeAngle = _ceilingSlopeHit.angle;
       this.p.currentSlopeDir = gameObj.slopeDir || 1;
+      this.stopRotation();
       if (!this.p.isFlying) this._checkSnapJump(gameObj);
     } else if (_slopeDeath) {
       this._lastDeathReason = _slopeDeath;

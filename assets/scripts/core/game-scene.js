@@ -3877,7 +3877,7 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
   if (this._state.isBall) {
     const ballOnSurface = this._state.onGround || this._state.onCeiling;
     this._player.updateBallRoll(horizontalDelta, ballOnSurface);
-  } else if (this._state.isOnSlope || this._state.wasOnSlope) {
+  } else if (this._state.isOnSlope) {
     this._player.updateSlopeRotation(verticalDelta);
   } else if (this._state.onGround) {
     this._player.updateGroundRotation(verticalDelta);
