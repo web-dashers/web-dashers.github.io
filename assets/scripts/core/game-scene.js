@@ -297,33 +297,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._makeBouncyButton(this._menuNewgroundsBtn, 1, () => {
       this._buildNewgroundsPopup();
     }, () => this._menuActive && !this._newgroundsPopup);
-    this._menuGlitter = this.add.particles(0, 0, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: 0,
-      scale: {
-        start: 0.5,
-        end: 0
-      },
-      alpha: {
-        start: 0.6,
-        end: 0.2
-      },
-      lifespan: {
-        min: 1000,
-        max: 2000
-      },
-      frequency: 35,
-      blendMode: S,
-      tint: 20670,
-      x: {
-        min: -130,
-        max: 130
-      },
-      y: {
-        min: -100,
-        max: 100
-      }
-    }).setScrollFactor(0).setDepth(29);
     this._playBtn = this.add.image(0, 0, "GJ_WebSheet", "GJ_playBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
     this._playBtnPressed = false;
     this._makeBouncyButton(this._playBtn, 1, () => {
@@ -4022,10 +3995,6 @@ _buildSettingsPopup() {
     
     this._menuActive = false;
     this._slideIn = true;
-    if (this._menuGlitter) {
-      this._menuGlitter.destroy();
-      this._menuGlitter = null;
-    }
     if (this._menuUpdateLogBtn) {
       this._menuUpdateLogBtn.setVisible(false);
     }
@@ -4327,10 +4296,6 @@ _buildSettingsPopup() {
     }
     if (this._tryMeImg) {
       this._tryMeImg.x = _0x1e5db8 + 175;
-    }
-    if (this._menuGlitter) {
-      this._menuGlitter.x = _0x1e5db8;
-      this._menuGlitter.y = 320;
     }
     if (this._playBtn) {
       this._playBtn.x = _0x1e5db8;
