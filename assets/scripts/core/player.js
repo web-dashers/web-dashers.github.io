@@ -45,6 +45,7 @@ class PlayerState {
     this.slopeExitRotationTarget = null;
     this.holdSlopeExitRotation = false;
     this.suppressNextFallRotate = false;
+    this.slopeExitJumpLandingDir = 0;
   }
 }
 
@@ -1168,6 +1169,16 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.isJumping = false;
     this.p.queuedHold = false;
     this.p.suppressNextFallRotate = false;
+    if (this.p.slopeExitJumpLandingDir !== 0 && !this.p.isBall && !this.p.isWave && !this.p.isSpider) {
+      const _sideStep = Math.PI / 2;
+      const _scaledRotation = this._rotation / _sideStep;
+      this._rotation = this.p.slopeExitJumpLandingDir > 0
+        ? Math.ceil(_scaledRotation) * _sideStep
+        : Math.floor(_scaledRotation) * _sideStep;
+      this.rotateActionActive = false;
+      this.p.holdSlopeExitRotation = true;
+      this.p.slopeExitJumpLandingDir = 0;
+    }
     if (this.p.isBall) {
       if (_0x4a38a5) {
         this._rotation = Math.round(this._rotation / Math.PI) * Math.PI;
@@ -1575,6 +1586,7 @@ if (this.p.isFlying || this.p.isUfo) {
   runRotateAction() {
     if (this.p.holdSlopeExitRotation && this.p.onGround) {
       this.p.suppressNextFallRotate = true;
+      this.p.slopeExitJumpLandingDir = this.flipMod();
     }
     this.p.holdSlopeExitRotation = false;
     this.rotateActionActive = true;
