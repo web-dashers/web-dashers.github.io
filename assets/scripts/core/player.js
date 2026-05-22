@@ -1944,16 +1944,7 @@ _updateBallJump(_0x2fe319) {
     const playerSize = this.p.isMini ? 18 : 30;
     const waveHitSize = this.p.isMini ? 6 : 9;
     const iscube = !this.p.isFlying && !this.p.isBall && !this.p.isWave && !this.p.isUfo && !this.p.isSpider;
-    let _dynamicSize = playerSize;
-    if (iscube) {
-      if (this.p.wasOnSlope || Math.abs(this._rotation) > 0.01) {
-        const _lastSlopeAngle = this.p.lastSlopeAngle || (45 * Math.PI / 180);
-        const _maxSlopeRad = playerSize / Math.cos(_lastSlopeAngle);
-        const _diff = Math.min(_lastSlopeAngle, Math.abs(this._rotation));
-        const _alignment = _lastSlopeAngle > 0.01 ? (_diff / _lastSlopeAngle) : 0;
-        _dynamicSize = playerSize + (_maxSlopeRad - playerSize) * _alignment;
-      }
-    }
+    const _dynamicSize = playerSize;
     const pieceWidth = _0x2f5078 + centerX;
     const playersY = this.p.y;
     const playersLastY = this.p.lastY;
@@ -2508,8 +2499,10 @@ _updateBallJump(_0x2fe319) {
               const _playerBot = playersY - _playerRadOnSlope + gamemodeAddition;
               const _lastBot = playersLastY - _playerRadOnSlope + gamemodeAddition;
               if ((_playerBot >= _surfY || _lastBot >= _surfY) && (this.p.yVelocity <= 0 || this.p.onGround)) {
-                if (!_floorSlopeHit || _surfY > _floorSlopeHit.surfY) {
-                  _floorSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad };
+                const _targetY = _surfY + _playerRadOnSlope;
+                const _distY = Math.abs(_targetY - playersY);
+                if (!_floorSlopeHit || _distY < _floorSlopeHit.distY || (_distY === _floorSlopeHit.distY && _surfY > _floorSlopeHit.surfY)) {
+                  _floorSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad, distY: _distY };
                 }
                 continue;
               }
@@ -2517,8 +2510,10 @@ _updateBallJump(_0x2fe319) {
               const _playerTop = playersY + _playerRadOnSlope - gamemodeAddition;
               const _lastTop = playersLastY + _playerRadOnSlope - gamemodeAddition;
               if ((_playerTop <= _surfY || _lastTop <= _surfY) && (this.p.yVelocity >= 0 || this.p.onGround)) {
-                if (!_ceilingSlopeHit || _surfY < _ceilingSlopeHit.surfY) {
-                  _ceilingSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad };
+                const _targetY = _surfY - _playerRadOnSlope;
+                const _distY = Math.abs(_targetY - playersY);
+                if (!_ceilingSlopeHit || _distY < _ceilingSlopeHit.distY || (_distY === _ceilingSlopeHit.distY && _surfY < _ceilingSlopeHit.surfY)) {
+                  _ceilingSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad, distY: _distY };
                 }
                 continue;
               }
