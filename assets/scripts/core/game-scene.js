@@ -324,7 +324,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         max: 100
       }
     }).setScrollFactor(0).setDepth(29);
-    this._playBtn = this.add.image(0, 0, "GJ_WebSheet", "GJ_playBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
+    this._playBtn = this.add.image(0, 0, "GJ_GameSheet04", "GJ_playBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
     this._playBtnPressed = false;
     this._makeBouncyButton(this._playBtn, 1, () => {
       this._openLevelSelect();
@@ -1172,6 +1172,23 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           }
         } else if (event.key === "Enter") {
           _doSearch();
+          } else if (event.ctrlKey || event.metaKey) {
+          if (event.key === "c" || event.key === "C") {
+            event.preventDefault();
+            navigator.clipboard.writeText(inputText);
+          } else if (event.key === "v" || event.key === "V") {
+            event.preventDefault();
+            navigator.clipboard.readText().then(pastedText => {
+              const filtered = pastedText.split('').filter(c => allowedChars.includes(c)).join('');
+              if (filtered.length > 0) {
+                const availableSpace = inputMaxLen - inputText.length;
+                inputText += filtered.slice(0, availableSpace);
+                _updateInputDisplay();
+              }
+            }).catch(() => {});
+          } else if (event.key === "a" || event.key === "A") {
+            event.preventDefault();
+          }
         } else if (event.key.length === 1 && allowedChars.includes(event.key) && !event.ctrlKey) {
           if (inputText.length < inputMaxLen) {
             inputText += event.key;
@@ -2776,7 +2793,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const overlay = this.add.graphics().setScrollFactor(0).setDepth(150);
     drawOverlay(overlay, bgHex, isEveryEnd(window.currentlevel[2]));
     this._levelSelectOverlay = overlay;
-    const tableBottom = this.add.image(cx, -24, "GJ_GameSheet03", "GJ_table_bottom_001.png").setScrollFactor(0).setDepth(152).setOrigin(0.5, 0);
+    const tableBottom = this.add.image(cx, 0, "GJ_GameSheet03", "GJ_topBar_001.png").setScrollFactor(0).setDepth(152).setOrigin(0.5, 0);
     const groundY = sh + 175;
     const groundId = (window._groundId || "00");
     const groundFrame = this.textures.getFrame("groundSquare_" + groundId + "_001.png");
@@ -4054,10 +4071,7 @@ _buildSettingsPopup() {
       { text: "Update Log", scale: 0.85, font: "goldFont" },
       { text: "Accurate GDWeb+ logo", scale: 0.65 },
       { text: "Credit to Altruist for making it", scale: 0.6 },
-      { text: "UI", scale: 0.65 },
-      { text: "some more UI", scale: 0.65 },
-      { text: "a little more UI", scale: 0.65 },
-      { text: "hot damn", scale: 0.65, color: 0xaaddff },
+      { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
       { text: "nope. also uhh-", scale: 0.65, color: 0xaaddff },
       { text: "-god i hope this doesnt break anything...", scale: 0.65, color: 0xaaddff },
@@ -5283,8 +5297,8 @@ _buildSettingsPopup() {
       if (this._menuRainbowTime === undefined) this._menuRainbowTime = 0;
       this._menuRainbowTime += deltaTime / 1000;
       const _rainbowHue = (this._menuRainbowTime * 15) % 360;
-      const _rainbowHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 0.9).color;
-      const _groundHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 0.55).color;
+      const _rainbowHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 1.0).color;
+      const _groundHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 1.0).color;
       this._bg.setTint(_rainbowHex);
       this._level.setGroundColor(_groundHex);
       return;
