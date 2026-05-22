@@ -2500,17 +2500,7 @@ _updateBallJump(_0x2fe319) {
             const _surfY = gameObj.getSlopeSurfaceY(pieceWidth);
             if (_surfY === null) continue;
             const _slopeAngleRad = (gameObj.slopeAngleDeg || 45) * Math.PI / 180;
-            const _maxSlopeRad = playerSize / Math.cos(_slopeAngleRad);
-            let _playerRadOnSlope = _maxSlopeRad;
-            if (iscube) {
-              const _flipMod = this.p.gravityFlipped ? -1 : 1;
-              const _targetRad = -gameObj.slopeDir * _slopeAngleRad * _flipMod;
-              const _diff = Math.abs(Math.atan2(Math.sin(this._rotation - _targetRad), Math.cos(this._rotation - _targetRad)));
-              const _maxDiff = Math.abs(_targetRad);
-              const _alignment = _maxDiff > 0.01 ? (1 - _diff / _maxDiff) : 1;
-              const _clampedAlignment = Math.min(1, Math.max(0, _alignment));
-              _playerRadOnSlope = playerSize + (_maxSlopeRad - playerSize) * _clampedAlignment;
-            }
+            const _playerRadOnSlope = playerSize / Math.cos(_slopeAngleRad);
             const _slopeFloorTop = gameObj.slopeFlipY || false;
             const _upsideDown = this.p.gravityFlipped;
             const _slopeUpsideDown = _upsideDown !== _slopeFloorTop;
