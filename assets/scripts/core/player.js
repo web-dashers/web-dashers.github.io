@@ -1641,10 +1641,8 @@ if (this.p.isFlying || this.p.isUfo) {
     const _flipMod = this.p.gravityFlipped ? -1 : 1;
     const _targetRad = -this.p.currentSlopeDir * (this.p.currentSlopeAngle || 0) * _flipMod;
     const _angleDiff = Math.atan2(Math.sin(_targetRad - this._rotation), Math.cos(_targetRad - this._rotation));
-    // Smooth exponential interpolation for slope rotation.
-    // Uses a fast blend factor (1 - e^(-speed*dt)) so the rotation eases onto the slope
-    // surface without the angular "ramp" from the old linear clamp approach.
-    const _speed = 35;
+    // Smooth exponential interpolation for slope rotation without snapping ahead of long ramps.
+    const _speed = 14;
     const _blend = 1 - Math.exp(-_speed * Math.max(dt / 60, 0.00001));
     this._rotation += _angleDiff * _blend;
   }
@@ -1656,7 +1654,7 @@ if (this.p.isFlying || this.p.isUfo) {
       return;
     }
     const _angleDiff = Math.atan2(Math.sin(-this._rotation), Math.cos(-this._rotation));
-    const _speed = 35;
+    const _speed = 8;
     const _blend = 1 - Math.exp(-_speed * Math.max(dt / 60, 0.00001));
     this._rotation += _angleDiff * _blend;
   }
