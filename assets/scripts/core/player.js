@@ -1640,7 +1640,9 @@ if (this.p.isFlying || this.p.isUfo) {
       return;
     }
     const _flipMod = this.p.gravityFlipped ? -1 : 1;
-    const _targetRad = -this.p.currentSlopeDir * (this.p.currentSlopeAngle || 0) * _flipMod;
+    const _sideStep = Math.PI / 2;
+    const _baseSlopeRad = -this.p.currentSlopeDir * (this.p.currentSlopeAngle || 0) * _flipMod;
+    const _targetRad = _baseSlopeRad + Math.round((this._rotation - _baseSlopeRad) / _sideStep) * _sideStep;
     const _angleDiff = Math.atan2(Math.sin(_targetRad - this._rotation), Math.cos(_targetRad - this._rotation));
     if (Math.abs(_angleDiff) < 0.01) {
       this._rotation = _targetRad;
@@ -1657,7 +1659,8 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p.isBall || this.p.isWave || this.p.isSpider) {
       return;
     }
-    const _angleDiff = Math.atan2(Math.sin(-this._rotation), Math.cos(-this._rotation));
+    const _targetRad = this.convertToClosestRotation();
+    const _angleDiff = Math.atan2(Math.sin(_targetRad - this._rotation), Math.cos(_targetRad - this._rotation));
     const _speed = 8;
     const _blend = 1 - Math.exp(-_speed * Math.max(dt / 60, 0.00001));
     this._rotation += _angleDiff * _blend;
