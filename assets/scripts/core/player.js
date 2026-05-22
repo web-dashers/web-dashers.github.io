@@ -44,6 +44,7 @@ class PlayerState {
     this.slopeExitGrace = 0;
     this.slopeExitRotationTarget = null;
     this.holdSlopeExitRotation = false;
+    this.suppressNextFallRotate = false;
   }
 }
 
@@ -1166,6 +1167,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.canJump = true;
     this.p.isJumping = false;
     this.p.queuedHold = false;
+    this.p.suppressNextFallRotate = false;
     if (this.p.isBall) {
       if (_0x4a38a5) {
         this._rotation = Math.round(this._rotation / Math.PI) * Math.PI;
@@ -1571,6 +1573,9 @@ if (this.p.isFlying || this.p.isUfo) {
       this.p.canJump = false;
   }
   runRotateAction() {
+    if (this.p.holdSlopeExitRotation && this.p.onGround) {
+      this.p.suppressNextFallRotate = true;
+    }
     this.p.holdSlopeExitRotation = false;
     this.rotateActionActive = true;
     this.rotateActionTime = 0;
@@ -1774,7 +1779,7 @@ if (this.p.isFlying || this.p.isUfo) {
       } else {
         this.p.yVelocity = Math.max(this.p.yVelocity, -30);
       }
-      if (this._isFallingPastThreshold() && !this.rotateActionActive) {
+      if (this._isFallingPastThreshold() && !this.rotateActionActive && !this.p.suppressNextFallRotate) {
         this.runRotateAction();
       }
       if (this.playerIsFalling()) {
