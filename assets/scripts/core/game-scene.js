@@ -3879,6 +3879,9 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     this._player.updateBallRoll(horizontalDelta, ballOnSurface);
   } else if (this._state.isOnSlope) {
     this._player.updateSlopeRotation(verticalDelta);
+  } else if (this._state.wasOnSlope && this._state.onGround && !this._state.isOnSlope) {
+    // Just left a slope; ease rotation back to flat instead of snapping.
+    this._player.updateSlopeExitRotation(verticalDelta);
   } else if (this._state.onGround) {
     this._player.updateGroundRotation(verticalDelta);
   } else if (this._player.rotateActionActive) {
