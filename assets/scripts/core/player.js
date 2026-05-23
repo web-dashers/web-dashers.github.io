@@ -1809,6 +1809,7 @@ if (this.p.isFlying || this.p.isUfo) {
       _0x203040 = -1;
     }
     if (!this.p.upKeyDown && !this.playerIsFalling()) {
+      this.p.queuedHold = false;
       _0x203040 = 1.2;
     }
     let _0x2d237f = 0.4;
@@ -1846,11 +1847,7 @@ _updateBallJump(_0x2fe319) {
     this.p.canJump = false;
     }
     this.p.yVelocity -= _0x144266 * _0x2fe319 * this.flipMod();
-    if (this.p.gravityFlipped) {
-      this.p.yVelocity = Math.min(this.p.yVelocity, 30);
-    } else {
-      this.p.yVelocity = Math.max(this.p.yVelocity, -30);
-    }
+    this.p.yVelocity = Math.max(-30, Math.min(30, this.p.yVelocity));
     if (this.playerIsFalling()) {
       const _0x1439be = this.p.gravityFlipped ? this.p.yVelocity > p * 2 : this.p.yVelocity < -(p * 2);
       if (_0x1439be) {
@@ -2034,6 +2031,22 @@ _updateBallJump(_0x2fe319) {
       }
       if (_broadPhaseHit) {
         const _colType = gameObj.type;
+        if (_colType === hazardType) {
+          if (window.noClip) {
+            this.p.diedThisFrame = true;
+            continue;
+          }
+          if (_hasCircleHitbox) {
+            const _hdx = pieceWidth - gameObj.x;
+            const _hdy = playersY - gameObj.y;
+            const _hDistSq = _hdx * _hdx + _hdy * _hdy;
+            const _hMinDist = gameObj.hitbox_radius + (this.p.isWave ? waveHitSize : playerSize);
+            if (_hDistSq > _hMinDist * _hMinDist) continue;
+          }
+          this._lastDeathReason = { reason: "hazard", objid: gameObj.objid, type: gameObj.type, playerX: pieceWidth, playerY: playersY, objX: gameObj.x, objY: gameObj.y };
+          this.killPlayer();
+          return;
+        }
         if (_colType === "portal_fly") {
           if (!gameObj.activated) {
             gameObj.activated = true;
@@ -2421,21 +2434,6 @@ _updateBallJump(_0x2fe319) {
               }
             } catch(e) {}
           }
-        } else if (_colType === hazardType) {
-          if (window.noClip) {
-            this.p.diedThisFrame = true; 
-            continue;
-          }
-          if (_hasCircleHitbox) {
-            const _hdx = pieceWidth - gameObj.x;
-            const _hdy = playersY - gameObj.y;
-            const _hDistSq = _hdx * _hdx + _hdy * _hdy;
-            const _hMinDist = gameObj.hitbox_radius + (this.p.isWave ? waveHitSize : playerSize);
-            if (_hDistSq > _hMinDist * _hMinDist) continue;
-          }
-          this._lastDeathReason = { reason: "hazard", objid: gameObj.objid, type: gameObj.type, playerX: pieceWidth, playerY: playersY, objX: gameObj.x, objY: gameObj.y };
-          this.killPlayer();
-          return;
         } else if (_colType === solidType) {
           let _0x146a97 = playersY - _dynamicSize + gamemodeAddition;
           let _0x869e42 = playersLastY - _dynamicSize + gamemodeAddition;
