@@ -5089,8 +5089,8 @@ _buildSettingsPopup() {
       this._state.lastY = this._state.y;
       this._player.updateJump(verticalDelta);
       this._state.y += this._state.yVelocity * verticalDelta;
-      this._player.checkCollisions(this._playerWorldX - centerX);
       this._playerWorldX += horizontalDelta;
+      this._player.checkCollisions(this._playerWorldX - centerX);
       if (this._isDual && !this._state2.isDead) {
         this._state2.upKeyDown = this._state.upKeyDown;
         this._state2.upKeyPressed = this._state.upKeyPressed;
@@ -5098,7 +5098,7 @@ _buildSettingsPopup() {
         this._state2.lastY = this._state2.y;
         this._player2.updateJump(verticalDelta);
         this._state2.y += this._state2.yVelocity * verticalDelta;
-        this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
+        this._player2.checkCollisions(this._playerWorldX - centerX);
         if (this._state2.isDead && !this._state.isDead) {
           this._player.killPlayer();
         }
