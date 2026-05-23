@@ -1225,7 +1225,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const _qsBtnDefs = [
         { label: "Downloads", sheet: "GJ_GameSheet03", icon: "GJ_sDownloadIcon_001.png"  },
         { label: "Likes",     sheet: "GJ_GameSheet03", icon: "GJ_likesIcon_001.png"       },
-        { label: "Sent",      sheet: null,              icon: null                         },
+        { label: "Sent",      sheet: "GJ_GameSheet03", icon: "GJ_sModIcon_001.png"        },
         { label: "Trending",  sheet: "GJ_GameSheet03", icon: "GJ_sTrendingIcon_001.png"   },
         { label: "Recent",    sheet: "GJ_GameSheet03", icon: "GJ_sRecentIcon_001.png"     },
         { label: "Magic",     sheet: "GJ_GameSheet03", icon: "GJ_sMagicIcon_001.png"      },
@@ -1274,7 +1274,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (def.icon && def.sheet) {
           const ic = this.add.image(0, 0, def.sheet, def.icon).setOrigin(0.5, 0.5);
           // displayHeight correctly gives post-rotation height
-          const icTargetH = _qsBtnH * 0.62;
+          const icTargetH = _qsBtnH * 0.45;
           ic.setScale(icTargetH / ic.displayHeight);
           // Position: right side of label block
           ic.x = lblX + _qsBtnW * 0.28;
@@ -1421,31 +1421,30 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       });
 
       // Gold star after "Plat" — matches GDBrowser layout
-      const _starX  = panelLeft + _lenPadX + _lenDefs.length * _lenSlotW + _lenSlotW * 0.3;
-      const _starH  = extraPanelH * 0.55;
-      const _star   = this.add.image(_starX, _lenY, "GJ_WebSheet", "GJ_bigStar_001.png")
+      // Use star_small01 (25x25) — small, correct size for the length bar
+      const _starX     = panelLeft + _lenPadX + _lenDefs.length * _lenSlotW + _lenSlotW * 0.3;
+      const _starH     = extraPanelH * 0.48;
+      const _star      = this.add.image(_starX, _lenY, "GJ_GameSheet03", "star_small01_001.png")
         .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setTint(0x888888);
-      _star.setScale(_starH / _star.displayHeight);
-      // Star is also a toggle (filters by starred levels)
-      const _starZone = this.add.zone(_starX, _lenY, _lenSlotW * 0.7, extraPanelH * 0.85)
+      const _starBase  = _starH / _star.displayHeight;
+      _star.setScale(_starBase);
+      const _starZone  = this.add.zone(_starX, _lenY, _lenSlotW * 0.7, extraPanelH * 0.85)
         .setScrollFactor(0).setDepth(107).setInteractive();
       _starZone.on("pointerdown", () => {
         _starZone._dn = true;
         this.tweens.killTweensOf(_star);
-        this.tweens.add({ targets: _star, scale: _star.scale * 1.15, duration: 80, ease: "Quad.Out" });
+        this.tweens.add({ targets: _star, scale: _starBase * 1.15, duration: 80, ease: "Quad.Out" });
       });
       _starZone.on("pointerup", () => {
         if (!_starZone._dn) return; _starZone._dn = false;
-        const baseScale = _starH / _star.displayHeight;
         this.tweens.killTweensOf(_star);
-        this.tweens.add({ targets: _star, scale: baseScale, duration: 400, ease: "Bounce.Out" });
-        _star.setTint((_star._active = !_star._active) ? 0xffff00 : 0x888888);
+        this.tweens.add({ targets: _star, scale: _starBase, duration: 400, ease: "Bounce.Out" });
+        _star.setTint((_star._active = !_star._active) ? 0xffdd00 : 0x888888);
       });
       _starZone.on("pointerout", () => {
         if (!_starZone._dn) return; _starZone._dn = false;
-        const baseScale = _starH / _star.displayHeight;
         this.tweens.killTweensOf(_star);
-        this.tweens.add({ targets: _star, scale: baseScale, duration: 200, ease: "Back.Out" });
+        this.tweens.add({ targets: _star, scale: _starBase, duration: 200, ease: "Back.Out" });
       });
       _lenObjects.push(_star, _starZone);
 
@@ -3367,37 +3366,34 @@ _buildSettingsPopup() {
     const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0, 150 / 255).setInteractive();
     this._settingsPopup.add(dim);
 
-    const innerContainer = this.add.container(centerX, centerY).setScale(0);
-    this._settingsPopup.add(innerContainer);
-
     const corner = 0.325 * this.textures.get("GJ_square01").source[0].width;
-    const panel = this._drawScale9(0, 0, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
-    innerContainer.add(panel);
+    const panel = this._drawScale9(centerX, centerY, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
+    this._settingsPopup.add(panel);
 
-    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
-    innerContainer.add(closeBtn);
+    const closeBtn = this.add.image(centerX - (panelWidth / 2) + 10, centerY - (panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    this._settingsPopup.add(closeBtn);
     this._makeBouncyButton(closeBtn, 0.8, () => {
         this._settingsPopup.destroy();
         this._settingsPopup = null;
     });
     const pages = ["Gameplay", "Visual"];
     let currentPage = 0;
-    const pageTitle = this.add.bitmapText(0, -(panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
-    innerContainer.add(pageTitle);
-    const leftArrow = this.add.image(-(panelWidth / 2) - 130, 0, "GJ_GameSheet03", "GJ_arrow_01_001.png")
+    const pageTitle = this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
+    this._settingsPopup.add(pageTitle);
+    const leftArrow = this.add.image(centerX - (panelWidth / 2) - 130, centerY, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setFlipX(false).setInteractive();
-    innerContainer.add(leftArrow);
-    const rightArrow = this.add.image((panelWidth / 2) + 130, 0, "GJ_GameSheet03", "GJ_arrow_01_001.png")
+    this._settingsPopup.add(leftArrow);
+    const rightArrow = this.add.image(centerX + (panelWidth / 2) + 130, centerY, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setInteractive().setFlipX(true);
-    innerContainer.add(rightArrow);
-    const column1X = -200;
-    const column2X = 200;
+    this._settingsPopup.add(rightArrow);
+    const column1X = centerX - 200;
+    const column2X = centerX + 200;
     const checkOffset = -120;
     const textOffset = -70;
     const spacingY = 70;
-    const startY = -150;
+    const startY = centerY - 150;
     let pageContainer = this.add.container(0, 0);
-    innerContainer.add(pageContainer);
+    this._settingsPopup.add(pageContainer);
 
     const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
         const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
@@ -3486,7 +3482,7 @@ _buildSettingsPopup() {
     const buildPage = (idx) => {
         pageContainer.destroy();
         pageContainer = this.add.container(0, 0);
-        innerContainer.add(pageContainer);
+        this._settingsPopup.add(pageContainer);
         pageTitle.setText(pages[idx]);
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
@@ -3499,13 +3495,6 @@ _buildSettingsPopup() {
     this._makeBouncyButton(rightArrow, 1, () => {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
-    });
-    this.tweens.add({
-        targets: innerContainer,
-        scale: 1,
-        duration: 660,
-        ease: "Elastic.Out",
-        easeParams: [1, 0.6]
     });
   }
   _saveSettings() {
@@ -3675,9 +3664,8 @@ _buildSettingsPopup() {
     this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 660,
-      ease: "Elastic.Out",
-      easeParams: [1, 0.6]
+      duration: 500,
+      ease: "Bounce.Out"
     });
   }
   _closeInfoPopup() {
@@ -3840,9 +3828,8 @@ _buildSettingsPopup() {
   this.tweens.add({
     targets: panelContainer,
     scale: 1,
-    duration: 660,
-    ease: "Elastic.Out",
-    easeParams: [1, 0.6]
+    duration: 400,
+    ease: "Bounce.Out"
   });
 }
   _closeHowToPlayPopup() {
@@ -3965,9 +3952,8 @@ _buildSettingsPopup() {
     this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 660,
-      ease: "Elastic.Out",
-      easeParams: [1, 0.6]
+      duration: 500,
+      ease: "Bounce.Out"
     });
   }
   _closeUpdateLogPopup() {
@@ -4031,9 +4017,8 @@ _buildSettingsPopup() {
     this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 660,
-      ease: "Elastic.Out",
-      easeParams: [1, 0.6]
+      duration: 500,
+      ease: "Bounce.Out"
     });
   }
   _closeNewgroundsPopup() {
@@ -4081,9 +4066,8 @@ _buildSettingsPopup() {
         this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 660,
-      ease: "Elastic.Out",
-      easeParams: [1, 0.6]
+      duration: 500,
+      ease: "Bounce.Out"
     });
   }
   _closeFeaturedInfoPopup() {
