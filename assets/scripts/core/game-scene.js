@@ -1336,14 +1336,15 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         { frame: "diffIcon_auto_btn_001.png", label: "Auto" },
       ];
       // Demon sub-types (shown instead of normal row when demon is clicked)
-      // Use difficulty_XX_btn frames — these have the face + "DEMON" text baked in,
-      // so they render cleanly at any scale without separate label issues.
+      // difficulty_07/08/06 are rot=True in atlas — need setAngle(-90) to correct.
+      // difficulty_09/10 are rot=False and render upright with no correction.
+      // diffIcon_09 used for Insane because difficulty_09 bakes in "DEMON" text.
       const _demonDefs = [
-        { frame: "difficulty_07_btn_001.png", label: "" },  // Easy Demon
-        { frame: "difficulty_08_btn_001.png", label: "" },  // Medium Demon
-        { frame: "difficulty_06_btn_001.png", label: "" },  // Hard Demon
-        { frame: "diffIcon_09_btn_001.png",   label: "Insane" },  // Insane Demon
-        { frame: "difficulty_10_btn_001.png", label: "" },  // Extreme Demon
+        { frame: "difficulty_07_btn_001.png", label: "", needsAngle: true  },  // Easy
+        { frame: "difficulty_08_btn_001.png", label: "", needsAngle: true  },  // Medium
+        { frame: "difficulty_06_btn_001.png", label: "", needsAngle: true  },  // Hard
+        { frame: "diffIcon_09_btn_001.png",   label: "Insane", needsAngle: false }, // Insane
+        { frame: "difficulty_10_btn_001.png", label: "", needsAngle: false },  // Extreme
       ];
 
       const _diffCount  = _diffDefs.length;
@@ -1359,15 +1360,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const _demonDiffGroups  = []; // [{icon, lbl, zone}] — hidden initially
       let _demonMode = false;
 
-      const _makeDiffSlot = (frame, label, slotIdx, totalSlots, padX, slotW, iconH, iconY, labelY, depth, onClick) => {
+      const _makeDiffSlot = (frame, label, slotIdx, totalSlots, padX, slotW, iconH, iconY, labelY, depth, onClick, angle=0) => {
         const dx = panelLeft + padX + slotIdx * slotW + slotW / 2;
         const icon = this.add.image(dx, iconY, "GJ_GameSheet03", frame)
           .setScrollFactor(0).setDepth(depth).setOrigin(0.5, 0.5).setTint(0x888888);
-        // Phaser auto-corrects atlas rotation visually, but some packed sprites still
-        // render sideways depending on packer flags. Force-correct the known offenders.
-        // Phaser auto-corrects atlas rotation — no setAngle needed.
-        // Flat scale for all diff icons, slightly larger than reference (0.8)
-        // so they match GDBrowser's visual weight at this canvas size.
+        if (angle) { icon.setAngle(angle); }
         icon.setScale(0.88);
         const _iconBase = 0.88;
         const lbl = this.add.bitmapText(dx, labelY, "bigFont", label, 20)
@@ -1499,7 +1496,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             const on = icon._active = !icon._active;
             icon.setTint(on ? 0xffffff : 0x888888);
             lbl.setTint(on  ? 0xffffff : 0x888888);
-          }
+          },
+          def.needsAngle ? -90 : 0
         );
         slot.icon.setVisible(false); slot.lbl.setVisible(false);
         slot.zone.setActive(false).setVisible(false);
