@@ -1260,8 +1260,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           const lbl = this.add.bitmapText(0, 0, "bigFont", def.label, 22)
             .setOrigin(0, 0.5).setTint(0xffffff);
 
+          // Some icons render mirrored due to atlas packing — flip them back
+          const _flipXIcons = new Set([
+            "GJ_arrow_03_001.png",
+            "GJ_sLikeIcon_001.png",
+            "GJ_sFollowedIcon_001.png",
+            "GJ_sRecentIcon_001.png",
+          ]);
           const ic = this.add.image(0, 0, "GJ_GameSheet03", def.icon)
             .setOrigin(1, 0.5);
+          if (_flipXIcons.has(def.icon)) { ic.setFlipX(true); }
           ic.setScale(1.1);
 
           // displayWidth already includes the scale — do NOT multiply again
@@ -1328,12 +1336,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         { frame: "diffIcon_auto_btn_001.png", label: "Auto" },
       ];
       // Demon sub-types (shown instead of normal row when demon is clicked)
+      // Use difficulty_XX_btn frames — these have the face + "DEMON" text baked in,
+      // so they render cleanly at any scale without separate label issues.
       const _demonDefs = [
-        { frame: "diffIcon_07_btn_001.png", label: "Easy"    },
-        { frame: "diffIcon_08_btn_001.png", label: "Medium"  },
-        { frame: "diffIcon_06_btn_001.png", label: "Hard"    },
-        { frame: "diffIcon_09_btn_001.png", label: "Insane"  },
-        { frame: "diffIcon_10_btn_001.png", label: "Extreme" },
+        { frame: "difficulty_07_btn_001.png", label: "" },  // Easy Demon
+        { frame: "difficulty_08_btn_001.png", label: "" },  // Medium Demon
+        { frame: "difficulty_06_btn_001.png", label: "" },  // Hard Demon
+        { frame: "diffIcon_09_btn_001.png",   label: "Insane" },  // Insane Demon
+        { frame: "difficulty_10_btn_001.png", label: "" },  // Extreme Demon
       ];
 
       const _diffCount  = _diffDefs.length;
@@ -1396,6 +1406,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               _demonMode = true;
               _normalDiffGroups.forEach(g => { g.icon.setVisible(false); g.lbl.setVisible(false); g.zone.setActive(false).setVisible(false); });
               _demonDiffGroups.forEach(g => { g.icon.setVisible(true);  g.lbl.setVisible(true);  g.zone.setActive(true).setVisible(true); });
+              // Show list button in demon sub-row
+              if (this._searchListBtn) { const lb = this._searchListBtn; lb.icon.setVisible(true); lb.lbl.setVisible(true); lb.zone.setActive(true).setVisible(true); }
             } else {
               const on = icon._active = !icon._active;
               icon.setTint(on ? 0xffffff : 0x888888);
@@ -1407,22 +1419,70 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         _diffObjects.push(slot.icon, slot.lbl, slot.zone);
       });
 
+      // ── "List" button — sits on top of the Demon slot (index 6), visible always ──
+      // Clicking opens the Demon List website. Uses accountBtn_myLists icon.
+      {
+        const _demonSlotIdx = 6;
+        const _listX  = panelLeft + _diffPadX + _demonSlotIdx * _diffSlotW + _diffSlotW / 2;
+        const _listIcon = this.add.image(_listX, _diffIconY, "GJ_GameSheet03", "rankIcon_1_001.png")
+          .setScrollFactor(0).setDepth(108).setOrigin(0.5, 0.5).setScale(0.88).setVisible(false);
+        const _listLbl  = this.add.bitmapText(_listX, _diffLabelY, "bigFont", "List", 20)
+          .setScrollFactor(0).setDepth(108).setOrigin(0.5, 0.5).setTint(0x888888).setVisible(false);
+        const _listZone = this.add.zone(_listX, _diffIconY, _diffSlotW * 0.88, filtersPanelH * 0.85)
+          .setScrollFactor(0).setDepth(109).setInteractive().setVisible(false).setActive(false);
+        const _listBase = 0.88;
+        _listZone.on("pointerdown", () => {
+          _listZone._dn = true;
+          this.tweens.killTweensOf([_listIcon, _listLbl]);
+          this.tweens.add({ targets: [_listIcon, _listLbl], scale: _listBase * 1.15, duration: 80, ease: "Quad.Out" });
+        });
+        _listZone.on("pointerup", () => {
+          if (!_listZone._dn) return; _listZone._dn = false;
+          this.tweens.killTweensOf([_listIcon, _listLbl]);
+          this.tweens.add({ targets: [_listIcon, _listLbl], scale: _listBase, duration: 400, ease: "Bounce.Out" });
+          window.open("https://www.webdemonlist.org", "_blank");
+        });
+        _listZone.on("pointerout", () => {
+          if (!_listZone._dn) return; _listZone._dn = false;
+          this.tweens.killTweensOf([_listIcon, _listLbl]);
+          this.tweens.add({ targets: [_listIcon, _listLbl], scale: _listBase, duration: 200, ease: "Back.Out" });
+        });
+        // Show list button in demon sub-mode, hide in normal mode
+        // Patch the demon slot click to also toggle list button
+        const _demonSlotGroup = _normalDiffGroups[_demonSlotIdx];
+        const _origDemonZoneUp = _demonSlotGroup.zone.listenerCount("pointerup") > 0;
+        _demonSlotGroup.zone.on("pointerup_list_patch", () => {
+          _listIcon.setVisible(true); _listLbl.setVisible(true);
+          _listZone.setActive(true).setVisible(true);
+        });
+        // Override: when demon row is shown, also show list btn; when back, hide it
+        // We hook into the existing visibility toggles via the _demonDiffGroups show logic
+        _diffObjects.push(_listIcon, _listLbl, _listZone);
+
+        // Store refs so demon/back toggles can show/hide the list button
+        this._searchListBtn = { icon: _listIcon, lbl: _listLbl, zone: _listZone };
+      }
+
       // Build demon sub-type row (hidden by default, uses same panel space)
       // 5 demons + 1 "back" slot = 6 slots across the panel
       const _demonSlots = 6;
       const _demonSlotW = (panelW - _diffPadX * 2) / _demonSlots;
-      // Demon icons are larger (67-80px wide) — give them their own iconH based on the
-      // wider demon slot so they aren't capped to the smaller 8-slot size
-      const _demonIconH = Math.min(_demonSlotW * 0.72, filtersPanelH * 0.52);
+      // difficulty_XX_btn sprites are tall (86-95px native) and include baked-in text.
+      // Use a larger iconH and vertically centre them in the panel.
+      const _demonIconH  = filtersPanelH * 0.78;
+      const _demonIconY  = filtersPanelY + filtersPanelH * 0.50;
+      const _demonLabelY = filtersPanelY + filtersPanelH * 0.92; // label off-screen (empty)
       // Back button (left slot) — use the pink backArrowPlain arrow, not a demon face
       const _backSlot = _makeDiffSlot(
         "backArrowPlain_01_001.png", "Back", 0, _demonSlots,
-        _diffPadX, _demonSlotW, _demonIconH, _diffIconY, _diffLabelY, 106,
+        _diffPadX, _demonSlotW, _demonIconH, _demonIconY, _demonLabelY, 106,
         (icon, lbl) => {
           // Return to normal row
           _demonMode = false;
           _demonDiffGroups.forEach(g => { g.icon.setVisible(false); g.lbl.setVisible(false); g.zone.setActive(false).setVisible(false); });
           _normalDiffGroups.forEach(g => { g.icon.setVisible(true);  g.lbl.setVisible(true);  g.zone.setActive(true).setVisible(true); });
+          // Hide list button
+          if (this._searchListBtn) { const lb = this._searchListBtn; lb.icon.setVisible(false); lb.lbl.setVisible(false); lb.zone.setActive(false).setVisible(false); }
         }
       );
       _backSlot.icon.setVisible(false); _backSlot.lbl.setVisible(false);
@@ -1434,7 +1494,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       _demonDefs.forEach((def, i) => {
         const slot = _makeDiffSlot(
           def.frame, def.label, i + 1, _demonSlots,
-          _diffPadX, _demonSlotW, _demonIconH, _diffIconY, _diffLabelY, 106,
+          _diffPadX, _demonSlotW, _demonIconH, _demonIconY, _demonLabelY, 106,
           (icon, lbl) => {
             const on = icon._active = !icon._active;
             icon.setTint(on ? 0xffffff : 0x888888);
@@ -1464,7 +1524,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
       _lenDefs.forEach((name, i) => {
         const lx   = panelLeft + _lenPadX + i * _lenSlotW + _lenSlotW / 2;
-        const lbl  = this.add.bitmapText(lx, _lenY, "bigFont", name, 23)
+        const lbl  = this.add.bitmapText(lx, _lenY, "bigFont", name, 28)
           .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setTint(0x888888);
         const zone = this.add.zone(lx, _lenY, _lenSlotW * 0.88, extraPanelH * 0.85)
           .setScrollFactor(0).setDepth(107).setInteractive();
@@ -1489,7 +1549,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
       // Star after "Plat" — uses star_small01 (25x25), fixed base scale
       const _starX    = panelLeft + _lenPadX + _lenDefs.length * _lenSlotW + _lenSlotW * 0.35;
-      const _starH    = extraPanelH * 0.48;
+      const _starH    = extraPanelH * 0.68;
       const _star     = this.add.image(_starX, _lenY, "GJ_GameSheet03", "star_small01_001.png")
         .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setTint(0x888888);
       const _starBase = _starH / _star.displayHeight;
