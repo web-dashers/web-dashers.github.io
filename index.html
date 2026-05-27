@@ -6,20 +6,114 @@
 	<title>Web Dashers</title>
 	<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 	<link rel="stylesheet" href="assets/style.css">
+	<link rel="stylesheet" href="gdbrowser/assets/css/browser.css">
+	<meta property="og:title" content="Web Dash"/>
+	<meta property="og:description" content="A mod of geometrydash.com!"/>
+	<meta property="og:image" content="https://web-dashers.github.io/assets/logo.png"/>
+	<meta property="og:url" content="https://web-dashers.github.io/"/>
+	<meta name="twitter:card" content="summary_large_image"/>
+	<meta name="twitter:title" content="Web Dash"/>
+	<meta name="twitter:description" content="A mod of geometrydash.com!"/>
+	<meta name="twitter:image" content="https://web-dashers.github.io/assets/logo.png"/>
 
-	<!-- - Embeds - -->
-	<!-- Open Graph -->
-    <meta property="og:title" content="Web Dash"/>
-    <meta property="og:description" content="A mod of geometrydash.com!"/>
-    <meta property="og:image" content="https://web-dashers.github.io/assets/logo.png"/>
-    <meta property="og:url" content="https://web-dashers.github.io/"/>
-    
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image"/>
-    <meta name="twitter:title" content="Web Dash"/>
-    <meta name="twitter:description" content="A mod of geometrydash.com!"/>
-    <meta name="twitter:image" content="https://web-dashers.github.io/assets/logo.png"/>
-	
+	<style>
+		/* ── OVERLAY ────────────────────────────────────────────── */
+		#wd-search-overlay {
+			display: none;
+			position: fixed; top:0; left:0; width:100%; height:100%;
+			z-index: 99999;
+			background-image: linear-gradient(#0065FD, #002E73);
+		}
+		#wd-search-overlay.visible { display: block; }
+		#wd-results-view { display: none; }
+		#wd-search-view  { display: block; }
+
+		/* ── SEARCH BAR ROW ─────────────────────────────────────── */
+		.wd-searchBarWrap {
+			display: flex; align-items: center;
+			width: 115vh; margin: 1.5% auto 1% auto;
+			box-sizing: border-box; padding: 0.8% 1.5%;
+			gap: 1%;
+		}
+		.wd-searchBarWrap input {
+			flex: 1; min-width: 0; height: 5.5vh;
+			font-size: 3.2vh; margin-top: 0;
+		}
+		.wd-searchBarWrap img { height: 5.5vh; flex-shrink: 0; }
+
+		/* ── LENGTH BAR ─────────────────────────────────────────── */
+		#wd-lengthBar {
+			display: flex; align-items: center; justify-content: center;
+			width: 115vh; height: 7vh;
+			margin: 0.5% auto 1% auto;
+			padding: 0 2%; gap: 2%;
+			box-sizing: border-box; overflow: hidden;
+		}
+		#wd-lengthBar .lengthDiv { display:inline-flex; align-items:center; justify-content:center; }
+
+		/* ── ADVANCED FILTER BUTTONS (real GD longBtn style) ────── */
+		.wd-filterBtn {
+			display: inline-flex; align-items: center; justify-content: center;
+			position: relative; cursor: pointer;
+			height: 6vh; margin: 0.8% 1%;
+			transition: transform 0.07s ease-in-out;
+		}
+		.wd-filterBtn:active { transform: scale(1.1); }
+		.wd-filterBtn .wd-btnBg {
+			height: 100%; width: auto; display: block;
+		}
+		.wd-filterBtn .wd-btnLabel {
+			position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+			display: flex; align-items: center; justify-content: center;
+			font-family: Pusab, Arial; color: white;
+			font-size: 3.2vh; pointer-events: none;
+			text-shadow: 0.3vh 0.3vh 0 rgba(0,0,0,0.4);
+			-webkit-text-stroke: 0.15vh black;
+			white-space: nowrap;
+		}
+		.wd-filterBtn.active-filter .wd-btnBg { filter: brightness(1.25) saturate(1.3); }
+
+		/* Real GD checkbox style */
+		.wd-gdcheck {
+			display: inline-block; width: 5vh; height: 5vh;
+			background-size: contain; background-repeat: no-repeat; background-position: center;
+			background-image: url('gdbrowser/assets/game-sprites/GJ_checkOff_001.png');
+			cursor: pointer; vertical-align: middle; flex-shrink: 0;
+		}
+		.wd-gdcheck.checked {
+			background-image: url('gdbrowser/assets/game-sprites/GJ_checkOn_001.png');
+		}
+
+		/* Advanced filter row layout */
+		.wd-advRow {
+			display: flex; align-items: center;
+			margin: 2% 4%; gap: 3%;
+		}
+		.wd-advRow h1 { margin: 0; font-size: 4vh; cursor: pointer; }
+
+		/* ── RESULTS ────────────────────────────────────────────── */
+		#wd-searchBox::-webkit-scrollbar { display: none; }
+
+		/* GD play button (old, im using other html's now) */
+		.wd-playBtn {
+			display: block;
+			width: 9vh; height: 9vh;
+			background: url('gdbrowser/assets/game-sprites/ws_GJ_playBtn_001.png') center/contain no-repeat;
+			cursor: pointer;
+			transition: transform 0.07s ease-in-out;
+			flex-shrink: 0;
+		}
+		.wd-playBtn:hover  { transform: scale(1.1); }
+		.wd-playBtn:active { transform: scale(0.92); }
+
+		/* Popup overlay fix */
+		#wd-search-overlay .popup {
+			z-index: 10000 !important;
+			pointer-events: all !important;
+		}
+		#wd-search-overlay .popup * { pointer-events: all !important; }
+	</style>
+
 	<!-- Libraries and stuff -->
 	<script src="assets/scripts/game/allObjects.js?latest"></script>
 	<script src="assets/scripts/game/allLevels.js"></script>
@@ -29,7 +123,6 @@
 	<script src="assets/scripts/api/GDapiWrapper.js"></script>
 	<script src="assets/scripts/utils/api-config.js"></script>
 	<script src="assets/scripts/api/account-api.js"></script>
-	<!-- worker -->
 	<script>window._gdProxyUrl = "https://gd-proxy.gmdc.workers.dev";</script>
 	<script defer src="assets/scripts/utils/config.js"></script>
 	<script defer src="assets/scripts/core/triggers.js"></script>
@@ -37,20 +130,15 @@
 	<script defer src="assets/scripts/core/player.js?latehkjthykhst"></script>
 	<script defer src="assets/scripts/core/audio.js"></script>
 	<script defer src="assets/scripts/core/loading-screen.js"></script>
-	<script defer src="assets/scripts/core/game-scene.js?latest2"></script>
+	<script defer src="assets/scripts/core/game-scene.js?latest11"></script>
 	<script defer src="assets/scripts/core/main.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 	<script>
-		new ResizeObserver(() => {
-			window.dispatchEvent(new Event('resize'));
-		}).observe(document.documentElement);
-    
-    document.oncontextmenu = (event) => {
-      event.preventDefault();
-    };
+		new ResizeObserver(() => { window.dispatchEvent(new Event('resize')); }).observe(document.documentElement);
+		document.oncontextmenu = (e) => e.preventDefault();
 	</script>
 </head>
 
 <body>
 </body>
-
 </html>

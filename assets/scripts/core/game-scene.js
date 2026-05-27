@@ -58,7 +58,6 @@ class PracticeMode {
       groundY: scene._level._groundY,
       ceilingY: scene._level._ceilingY,
       speed: playerSpeed,
-      physicsFrame: scene._physicsFrame,
       timestamp: Date.now()
     };
     this.checkpoints.push(checkpoint);
@@ -98,184 +97,6 @@ class PracticeMode {
       return this.checkpoints[this.checkpoints.length - 1];
     }
     return null;
-  }
-}
-
-class MacroBot {
-  constructor(scene) {
-    this.scene = scene;
-    this.resetAll();
-  }
-
-  resetAll() {
-    this.recording = false;
-    this.playing = false;
-
-    this.cursor = 0;
-    this.isDown = false;
-
-    this.inputs = [];
-
-    this.meta = {
-      author: "Web Dashers",
-      level: "", // ill fix ts later
-      version: 1
-    };
-  }
-
-  startRecording(meta = {}) {
-    this.resetAll();
-    this.recording = true;
-    this.meta = { ...meta };
-  }
-
-  stopRecording() {
-    this.recording = false;
-    return this.exportObject();
-  }
-
-  clearRecording() {
-    this.inputs = [];
-    this.cursor = 0;
-    this.isDown = false;
-  }
-
-  rollbackRecording(currentFrame) {
-    this.inputs = this.inputs.filter(ev => (ev.frame ?? 0) <= currentFrame);
-    this.cursor = 0;
-    this.isDown = false;
-  }
-
-  clearPlayback() {
-    this.cursor = 0;
-    this.isDown = false;
-  }
-
-  rollbackPlayback(currentFrame) {
-    if (!this.inputs.length) return;
-
-    this.cursor = 0;
-    this.isDown = false;
-
-    this.scene._releaseButton(true);
-
-    while (
-      this.cursor < this.inputs.length &&
-      (this.inputs[this.cursor].frame ?? 0) <= currentFrame
-    ) {
-      const ev = this.inputs[this.cursor++];
-
-      if (ev.down) {
-        this.scene._pushButton(true);
-        this.isDown = true;
-      } else {
-        this.scene._releaseButton(true);
-        this.isDown = false;
-      }
-    }
-  }
-
-  startPlayback(macroData) {
-    const macro = typeof macroData === "string" ? JSON.parse(macroData) : macroData;
-
-    this.resetAll();
-    this.playing = true;
-
-    this.meta = {
-      ...this.meta,
-      ...(macro || {})
-    };
-
-    this.inputs = Array.isArray(macro?.inputs) ? macro.inputs.slice() : [];
-    this.inputs.sort((a, b) => (a.frame ?? 0) - (b.frame ?? 0));
-
-    this.cursor = 0;
-    this.isDown = false;
-  }
-
-  stopPlayback() {
-    this.playing = false;
-    this.cursor = 0;
-    this.isDown = false;
-  }
-
-  recordEdge(down, currentFrame) {
-    if (!this.recording) return;
-
-    const last = this.inputs[this.inputs.length - 1];
-    if (last && last.down === !!down && last.frame === currentFrame) {
-      return;
-    }
-
-    this.inputs.push({
-      frame: currentFrame,
-      down: !!down
-    });
-
-    this.isDown = !!down;
-  }
-
-  step(currentFrame) {
-    if (!this.playing) return;
-
-    while (
-      this.cursor < this.inputs.length &&
-      (this.inputs[this.cursor].frame ?? 0) <= currentFrame
-    ) {
-      const ev = this.inputs[this.cursor++];
-
-      if (ev.down) {
-        if (!this.isDown) {
-          this.scene._pushButton(true);
-          this.isDown = true;
-        }
-      } else {
-        if (this.isDown) {
-          this.scene._releaseButton(true);
-          this.isDown = false;
-        }
-      }
-    }
-  }
-
-  exportObject() {
-    return {
-      meta: this.meta,
-      inputs: this.inputs.slice()
-    };
-  }
-
-  exportString(pretty = false) {
-    return JSON.stringify(this.exportObject(), null, pretty ? 2 : 0);
-  }
-
-  download(filename = "macro.wbgdr") {
-    const blob = new Blob([this.exportString(true)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  importFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const text = String(event.target.result || "");
-          const macro = JSON.parse(text);
-          resolve(macro);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = () => reject(reader.error || new Error("Failed to read macro file"));
-      reader.readAsText(file);
-    });
   }
 }
 
@@ -1204,7 +1025,57 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._editorOverlay = null;
         this._editorObjects = null;
     };
+    // Track the active scene so WDSearch.playLevel() can find it
+    window._wdActiveScene = this;
+
     this._openSearchMenu = () => {
+      // If launched with ?id=levelID, download that level directly (no iframe)
+      if (!window.levelID) {
+        // Open search as a full-screen iframe overlay
+        if (window._wdSearchFrame) return; // already open
+        try { this.input.keyboard.disableGlobalCapture(); } catch(e){}
+        try { this.input.keyboard.enabled = false; } catch(e){}
+        try { this.input.enabled = false; } catch(e){}
+        const audio = this._audio;
+        if (audio) try { audio.pauseMusic(); } catch(e){}
+
+        const frame = document.createElement('iframe');
+        frame.id = 'wd-search-iframe';
+        frame.src = './gdbrowser/search.html?v=' + Date.now();
+        frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999;background:#000;';
+        document.body.appendChild(frame);
+        window._wdSearchFrame = frame;
+
+        // Listen for messages from the iframe
+        if (!window._wdMsgListenerAdded) {
+          window._wdMsgListenerAdded = true;
+          window.addEventListener('message', function(e) {
+            const scene = window._wdActiveScene;
+            if (!scene) return;
+            if (e.data && e.data.type === 'WD_CLOSE_SEARCH') {
+              const f = document.getElementById('wd-search-iframe');
+              if (f) f.remove();
+              window._wdSearchFrame = null;
+              try { scene.input.keyboard.enableGlobalCapture(); } catch(e){}
+              try { scene.input.keyboard.enabled = true; } catch(e){}
+              try { scene.input.enabled = true; } catch(e){}
+              if (scene._audio) try { scene._audio.resumeMusic(); } catch(e){}
+            }
+            if (e.data && e.data.type === 'WD_PLAY_LEVEL') {
+              const f = document.getElementById('wd-search-iframe');
+              if (f) f.remove();
+              window._wdSearchFrame = null;
+              try { scene.input.keyboard.enableGlobalCapture(); } catch(e){}
+              try { scene.input.keyboard.enabled = true; } catch(e){}
+              try { scene.input.enabled = true; } catch(e){}
+              window.levelID = String(e.data.id);
+              window.alreadydownloaded = false;
+              scene._openSearchMenu();
+            }
+          });
+        }
+        return;
+      }
       if (this._searchOverlay) return;
       const sw = screenWidth;
       const sh = screenHeight;
@@ -2653,19 +2524,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       .setDepth(100)
       .setVisible(false);
 
-    this._cpsIndicator = this.add.bitmapText(10, 70, "bigFont", "0 CPS", 20)
-      .setOrigin(0, 0)
-      .setAlpha(0.4)
-      .setDepth(100)
-      .setVisible(false);
-
-    this._bottedIndicator = this.add.bitmapText(10, 70, "bigFont", "Botted", 20)
-      .setOrigin(0, 0)
-      .setAlpha(0.4)
-      .setDepth(100)
-      .setTint(0xff0000)
-      .setVisible(false);
-
     this.noclipFlash = this.add.rectangle(
       this.cameras.main.centerX, 
       this.cameras.main.centerY, 
@@ -2713,12 +2571,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       if (this._settingsPopup) {
         this._settingsPopup.destroy();
         this._settingsPopup = null;
-        return;
-      }
-      if (this._macroPopup) {
-        this.events.off("update", this._refreshMacroButtons);
-        this._macroPopup.destroy();
-        this._macroPopup = null;
         return;
       }
       if (this._settingsLayerOverlay) {
@@ -2785,7 +2637,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._paused = false;
     this._pauseContainer = null;
     this._sfxVolume = localStorage.getItem("userSfxVol") ?? 1;
-    this._initMacroBot();
     this.input.on("pointerdown", () => {
       if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon && !window.isEditor) {
         this._pushButton();
@@ -2798,11 +2649,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     });
     if (!window.gdpointerup) {
       window.gdpointerup = true;
-      window.addEventListener("pointerup", () => this._releaseButton(true));
+      window.addEventListener("pointerup", () => this._releaseButton());
     }
     if (!window.gdtouchend) {
       window.gdtouchend = true;
-      window.addEventListener("touchend", () => this._releaseButton(true));
+      window.addEventListener("touchend", () => this._releaseButton());
     }
     this.scale.on("enterfullscreen", () => this._onFullscreenChange(true));
     this.scale.on("leavefullscreen", () => this._onFullscreenChange(false));
@@ -2867,6 +2718,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     }
     if (window.levelID) {
         this._openSearchMenu();
+        // Clear after use so re-entering scene (exit level) doesn't re-trigger
+        window.levelID = null;
     }
     if (this.game.registry.get("autoStartGame")) {
       this.game.registry.remove("autoStartGame");
@@ -3572,10 +3425,6 @@ _buildPauseOverlay() {
     this._pauseContainer.add(settingsBtn);
     this._makeBouncyButton(settingsBtn, 0.64, () => this._buildSettingsPopup());
 
-    this._macroBtn = this.add.image(textureY + _0x4eb71b / 2 - 60, 150, "macroBot").setScale(0.4).setInteractive();
-    this._pauseContainer.add(this._macroBtn);
-    this._makeBouncyButton(this._macroBtn, 0.4, () => this._buildMacroPopup());
-
     this._pauseContainer.add(this.add.bitmapText(textureY, 65, "bigFont", window.currentlevel[1], 40).setOrigin(0.5, 0.5));
 
     const _0x21dacf = 170;
@@ -3703,7 +3552,6 @@ _buildSettingsPopup() {
         this._settingsPopup.destroy();
         this._settingsPopup = null;
     });
-
     const pages = ["Gameplay", "Visual"];
     let currentPage = 0;
     const pageTitle = this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
@@ -3733,127 +3581,8 @@ _buildSettingsPopup() {
             setVal(!getVal());
             check.setTexture("GJ_GameSheet03", getTex());
             if (callback) callback(getVal());
-            if (this._saveSettings) this._saveSettings();
+            this._saveSettings();
         });
-    };
-    const createNumberInput = (container, x, y, label, getVal, setVal) => {
-        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, 25).setOrigin(0, 0.5);
-        container.add(txt);
-
-        const boxX = x + checkOffset;
-        const boxY = y;
-        const boxW = 64;
-        const boxH = 48;
-
-        const bgBoxGraphics = this.add.graphics();
-        bgBoxGraphics.fillStyle(0x222222, 0.5);
-        bgBoxGraphics.fillRoundedRect(boxX - boxW / 2, boxY - boxH / 2, boxW, boxH, 8);
-        container.add(bgBoxGraphics);
-
-        const hitArea = this.add.rectangle(boxX, boxY, boxW, boxH, 0x000000, 0)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true });
-        container.add(hitArea);
-
-        let initialVal = getVal() || 1;
-        const valueTxt = this.add.bitmapText(boxX, boxY, "bigFont", initialVal.toString(), 28)
-            .setOrigin(0.5);
-        container.add(valueTxt);
-
-        let isFocused = false;
-        let internalString = initialVal.toString();
-
-        const updateDisplay = () => {
-            if (isFocused) {
-                valueTxt.setText(internalString + "|");
-            } else {
-                valueTxt.setText(internalString || " ");
-            }
-        };
-
-        const commitValue = () => {
-            isFocused = false;
-
-            let val = parseFloat(internalString);
-            if (isNaN(val)) val = 1;
-
-            if (val < 0.1) val = 0.1;
-            if (val > 10) val = 10;
-
-            internalString = val.toString();
-            valueTxt.setText(internalString);
-            
-            setVal(val);
-            if (this._saveSettings) this._saveSettings();
-        };
-
-        hitArea.on('pointerdown', (pointer, localX, localY, event) => {
-            if (event) event.stopPropagation();
-            
-            if (window._activeCustomInput && window._activeCustomInput !== commitValue) {
-                window._activeCustomInput();
-            }
-
-            isFocused = true;
-            window._activeCustomInput = commitValue;
-            
-            internalString = ""; 
-            updateDisplay();
-        });
-
-        const outsideClickListener = () => {
-            if (isFocused) commitValue();
-        };
-        dim.on('pointerdown', outsideClickListener);
-
-        const keydownListener = (event) => {
-            if (!isFocused) return;
-
-            const key = event.key;
-
-            if (key === "Enter") {
-                event.preventDefault();
-                commitValue();
-                return;
-            }
-
-            if (key === "Backspace") {
-                event.preventDefault();
-                internalString = internalString.slice(0, -1);
-                updateDisplay();
-                return;
-            }
-
-            if (/^[0-9.]$/.test(key)) {
-                event.preventDefault();
-                
-                if (key === "." && internalString.includes(".")) return;
-
-                const parts = internalString.split('.');
-                
-                if (key === ".") {
-                    if (parts[0].length === 0) return;
-                } else {
-                    if (parts.length === 1 && parts[0].length >= 2) return;
-                    if (parts.length === 2 && parts[1].length >= 2) return;
-                }
-
-                internalString += key;
-                updateDisplay();
-            }
-        };
-
-        window.addEventListener('keydown', keydownListener);
-
-        const originalDestroy = container.destroy;
-        container.destroy = (...args) => {
-            window.removeEventListener('keydown', keydownListener);
-            if (dim) dim.off('pointerdown', outsideClickListener);
-            if (window._activeCustomInput === commitValue) {
-                window._activeCustomInput = null;
-            }
-            originalDestroy.apply(container, args);
-        };
     };
 
     const buildGameplayPage = (container) => {
@@ -3884,20 +3613,9 @@ _buildSettingsPopup() {
             (v) => window.noClip = v,
             (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); }
         );
-        
         createToggle(container, column1X, startY + (spacingY * 4), "Noclip Accuracy",
             () => window.noClipAccuracy,
             (v) => window.noClipAccuracy = v
-        );
-        
-        createToggle(container, column1X, startY + (spacingY * 5), "Macro Bot",
-            () => window.macroBot,
-            (v) => window.macroBot = v
-        );
-
-        createNumberInput(container, column2X, startY, "Speedhack", 
-            () => window.speedHack, 
-            (v) => window.speedHack = v
         );
     };
 
@@ -3935,11 +3653,6 @@ _buildSettingsPopup() {
             () => window.solidWave, 
             (v) => window.solidWave = v
         );
-
-        createToggle(container, column1X, startY + (spacingY * 5), "Show CPS", 
-            () => window.showCPS, 
-            (v) => window.showCPS = v
-        );
     };
 
     const buildPage = (idx) => {
@@ -3947,18 +3660,14 @@ _buildSettingsPopup() {
         pageContainer = this.add.container(0, 0);
         this._settingsPopup.add(pageContainer);
         pageTitle.setText(pages[idx]);
-        
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
     };
-
     buildPage(0);
-
     this._makeBouncyButton(leftArrow, 1, () => {
         currentPage = (currentPage - 1 + pages.length) % pages.length;
         buildPage(currentPage);
     });
-
     this._makeBouncyButton(rightArrow, 1, () => {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
@@ -3976,9 +3685,6 @@ _buildSettingsPopup() {
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
         hitboxesOnDeath: window.hitboxesOnDeath,
-        showCPS: window.showCPS,
-        speedHack: window.speedHack,
-        macroBot: window.macroBot,
         showEditorGlow: window.showEditorGlow
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
@@ -3996,9 +3702,6 @@ _buildSettingsPopup() {
         solidWaveTrail: false,
         noclipAccuracy: false,
         hitboxesOnDeath: false,
-        showCPS: false,
-        speedHack: 1.0,
-        macroBot: false,
         showEditorGlow: false
     };
 
@@ -4014,173 +3717,9 @@ _buildSettingsPopup() {
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
     window.hitboxesOnDeath = data.hitboxesOnDeath;
-    window.showCPS = data.showCPS;
-    window.speedHack = data.speedHack;
-    window.macroBot = data.macroBot;
     window.showEditorGlow = data.showEditorGlow;
   }
-  _buildMacroPopup() {
-      if (this._macroPopup) return;
-      const centerX = screenWidth / 2;
-      const centerY = 320;
-      const panelWidth = 800;
-      const panelHeight = 400;
-      this._macroPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
-      const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0x000000, 150 / 255).setInteractive();
-      this._macroPopup.add(dim);
-
-      const corner = 0.325 * this.textures.get("GJ_square02").source[0].width;
-      const panel = this._drawScale9(centerX, centerY, panelWidth, panelHeight, "GJ_square02", corner, 0xffffff, 1);
-      this._macroPopup.add(panel);
-
-      this._macroPopup.add(this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 45, "bigFont", "Web Bot v1.0", 40).setOrigin(0.5));
-
-      if (this._macroName === undefined) {
-          this._macroName = this._macroBot?.meta?.name || null;
-      }
-      if (this._macroLoaded === undefined) {
-          this._macroLoaded = !!this._macroName || (this._macroBot && this._macroBot.inputs && this._macroBot.inputs.length > 0);
-      }
-
-      const loadedNameText = this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 95, "goldFont", this._macroLoaded ? `Currently loaded "${this._macroName || 'macro'}"` : "No macro loaded", 24).setOrigin(0.5);
-      this._macroPopup.add(loadedNameText);
-
-      const optionsBtn = this.add.image(centerX, centerY - (panelHeight / 2) + 95, "GJ_GameSheet03", "GJ_optionsBtn02_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.45);
-      this._macroPopup.add(optionsBtn);
-
-      const closeBtn = this.add.image(centerX - (panelWidth / 2) + 20, centerY - (panelHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setInteractive().setScale(0.8);
-      this._macroPopup.add(closeBtn);
-
-      this._makeBouncyButton(closeBtn, 0.8, () => {
-          this.events.off("update", this._refreshMacroButtons);
-          this._macroPopup.destroy();
-          this._macroPopup = null;
-      });
-
-      const importBtn = this.add.image(centerX - 300, centerY + 20,"importMacro").setInteractive();
-      const exportBtn = this.add.image(centerX - 150, centerY + 20, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.53);
-      const createBtn = this.add.image(centerX, centerY + 20, "GJ_GameSheet03", "GJ_plusBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.2);
-      const playbackBtn = this.add.image(centerX + 150, centerY + 20, this._macroBot?.playing ? "stopPlayback" : "playbackMacro").setInteractive().setScale(0.25);
-      const recordBtn = this.add.image(centerX + 300, centerY + 20, this._macroBot?.recording ? "stopRecord" : "recordMacro").setInteractive().setScale(0.25);
-
-      this._macroPopup.add([createBtn, importBtn, exportBtn, playbackBtn, recordBtn]);
-
-      this._refreshMacroButtons = () => {
-          const playing = !!this._macroBot?.playing;
-          const recording = !!this._macroBot?.recording;
-
-          let currentMetaName = this._macroBot?.meta?.name;
-          if (currentMetaName && currentMetaName !== this._macroName) {
-              this._macroName = currentMetaName;
-              this._macroLoaded = true;
-          }
-
-          if (this._macroLoaded) {
-              loadedNameText.setText(`Currently loaded "${this._macroName || 'macro'}"`);
-              optionsBtn.setAlpha(1).setActive(true);
-              optionsBtn.x = centerX + (loadedNameText.width / 2) + 25;
-          } else {
-              loadedNameText.setText("No macro loaded");
-              optionsBtn.setAlpha(0).setActive(false);
-          }
-
-          playbackBtn.setTexture(
-              playing
-                  ? "stopPlayback"
-                  : "playbackMacro"
-          );
-
-          recordBtn.setTexture(
-              recording
-                  ? "stopRecord"
-                  : "recordMacro"
-          );
-
-          createBtn.setAlpha((playing || recording || this._macroLoaded) ? 0.5 : 1);
-          importBtn.setAlpha((playing || recording) ? 0.5 : 1);
-          exportBtn.setAlpha((playing || recording || !this._macroLoaded) ? 0.5 : 1);
-          playbackBtn.setAlpha((recording || !this._macroLoaded) ? 0.5 : 1);
-          recordBtn.setAlpha((playing || !this._macroLoaded) ? 0.5 : 1);
-      };
-
-      this._refreshMacroButtons();
-
-      this._makeBouncyButton(optionsBtn, 0.45, () => {
-          if (!this._macroLoaded) return;
-          const renamePrompt = prompt("New name", this._macroName);
-          if (renamePrompt && renamePrompt.trim() !== "") {
-              const cleanName = renamePrompt.trim();
-              if (!this._macroBot) this._initMacroBot();
-              
-              if (!this._macroBot.meta) {
-                  this._macroBot.meta = {};
-              }
-              this._macroBot.meta.name = cleanName;
-              this._macroName = cleanName;
-              this._refreshMacroButtons();
-          }
-      });
-
-      this._makeBouncyButton(importBtn, 1, () => {
-          if (this._macroBot?.playing) return;
-          if (this._macroBot?.recording) return;
-          this._importMacroFile();
-      });
-
-      this._makeBouncyButton(exportBtn, 0.53, () => {
-          if (this._macroBot?.playing) return;
-          if (this._macroBot?.recording) return;
-          if (!this._macroLoaded) return;
-          this._exportMacroFile(this._macroName ? `${this._macroName}.wbgdr` : null);
-      });
-
-      this._makeBouncyButton(createBtn, 1.2, () => {
-          if (this._macroBot?.playing || this._macroBot?.recording || this._macroLoaded) return;
-          const name = prompt("Enter macro name");
-          if (name) {
-              if (!this._macroBot) this._initMacroBot();
-              this._macroBot.resetAll();
-              this._macroBot.meta.name = name;
-              this._macroName = name;
-              this._macroLoaded = true;
-              this._refreshMacroButtons();
-          }
-      });
-
-      this._makeBouncyButton(playbackBtn, 0.25, () => {
-          if (this._macroBot?.recording) return;
-          if (!this._macroLoaded) return;
-
-          if (this._macroBot?.playing) {
-              this._stopMacroPlayback();
-          } else {
-              if (!this._macroBot) {
-                  return;
-              }
-              const macro = this._macroBot.exportObject();
-              this._startMacroPlayback(macro);
-          }
-          this._refreshMacroButtons();
-      });
-
-      this._makeBouncyButton(recordBtn, 0.25, () => {
-          if (this._macroBot?.playing) return;
-          if (!this._macroLoaded) return;
-
-          if (this._macroBot?.recording) {
-              this._stopMacroRecording();
-          } else {
-              this._startMacroRecording({
-                  level: window.currentlevel?.[2] || "",
-                  name: this._macroName
-              });
-          }
-
-          this._refreshMacroButtons();
-      });
-
-      this.events.on("update", this._refreshMacroButtons);
-  }
+  
   _buildInfoPopup() {
     if (this._infoPopup) {
       return;
@@ -5137,7 +4676,7 @@ _buildSettingsPopup() {
       this._player.enterWaveMode();
     }
   }
-  _pushButton(ignoreMacro = false) {
+  _pushButton() {
     const objectsUnderPointer = this.input.manager.hitTest(
       this.input.activePointer, 
       this._startPosGui.list,
@@ -5154,12 +4693,6 @@ _buildSettingsPopup() {
       this._startGame();
       return;
     }
-
-    if (!cancelInput) {
-      if (!this._clickHistory) this._clickHistory = [];
-      this._clickHistory.push(this.time.now);
-    }
-
     if (!this._slideIn && !this._state.isDead && !cancelInput) {
       this._state.upKeyDown = true;
       this._state.upKeyPressed = true;
@@ -5176,76 +4709,11 @@ _buildSettingsPopup() {
         localStorage.setItem("gd_totalJumps", this._totalJumps);
       }
     }
-
-    if (!ignoreMacro && this._macroBot) {
-      this._macroBot.recordEdge(true, this._physicsFrame);
-    }
   }
-  _releaseButton(ignoreMacro = false) {
+  _releaseButton() {
     this._state.upKeyDown = false;
     this._state.upKeyPressed = false;
     this._state.queuedHold = false;
-    if (!ignoreMacro && this._macroBot) {
-      this._macroBot.recordEdge(false, this._physicsFrame);
-    }
-  }
-  _initMacroBot() {
-    this._macroBot = new MacroBot(this);
-    window.macroBot = this._macroBot;
-  }
-  _startMacroRecording(meta = {}) {
-    if (!this._macroBot) this._initMacroBot();
-    this._macroBot.startRecording({
-      level: window.currentlevel?.[2] || "",
-      ...meta
-    });
-  }
-  _stopMacroRecording() {
-    if (!this._macroBot) return null;
-    return this._macroBot.stopRecording();
-  }
-  _startMacroPlayback(macroData) {
-    console.log(macroData);
-    if (!this._macroBot) this._initMacroBot();
-    this._macroBot.startPlayback(macroData);
-  }
-  _stopMacroPlayback() {
-    if (this._macroBot) this._macroBot.stopPlayback();
-  }
-  _exportMacroFile(filename = null) {
-    if (!this._macroBot) return;
-    const safeName = (filename || `${window.currentlevel?.[2] || "macro"}.gdr`)
-      .replace(/[^\w.\-]+/g, "_");
-    this._macroBot.download(safeName);
-  }
-  _importMacroFile() {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".wbgdr";
-
-    fileInput.onchange = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      try {
-        if (!this._macroBot) this._initMacroBot();
-        
-        const macroData = await this._macroBot.importFile(file);
-        this._macroBot.inputs = Array.isArray(macroData.inputs) ? macroData.inputs.slice() : [];
-        const fallback = file.name.replace(/\.[^/.]+$/, "");
-        const macroName = macroData.meta?.name || fallback;
-
-        this._macroBot.meta = macroData.meta || this._macroBot.meta;
-        this._macroBot.meta.name = macroName;
-
-        this._macroName = macroName;
-        this._macroLoaded = true;
-      } catch (err) {
-        alert("Failed to import: " + err.message);
-      }
-    };
-
-    fileInput.click();
   }
   _positionMenuItems() {
     const _0x1e5db8 = screenWidth / 2;
@@ -5334,7 +4802,6 @@ _buildSettingsPopup() {
     this._endCameraOverride = false;
     this._endCamTween = null;
     this._spaceWasDown = false;
-    this._physicsFrame = 0;
   }
   _restartLevel() {
     this._attempts++;
@@ -5460,13 +4927,6 @@ _buildSettingsPopup() {
     if (this._player && this._player._hitboxTrail) {
       this._player._hitboxTrail = [];
     }
-
-    if (this._macroBot?.recording == true){
-      this._macroBot?.clearRecording();
-    }
-    if (this._macroBot?.playing == true){
-      this._macroBot?.clearPlayback();
-    }
   }
   _getStartPosMusicOffset(){
     const startPositions = this._level.getStartPositions();
@@ -5524,11 +4984,11 @@ _buildSettingsPopup() {
     this._state.isSpider = false;
     this._state.isBird = false;
     if (checkpoint.isFlying) {
-      this._player.enterShipMode(null, true); // dont mess with y velocity if ur loading a checkpoint
+      this._player.enterShipMode();
     } else if (checkpoint.isBall) {
       this._player.enterBallMode();
     } else if (checkpoint.isUfo) {
-      this._player.enterUfoMode(null, true); // dont mess with y velocity if ur loading a checkpoint
+      this._player.enterUfoMode();
     } else if (checkpoint.isWave) {
       this._player.enterWaveMode();
     } else if (checkpoint.isSpider) {
@@ -5550,8 +5010,6 @@ _buildSettingsPopup() {
     this._state.isUfo = checkpoint.isUfo;
     this._state.isSpider = checkpoint.isSpider;
     this._state.isBird = checkpoint.isBird;
-    this._state.ignorePortals = true;
-    this._state2.ignorePortals = true;
     this._level.resetGroundTiles(this._cameraX);
     this._level.resetObjects();
     this._level._flyCeilingY = checkpoint.flyCeilingY;
@@ -5609,19 +5067,6 @@ _buildSettingsPopup() {
 
     if (this._player && this._player._hitboxTrail) {
       this._player._hitboxTrail = [];
-    }
-
-    this._physicsFrame = checkpoint.physicsFrame;
-    if (this._macroBot?.recording == true){
-      this._macroBot?.rollbackRecording(this._physicsFrame);
-      if (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown){
-        this._macroBot.recordEdge(true, this._physicsFrame);
-      } else {
-        this._macroBot.recordEdge(false, this._physicsFrame);
-      }
-    }
-    if (this._macroBot?.playing == true){
-      this._macroBot?.rollbackPlayback(this._physicsFrame);
     }
   }
   _onFullscreenChange(_0x310c5b) {
@@ -5708,8 +5153,7 @@ _buildSettingsPopup() {
     }
   }
   _quantizeDelta(_0x654f39) {
-    const speed = window.speedHack || 1;
-    let _0x578d1b = (_0x654f39 * speed) / 1000 + this._deltaBuffer;
+    let _0x578d1b = _0x654f39 / 1000 + this._deltaBuffer;
     let _0x53e02e = Math.round(_0x578d1b / u);
     if (_0x53e02e < 0) {
       _0x53e02e = 0;
@@ -5777,26 +5221,6 @@ _buildSettingsPopup() {
     this._deathsIndicator.setVisible(window.noClip && window.noClipAccuracy && !this._menuActive);
     this._accuracyIndicator.setText(`${this._player.noclipStats.accuracy.toFixed(2)}%`);
     this._deathsIndicator.setText(`${this._player.noclipStats.deaths} Deaths`);
-
-    this._cpsIndicator.setVisible(window.showCPS && !this._menuActive);
-    if (this._clickHistory && this._clickHistory.length > 0) {
-      this._clickHistory = this._clickHistory.filter(timestamp => this.time.now - timestamp <= 1000);
-      this._cpsIndicator.setText(`${this._clickHistory.length} CPS`);
-    } else {
-      this._cpsIndicator.setText("0 CPS");
-    }
-    if (this._state.upKeyDown){
-      this._cpsIndicator.setTint(0x00ff00);
-    } else{
-      this._cpsIndicator.setTint(0xffffff);
-    }
-    this._cpsIndicator.setPosition(10, 10 + (window.noClip * 20) + (window.noClip && window.noClipAccuracy * 40));
-
-    this._bottedIndicator.setVisible(this._macroBot?.playing);
-    this._bottedIndicator.setPosition(10, 10 + (window.noClip * 20) + (window.noClip && window.noClipAccuracy * 40) + (window.showCPS * 20));
-    if (this._macroBtn){
-      this._macroBtn.setVisible(window.macroBot);
-    }
 
     this._fpsAccum += deltaTime;
     this._fpsFrames++;
@@ -5915,7 +5339,7 @@ _buildSettingsPopup() {
     this._spaceWasDown = _0x368ad9;
 
     const objectsUnderPointer = this.input.manager.hitTest(
-      this.input.activePointer,
+      this.input.activePointer, 
       this._startPosGui.list,
       this.cameras.main
     );
@@ -5927,7 +5351,7 @@ _buildSettingsPopup() {
       this._state.upKeyDown = true;
       this._state.queuedHold = true;
     }
-    if (cancelInput) {
+    if (cancelInput){
       this._state.upKeyDown = false;
       this._state.upKeyPressed = false;
       this._state.queuedHold = false;
@@ -6086,11 +5510,6 @@ _buildSettingsPopup() {
     const initialY = this._state.y;
     for (let i = 0; i < subSteps; i++) {
       this._state.lastY = this._state.y;
-      this._physicsFrame++;
-      console.log(this._physicsFrame)
-      if (this._macroBot?.playing) {
-        this._macroBot.step(this._physicsFrame);
-      }
       this._player.updateJump(verticalDelta);
       this._state.y += this._state.yVelocity * verticalDelta;
       this._player.checkCollisions(this._playerWorldX - centerX);
@@ -6121,8 +5540,6 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
 }
     }
     this._state.lastY = initialY;
-    this._state.ignorePortals = false;
-    this._state2.ignorePortals = false;
     if (!this._endCameraOverride) {
       const cameraOffsetX = this._playerWorldX - centerX;
       if (this._level.endXPos > 0) {
@@ -7819,8 +7236,7 @@ _applyMirrorEffect() {
     const _0x452429 = ["Awesome!", "Good\nJob!", "Well\nDone!", "Impressive!", "Amazing!", "Incredible!", "Skillful!", "Brilliant!", "Not\nbad!", "Warp\nSpeed!", "Challenge\nBreaker!", "Reflex\nMaster!", "I am\nspeechless...", "You are...\nThe One!", "How is this\npossible!?", "You beat\nme..."];
     const _0x165c06 = _0x452429[Math.floor(Math.random() * _0x452429.length)];
     const _0x45540f = 225;
-    const _0x8e2b = ["\x5f\x6d\x61\x63\x72\x6f\x42\x6f\x74", "\x70\x6c\x61\x79\x69\x6e\x67"];let _0x3bc14 = 0xffffff; try {if (this[_0x8e2b[0]] && this[_0x8e2b[0]][_0x8e2b[1]]) {_0x3bc14 = (_0x3bc14 & 0xffff00) | 0xfa;}} catch (_0xe31) {}const _0x17fa2b = this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign();if (_0x3bc14 !== 0xffffff) _0x17fa2b.setTint(_0x3bc14);
-    this._endLayerInternal.add(_0x17fa2b);
+    this._endLayerInternal.add(this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign());
     this._endLayerInternal.add(this.add.image(containerX - _0x45540f, 352.5, "GJ_WebSheet", "getIt_001.png").setScale(1 / 1.5));
     const _0x34b1bd = [{
       key: "downloadApple_001",
