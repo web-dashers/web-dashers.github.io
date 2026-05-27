@@ -21,6 +21,12 @@ window.currentlevel = [
 window.orbClickScale = 2.0;
 window.orbClickShrinkTime = 250;
 window.orbParticleSize = 3.5;
+window.lowDetailMode = localStorage.getItem("lowDetailMode") === "true";
+window.isLowDetailMode = () => window.lowDetailMode === true;
+window.setLowDetailMode = value => {
+  window.lowDetailMode = value === true;
+  localStorage.setItem("lowDetailMode", window.lowDetailMode ? "true" : "false");
+};
 
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has('id')) {

@@ -1202,46 +1202,48 @@ window.LevelObject = class LevelObject {
     };
 
     const maxDistance = 20;
-    const particles = scene.add.particles(particleX, particleY, "GJ_WebSheet", {
-      frame: "square.png",
-      lifespan: {
-        min: 200,
-        max: 1000
-      },
-      speed: 0,
-      scale: {
-        start: 0.75,
-        end: 0.125
-      },
-      alpha: {
-        start: 0.5,
-        end: 0
-      },
-      tint: objectDef.portalParticleColor,
-      blendMode: Phaser.BlendModes.ADD,
-      frequency: 20,
-      maxParticles: 0,
-      emitting: true,
-      emitZone: {
-        type: "random",
-        source: source
-      },
-      emitCallback: particle => {
-        const vx = -particle.x;
-        const vy = -particle.y;
-        const len = Math.sqrt(vx * vx + vy * vy) || 1;
-        const lifeSeconds = particle.life / 1000;
-        const speed = (len - maxDistance) / (lifeSeconds || 0.3);
-        particle.velocityX = vx / len * speed;
-        particle.velocityY = vy / len * speed;
-      }
-    });
+    if (!(window.isLowDetailMode && window.isLowDetailMode())) {
+      const particles = scene.add.particles(particleX, particleY, "GJ_WebSheet", {
+        frame: "square.png",
+        lifespan: {
+          min: 200,
+          max: 1000
+        },
+        speed: 0,
+        scale: {
+          start: 0.75,
+          end: 0.125
+        },
+        alpha: {
+          start: 0.5,
+          end: 0
+        },
+        tint: objectDef.portalParticleColor,
+        blendMode: Phaser.BlendModes.ADD,
+        frequency: 20,
+        maxParticles: 0,
+        emitting: true,
+        emitZone: {
+          type: "random",
+          source: source
+        },
+        emitCallback: particle => {
+          const vx = -particle.x;
+          const vy = -particle.y;
+          const len = Math.sqrt(vx * vx + vy * vy) || 1;
+          const lifeSeconds = particle.life / 1000;
+          const speed = (len - maxDistance) / (lifeSeconds || 0.3);
+          particle.velocityX = vx / len * speed;
+          particle.velocityY = vy / len * speed;
+        }
+      });
 
-    particles.setDepth(14);
-    particles._eeLayer = 2;
-    particles._eeWorldX = worldX;
-    particles._eeBaseY = particleY;
-    this._addToSection(particles);
+      particles.setDepth(14);
+      particles._eeLayer = 2;
+      particles._eeWorldX = worldX;
+      particles._eeBaseY = particleY;
+      this._addToSection(particles);
+    }
   }
 
   if (objectDef) {
@@ -1477,6 +1479,11 @@ window.LevelObject = class LevelObject {
     this._endPortalShine.setTint(window.mainColor);
     this._endPortalShine.setScale(1, 960 / _0x3e25a9);
     this.additiveContainer.add(this._endPortalShine);
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._endPortalEmitter = null;
+      this._endPortalGameY = 240;
+      return;
+    }
     const _0x58cedb = _0x3b56d4 - 30;
     const _0x4f52b7 = {
       getRandomPoint: _0x4f04dd => {
@@ -1534,7 +1541,9 @@ window.LevelObject = class LevelObject {
     const _0x32e645 = b(_0x1be4c3);
     this._endPortalContainer.y = _0x32e645;
     this._endPortalShine.y = _0x32e645;
-    this._endPortalEmitter.y = _0x32e645;
+    if (this._endPortalEmitter) {
+      this._endPortalEmitter.y = _0x32e645;
+    }
     this._endPortalGameY = _0x1be4c3;
   }
   checkColorTriggers(_0x2b00ce) {

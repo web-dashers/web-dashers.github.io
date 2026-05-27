@@ -494,6 +494,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       frequency: 35,
       blendMode: S,
       tint: 20670,
+      emitting: !(window.isLowDetailMode && window.isLowDetailMode()),
       x: {
         min: -130,
         max: 130
@@ -3141,6 +3142,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._restartLevel();
   }
   toggleGlitter(_0x34c21a) {
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      if (this._glitterEmitter) this._glitterEmitter.stop();
+      return;
+    }
     if (_0x34c21a) {
       this._glitterEmitter.start();
     } else {
@@ -3608,6 +3613,29 @@ _buildSettingsPopup() {
             () => window.showCPS, 
             (v) => window.showCPS = v
         );
+
+        createToggle(container, column2X, startY, "Low Detail Mode",
+            () => window.lowDetailMode,
+            (v) => {
+                if (window.setLowDetailMode) window.setLowDetailMode(v);
+                else window.lowDetailMode = v;
+                if (v) {
+                    if (this._glitterEmitter) this._glitterEmitter.stop();
+                    if (this._menuGlitter) this._menuGlitter.stop();
+                    if (this._iconBtn) {
+                        this.tweens.killTweensOf(this._iconBtn);
+                        this._iconBtn.y = 320;
+                    }
+                    this._bg.setTint(this._colorManager.getHex(fs));
+                    this._level.setGroundColor(this._colorManager.getHex(gs));
+                    if (this._orbGfx) this._orbGfx.clear();
+                    this._player?._updateParticles?.(this._cameraX, this._cameraY, 0);
+                    this._player2?._updateParticles?.(this._cameraX, this._cameraY, 0);
+                } else if (this._menuActive && this._menuGlitter) {
+                    this._menuGlitter.start();
+                }
+            }
+        );
     };
 
     const buildPage = (idx) => {
@@ -3631,13 +3659,17 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
-    this.tweens.add({
-        targets: innerContainer,
-        scale: 1,
-        duration: 660,
-        ease: "Elastic.Out",
-        easeParams: [1, 0.6]
-    });
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+        innerContainer.setScale(1);
+    } else {
+        this.tweens.add({
+            targets: innerContainer,
+            scale: 1,
+            duration: 660,
+            ease: "Elastic.Out",
+            easeParams: [1, 0.6]
+        });
+    }
   }
   _saveSettings() {
     const settings = {
@@ -3654,7 +3686,8 @@ _buildSettingsPopup() {
         showCPS: window.showCPS,
         speedHack: window.speedHack,
         macroBot: window.macroBot,
-        showEditorGlow: window.showEditorGlow
+        showEditorGlow: window.showEditorGlow,
+        lowDetailMode: window.lowDetailMode
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -3674,7 +3707,8 @@ _buildSettingsPopup() {
         showCPS: false,
         speedHack: 1.0,
         macroBot: false,
-        showEditorGlow: false
+        showEditorGlow: false,
+        lowDetailMode: window.lowDetailMode === true
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -3693,6 +3727,13 @@ _buildSettingsPopup() {
     window.speedHack = data.speedHack;
     window.macroBot = data.macroBot;
     window.showEditorGlow = data.showEditorGlow;
+    if (window.setLowDetailMode) window.setLowDetailMode(data.lowDetailMode === true);
+    else window.lowDetailMode = data.lowDetailMode === true;
+    if (window.lowDetailMode) {
+      if (this._menuGlitter) this._menuGlitter.stop();
+      if (this._glitterEmitter) this._glitterEmitter.stop();
+      if (this._orbGfx) this._orbGfx.clear();
+    }
   }
   _buildMacroPopup() {
       if (this._macroPopup) return;
@@ -4405,6 +4446,10 @@ _buildSettingsPopup() {
     textureX.on("pointerdown", () => {
       if (!_0xda0c21 || !!_0xda0c21()) {
         textureX._pressed = true;
+        if (window.isLowDetailMode && window.isLowDetailMode()) {
+          textureX.setScale(_0x57b645);
+          return;
+        }
         this.tweens.killTweensOf(textureX, "scale");
         this.tweens.add({
           targets: textureX,
@@ -4417,6 +4462,10 @@ _buildSettingsPopup() {
     textureX.on("pointerout", (pointer) => {
       if (textureX._pressed) {
         textureX._pressed = false;
+        if (window.isLowDetailMode && window.isLowDetailMode()) {
+          textureX.setScale(_0x57b645);
+          return;
+        }
         this.tweens.killTweensOf(textureX, "scale");
         this.tweens.add({
           targets: textureX,
@@ -4963,14 +5012,16 @@ _buildSettingsPopup() {
       this._iconBtn.x = (screenWidth / 2) - this._playBtn.width / 2 - 100 - (this._iconBtn.width * this._iconBtn.scaleX) / 2;
       this.tweens.killTweensOf(this._iconBtn, "y");
       this._iconBtn.y = 320;
-      this.tweens.add({
-        targets: this._iconBtn,
-        y: 324,
-        duration: 750,
-        ease: "Quad.InOut",
-        yoyo: true,
-        repeat: -1
-      });
+      if (!(window.isLowDetailMode && window.isLowDetailMode())) {
+        this.tweens.add({
+          targets: this._iconBtn,
+          y: 324,
+          duration: 750,
+          ease: "Quad.InOut",
+          yoyo: true,
+          repeat: -1
+        });
+      }
     }
     if (this._creatorBtn) {
       this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 100 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
@@ -5522,6 +5573,12 @@ _buildSettingsPopup() {
       }
       this._arrowWasDown = _arrowLeft || _arrowRight;
       this._spaceWasDown = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
+      if (window.isLowDetailMode && window.isLowDetailMode()) {
+        if (this._menuGlitter) this._menuGlitter.stop();
+        this._bg.setTint(this._colorManager.getHex(fs));
+        this._level.setGroundColor(this._colorManager.getHex(gs));
+        return;
+      }
       const menuDelta = Math.min(deltaTime / 1000 * 60, 2);
       const menuSpeed = 0.85;
       this._menuCameraX = (this._menuCameraX || 0) + menuDelta * playerSpeed * d * menuSpeed;
@@ -5712,6 +5769,9 @@ _buildSettingsPopup() {
     if (!this._orbGfx) {
       this._orbGfx = this.add.graphics().setDepth(54).setBlendMode(S);
     }
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._orbGfx.clear();
+    } else {
     this._orbParticleAngle = ((this._orbParticleAngle || 0) + deltaTime * 0.004) % (Math.PI * 2);
     this._orbGfxTimer = (this._orbGfxTimer || 0) + deltaTime;
     if (this._orbGfxTimer > 33) {
@@ -5754,6 +5814,7 @@ _buildSettingsPopup() {
         }
         } catch(e) {}
       }
+    }
     }
     let quantizedDelta = this._quantizeDelta(deltaTime);
     let subSteps = quantizedDelta > 0 ? Math.max(1, Math.round(quantizedDelta * 4)) : 0;
@@ -7547,37 +7608,46 @@ _applyMirrorEffect() {
   _showSettingsScreen() {
     this._settingsScreenClosing = false;
     if (this._pauseBtn) {
-      this.tweens.add({
-        targets: this._pauseBtn,
-        alpha: 0,
-        duration: 300
-      });
+      if (window.isLowDetailMode && window.isLowDetailMode()) {
+        this._pauseBtn.setAlpha(0);
+      } else {
+        this.tweens.add({
+          targets: this._pauseBtn,
+          alpha: 0,
+          duration: 300
+        });
+      }
     }
     const containerX = screenWidth / 2;
     const _0x1aa656 = 320;
     this._settingsLayerOverlay = this.add.rectangle(containerX, _0x1aa656, screenWidth, screenHeight, 0, 0).setScrollFactor(0).setDepth(200).setInteractive();
     this._settingsLayerInternal = this.add.container(0, -640).setScrollFactor(0).setDepth(201);
     this._settingsScreenClosing = false;
-    this.tweens.add({
-      targets: this._settingsLayerOverlay,
-      alpha: 180 / 255,
-      duration: 400,
-      ease: "Linear"
-    });
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._settingsLayerOverlay.setAlpha(180 / 255);
+      this._settingsLayerInternal.y = 10;
+    } else {
+      this.tweens.add({
+        targets: this._settingsLayerOverlay,
+        alpha: 180 / 255,
+        duration: 400,
+        ease: "Linear"
+      });
 
-    const _0x59b9ab = {
-      p: 0
-    };
-    this.tweens.add({
-      targets: _0x59b9ab,
-      p: 1,
-      duration: 500,
-      ease: "Quad.Out",
-      onUpdate: () => {
-        this._settingsLayerInternal.y = _0x59b9ab.p * 650 - 640;
-      },
-      onComplete: () => {}
-    });
+      const _0x59b9ab = {
+        p: 0
+      };
+      this.tweens.add({
+        targets: _0x59b9ab,
+        p: 1,
+        duration: 500,
+        ease: "Quad.Out",
+        onUpdate: () => {
+          this._settingsLayerInternal.y = _0x59b9ab.p * 650 - 640;
+        },
+        onComplete: () => {}
+      });
+    }
     const _0x595215 = 712;
     const _0x950c8d = 460;
     const _0x2a115c = (screenWidth - _0x595215) / 2;
@@ -7622,12 +7692,20 @@ _applyMirrorEffect() {
             const pressedScale = baseScale * 1.26;
             hitZone.on("pointerdown", () => {
                 hitZone._pressed = true;
+                if (window.isLowDetailMode && window.isLowDetailMode()) {
+                    grp.setScale(baseScale);
+                    return;
+                }
                 this.tweens.killTweensOf(grp, "scale");
                 this.tweens.add({ targets: grp, scale: pressedScale, duration: 300, ease: "Bounce.Out" });
             });
             hitZone.on("pointerout", () => {
                 if (hitZone._pressed) {
                     hitZone._pressed = false;
+                    if (window.isLowDetailMode && window.isLowDetailMode()) {
+                        grp.setScale(baseScale);
+                        return;
+                    }
                     this.tweens.killTweensOf(grp, "scale");
                     this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out" });
                 }
@@ -7734,6 +7812,9 @@ _applyMirrorEffect() {
     if (!this._settingsLayerInternal) {
       return;
     }
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      return;
+    }
     const _0x4edc03 = containerX;
     const _0x5a0e9 = 200;
     const _0x453043 = this.add.image(_0x4edc03, _0x5a0e9, "GJ_WebSheet", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
@@ -7764,13 +7845,21 @@ _applyMirrorEffect() {
       }
 
       if (this._pauseBtn) {
-        this.tweens.add({
-          targets: this._pauseBtn,
-          alpha: 1,
-          duration: 300
-        });
+        if (window.isLowDetailMode && window.isLowDetailMode()) {
+          this._pauseBtn.setAlpha(1);
+        } else {
+          this.tweens.add({
+            targets: this._pauseBtn,
+            alpha: 1,
+            duration: 300
+          });
+        }
       }
     };
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      _0x272eb1();
+      return;
+    }
     this.tweens.add({
       targets: this._settingsLayerOverlay,
       alpha: 0,
@@ -7794,33 +7883,42 @@ _applyMirrorEffect() {
   }
   _showStatsScreen() {
     if (this._pauseBtn) {
-      this.tweens.add({
-        targets: this._pauseBtn,
-        alpha: 0,
-        duration: 300
-      });
+      if (window.isLowDetailMode && window.isLowDetailMode()) {
+        this._pauseBtn.setAlpha(0);
+      } else {
+        this.tweens.add({
+          targets: this._pauseBtn,
+          alpha: 0,
+          duration: 300
+        });
+      }
     }
     const containerX = screenWidth / 2;
     const _0x1aa656 = 320;
     this._statsLayerOverlay = this.add.rectangle(containerX, _0x1aa656, screenWidth, screenHeight, 0, 0).setScrollFactor(0).setDepth(200).setInteractive();
     this._statsLayerInternal = this.add.container(0, -640).setScrollFactor(0).setDepth(201);
-    this.tweens.add({
-      targets: this._statsLayerOverlay,
-      alpha: 100 / 255,
-      duration: 1000
-    });
-    const _0x59b9ab = {
-      p: 0
-    };
-    this.tweens.add({
-      targets: _0x59b9ab,
-      p: 1,
-      duration: 500,
-      ease: "Quad.Out",
-      onUpdate: () => {
-        this._statsLayerInternal.y = _0x59b9ab.p * 650 - 640;
-      }
-    });
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._statsLayerOverlay.setAlpha(100 / 255);
+      this._statsLayerInternal.y = 10;
+    } else {
+      this.tweens.add({
+        targets: this._statsLayerOverlay,
+        alpha: 100 / 255,
+        duration: 1000
+      });
+      const _0x59b9ab = {
+        p: 0
+      };
+      this.tweens.add({
+        targets: _0x59b9ab,
+        p: 1,
+        duration: 500,
+        ease: "Quad.Out",
+        onUpdate: () => {
+          this._statsLayerInternal.y = _0x59b9ab.p * 650 - 640;
+        }
+      });
+    }
     const _0x595215 = 712;
     const _0x950c8d = 460;
     const _0x2a115c = (screenWidth - _0x595215) / 2;
@@ -7896,13 +7994,21 @@ _applyMirrorEffect() {
         this._statsLayerInternal = null;
       }
       if (this._pauseBtn) {
-        this.tweens.add({
-          targets: this._pauseBtn,
-          alpha: 1,
-          duration: 300
-        });
+        if (window.isLowDetailMode && window.isLowDetailMode()) {
+          this._pauseBtn.setAlpha(1);
+        } else {
+          this.tweens.add({
+            targets: this._pauseBtn,
+            alpha: 1,
+            duration: 300
+          });
+        }
       }
     };
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      _0x272eb1();
+      return;
+    }
     this.tweens.add({
       targets: this._statsLayerOverlay,
       alpha: 0,
@@ -7925,6 +8031,9 @@ _applyMirrorEffect() {
   }
   _playStarAward() {
     if (!this._endLayerInternal) {
+      return;
+    }
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
       return;
     }
     const _0x4edc03 = this._endStarX;
