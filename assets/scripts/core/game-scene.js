@@ -3717,7 +3717,7 @@ _buildSettingsPopup() {
         speedHack: 1.0,
         macroBot: false,
         showEditorGlow: false,
-        lowDetailMode: window.lowDetailMode === true
+        lowDetailMode: window.lowDetailMode === false
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -4244,8 +4244,8 @@ _buildSettingsPopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 0.85, font: "goldFont" },
-      { text: "Accurate GDWeb+ logo", scale: 0.65 },
-      { text: "Credit to Altruist for making it", scale: 0.6 },
+      { text: "Added Low Detail Mode", scale: 0.65 },
+      { text: "Credits to POWBoy1/POW_Boy1 for making it", scale: 0.6 },
       { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
     ]; 
