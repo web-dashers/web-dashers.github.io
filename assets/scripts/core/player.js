@@ -31,6 +31,8 @@ class PlayerState {
     this.upKeyPressed = false;
     this.queuedHold = false;
     this.isDead = false;
+    this.diedThisFrame = false;
+    this.diedLastFrame = false;
     this.mirrored = false;
     this.isDashing = false;
     this.dashYVelocity = 0;
