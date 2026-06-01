@@ -5671,13 +5671,15 @@ _buildSettingsPopup() {
       }
       return;
     }
-    let _0x368ad9 = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
-    if (!this._updateLogPopup && _0x368ad9 && !this._spaceWasDown) {
-      this._pushButton();
-    } else if (!_0x368ad9 && this._spaceWasDown) {
-      this._releaseButton();
-    }
-    this._spaceWasDown = _0x368ad9;
+    this._applyJumpInput = () => {
+      const jumpHeld = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
+      if (!this._updateLogPopup && jumpHeld && !this._spaceWasDown) {
+        this._pushButton();
+      } else if (!jumpHeld && this._spaceWasDown) {
+        this._releaseButton();
+      }
+      this._spaceWasDown = jumpHeld;
+    };
 
     const objectsUnderPointer = this.input.manager.hitTest(
       this.input.activePointer,
@@ -5860,6 +5862,7 @@ _buildSettingsPopup() {
     for (let i = 0; i < subSteps; i++) {
       this._state.lastY = this._state.y;
       this._physicsFrame++;
+      this._applyJumpInput();
       if (this._macroBot?.playing) {
         this._macroBot.step(this._physicsFrame);
       }
@@ -5879,18 +5882,26 @@ _buildSettingsPopup() {
           this._player.killPlayer();
         }
       }
-if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
-  if (this._state.isBall) {
-    const ballOnSurface = this._state.onGround || this._state.onCeiling;
-    this._player.updateBallRoll(horizontalDelta, ballOnSurface);
-  } else if (this._state.onGround) {
-    this._player.updateGroundRotation(verticalDelta);
-  } else if (this._player.rotateActionActive) {
-    this._player.updateRotateAction(u);
-  } else if (this._state.isDashing) {
-    this._player.updateDashRotation(u);
-  }
-}
+      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
+        if (this._state.isBall) {
+          const ballOnSurface = this._state.onGround || this._state.onCeiling;
+          this._player.updateBallRoll(horizontalDelta, ballOnSurface);
+        } else if (this._state.onGround) {
+          this._player.updateGroundRotation(verticalDelta);
+        } else if (this._player.rotateActionActive) {
+          this._player.updateRotateAction(u);
+        } else if (this._state.isDashing) {
+          this._player.updateDashRotation(u);
+        }
+      }
+
+      if (!this._player._scene._slideIn){
+        if (!this._player._hitboxTrail) this._player._hitboxTrail = [];
+        if (!this._player.p.isDead) {
+          this._player._hitboxTrail.push({ x: this._playerWorldX, y: this._player.p.y, rotation: this._player._rotation });
+          if (this._player._hitboxTrail.length > 180) this._player._hitboxTrail.shift();
+        }
+      }
     }
     this._state.lastY = initialY;
     this._state.ignorePortals = false;
