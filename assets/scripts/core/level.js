@@ -1202,46 +1202,48 @@ window.LevelObject = class LevelObject {
     };
 
     const maxDistance = 20;
-    const particles = scene.add.particles(particleX, particleY, "GJ_WebSheet", {
-      frame: "square.png",
-      lifespan: {
-        min: 200,
-        max: 1000
-      },
-      speed: 0,
-      scale: {
-        start: 0.75,
-        end: 0.125
-      },
-      alpha: {
-        start: 0.5,
-        end: 0
-      },
-      tint: objectDef.portalParticleColor,
-      blendMode: Phaser.BlendModes.ADD,
-      frequency: 20,
-      maxParticles: 0,
-      emitting: true,
-      emitZone: {
-        type: "random",
-        source: source
-      },
-      emitCallback: particle => {
-        const vx = -particle.x;
-        const vy = -particle.y;
-        const len = Math.sqrt(vx * vx + vy * vy) || 1;
-        const lifeSeconds = particle.life / 1000;
-        const speed = (len - maxDistance) / (lifeSeconds || 0.3);
-        particle.velocityX = vx / len * speed;
-        particle.velocityY = vy / len * speed;
-      }
-    });
+    if (!(window.isLowDetailMode && window.isLowDetailMode())) {
+      const particles = scene.add.particles(particleX, particleY, "GJ_WebSheet", {
+        frame: "square.png",
+        lifespan: {
+          min: 200,
+          max: 1000
+        },
+        speed: 0,
+        scale: {
+          start: 0.75,
+          end: 0.125
+        },
+        alpha: {
+          start: 0.5,
+          end: 0
+        },
+        tint: objectDef.portalParticleColor,
+        blendMode: Phaser.BlendModes.ADD,
+        frequency: 20,
+        maxParticles: 0,
+        emitting: true,
+        emitZone: {
+          type: "random",
+          source: source
+        },
+        emitCallback: particle => {
+          const vx = -particle.x;
+          const vy = -particle.y;
+          const len = Math.sqrt(vx * vx + vy * vy) || 1;
+          const lifeSeconds = particle.life / 1000;
+          const speed = (len - maxDistance) / (lifeSeconds || 0.3);
+          particle.velocityX = vx / len * speed;
+          particle.velocityY = vy / len * speed;
+        }
+      });
 
-    particles.setDepth(14);
-    particles._eeLayer = 2;
-    particles._eeWorldX = worldX;
-    particles._eeBaseY = particleY;
-    this._addToSection(particles);
+      particles.setDepth(14);
+      particles._eeLayer = 2;
+      particles._eeWorldX = worldX;
+      particles._eeBaseY = particleY;
+      this._addToSection(particles);
+    }
   }
 
   if (objectDef) {
@@ -1477,6 +1479,11 @@ window.LevelObject = class LevelObject {
     this._endPortalShine.setTint(window.mainColor);
     this._endPortalShine.setScale(1, 960 / _0x3e25a9);
     this.additiveContainer.add(this._endPortalShine);
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._endPortalEmitter = null;
+      this._endPortalGameY = 240;
+      return;
+    }
     const _0x58cedb = _0x3b56d4 - 30;
     const _0x4f52b7 = {
       getRandomPoint: _0x4f04dd => {
@@ -1534,7 +1541,9 @@ window.LevelObject = class LevelObject {
     const _0x32e645 = b(_0x1be4c3);
     this._endPortalContainer.y = _0x32e645;
     this._endPortalShine.y = _0x32e645;
-    this._endPortalEmitter.y = _0x32e645;
+    if (this._endPortalEmitter) {
+      this._endPortalEmitter.y = _0x32e645;
+    }
     this._endPortalGameY = _0x1be4c3;
   }
   checkColorTriggers(_0x2b00ce) {
@@ -1820,6 +1829,18 @@ window.LevelObject = class LevelObject {
       }
     }
   }
+  clearAlphaEffects() {
+    this._activeAlphaTweens = [];
+    this._groupOpacity = {};
+    for (const gid in this._groupSprites) {
+      for (const spr of this._groupSprites[gid]) {
+        if (!spr || !spr.active) continue;
+        if (spr._eeActive) continue;
+        spr.setAlpha(1);
+        spr._eeOrigAlpha = 1;
+      }
+    }
+  }
 
   checkRotateTriggers(playerX) {
     while (this._rotateTriggerIdx < this._rotateTriggers.length) {
@@ -1909,6 +1930,10 @@ window.LevelObject = class LevelObject {
     }
   }
   stepPulseTriggers(dt, colorManager) {
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this.clearPulseEffects();
+      return;
+    }
     let i = 0;
     while (i < this._activePulses.length) {
       const pulse = this._activePulses[i];
@@ -1969,6 +1994,21 @@ window.LevelObject = class LevelObject {
     this._activePulses = [];
   }
 
+  clearPulseEffects() {
+    for (const pulse of this._activePulses || []) {
+      const trig = pulse.trig;
+      if (trig.targetType === 1 && trig.targetGroup > 0) {
+        const sprites = this._groupSprites[trig.targetGroup];
+        if (sprites) for (const spr of sprites) { if (spr && spr.active) { spr.clearTint(); spr._eePulsed = false; } }
+      }
+      if (trig.targetType === 0 && trig.targetChannel > 0) {
+        const chSprites = this._colorChannelSprites[trig.targetChannel];
+        if (chSprites) for (const spr of chSprites) { if (spr && spr.active) spr._eePulsed = false; }
+      }
+    }
+    this._activePulses = [];
+  }
+
   applyColorChannels(colorManager) {
     for (const chId in this._colorChannelSprites) {
       const sprites = this._colorChannelSprites[chId];
@@ -1986,6 +2026,10 @@ window.LevelObject = class LevelObject {
 
   resetEnterEffectTriggers() {
     this._enterEffectTriggerIdx = 0;
+    this.clearEnterEffects();
+  }
+
+  clearEnterEffects() {
     this._activeEnterEffect = 0;
     this._activeExitEffect = 0;
     for (let _0x17a21d = 0; _0x17a21d < this._sections.length; _0x17a21d++) {
@@ -2121,6 +2165,9 @@ window.LevelObject = class LevelObject {
     }
   }
   updateAudioScale(_0x337bf7) {
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      return;
+    }
     for (let _0x24afdb of this._audioScaleSprites) {
       _0x24afdb.setScale(_0x337bf7);
     }
@@ -2144,6 +2191,17 @@ window.LevelObject = class LevelObject {
         }
       } else {
         _0xOrbSpr.setScale(_baseScale);
+      }
+    }
+  }
+  clearAudioScaleEffects() {
+    for (let _0x24afdb of this._audioScaleSprites) {
+      if (_0x24afdb && _0x24afdb.active) _0x24afdb.setScale(0.1);
+    }
+    for (let _0xOrbSpr of this._orbSprites) {
+      if (_0xOrbSpr && _0xOrbSpr.active) {
+        _0xOrbSpr._hitTime = null;
+        _0xOrbSpr.setScale(0.75);
       }
     }
   }

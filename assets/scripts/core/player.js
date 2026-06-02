@@ -87,6 +87,10 @@ class StreakManager {
     this._gfx.clear();
   }
   update(_0x2acf4c) {
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this.reset();
+      return;
+    }
     if (!this._posInit) {
       this._gfx.clear();
       return;
@@ -467,6 +471,10 @@ class PlayerObject {
   }
   _updateDashAnimation(deltaTime) {
     if (!this._dashAnimationSprite) return;
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._dashAnimationSprite.setVisible(false);
+      return;
+    }
     if (this.p.isDashing) {
       this._dashAnimationSprite.setVisible(true);
       this._dashAnimationTimer += deltaTime;
@@ -660,6 +668,16 @@ class PlayerObject {
     this._waveTrail.addToContainer(this._gameLayer.container, 9);
   }
   _updateParticles(_0xc43238, _0x52b718, _0x5af874) {
+    if (window.isLowDetailMode && window.isLowDetailMode()) {
+      this._particleEmitter.stop();
+      this._flyParticleEmitter.stop();
+      this._flyParticle2Emitter.stop();
+      this._shipDragEmitter.stop();
+      this._particleActive = false;
+      this._flyParticleActive = false;
+      this._flyParticle2Active = false;
+      this._shipDragActive = false;
+    }
     if (this.p.isDead) {
       return;
     }
@@ -1207,7 +1225,9 @@ if (this.p.isFlying || this.p.isUfo) {
       const _0x31584b = this._landIdx ? this._landEmitter1 : this._landEmitter2;
       const _0x2248d5 = this._scene._playerWorldX;
       const _0x17e0bb = this.p.gravityFlipped ? b(this.p.y) - 30 : b(this.p.y) + 30;
-      _0x31584b.explode(10, _0x2248d5, _0x17e0bb);
+      if (!(window.isLowDetailMode && window.isLowDetailMode())) {
+        _0x31584b.explode(10, _0x2248d5, _0x17e0bb);
+      }
     }
   }
   killPlayer() {
@@ -1230,60 +1250,62 @@ if (this.p.isFlying || this.p.isUfo) {
     const _0x3f0446 = _0x3f4b84._getMirrorXOffset(_0x3f4b84._playerWorldX - _0x3f4b84._cameraX);
     const _0x53ac5b = b(this.p.y) + this._lastCameraY;
     const _0x281e43 = 0.9;
-    _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
-      frame: "square.png",
-      speed: {
-        min: 200,
-        max: 800
-      },
-      angle: {
-        min: 0,
-        max: 360
-      },
-      scale: {
-        start: 18 / 32,
-        end: 0
-      },
-      alpha: {
-        start: 1,
-        end: 0
-      },
-      lifespan: {
-        min: 50,
-        max: 800
-      },
-      quantity: 100,
-      stopAfter: 100,
-      blendMode: S,
-      tint: window.mainColor,
-      x: {
-        min: -20,
-        max: 20
-      },
-      y: {
-        min: -20,
-        max: 20
-      }
-    }).setScrollFactor(0).setDepth(15);
-    const _0x438d80 = _0x3f4b84.add.graphics().setScrollFactor(0).setDepth(15).setBlendMode(S);
-    const _0x4683eb = {
-      t: 0
-    };
-    _0x3f4b84.tweens.add({
-      targets: _0x4683eb,
-      t: 1,
-      duration: 500,
-      ease: "Quad.Out",
-      onUpdate: () => {
-        const _0x39f32 = 18 + _0x4683eb.t * 144;
-        const _0xc8c1 = 1 - _0x4683eb.t;
-        _0x438d80.clear();
-        _0x438d80.fillStyle(window.mainColor, _0xc8c1);
-        _0x438d80.fillCircle(_0x3f0446, _0x53ac5b, _0x39f32);
-      },
-      onComplete: () => _0x438d80.destroy()
-    });
-    this._createExplosionPieces(_0x3f0446, _0x53ac5b, _0x281e43);
+    if (!(window.isLowDetailMode && window.isLowDetailMode())) {
+      _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
+        frame: "square.png",
+        speed: {
+          min: 200,
+          max: 800
+        },
+        angle: {
+          min: 0,
+          max: 360
+        },
+        scale: {
+          start: 18 / 32,
+          end: 0
+        },
+        alpha: {
+          start: 1,
+          end: 0
+        },
+        lifespan: {
+          min: 50,
+          max: 800
+        },
+        quantity: 100,
+        stopAfter: 100,
+        blendMode: S,
+        tint: window.mainColor,
+        x: {
+          min: -20,
+          max: 20
+        },
+        y: {
+          min: -20,
+          max: 20
+        }
+      }).setScrollFactor(0).setDepth(15);
+      const _0x438d80 = _0x3f4b84.add.graphics().setScrollFactor(0).setDepth(15).setBlendMode(S);
+      const _0x4683eb = {
+        t: 0
+      };
+      _0x3f4b84.tweens.add({
+        targets: _0x4683eb,
+        t: 1,
+        duration: 500,
+        ease: "Quad.Out",
+        onUpdate: () => {
+          const _0x39f32 = 18 + _0x4683eb.t * 144;
+          const _0xc8c1 = 1 - _0x4683eb.t;
+          _0x438d80.clear();
+          _0x438d80.fillStyle(window.mainColor, _0xc8c1);
+          _0x438d80.fillCircle(_0x3f0446, _0x53ac5b, _0x39f32);
+        },
+        onComplete: () => _0x438d80.destroy()
+      });
+      this._createExplosionPieces(_0x3f0446, _0x53ac5b, _0x281e43);
+    }
     this.setCubeVisible(false);
     this.setShipVisible(false);
     this.setBallVisible(false);

@@ -185,6 +185,7 @@ class BootScene extends Phaser.Scene {
       "I don't know how this works...",
       "Why u have to be mad?",
       "It is only game...",
+      "Tiki Tiki!",
       "Unlock new icons and colors by completing achievements"
     ];
     const sliderOriginX = cx - 105;

@@ -39,8 +39,8 @@
 - **Custom Levels** - Some custom levels added in the main menu such as The Nightmare, Bloodbath, Nine Circles, and more!
 - **Icon kit** - A working Icon Kit with different colors and icons to choose from!
 - **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Mini portals and Speed portals!
-- **Extra Settings** - You can enable and disable Noclip or Show Hitboxes from the pause menu in a level, along with other settings, like the level percentage!
-- **Account System** - You can save/load all level progress, and upload it to the cloud to keep your progress on different devices!
+- **Extra Settings** - You can enable and disable Noclip, Show Hitboxes, or Low Detailed Mode from the pause menu in a level, along with other settings, like the level percentage!
+- **Account System** - You can save/load all level progress, and upload it to the cloud to keep your progress on different devices! (Broken)
 
 ## Things currently in development:
 - **Practice Mode** - Although a early version of Practice mode is already in the game, we hope to make a completely working Practice Mode with no bugs at all.
@@ -54,7 +54,7 @@
 ### Come try out the WIP Web Dashers demo at:
 **[web-dashers.github.io](https://web-dashers.github.io/)**
 
-*(Last updated 5/16/2026)*
+*(Last updated 5/27/2026)*
 ---
 > - Special thanks to all of the people that help the project by contributing, and Please support us by starring the repo, as it helps us out a ton!!
 > - Also, please report bugs found to the Discord server or the Issues page on github, just please dont be annoying about it, and don't make bug reports about bugs already being worked on or ones that are already known about.
