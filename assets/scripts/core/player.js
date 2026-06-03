@@ -2552,6 +2552,17 @@ _updateBallJump(_0x2fe319) {
                   _floorSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad, distY: _distY };
                 }
                 if (this.p.isFlying || this.p.isShip || this.p.isWave || this.p.isBird || this.p.isDart) {
+                  if (this.p.isWave || this.p.isDart) {
+                    if (window.noClip) {
+                      this.p.diedThisFrame = true;
+                      continue;
+                    }
+                    if (gameObj.objid !== 143) {
+                      this._lastDeathReason = { reason: "slope-wave-bottom", objid: gameObj.objid, type: gameObj.type, playerX: pieceWidth, playerY: playersY, objX: gameObj.x, objY: gameObj.y, left, right, top, bottom };
+                      this.killPlayer();
+                      return;
+                    }
+                  }
                   this.p.y = _surfY + _playerRadOnSlope;
                   this.p.onGround = true;
                   this.p.yVelocity = 0;
@@ -2578,6 +2589,17 @@ _updateBallJump(_0x2fe319) {
                   _ceilingSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad, distY: _distY };
                 }
                 if (this.p.isFlying || this.p.isShip || this.p.isWave || this.p.isBird || this.p.isDart) {
+                  if (this.p.isWave || this.p.isDart) {
+                    if (window.noClip) {
+                      this.p.diedThisFrame = true;
+                      continue;
+                    }
+                    if (gameObj.objid !== 143) {
+                      this._lastDeathReason = { reason: "slope-wave-top", objid: gameObj.objid, type: gameObj.type, playerX: pieceWidth, playerY: playersY, objX: gameObj.x, objY: gameObj.y, left, right, top, bottom };
+                      this.killPlayer();
+                      return;
+                    }
+                  }
                   this.p.y = _surfY - _playerRadOnSlope;
                   this.p.onGround = true;
                   this.p.yVelocity = 0;
