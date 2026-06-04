@@ -2622,21 +2622,18 @@ _updateWaveJump() {
                 if (!_floorSlopeHit || _distY < _floorSlopeHit.distY || (_distY === _floorSlopeHit.distY && _surfY > _floorSlopeHit.surfY)) {
                   _floorSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad, distY: _distY };
                 }
-                if (this.p.isFlying || this.p.isShip || this.p.isWave || this.p.isBird || this.p.isDart) {
-                  this.p.y = _surfY + _playerRadOnSlope;
-                  this.p.onGround = true;
-                  this.p.yVelocity = 0;
-                  this.p.canJump = true;
-                  this.p.collideBottom = _surfY;
-                  this.hitGround();
-                  this.p.isOnSlope = false;
-                  this.p.wasOnSlope = false;
-                  this.p.slopeVelocity = 0;
-                  this.p.currentSlopeAngle = 0;
-                  _floorSlopeHit = null;
-                  _0x30410f = true;
-                  continue;
+                if (this.p.isWave || this.p.isDart) {
+                  if (window.noClip) {
+                    this.p.diedThisFrame = true;
+                    continue;
+                  }
+                  if (gameObj.objid !== 143) {
+                    this._lastDeathReason = { reason: "slope-wave-bottom", objid: gameObj.objid, type: gameObj.type, playerX: pieceWidth, playerY: playersY, objX: gameObj.x, objY: gameObj.y, left, right, top, bottom };
+                    this.killPlayer();
+                    return;
+                  }
                 }
+                // For ship/UFO, we just continue recording the _floorSlopeHit so they slide properly
                 continue;
               }
             } else {
@@ -2648,21 +2645,18 @@ _updateWaveJump() {
                 if (!_ceilingSlopeHit || _distY < _ceilingSlopeHit.distY || (_distY === _ceilingSlopeHit.distY && _surfY < _ceilingSlopeHit.surfY)) {
                   _ceilingSlopeHit = { obj: gameObj, surfY: _surfY, playerRad: _playerRadOnSlope, angle: _slopeAngleRad, distY: _distY };
                 }
-                if (this.p.isFlying || this.p.isShip || this.p.isWave || this.p.isBird || this.p.isDart) {
-                  this.p.y = _surfY - _playerRadOnSlope;
-                  this.p.onGround = true;
-                  this.p.yVelocity = 0;
-                  this.p.canJump = true;
-                  this.p.collideTop = _surfY;
-                  this.hitGround();
-                  this.p.isOnSlope = false;
-                  this.p.wasOnSlope = false;
-                  this.p.slopeVelocity = 0;
-                  this.p.currentSlopeAngle = 0;
-                  _ceilingSlopeHit = null;
-                  _0x30410f = true;
-                  continue;
+                if (this.p.isWave || this.p.isDart) {
+                  if (window.noClip) {
+                    this.p.diedThisFrame = true;
+                    continue;
+                  }
+                  if (gameObj.objid !== 143) {
+                    this._lastDeathReason = { reason: "slope-wave-top", objid: gameObj.objid, type: gameObj.type, playerX: pieceWidth, playerY: playersY, objX: gameObj.x, objY: gameObj.y, left, right, top, bottom };
+                    this.killPlayer();
+                    return;
+                  }
                 }
+                // For ship/UFO, we just continue recording the _ceilingSlopeHit so they slide properly
                 continue;
               }
             }
@@ -2682,13 +2676,7 @@ _updateWaveJump() {
         }
       }
     }
-    if (this.p.isFlying || this.p.isShip || this.p.isWave || this.p.isBird || this.p.isDart) {
-      this.p.isOnSlope = false;
-      this.p.wasOnSlope = false;
-      this.p.slopeVelocity = 0;
-      this.p.currentSlopeAngle = 0;
-      return;
-    }
+
     if (_floorSlopeHit) {
       const gameObj = _floorSlopeHit.obj;
       this.p.y = _floorSlopeHit.surfY + _floorSlopeHit.playerRad;
