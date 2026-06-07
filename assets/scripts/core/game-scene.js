@@ -4054,10 +4054,10 @@ _buildSettingsPopup() {
     let pageContainer = this.add.container(0, 0);
     innerContainer.add(pageContainer);
 
-    const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
+    const createToggle = (container, x, y, label, getVal, setVal, callback = null, fontSize = 25) => {
         const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
         const check = this.add.image(x + checkOffset, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
-        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, fontSize).setOrigin(0, 0.5);
         container.add([check, txt]);
 
         this._makeBouncyButton(check, 0.8, () => {
@@ -4267,25 +4267,27 @@ _buildSettingsPopup() {
             (v) => window.solidWave = v
         );
         
-        createToggle(container, column2X, startY + (spacingY * 1), "Create Object IDs", 
+        createToggle(container, column2X, startY, "Create Object ID labels", 
             () => window.createObjectIds, 
-            (v) => window.createObjectIds = v
+            (v) => window.createObjectIds = v,
+            null, 17
         );
 
-        createToggle(container, column2X, startY + (spacingY * 2), "Show Object IDs", 
+        createToggle(container, column2X, startY + (spacingY), "Show Object ID labels", 
             () => window.showObjectIds, 
-            (v) => window.showObjectIds = v
+            (v) => window.showObjectIds = v,
+            null, 17
         );
 
-        createToggle(container, column1X, startY + (spacingY * 5), "Show CPS", 
-            () => window.showCPS, 
+        createToggle(container, column1X, startY + (spacingY * 5), "Show CPS",
+            () => window.showCPS,
             (v) => window.showCPS = v
         );
 
-        createToggle(container, column2X, startY, "Show Gravity", 
+        createToggle(container, column2X, startY + (spacingY * 2),"Show Gravity", 
             () => window.showGravityArrow, 
             (v) => {
-                window.showGravityArrow = v;
+                window.showGravityArrow = v,
                 localStorage.setItem("showGravityArrow", v.toString());
                 if (this._gravityArrow) {
                     this._gravityArrow.setVisible(v);
@@ -4293,7 +4295,7 @@ _buildSettingsPopup() {
             }
         );
 
-        const gravityInfoBtn = this.add.image(column2X - 157, startY - 37, "GJ_GameSheet03", "GJ_infoIcon_001.png")
+        const gravityInfoBtn = this.add.image(column2X - 157, startY + 109, "GJ_GameSheet03", "GJ_infoIcon_001.png")
             .setScale(0.45)
             .setAngle(90)
             .setInteractive();
@@ -7755,10 +7757,10 @@ _initEditorPauseMenu = () => {
         }, () => true);
     });
 
-    const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
+    const createToggle = (container, x, y, label, getVal, setVal, callback = null, fontSize = 25) => {
         const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
         const check = this.add.image(x - 120, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
-        const txt = this.add.bitmapText(x - 70, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, fontSize).setOrigin(0, 0.5);
         container.add([check, txt]);
 
         this._makeBouncyButton(check, 0.8, () => {
