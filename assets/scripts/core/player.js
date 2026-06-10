@@ -1712,7 +1712,7 @@ class PlayerObject {
       this._updateUfoJump(_0x3d1c6f);
     } else if (this.p.isSpider) {
       this._updateSpiderJump(_0x3d1c6f);
-    } else if (this.p.upKeyDown && this.p.canJump && !this.p.touchingRing) {
+    } else if (this.p.upKeyDown && this.p.canJump) {
       this.p.isJumping = true;
       this.p.onGround = false;
       this.p.canJump = false;
