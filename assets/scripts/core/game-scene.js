@@ -1572,7 +1572,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 
                 if (!songUrl && isNCS) {
                   const songId = levelData.customSongID;
-                  const path = `/music/${songId}.mp3`;
+                  const path = `/music/${songId}.ogg`;
                       
                   function generateCdnAuth(path) {
                       const SALT = "8501f9c2-75ba-4230-8188-51037c4da102";
