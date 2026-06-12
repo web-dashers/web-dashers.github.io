@@ -2821,10 +2821,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const groundFrame = this.textures.getFrame("groundSquare_" + groundId + "_001.png");
     const tileW = groundFrame ? groundFrame.width : 1012;
     const numTiles = Math.ceil(sw / tileW) + 2;
-    const groundTintHex = (colorHex) => {
-      const r = Math.round(((colorHex >> 16) & 0xff) * 0.45);
-      const g = Math.round(((colorHex >> 8)  & 0xff) * 0.45);
-      const b = Math.round(( colorHex        & 0xff) * 0.45);
+    const groundTintHex = (colorHex) => {1
+      const r = Math.round(((colorHex >> 16) & 0xff) * 0.7);
+      const g = Math.round(((colorHex >> 8)  & 0xff) * 0.7);
+      const b = Math.round(( colorHex        & 0xff) * 0.7);
       return (r << 16) | (g << 8) | b;
     };
     const staticGroundTiles = [];
