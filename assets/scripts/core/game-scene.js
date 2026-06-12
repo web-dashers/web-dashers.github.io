@@ -6066,6 +6066,11 @@ _buildSettingsPopup() {
         if (this._state.isBall) {
           const ballOnSurface = this._state.onGround || this._state.onCeiling;
           this._player.updateBallRoll(horizontalDelta, ballOnSurface);
+        } else if (this._state.isOnSlope) {
+          this._player.updateSlopeRotation(verticalDelta);
+        } else if ((this._state.wasOnSlope || this._state.slopeExitRotationTarget !== null) && this._state.onGround && !this._state.isOnSlope) {
+          // Just left a slope; ease rotation back to flat instead of snapping.
+          this._player.updateSlopeExitRotation(verticalDelta);
         } else if (this._state.onGround) {
           this._player.updateGroundRotation(verticalDelta);
         } else if (this._player.rotateActionActive) {

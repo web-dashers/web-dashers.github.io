@@ -23,6 +23,7 @@ window.orbClickShrinkTime = 250;
 window.orbParticleSize = 3.5;
 
 const urlParams = new URLSearchParams(window.location.search);
+window.debugCollisions = urlParams.has("debugCollisions");
 if (urlParams.has('id')) {
   window.levelID = urlParams.get('id');
 }
