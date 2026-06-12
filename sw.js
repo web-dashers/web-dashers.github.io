@@ -1,7 +1,6 @@
 const GHPATH = '/zainojdaf/web-dashers.github.io'; 
 const CACHE_NAME = 'web-dashers-dynamic-v1';
 
-// We cachen handmatig alleen de absolute basis om de app op te starten
 const INITIAL_CORE = [
   `${GHPATH}/`,
   `${GHPATH}/index.html`
@@ -15,26 +14,24 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// DYNAMISCH CACHEN: Dit vangt ELK bestand op dat de game probeert te laden
 self.addEventListener('fetch', (event) => {
-  // Alleen GET-verzoeken cachen (bestanden, audio, scripts)
+ // (files, audio, scripts)
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // 1. Als het bestand al in de cache staat, laad het direct (werkt offline!)
+      // if the file is loaded it works offline :)
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      // 2. Staat het er niet in? Haal het op van internet en sla het direct op voor de volgende keer
       return fetch(event.request).then((networkResponse) => {
-        // Controleer of het verzoek geldig is
+        // Test if the request works (this is important)
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
           return networkResponse;
         }
 
-        // Sla een kopie van het bestand op in de cache
+        // makes a copy of the file (thats how it works offline heh)
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
@@ -42,7 +39,7 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
-        // Fallback als je volledig offline bent en het bestand niet in de cache staat
+        // Fallback if you are offline and you dont have ANY files loaded
         return caches.match(`${GHPATH}/index.html`);
       });
     })
