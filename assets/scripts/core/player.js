@@ -50,6 +50,7 @@ class PlayerState {
     this.holdSlopeExitRotation = false;
     this.suppressNextFallRotate = false;
     this.slopeExitJumpLandingDir = 0;
+    this.slopeExitJumpPaused = false;
     this.ignorePortals = false;
   }
 }
@@ -1206,6 +1207,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.isJumping = false;
     this.p.queuedHold = false;
     this.p.suppressNextFallRotate = false;
+    this.p.slopeExitJumpPaused = false;
     if (this.p.slopeExitJumpLandingDir !== 0 && !this.p.isBall && !this.p.isWave && !this.p.isSpider) {
       const _sideStep = Math.PI / 2;
       const _scaledRotation = this._rotation / _sideStep;
@@ -1619,6 +1621,12 @@ if (this.p.isFlying || this.p.isUfo) {
       this.p.onGround = false;
       this.p.canJump = false;
   }
+  pauseSlopeExitJump() {
+    const iscube = !this.p.isFlying && !this.p.isBall && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isRobot && !this.p.isSwing && !this.p.isBird && !this.p.isDart;
+    if (iscube && (this.p.wasOnSlope || this.p.isOnSlope || this.p.slopeExitGrace > 0)) {
+      this.p.slopeExitJumpPaused = true;
+    }
+  }
   runRotateAction() {
     if (this.p.holdSlopeExitRotation && this.p.onGround) {
       this.p.suppressNextFallRotate = true;
@@ -1810,6 +1818,7 @@ if (this.p.isFlying || this.p.isUfo) {
           }
         }
       }
+      this.pauseSlopeExitJump();
       this.runRotateAction();
     } else if (this.p.isJumping) {
       this.p.yVelocity -= p * _0x3d1c6f * this.flipMod();
@@ -2293,6 +2302,7 @@ _updateWaveJump() {
               if (_padNextTickVel !== null) {
                 this.p.pendingVelocity = _padNextTickVel;
               }
+              this.pauseSlopeExitJump();
               this.runRotateAction();
               _boostedThisStep = true;
             }
@@ -2326,6 +2336,7 @@ _updateWaveJump() {
                 this.p.isJumping = false;
                 this.p.upKeyPressed = false;
                 this.p.queuedHold = false;
+                this.pauseSlopeExitJump();
                 this.runRotateAction();
                 _boostedThisStep = true;
                 try {
@@ -2365,6 +2376,7 @@ _updateWaveJump() {
                 this.p.onGround = false;
                 this.p.canJump = false;
                 this.p.isJumping = false;
+                this.pauseSlopeExitJump();
                 this.runRotateAction();
                 _boostedThisStep = true;
                 try {
@@ -2461,6 +2473,7 @@ _updateWaveJump() {
                 if (_orbId === 1330) {
                   this.p.wasBoosted = false;
                 }
+                this.pauseSlopeExitJump();
                 this.runRotateAction();
                 _boostedThisStep = true;
                 if (_flipAfter) {
@@ -2686,7 +2699,7 @@ _updateWaveJump() {
               const _playerBot = playersY - _playerRadOnSlope + gamemodeAddition;
               const _lastBot = playersLastY - _playerRadOnSlope + gamemodeAddition;
               const _flightEscapingFloorSlope = this.p.isFlying && this.p.upKeyDown && _playerBot < _surfY - 2 && _lastBot < _surfY - 2;
-              const _slopeStickyGrace = !_usesFlightSlopeResolve && this.p.slopeExitGrace > 0;
+              const _slopeStickyGrace = !_usesFlightSlopeResolve && this.p.slopeExitGrace > 0 && !this.p.slopeExitJumpPaused;
               if (_canSnapToSlope && !_flightEscapingFloorSlope && (_playerBot >= _surfY || _lastBot >= _surfY) && (this.p.yVelocity <= 0 || this.p.onGround || _usesFlightSlopeResolve || _slopeStickyGrace)) {
                 const _targetY = _surfY + _playerRadOnSlope;
                 const _distY = Math.abs(_targetY - playersY);
@@ -2699,7 +2712,7 @@ _updateWaveJump() {
               const _playerTop = playersY + _playerRadOnSlope - gamemodeAddition;
               const _lastTop = playersLastY + _playerRadOnSlope - gamemodeAddition;
               const _flightEscapingCeilingSlope = this.p.isFlying && !this.p.upKeyDown && _playerTop > _surfY + 2 && _lastTop > _surfY + 2;
-              const _slopeStickyGrace = !_usesFlightSlopeResolve && this.p.slopeExitGrace > 0;
+              const _slopeStickyGrace = !_usesFlightSlopeResolve && this.p.slopeExitGrace > 0 && !this.p.slopeExitJumpPaused;
               if (_canSnapToSlope && !_flightEscapingCeilingSlope && (_playerTop <= _surfY || _lastTop <= _surfY) && (this.p.yVelocity >= 0 || this.p.onGround || _usesFlightSlopeResolve || _slopeStickyGrace)) {
                 const _targetY = _surfY - _playerRadOnSlope;
                 const _distY = Math.abs(_targetY - playersY);
@@ -2804,9 +2817,9 @@ _updateWaveJump() {
       const _nearSlopeExit = this.p.mirrored
         ? pieceWidth < this.p.currentSlopeExitX + 18
         : pieceWidth > this.p.currentSlopeExitX - 18;
-      if (this.p.slopeExitGrace === 20 && _nearSlopeExit && this.p.currentSlopeUphill && !this.p.isWave && !this.p.isUfo && !this.p.isSpider) {
+      if (this.p.slopeExitGrace === 20 && _nearSlopeExit && this.p.currentSlopeUphill && !this.p.slopeExitJumpPaused && !this.p.isWave && !this.p.isUfo && !this.p.isSpider) {
         const _slopeSteepness = Math.max(0.5, Math.min(1.6, (this.p.lastSlopeAngle || Math.PI / 4) / (Math.PI / 4)));
-        const _slopeExitBoost = this.p.isFlying ? 2.8 * _slopeSteepness : 15 * _slopeSteepness;
+        const _slopeExitBoost = this.p.isFlying ? 2.8 * _slopeSteepness : 13.5 * _slopeSteepness;
         const _boostVel = this.flipMod() * _slopeExitBoost;
         if (this.p.gravityFlipped) {
           this.p.yVelocity = Math.min(this.p.yVelocity, _boostVel);
