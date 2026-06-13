@@ -55,6 +55,17 @@
 </head>
 
 <body>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Offline modus geactiveerd!'))
+          .catch(err => console.error('Offline modus mislukt:', err));
+      });
+    }
+  </script>
+
 </body>
 
 </html>
