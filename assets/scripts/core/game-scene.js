@@ -6078,7 +6078,8 @@ _buildSettingsPopup() {
       if (!this._player._scene._slideIn){
         if (!this._player._hitboxTrail) this._player._hitboxTrail = [];
         if (!this._player.p.isDead) {
-          this._player._hitboxTrail.push({ x: this._playerWorldX, y: this._player.p.y, rotation: this._player._rotation });
+          const _trailSize = this._player.p.isMini ? 18 : 30;
+          this._player._hitboxTrail.push({ x: this._playerWorldX, y: this._player.p.y, rotation: this._player._rotation, size: _trailSize, isWave: this._player.p.isWave });
           if (this._player._hitboxTrail.length > 180) this._player._hitboxTrail.shift();
         }
       }
