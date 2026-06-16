@@ -8545,7 +8545,7 @@
                     },
                     "spriteSourceSize": {
                         "x": 2,
-                        "y": 0,
+                        "y": 2,
                         "w": 62,
                         "h": 61
                     },
@@ -9268,6 +9268,27 @@
                         "y": 1968,
                         "w": 62,
                         "h": 61
+                    }
+                },
+                {
+                    "filename": "gj_githubIcon_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 62,
+                        "h": 62
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 2,
+                        "w": 62,
+                        "h": 62
+                    },
+                    "frame": {
+                        "x": 1478,
+                        "y": 1867,
+                        "w": 62,
+                        "h": 62
                     }
                 },
                 {

@@ -438,21 +438,50 @@ class GameScene extends Phaser.Scene {
       window.open("https://geometrydash.com", "_blank");
     }, () => this._menuActive);
     const _socialIconDefs = [
-      { frame: "gj_fbIcon_001.png",      url: "https://www.facebook.com/RobTopGames",  angle: 0,   row: 0, col: 0 },
-      { frame: "gj_twIcon_001.png",      url: "https://x.com/rohanis0000gd",       angle: -90, flipX: true, row: 0, col: 1 },
-      { frame: "gj_ytIcon_001.png",      url: "https://www.youtube.com/@rohanis0000gd",  angle: 0,   row: 0, col: 2 },
-      { frame: "gj_twitchIcon_001.png",  url: "https://www.twitch.tv/robtopgames",     angle: -90, flipX: true, row: 0, col: 3 },
-      { frame: "gj_discordIcon_001.png", url: "https://discord.gg/TfEzAVWPSJ",        angle: 90,  row: 1, col: 3 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 0 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 1 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 2 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 3 },
+
+      { frame: "gj_twIcon_001.png",      url: "https://x.com/rohanis0000gd",                          angle: -90, flipX: true, row: 1, col: 0 },
+      { frame: "gj_ytIcon_001.png",      url: "https://www.youtube.com/@rohanis0000gd",               angle: 0,                row: 1, col: 1 },
+      { frame: "gj_tiktokIcon_001.png",  url: "https://www.tiktok.com/@rohanis00000",                 angle: -90, flipX: true, row: 1, col: 2 },
+      { frame: "gj_githubIcon_001.png",  url: "https://github.com/web-dashers/web-dashers.github.io", angle: 0,                row: 1, col: 3 },
+
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 0 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 1 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 2 },
+      { frame: "gj_discordIcon_001.png", url: "https://discord.gg/TfEzAVWPSJ",                        angle: 90,               row: 2, col: 3 },
+
+
+      //{ frame: "gj_instaIcon_001.png",   url: "https://www.instagram.com/",                           angle: -90, flipX: true, row: 1, col: 3 },
+      //{ frame: "gj_twitchIcon_001.png",  url: "https://www.twitch.tv/",                               angle: -90, flipX: true, row: 0, col: 0 },
+      //{ frame: "gj_fbIcon_001.png",      url: "https://www.facebook.com/",                            angle: 0,                row: 0, col: 0 },
+      //{ frame: "gj_rdIcon_001.png",      url: "https://www.reddit.com/r/geometrydash/",               angle: -90, flipX: true, row: 0, col: 0 },
+
     ];
     const _socialScale = 0.75;
-    this._socialIcons = _socialIconDefs.map(def => {
-      const icon = this.add.image(0, 0, "GJ_GameSheet03", def.frame)
-        .setScrollFactor(0).setDepth(30).setScale(_socialScale).setAngle(def.angle).setFlipX(!!def.flipX).setInteractive();
-      this._makeBouncyButton(icon, _socialScale, () => {
-        window.open(def.url, "_blank");
-      }, () => this._menuActive);
-      return icon;
-    });
+    this._socialIcons = _socialIconDefs.map((def, index) => {
+    const icon = this.add.image(0, 0, "GJ_GameSheet03", def.frame)
+      .setScrollFactor(0)
+      .setDepth(30)
+      .setScale(_socialScale)
+      .setAngle(def.angle)
+      .setFlipX(!!def.flipX);
+
+    if (!def.frame || def.frame.trim() === "") {
+      icon.setVisible(false);
+      icon.setActive(false);
+      return icon; 
+    }
+    icon.setInteractive();
+    this._makeBouncyButton(icon, _socialScale, () => {
+      window.open(def.url, "_blank");
+    }, () => this._menuActive);
+
+    return icon;
+  });
+
     this._copyrightText = this.add.text(0, 625, "© 2026 RobTop Games · geometrydash.com", {
       fontSize: "14px",
       color: "#ffffff",
@@ -5773,8 +5802,10 @@ _buildSettingsPopup() {
     if (this._socialIcons && this._socialIcons.length > 0) {
       const _iconSpacing = 52;
       const _originX = 65;
-      const _originY = 530;
-      const _layout = [{row:0,col:0},{row:0,col:1},{row:0,col:2},{row:0,col:3},{row:1,col:3}];
+      const _originY = 478;
+      const _layout = [{row:0,col:0},{row:0,col:1},{row:0,col:2},{row:0,col:3},
+                       {row:1,col:0},{row:1,col:1},{row:1,col:2},{row:1,col:3},
+                       {row:2,col:0},{row:2,col:1},{row:2,col:2},{row:2,col:3},{row:2,col:4}];
       this._socialIcons.forEach((icon, i) => {
         icon.x = _originX + _layout[i].col * _iconSpacing;
         icon.y = _originY + _layout[i].row * _iconSpacing;
