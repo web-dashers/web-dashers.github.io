@@ -58,6 +58,7 @@ class PracticeMode {
       groundY: scene._level._groundY,
       ceilingY: scene._level._ceilingY,
       speed: playerSpeed,
+      physicsFrame: scene._physicsFrame,
       timestamp: Date.now()
     };
     this.checkpoints.push(checkpoint);
@@ -97,6 +98,184 @@ class PracticeMode {
       return this.checkpoints[this.checkpoints.length - 1];
     }
     return null;
+  }
+}
+
+class MacroBot {
+  constructor(scene) {
+    this.scene = scene;
+    this.resetAll();
+  }
+
+  resetAll() {
+    this.recording = false;
+    this.playing = false;
+
+    this.cursor = 0;
+    this.isDown = false;
+
+    this.inputs = [];
+
+    this.meta = {
+      author: "Web Dashers",
+      level: "", // ill fix ts later
+      version: 1
+    };
+  }
+
+  startRecording(meta = {}) {
+    this.resetAll();
+    this.recording = true;
+    this.meta = { ...meta };
+  }
+
+  stopRecording() {
+    this.recording = false;
+    return this.exportObject();
+  }
+
+  clearRecording() {
+    this.inputs = [];
+    this.cursor = 0;
+    this.isDown = false;
+  }
+
+  rollbackRecording(currentFrame) {
+    this.inputs = this.inputs.filter(ev => (ev.frame ?? 0) <= currentFrame);
+    this.cursor = 0;
+    this.isDown = false;
+  }
+
+  clearPlayback() {
+    this.cursor = 0;
+    this.isDown = false;
+  }
+
+  rollbackPlayback(currentFrame) {
+    if (!this.inputs.length) return;
+
+    this.cursor = 0;
+    this.isDown = false;
+
+    this.scene._releaseButton(true);
+
+    while (
+      this.cursor < this.inputs.length &&
+      (this.inputs[this.cursor].frame ?? 0) <= currentFrame
+    ) {
+      const ev = this.inputs[this.cursor++];
+
+      if (ev.down) {
+        this.scene._pushButton(true);
+        this.isDown = true;
+      } else {
+        this.scene._releaseButton(true);
+        this.isDown = false;
+      }
+    }
+  }
+
+  startPlayback(macroData) {
+    const macro = typeof macroData === "string" ? JSON.parse(macroData) : macroData;
+
+    this.resetAll();
+    this.playing = true;
+
+    this.meta = {
+      ...this.meta,
+      ...(macro || {})
+    };
+
+    this.inputs = Array.isArray(macro?.inputs) ? macro.inputs.slice() : [];
+    this.inputs.sort((a, b) => (a.frame ?? 0) - (b.frame ?? 0));
+
+    this.cursor = 0;
+    this.isDown = false;
+  }
+
+  stopPlayback() {
+    this.playing = false;
+    this.cursor = 0;
+    this.isDown = false;
+  }
+
+  recordEdge(down, currentFrame) {
+    if (!this.recording) return;
+
+    const last = this.inputs[this.inputs.length - 1];
+    if (last && last.down === !!down && last.frame === currentFrame) {
+      return;
+    }
+
+    this.inputs.push({
+      frame: currentFrame,
+      down: !!down
+    });
+
+    this.isDown = !!down;
+  }
+
+  step(currentFrame) {
+    if (!this.playing) return;
+
+    while (
+      this.cursor < this.inputs.length &&
+      (this.inputs[this.cursor].frame ?? 0) <= currentFrame
+    ) {
+      const ev = this.inputs[this.cursor++];
+
+      if (ev.down) {
+        if (!this.isDown) {
+          this.scene._pushButton(true);
+          this.isDown = true;
+        }
+      } else {
+        if (this.isDown) {
+          this.scene._releaseButton(true);
+          this.isDown = false;
+        }
+      }
+    }
+  }
+
+  exportObject() {
+    return {
+      meta: this.meta,
+      inputs: this.inputs.slice()
+    };
+  }
+
+  exportString(pretty = false) {
+    return JSON.stringify(this.exportObject(), null, pretty ? 2 : 0);
+  }
+
+  download(filename = "macro.wbgdr") {
+    const blob = new Blob([this.exportString(true)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  importFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const text = String(event.target.result || "");
+          const macro = JSON.parse(text);
+          resolve(macro);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(reader.error || new Error("Failed to read macro file"));
+      reader.readAsText(file);
+    });
   }
 }
 
@@ -217,7 +396,55 @@ class GameScene extends Phaser.Scene {
     this._player.setShipVisible(false);
     this._player.setBallVisible(false);
     this._logo = this.add.image(0, 100, "GJ_WebSheet", "GJ_logo_001.png").setScrollFactor(0).setDepth(30);
-    this._robLogo = this.add.image(160, 555, "GJ_WebSheet", "RobTopLogoBig_001.png").setScrollFactor(0).setDepth(30).setScale(0.9);
+    this._robLogo = this.add.image(110, 595, "GJ_WebSheet", "RobTopLogoBig_001.png").setScrollFactor(0).setDepth(30).setScale(0.525).setInteractive();
+    this._makeBouncyButton(this._robLogo, 0.525, () => {
+      window.open("https://geometrydash.com", "_blank");
+    }, () => this._menuActive);
+    const _socialIconDefs = [
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 0 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 1 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 2 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 3 },
+
+      { frame: "gj_twIcon_001.png",      url: "https://x.com/rohanis0000gd",                          angle: -90, flipX: true, row: 1, col: 0 },
+      { frame: "gj_ytIcon_001.png",      url: "https://www.youtube.com/@rohanis0000gd",               angle: 0,                row: 1, col: 1 },
+      { frame: "gj_tiktokIcon_001.png",  url: "https://www.tiktok.com/@rohanis00000",                 angle: -90, flipX: true, row: 1, col: 2 },
+      { frame: "gj_githubIcon_001.png",  url: "https://github.com/web-dashers/web-dashers.github.io", angle: 0,                row: 1, col: 3 },
+
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 0 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 1 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 2 },
+      { frame: "gj_discordIcon_001.png", url: "https://discord.gg/TfEzAVWPSJ",                        angle: 90,               row: 2, col: 3 },
+
+
+      //{ frame: "gj_instaIcon_001.png",   url: "https://www.instagram.com/",                           angle: -90, flipX: true, row: 1, col: 3 },
+      //{ frame: "gj_twitchIcon_001.png",  url: "https://www.twitch.tv/",                               angle: -90, flipX: true, row: 0, col: 0 },
+      //{ frame: "gj_fbIcon_001.png",      url: "https://www.facebook.com/",                            angle: 0,                row: 0, col: 0 },
+      //{ frame: "gj_rdIcon_001.png",      url: "https://www.reddit.com/r/geometrydash/",               angle: -90, flipX: true, row: 0, col: 0 },
+
+    ];
+    const _socialScale = 0.75;
+    this._socialIcons = _socialIconDefs.map((def, index) => {
+    const icon = this.add.image(0, 0, "GJ_GameSheet03", def.frame)
+      .setScrollFactor(0)
+      .setDepth(30)
+      .setScale(_socialScale)
+      .setAngle(def.angle)
+      .setFlipX(!!def.flipX);
+
+    if (!def.frame || def.frame.trim() === "") {
+      icon.setVisible(false);
+      icon.setActive(false);
+      return icon; 
+    }
+    icon.setInteractive();
+    this._makeBouncyButton(icon, _socialScale, () => {
+      window.open(def.url, "_blank");
+    }, () => this._menuActive);
+
+    return icon;
+  });
+
     this._copyrightText = this.add.text(0, 625, "© 2026 RobTop Games · geometrydash.com", {
       fontSize: "14px",
       color: "#ffffff",
@@ -259,23 +486,23 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._makeBouncyButton(this._menuUpdateLogBtn, 0.64, () => {
       this._buildUpdateLogPopup();
     }, () => this._menuActive && !this._updateLogPopup);
-    this._menuSettingsBtn = this.add.image(centerX + 110, screenHeight - 80, "GJ_GameSheet03", "GJ_optionsBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.8).setInteractive().setRotation(-Math.PI / 2).setFlipX(true);
-    this._expandHitArea(this._menuSettingsBtn, 1.2);
-    this._makeBouncyButton(this._menuSettingsBtn, 0.8, () => {
+    this._menuSettingsBtn = this.add.image(centerX + 92, screenHeight - 90, "GJ_GameSheet03", "GJ_optionsBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive().setRotation(-Math.PI / 2).setFlipX(true);
+    this._expandHitArea(this._menuSettingsBtn, 1);
+    this._makeBouncyButton(this._menuSettingsBtn, 1, () => {
       this._showSettingsScreen();
     }, () => this._menuActive && !this._settingsPopup);
-    this._menuStatsBtn = this.add.image(centerX + 200, screenHeight - 80, "GJ_GameSheet03", "GJ_statsBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.8).setInteractive().setRotation(-Math.PI / 2).setFlipX(true);
-    this._expandHitArea(this._menuStatsBtn, 1.2);
-    this._makeBouncyButton(this._menuStatsBtn, 0.8, () => {
+    this._menuStatsBtn = this.add.image(centerX + 202, screenHeight - 90, "GJ_GameSheet03", "GJ_statsBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive().setRotation(-Math.PI / 2).setFlipX(true);
+    this._expandHitArea(this._menuStatsBtn, 1);
+    this._makeBouncyButton(this._menuStatsBtn, 1, () => {
       this._showStatsScreen();
     }, () => this._menuActive);
-    this._menuAchievementsBtn = this.add.image(centerX + 22, screenHeight - 80, "GJ_GameSheet03", "GJ_achBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.8).setInteractive().setTint(0x666666);
-    this._expandHitArea(this._menuAchievementsBtn, 1.2);
-    this._makeBouncyButton(this._menuAchievementsBtn, 0.8, () => {
+    this._menuAchievementsBtn = this.add.image(centerX - 12, screenHeight - 90, "GJ_GameSheet03", "GJ_achBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive().setTint(0x666666);
+    this._expandHitArea(this._menuAchievementsBtn, 1);
+    this._makeBouncyButton(this._menuAchievementsBtn, 1, () => {
     }, () => this._menuActive);
-    this._menuNewgroundsBtn = this.add.image(centerX + 290, screenHeight - 80, "GJ_GameSheet03", "GJ_ngBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.8).setInteractive().setRotation(-Math.PI / 2).setFlipX(true);
-    this._expandHitArea(this._menuNewgroundsBtn, 1.2);
-    this._makeBouncyButton(this._menuNewgroundsBtn, 0.8, () => {
+    this._menuNewgroundsBtn = this.add.image(centerX + 312, screenHeight - 90, "GJ_GameSheet03", "GJ_ngBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive().setRotation(-Math.PI / 2).setFlipX(true);
+    this._expandHitArea(this._menuNewgroundsBtn, 1);
+    this._makeBouncyButton(this._menuNewgroundsBtn, 1, () => {
       this._buildNewgroundsPopup();
     }, () => this._menuActive && !this._newgroundsPopup);
     this._menuGlitter = this.add.particles(0, 0, "GJ_WebSheet", {
@@ -305,7 +532,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         max: 100
       }
     }).setScrollFactor(0).setDepth(29);
-    this._playBtn = this.add.image(0, 0, "GJ_WebSheet", "GJ_playBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
+    this._playBtn = this.add.image(0, 0, "GJ_GameSheet04", "GJ_playBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
     this._playBtnPressed = false;
     this._makeBouncyButton(this._playBtn, 1, () => {
       this._openLevelSelect();
@@ -1153,6 +1380,23 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           }
         } else if (event.key === "Enter") {
           _doSearch();
+          } else if (event.ctrlKey || event.metaKey) {
+          if (event.key === "c" || event.key === "C") {
+            event.preventDefault();
+            navigator.clipboard.writeText(inputText);
+          } else if (event.key === "v" || event.key === "V") {
+            event.preventDefault();
+            navigator.clipboard.readText().then(pastedText => {
+              const filtered = pastedText.split('').filter(c => allowedChars.includes(c)).join('');
+              if (filtered.length > 0) {
+                const availableSpace = inputMaxLen - inputText.length;
+                inputText += filtered.slice(0, availableSpace);
+                _updateInputDisplay();
+              }
+            }).catch(() => {});
+          } else if (event.key === "a" || event.key === "A") {
+            event.preventDefault();
+          }
         } else if (event.key.length === 1 && allowedChars.includes(event.key) && !event.ctrlKey) {
           if (inputText.length < inputMaxLen) {
             inputText += event.key;
@@ -1232,68 +1476,237 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (!rawResponse || rawResponse === "-1" || !rawResponse.includes(":")) {
           return;
         }
-        const gdMap = {};
-        const _gdMatches = [...rawResponse.matchAll(/(?:^|:)(\d+):/g)];
-        for (let i = 0; i < _gdMatches.length; i++) {
-          const valueStart = _gdMatches[i].index + _gdMatches[i][0].length;
-          const valueEnd   = i + 1 < _gdMatches.length ? _gdMatches[i + 1].index : rawResponse.length;
-          gdMap[_gdMatches[i][1]] = rawResponse.slice(valueStart, valueEnd);
+
+        const responseSegments = rawResponse.split("#");
+        const lvlParts = responseSegments[0].split(":");
+        const lvlMap = {};
+        for (let i = 0; i + 1 < lvlParts.length; i += 2) {
+          lvlMap[lvlParts[i]] = lvlParts[i + 1];
         }
-        const levelString   = gdMap["4"] || null;
-        const levelName     = gdMap["2"] || "Online Level";
-        const levelIdParsed = gdMap["1"] || levelId;
-        const songIdRaw     = (gdMap["35"] || "").trim();
-        const isCustomSong  = !!songIdRaw && songIdRaw !== "0";
-        const officialSongId = gdMap["12"] || "0";
-        const songKey = isCustomSong ? `ng_song_${songIdRaw}` : window.allLevels[officialSongId][0];
+
+        const levelData = {
+          // Core Level Info
+          id:             lvlMap["1"] || levelId,
+          title:          (lvlMap["2"] || "Online Level").trim(),
+          description:    lvlMap["3"] ? atob(lvlMap["3"].replace(/-/g, '+').replace(/_/g, '/')) : "", // Base64 decoded
+          string:         lvlMap["4"] || null, // The raw level data string
+          version:        parseInt(lvlMap["5"]) || 1,
+          
+          // User / Author Info
+          playerID:       lvlMap["6"] || null,
+          accountID:      lvlMap["57"] || null, // The author's accountID returned by the server
+
+          // Song Info
+          officialSong:   lvlMap["12"] || "0",
+          customSongID:   (lvlMap["35"] || "").trim(),
+          isCustomSong:   !!(lvlMap["35"] || "").trim() && (lvlMap["35"] || "").trim() !== "0",
+          isLibrarySong:  !!(lvlMap["35"] || "").trim() && (lvlMap["35"] || "").trim() !== "0" && parseInt((lvlMap["35"] || "").trim()) >= 1000000,
+          offset:         parseFloat(lvlMap["45"] || "0") || 0,
+
+          // Gameplay Details
+          difficulty:     parseInt(lvlMap["9"]) || 0, // Auto, Easy, Normal, Hard, Harder, Insane
+          stars:          parseInt(lvlMap["18"]) || 0,
+          diamonds:       parseInt(lvlMap["46"]) || 0,
+          orbs:           parseInt(lvlMap["48"]) || 0,
+          length:         parseInt(lvlMap["15"]) || 0, // 0=Tiny, 1=Small, 2=Medium, 3=Long, 4=XL, 5=Platformer
+          gameVersion:    parseInt(lvlMap["13"]) || 22, // The game version the level was created in (e.g. 22 = 2.2)
+          binaryVersion:  parseInt(lvlMap["52"]) || 0,  // The build version used to upload
+
+          // Meta / Social Counters
+          downloads:      parseInt(lvlMap["10"]) || 0,
+          likes:          parseInt(lvlMap["14"]) || 0,
+          objects:        parseInt(lvlMap["45"]) || 0, // Object count (Note: 45 can double as audio offset or object count depending on context)
+          ts:             lvlMap["28"] || null, // Upload/Update timestamp hint
+          
+          // Technical / Security Verification keys sent back by server
+          chk:            lvlMap["chk"] || null,
+          rs:             lvlMap["rs"] || null
+        };
+        console.groupCollapsed("level data");
+        const { string, ...tableFriendlyData } = levelData;
+        console.table(tableFriendlyData);
+        console.groupEnd();
+
+        const songKey = levelData.isCustomSong 
+          ? (levelData.isLibrarySong ? `lib_song_${levelData.customSongID}` : `ng_song_${levelData.customSongID}`) 
+          : window.allLevels[levelData.officialSong][0];
+          
         window.currentlevel[0] = songKey;
-        window._onlineSongOffset = parseFloat(gdMap["45"] || "0") || 0;
-        if (isCustomSong) {
+        window._onlineSongOffset = levelData.offset;
+        
+        if (levelData.isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
-          try {
             const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: `songID=${songIdRaw}&secret=Wmfd2893gb7`
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `songID=${levelData.customSongID}&secret=Wmfd2893gb7`
             });
             const ngText = ngRes.ok ? await ngRes.text() : "-1";
-            if (ngText && ngText !== "-1") { 
-              const ngParts = ngText.split("~|~");
-              const ngMap = {};
-              for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
-              const rawUrl  = (ngMap["10"] || "").trim();
-              const songUrl = decodeURIComponent(rawUrl);
-              const songArtist = (ngMap["4"]  || "Unknown").replace(/:$/, "").trim();
-              const songTitle  = (ngMap["2"]  || `Song #${songIdRaw}`).replace(/:$/, "").trim();
-              if (songUrl) {
-                const audioCtx = this.game.sound.context;
-                if (audioCtx.state === "suspended") await audioCtx.resume();
-                const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                const audioRes = await fetch(proxiedUrl);
-                if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
-                const arrayBuf = await audioRes.arrayBuffer();
-                const decoded  = await audioCtx.decodeAudioData(arrayBuf);
-                window._onlineSongBuffer = decoded;
-                window._onlineSongKey    = songKey;
-                window._onlineSongTitle  = songTitle;
-                window._onlineSongArtist = songArtist;
+
+            if (ngText && ngText !== "-1") {
+                const ngParts = ngText.split("~|~");
+                const ngMap = {};
+                for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
+
+                const songData = {
+                    id:           ngMap["1"] || levelData.customSongID,
+                    title:        (ngMap["2"] || "Unknown").trim(),
+                    artistID:     ngMap["3"] || "0",
+                    artistName:   (ngMap["4"] || "Unknown").trim(),
+                    sizeMB:       ngMap["5"] || "0",
+                    videoID:      ngMap["6"] || null,
+                    youtubeURL:   ngMap["7"] ? decodeURIComponent(ngMap["7"]) : null,
+                    isScouted:    ngMap["8"] === "1",
+                    priority:     ngMap["9"] || "0",
+                    rawUrl:       (ngMap["10"] || "").trim(),
+                    nongType:     parseInt(ngMap["11"] || "0"),
+                    //extraIDs:     (ngMap["12"] || "").split("."), //array
+                    isNew:        ngMap["13"] === "1",
+                    newIconType:  ngMap["14"] || "0",
+                    extraArtists: ngMap["15"] || "" 
+                };
+
+                const isNCS = levelData.isLibrarySong || songData.nongType === 1;
+                let songUrl = songData.rawUrl ? decodeURIComponent(songData.rawUrl) : null;
+                
+                if (!songUrl && isNCS) {
+                  const songId = levelData.customSongID;
+                  const path = `/music/${songId}.mp3`;
+                      
+                  function generateCdnAuth(path) {
+                      const SALT = "8501f9c2-75ba-4230-8188-51037c4da102";
+                      const expires = Math.floor(Date.now() / 1000) + 3600;
+                      const inputString = `${SALT}${path}${expires}`;
+
+                      const md5Cycle = (x, k) => {
+                          let a = x[0], b = x[1], c = x[2], d = x[3];
+                          const f = (p, q, r, s, x, sft, t) => {
+                              let val = p + (q & r | ~q & s) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+                          const g = (p, q, r, s, x, sft, t) => {
+                              let val = p + (q & s | r & ~s) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+                          const h = (p, q, r, s, x, sft, t) => {
+                              let val = p + (q ^ r ^ s) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+                          const i = (p, q, r, s, x, sft, t) => {
+                              let val = p + (r ^ (q | ~s)) + x + t;
+                              return ((val << sft) | (val >>> (32 - sft))) + q;
+                          };
+
+                          a = f(a, b, c, d, k[0], 7, -680876936); d = f(d, a, b, c, k[1], 12, -389564586);
+                          c = f(c, d, a, b, k[2], 17, 606105819); b = f(b, c, d, a, k[3], 22, -1044525330);
+                          a = f(a, b, c, d, k[4], 7, -176418897); d = f(d, a, b, c, k[5], 12, 1200080426);
+                          c = f(c, d, a, b, k[6], 17, -1473231341); b = f(b, c, d, a, k[7], 22, -45705983);
+                          a = f(a, b, c, d, k[8], 7, 1770035416); d = f(d, a, b, c, k[9], 12, -1958414417);
+                          c = f(c, d, a, b, k[10], 17, -42063); b = f(b, c, d, a, k[11], 22, -1990404162);
+                          a = f(a, b, c, d, k[12], 7, 1804603682); d = f(d, a, b, c, k[13], 12, -40341101);
+                          c = f(c, d, a, b, k[14], 17, -1502002290); b = f(b, c, d, a, k[15], 22, 1236535329);
+
+                          a = g(a, b, c, d, k[1], 5, -165796510); d = g(d, a, b, c, k[6], 9, -1069501632);
+                          c = g(c, d, a, b, k[11], 14, 643717713); b = g(b, c, d, a, k[0], 20, -373897302);
+                          a = g(a, b, c, d, k[5], 5, -701558691); d = g(d, a, b, c, k[10], 9, 38016083);
+                          c = g(c, d, a, b, k[15], 14, -660478335); b = g(b, c, d, a, k[4], 20, -405537848);
+                          a = g(a, b, c, d, k[9], 5, 568446438); d = g(d, a, b, c, k[14], 9, -1019803690);
+                          c = g(c, d, a, b, k[3], 14, -187363961); b = g(b, c, d, a, k[8], 20, 1163531501);
+                          a = g(a, b, c, d, k[13], 5, -1444681467); d = g(d, a, b, c, k[2], 9, -51403784);
+                          c = g(c, d, a, b, k[7], 14, 1735328473); b = g(b, c, d, a, k[12], 20, -1926607734);
+
+                          a = h(a, b, c, d, k[5], 4, -378558); d = h(d, a, b, c, k[8], 11, -2022574463);
+                          c = h(c, d, a, b, k[11], 16, 1839030562); b = h(b, c, d, a, k[14], 23, -35309556);
+                          a = h(a, b, c, d, k[1], 4, -1530992060); d = h(d, a, b, c, k[4], 11, 1272893353);
+                          c = h(c, d, a, b, k[7], 16, -155497632); b = h(b, c, d, a, k[10], 23, -1094730640);
+                          a = h(a, b, c, d, k[13], 4, 681279174); d = h(d, a, b, c, k[0], 11, -358537222);
+                          c = h(c, d, a, b, k[3], 16, -722521979); b = h(b, c, d, a, k[6], 23, 76029189);
+                          a = h(a, b, c, d, k[9], 4, -640364487); d = h(d, a, b, c, k[12], 11, -421815835);
+                          c = h(c, d, a, b, k[15], 16, 530742520); b = h(b, c, d, a, k[2], 23, -995338651);
+
+                          a = i(a, b, c, d, k[0], 6, -198630844); d = i(d, a, b, c, k[7], 10, 1126891415);
+                          c = i(c, d, a, b, k[14], 15, -1416354905); b = i(b, c, d, a, k[5], 21, -57434055);
+                          a = i(a, b, c, d, k[12], 6, 1700485571); d = i(d, a, b, c, k[3], 10, -1894986606);
+                          c = i(c, d, a, b, k[10], 15, -1051523); b = i(b, c, d, a, k[1], 21, -2054922799);
+                          a = i(a, b, c, d, k[8], 6, 1873313359); d = i(d, a, b, c, k[15], 10, -30611744);
+                          c = i(c, d, a, b, k[6], 15, -1560198380); b = i(b, c, d, a, k[13], 21, 1309151649);
+                          a = i(a, b, c, d, k[4], 6, -145523070); d = i(d, a, b, c, k[11], 10, -1120210379);
+                          c = i(c, d, a, b, k[2], 15, 718787259); b = i(b, c, d, a, k[9], 21, -343485551);
+
+                          x[0] = (x[0] + a) | 0; x[1] = (x[1] + b) | 0;
+                          x[2] = (x[2] + c) | 0; x[3] = (x[3] + d) | 0;
+                      };
+
+                      const md5Raw = (str) => {
+                          let n = str.length, state = [1732584193, -271733879, -1732584194, 271733878], i;
+                          let words = [];
+                          for (i = 0; i <= n; i++) words[i >> 2] |= (str.charCodeAt(i) || 128) << ((i % 4) << 3);
+                          words[(((n + 8) >> 6) << 4) + 14] = n * 8;
+                          for (i = 0; i < words.length; i += 16) md5Cycle(state, words.slice(i, i + 16));
+                          return state.map(val => [val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xFF]).flat();
+                      };
+
+                      const hashBytes = md5Raw(inputString);
+                      const binaryStr = String.fromCharCode(...hashBytes);
+                      const token = btoa(binaryStr)
+                          .replace(/\+/g, '-')
+                          .replace(/\//g, '_')
+                          .replace(/=+$/, '');
+
+                      return { token, expires };
+                  }
+
+                  const auth = generateCdnAuth(path);
+
+                  songUrl = `https://geometrydashfiles.b-cdn.net${path}?token=${auth.token}&expires=${auth.expires}`;
+                }
+                
+                console.groupCollapsed("song data");
+                console.table({ ...songData});
+                console.log(songUrl);
+                console.groupEnd();
+
+                if (songUrl) {
+                  const audioCtx = this.game.sound.context;
+                  if (audioCtx.state === "suspended") await audioCtx.resume();
+
+                  window._onlineSongKey    = songKey;
+                  window._onlineSongTitle  = songData.title;
+                  window._onlineSongArtist = songData.artistName;
+
+                  try {
+                      const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                      const audioRes = await fetch(proxiedUrl);
+                      
+                      if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
+
+                      const arrayBuf = await audioRes.arrayBuffer();
+                      const decoded  = await audioCtx.decodeAudioData(arrayBuf);
+
+                      window._onlineSongBuffer = decoded;
+                  } catch (error) {
+                      console.error("Failed to load audio via proxy:", error.message);
+                      
+                      window._onlineSongBuffer = null;
+                  }
+              } else {
               }
+            } else {
+                _showStatus("Song info failed to load", "#ff0000");
             }
-          } catch (songErr) {
-          }
         } else {
           window._onlineSongBuffer = null;
           window._onlineSongKey    = null;
           window._onlineSongArtist = null;
         }
-        window._onlineLevelString = levelString;
-        window._onlineLevelName   = levelName;
-        window._onlineLevelId     = "online_" + levelIdParsed;
+        window._onlineLevelString = levelData.string;
+        window._onlineLevelName   = levelData.title;
+        window._onlineLevelId     = "online_" + levelData.id;
         this.game.registry.set("autoStartGame", true);
         window.currentlevel = [
           songKey,
-          levelName,
+          window._onlineLevelName,
           window._onlineLevelId,
           [window._onlineSongArtist || "Unknown"]
         ];
@@ -1365,38 +1778,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._makeBouncyButton(this._creatorBtn, 1, () => {
       this._openCreatorMenu();
-      if (this._creatorBtn) {
-        this.tweens.killTweensOf(this._creatorBtn);
-        this._creatorBtn.y = 320;
-        this._creatorBtn.setScale(1);
-        this.tweens.add({
-          targets: this._creatorBtn,
-          y: 324,
-          duration: 750,
-          ease: "Quad.InOut",
-          yoyo: true,
-          repeat: -1
-        });
-      }
     }, () => this._menuActive && !this._levelSelectOverlay);
       //icon stufff
     this._iconBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_garageBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive().setScale(1);
     this._iconBtnSelected = false;
     this._makeBouncyButton(this._iconBtn, 1, () => {
       this._openIconSelector();
-      if (this._iconBtn) {
-        this.tweens.killTweensOf(this._iconBtn);
-        this._iconBtn.y = 320;
-        this._iconBtn.setScale(1);
-        this.tweens.add({
-          targets: this._iconBtn,
-          y: 324,
-          duration: 750,
-          ease: "Quad.InOut",
-          yoyo: true,
-          repeat: -1
-        });
-      }
     }, () => this._menuActive && !this._levelSelectOverlay);
 
     this._iconOverlay = null;
@@ -1570,15 +1957,15 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
   }
       this._iconOverlayObjects.push(topBar);
 
-      const cols = 10;
+      const cols = 12;
       const iconSize = 60;
-      const padding = 18;
+      const padding = 2;
       const containerPadding = 10;
       const rows = 3;
       const containerWidth  = cols * iconSize + (cols - 1) * padding + 12;
       const containerHeight = rows * iconSize + (rows - 1) * padding + 12;
       const containerX = sw / 2 - containerWidth / 2;
-      const containerY = sh - containerHeight - containerPadding - 130;
+      const containerY = sh - containerHeight - containerPadding - 150;
       const startX = containerX + 6 + iconSize / 2;
       const startY = containerY + 6 + iconSize / 2;
 
@@ -1589,12 +1976,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
       const cornerTL = this.add.image(0,  0,  "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(100).setOrigin(1, 0).setFlipX(false).setAngle(-90)
       const cornerTR = this.add.image(sw, 0,  "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(103).setOrigin(0, 0).setFlipY(false).setFlipX(true).setAngle(90);
-      const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 0).setFlipY(false).setAngle(90);
-      const cornerBL = this.add.image(0,  sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 1).setFlipY(true).setAngle(90)
-      this._iconOverlayObjects.push(cornerTL, cornerTR, cornerBR, cornerBL);
+      this._iconOverlayObjects.push(cornerTL, cornerTR);
 
       const navDotSpacing = 35;
-      const navDotY = containerY + containerHeight + 26;
+      const navDotY = containerY + containerHeight + 30;
       const navDot1 = this.add.image(sw / 2 - navDotSpacing / 2, navDotY, "GJ_GameSheet03", "gj_navDotBtn_on_001.png").setScrollFactor(0).setDepth(104).setScale(0.75);
       const navDot2 = this.add.image(sw / 2 + navDotSpacing / 2, navDotY, "GJ_GameSheet03", "gj_navDotBtn_off_001.png").setScrollFactor(0).setDepth(104).setScale(0.75);
       const navDot3 = this.add.image(sw / 2 + navDotSpacing / 2, navDotY, "GJ_GameSheet03", "gj_navDotBtn_off_001.png").setScrollFactor(0).setDepth(104).setScale(0.75).setVisible(false);
@@ -1635,9 +2020,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       ];
 
       const colorBtnSize = 35;
-      const colorPadding = 4;
+      const colorPadding = 6;
       const colorRowWidth = rainbowColors.length * (colorBtnSize + colorPadding) - colorPadding;
-      const colorRow1Y = containerY + containerHeight + 70;
+      const colorRow1Y = containerY + containerHeight + 88;
       const colorRow2Y = colorRow1Y + colorBtnSize + 10;
       const colorRowStartX = sw / 2 - colorRowWidth / 2 + colorBtnSize / 2;
 
@@ -1649,33 +2034,50 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         fontSize: "11px", color: "#ffffff", fontFamily: "Arial"}).setScrollFactor(0).setDepth(104).setOrigin(0, 0.5).setAlpha(1);
       this._iconOverlayObjects.push(colorLabel2);
 
+      const colorBoxWidth = sw;
+      const colorBoxHeight = colorBtnSize * 2 + 10 + 20;
+      const colorBoxX = 0;
+      const colorBoxY = colorRow1Y - colorBtnSize / 2 - 10;
+      const colorBox = this.add.graphics().setScrollFactor(0).setDepth(101);
+      colorBox.fillStyle(0x000000, 0.5);
+      colorBox.fillRect(colorBoxX, colorBoxY, colorBoxWidth, colorBoxHeight);
+      this._iconOverlayObjects.push(colorBox);
+
+      const color1SelLabel = this.add.image(0, 0, "GJ_GameSheet03", "GJ_select_001.png").setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setVisible(false).setScale(0.6);
+      const color2SelLabel = this.add.image(0, 0, "GJ_GameSheet03", "GJ_select_001.png").setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setVisible(false).setScale(0.6);
+      this._iconOverlayObjects.push(color1SelLabel, color2SelLabel);
+
+      const _moveColorSelect = (label, color, rowY) => {
+        const idx = rainbowColors.indexOf(color);
+        if (idx === -1) {
+          label.setVisible(false);
+          return;
+        }
+
+        label.setPosition(colorRowStartX + idx * (colorBtnSize + colorPadding), rowY).setVisible(true);
+      };
+
+      _moveColorSelect(color1SelLabel, window.mainColor, colorRow1Y);
+      _moveColorSelect(color2SelLabel, window.secondaryColor, colorRow2Y);
+
       for (let ci = 0; ci < rainbowColors.length; ci++) {
         const cx = colorRowStartX + ci * (colorBtnSize + colorPadding);
 
         const btn1AtlasInfo = getAtlasFrame(this, "GJ_colorBtn_001.png");
         let btn1;
-        if (btn1AtlasInfo) {
-          btn1 = this.add.image(cx, colorRow1Y, btn1AtlasInfo.atlas, btn1AtlasInfo.frame).setScrollFactor(0).setDepth(104).setTint(rainbowColors[ci]).setScale(0.5).setInteractive();
-        } else {
-          btn1 = this.add.rectangle(cx, colorRow1Y, colorBtnSize, colorBtnSize, rainbowColors[ci]).setScrollFactor(0).setDepth(104).setInteractive();
-        }
+        btn1 = this.add.rectangle(cx, colorRow1Y, colorBtnSize, colorBtnSize, rainbowColors[ci]).setScrollFactor(0).setDepth(104).setInteractive();
         this._iconOverlayObjects.push(btn1);
 
         const btn2AtlasInfo = getAtlasFrame(this, "GJ_colorBtn_001.png");
         let btn2;
-        if (btn2AtlasInfo) {
-          btn2 = this.add.image(cx, colorRow2Y, btn2AtlasInfo.atlas, btn2AtlasInfo.frame).setScrollFactor(0).setDepth(104).setTint(rainbowColors[ci]).setScale(0.5).setInteractive();
-        } else {
-          btn2 = this.add.rectangle(cx, colorRow2Y, colorBtnSize, colorBtnSize, rainbowColors[ci]).setScrollFactor(0).setDepth(104).setInteractive();
-        }
+        btn2 = this.add.rectangle(cx, colorRow2Y, colorBtnSize, colorBtnSize, rainbowColors[ci]).setScrollFactor(0).setDepth(104).setInteractive();
         this._iconOverlayObjects.push(btn2);
 
         ((color, b1, b2) => {
-          b1.on("pointerover", () => b1.setAlpha(0.7));
-          b1.on("pointerout",  () => b1.setAlpha(1));
-          b1.on("pointerup",   () => {
+          this._makeBouncyButton(b1, 1.0, () => {
             window.mainColor = color;
             localStorage.setItem("iconMainColor", hexadecimalToHex(color));
+            _moveColorSelect(color1SelLabel, color, colorRow1Y);
             if (this._player) {
               const safeSetTint = (sprite, color) => {
                 if (sprite && sprite.setTint) {
@@ -1703,12 +2105,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             }
             selectedIcon.setTint(color);
           });
-
-          b2.on("pointerover", () => b2.setAlpha(0.7));
-          b2.on("pointerout",  () => b2.setAlpha(1));
-          b2.on("pointerup",   () => {
+          this._makeBouncyButton(b2, 1.0, () => {
             window.secondaryColor = color;
             localStorage.setItem("iconSecondaryColor", hexadecimalToHex(color));
+            _moveColorSelect(color2SelLabel, color, colorRow2Y);
             if (this._player) {
               const safeSetTint = (sprite, color) => {
                 if (sprite && sprite.setTint) {
@@ -1734,8 +2134,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 }
               }
             }
-                selectedIconExtra.setTint(window.secondaryColor);
-                _refreshPreview(currentTab, _getPreviewFrame(currentTab));
+            selectedIconExtra.setTint(window.secondaryColor);
+            _refreshPreview(currentTab, _getPreviewFrame(currentTab));
           });
         })(rainbowColors[ci], btn1, btn2);
       }
@@ -1769,11 +2169,18 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._iconOverlayObjects.push(selectedIconExtra, selectedIcon);
 
       const tabBtnY = containerY - 40;
-      const tabKeys = ["icon", "ship", "ball", "wave", "ufo"];
-      const tabOffsets     = [-218, -109,  0,    109,   218  ];
-      const tabRotations   = { icon: -Math.PI/2, ship: 0, ball: -Math.PI/2, wave: Math.PI/2, ufo: Math.PI/2 };
-      const tabFlipXStates = { icon: true, ship: false, ball: true, wave: false, ufo: false };
-      const tabFlipYStates = { icon: false, ship: false, ball: false, wave: true, ufo: true };
+      const tabKeys = ["icon", "ship", "ball", "ufo", "wave"];
+      const tabSpacing = 65;
+      const tabOffsets = {
+        icon: -tabSpacing * 2,
+        ship: -tabSpacing,
+        ball: 0,
+        ufo: tabSpacing,
+        wave: tabSpacing * 2,
+      };
+      const tabRotations = { icon: -Math.PI/2, ship: 0, ball: -Math.PI/2, ufo: Math.PI/2, wave: Math.PI/2 };
+      const tabFlipXStates = { icon: true, ship: false, ball: true, ufo: false, wave: false };
+      const tabFlipYStates = { icon: false, ship: false, ball: false, ufo: true, wave: true };
       const tabBtnSprites  = {};
 
       const _switchTab = (tab) => {
@@ -1789,7 +2196,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
       tabKeys.forEach((tab, i) => {
         const isActive = tab === startTab;
-        const btn = this.add.image(sw / 2 + tabOffsets[i], tabBtnY, "GJ_GameSheet03",
+        const btn = this.add.image(sw / 2 + tabOffsets[tab], tabBtnY, "GJ_GameSheet03",
             isActive ? _tabBtnFrames[tab].on : _tabBtnFrames[tab].off)
           .setScrollFactor(0).setDepth(104).setScale(0.75)
           .setRotation(tabRotations[tab]).setFlipX(tabFlipXStates[tab]).setFlipY(tabFlipYStates[tab])
@@ -1868,16 +2275,23 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           }
 
           ((capturedFrame, capturedImg, capturedExtra, capturedOrigScale) => {
-            hitRect.on("pointerover",  () => { capturedImg.setAlpha(0.65); if (capturedExtra) capturedExtra.setAlpha(0.65); });
-            hitRect.on("pointerout",   () => {
-              capturedImg.setAlpha(1); capturedImg.setScale(capturedOrigScale);
-              if (capturedExtra) { capturedExtra.setAlpha(1); capturedExtra.setScale(capturedOrigScale); }
+            const bouncedScale = capturedOrigScale * 1.26;
+            const iconTargets = capturedExtra ? [capturedImg, capturedExtra] : [capturedImg];
+            hitRect.on("pointerdown", () => {
+              hitRect._pressed = true;
+              iconTargets.forEach(t => this.tweens.killTweensOf(t, "scale"));
+              iconTargets.forEach(t => this.tweens.add({ targets: t, scale: bouncedScale, duration: 300, ease: "Bounce.Out" }));
             });
-            hitRect.on("pointerdown",  () => { capturedImg.setScale(capturedOrigScale * 1.15); if (capturedExtra) capturedExtra.setScale(capturedOrigScale * 1.15); });
+            hitRect.on("pointerout", () => {
+              if (hitRect._pressed) {
+                hitRect._pressed = false;
+                iconTargets.forEach(t => this.tweens.killTweensOf(t, "scale"));
+                iconTargets.forEach(t => this.tweens.add({ targets: t, scale: capturedOrigScale, duration: 400, ease: "Bounce.Out" }));
+              }
+            });
             hitRect.on("pointerup",    () => {
-              capturedImg.setScale(capturedOrigScale);
-              capturedImg.setAlpha(1);
-              if (capturedExtra) { capturedExtra.setScale(capturedOrigScale); capturedExtra.setAlpha(1); }
+              hitRect._pressed = false;
+              iconTargets.forEach(t => { this.tweens.killTweensOf(t); t.setScale(capturedOrigScale); });
               if (!this._iconOverlay) return;
 
               selLabel.setPosition(capturedImg.x, capturedImg.y).setScale(0.75).setVisible(true);
@@ -2068,28 +2482,15 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
   this._iconBtn.x = (screenWidth / 2) - this._playBtn.width / 2 - 50 - (this._iconBtn.width * this._iconBtn.scaleX) / 2;
   this.tweens.killTweensOf(this._iconBtn, "y");
   this._iconBtn.y = 320;
-  this.tweens.add({
-    targets: this._iconBtn,
-    y: 324,
-    duration: 750,
-    ease: "Quad.InOut",
-    yoyo: true,
-    repeat: -1
-  });
+  if (this._chrSelDecor) this._chrSelDecor.destroy();
+  this._chrSelDecor = this.add.image(this._iconBtn.x - 110, this._iconBtn.y - (this._iconBtn.height * this._iconBtn.scaleY) / 2 + 160, "GJ_GameSheet03", "GJ_chrSel_001.png").setScrollFactor(0).setDepth(31);
 }
-    // creator stuff the sequel
     if (this._creatorBtn) {
   this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 50 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
   this.tweens.killTweensOf(this._creatorBtn, "y");
   this._creatorBtn.y = 320;
-  this.tweens.add({
-    targets: this._creatorBtn,
-    y: 324,
-    duration: 750,
-    ease: "Quad.InOut",
-    yoyo: true,
-    repeat: -1
-  });
+  if (this._lvlEditDecor) this._lvlEditDecor.destroy();
+  this._lvlEditDecor = this.add.image(this._creatorBtn.x + 110, this._creatorBtn.y - (this._creatorBtn.height * this._creatorBtn.scaleY) / 2 + 160, "GJ_GameSheet03", "GJ_lvlEdit_001.png").setScrollFactor(0).setDepth(31);
 }
     this._spaceWasDown = false;
     this._spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -2133,6 +2534,19 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       .setOrigin(0, 0)
       .setAlpha(0.4)
       .setDepth(100)
+      .setVisible(false);
+
+    this._cpsIndicator = this.add.bitmapText(10, 70, "bigFont", "0 CPS", 20)
+      .setOrigin(0, 0)
+      .setAlpha(0.4)
+      .setDepth(100)
+      .setVisible(false);
+
+    this._bottedIndicator = this.add.bitmapText(10, 70, "bigFont", "Botted", 20)
+      .setOrigin(0, 0)
+      .setAlpha(0.4)
+      .setDepth(100)
+      .setTint(0xff0000)
       .setVisible(false);
 
     this.noclipFlash = this.add.rectangle(
@@ -2182,6 +2596,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       if (this._settingsPopup) {
         this._settingsPopup.destroy();
         this._settingsPopup = null;
+        return;
+      }
+      if (this._macroPopup) {
+        this.events.off("update", this._refreshMacroButtons);
+        this._macroPopup.destroy();
+        this._macroPopup = null;
         return;
       }
       if (this._settingsLayerOverlay) {
@@ -2248,6 +2668,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._paused = false;
     this._pauseContainer = null;
     this._sfxVolume = localStorage.getItem("userSfxVol") ?? 1;
+    this._initMacroBot();
     this.input.on("pointerdown", () => {
       if (!this._menuActive && !this._paused && !this._levelSelectOverlay && !this._levelWon && !window.isEditor) {
         this._pushButton();
@@ -2260,11 +2681,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     });
     if (!window.gdpointerup) {
       window.gdpointerup = true;
-      window.addEventListener("pointerup", () => this._releaseButton());
+      window.addEventListener("pointerup", () => this._releaseButton(true));
     }
     if (!window.gdtouchend) {
       window.gdtouchend = true;
-      window.addEventListener("touchend", () => this._releaseButton());
+      window.addEventListener("touchend", () => this._releaseButton(true));
     }
     this.scale.on("enterfullscreen", () => this._onFullscreenChange(true));
     this.scale.on("leavefullscreen", () => this._onFullscreenChange(false));
@@ -2331,14 +2752,25 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._openSearchMenu();
     }
     if (this.game.registry.get("autoStartGame")) {
-      this.game.registry.remove("autoStartGame");
-      this._levelLabel.setVisible(false);
-      this._leftBtn.setVisible(false);
-      this._rightBtn.setVisible(false);
-      if (this._practiceModeBarContainer) {
-        this._practiceModeBarContainer.setVisible(this._practicedMode && this._practicedMode.practiceMode);
+      if (!window.settingsMap) {
+        const cachedLevelText = this.cache.text.get(window.currentlevel[2]) ||
+          ((window._onlineLevelString && window.currentlevel[2] === window._onlineLevelId) ? window._onlineLevelString : null);
+        if (cachedLevelText) {
+          this._level.loadLevel(cachedLevelText);
+        }
       }
-      this._startGame();
+      if (window.settingsMap) {
+        this.game.registry.remove("autoStartGame");
+        this._levelLabel.setVisible(false);
+        this._leftBtn.setVisible(false);
+        this._rightBtn.setVisible(false);
+        if (this._practiceModeBarContainer) {
+          this._practiceModeBarContainer.setVisible(this._practicedMode && this._practicedMode.practiceMode);
+        }
+        this._startGame();
+      } else {
+        console.warn("autoStartGame: missing settingsMap for", window.currentlevel && window.currentlevel[2]);
+      }
     }
   }
   _parseLevelColors(levelId) {
@@ -2389,7 +2821,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const overlay = this.add.graphics().setScrollFactor(0).setDepth(150);
     drawOverlay(overlay, bgHex, isEveryEnd(window.currentlevel[2]));
     this._levelSelectOverlay = overlay;
-    const tableBottom = this.add.image(cx, -24, "GJ_GameSheet03", "GJ_table_bottom_001.png").setScrollFactor(0).setDepth(152).setOrigin(0.5, 0);
+    const tableBottom = this.add.image(cx, 0, "GJ_GameSheet03", "GJ_topBar_001.png").setScrollFactor(0).setDepth(152).setOrigin(0.5, 0);
     const groundY = sh + 175;
     const groundId = (window._groundId || "00");
     const groundFrame = this.textures.getFrame("groundSquare_" + groundId + "_001.png");
@@ -2404,7 +2836,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const staticGroundTiles = [];
     for (let gi = 0; gi < numTiles; gi++) {
       const gt = this.add.image(gi * tileW, groundY, "groundSquare_" + groundId + "_001.png")
-        .setScrollFactor(0).setDepth(152).setOrigin(0, 1).setTint(groundTintHex(groundHex));
+        .setScrollFactor(0).setDepth(151).setOrigin(0, 1).setTint(groundTintHex(groundHex));
       staticGroundTiles.push(gt);
     }
     const floorLineFrame = this.textures.getFrame("GJ_WebSheet", "floorLine_01_001.png");
@@ -2412,7 +2844,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const floorLineScale = sw / floorLineW;
     const groundTileH = groundFrame ? groundFrame.height : 80;
     const staticFloorLine = this.add.image(cx, groundY - groundTileH, "GJ_WebSheet", "floorLine_01_001.png")
-      .setScrollFactor(0).setDepth(153).setOrigin(0.5, 0.5).setScale(floorLineScale, 1).setBlendMode(S);
+      .setScrollFactor(0).setDepth(152).setOrigin(0.5, 0.5).setScale(floorLineScale, 1).setBlendMode(S);
     const cornerBL = this.add.image(0,  sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 1).setFlipY(true).setAngle(90);
     const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 0).setFlipY(false).setAngle(90);
     const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_01_001.png").setScrollFactor(0).setDepth(154).setFlipX(true).setScale(1, -1).setRotation(Math.PI).setInteractive();
@@ -2568,13 +3000,32 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       } else {
         if (ptr.x >= cardX - cardW/2 && ptr.x <= cardX + cardW/2 &&
             ptr.y >= cardY - cardH/2 && ptr.y <= cardY + cardH/2) {
-          this.tweens.killTweensOf(cardBounceContainer, "scale");
-          cardBounceContainer.setScale(1);
-          this._audio.playEffect("playSound_01", { volume: 1 });
-          this._closeLevelSelect(true);
-          this._audio.stopMusic();
-          this.game.registry.set("autoStartGame", true);
-          this.scene.restart();
+            
+            this.input.enabled = false;
+            this.tweens.killTweensOf(cardBounceContainer, "scale");
+            cardBounceContainer.setScale(1);
+
+            const lvl = window.currentlevel; 
+            const songID = lvl[0];
+            const levelFileName = lvl[2];
+            const songFileName = lvl[4] ? lvl[4] : lvl[1].replaceAll(" ", "");
+            
+            const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Downloading Level Assets...", 20).setOrigin(0.5).setDepth(200);
+            
+            this.load.text(levelFileName, "assets/levels/" + levelFileName.split("_")[1] + ".txt");
+            this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
+
+            this.load.once("complete", () => {
+                loadingText.destroy();
+                this._audio.playEffect("playSound_01", { volume: 1 });
+                this._closeLevelSelect(true);
+                this._audio.stopMusic();
+                this.input.enabled = true;
+                this.game.registry.set("autoStartGame", true);
+                this.scene.restart(); 
+            });
+
+            this.load.start();
         } else {
           this.tweens.killTweensOf(cardBounceContainer, "scale");
           this.tweens.add({ targets: cardBounceContainer, scale: 1, duration: 200, ease: "Quad.Out" });
@@ -3034,6 +3485,10 @@ _buildPauseOverlay() {
     this._pauseContainer.add(settingsBtn);
     this._makeBouncyButton(settingsBtn, 0.64, () => this._buildSettingsPopup());
 
+    this._macroBtn = this.add.image(textureY + _0x4eb71b / 2 - 60, 150, "macroBot").setScale(0.4).setInteractive();
+    this._pauseContainer.add(this._macroBtn);
+    this._makeBouncyButton(this._macroBtn, 0.4, () => this._buildMacroPopup());
+
     this._pauseContainer.add(this.add.bitmapText(textureY, 65, "bigFont", window.currentlevel[1], 40).setOrigin(0.5, 0.5));
 
     const _0x21dacf = 170;
@@ -3151,47 +3606,170 @@ _buildSettingsPopup() {
     const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0, 150 / 255).setInteractive();
     this._settingsPopup.add(dim);
 
-    const corner = 0.325 * this.textures.get("GJ_square01").source[0].width;
-    const panel = this._drawScale9(centerX, centerY, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
-    this._settingsPopup.add(panel);
+    const innerContainer = this.add.container(centerX, centerY).setScale(0);
+    this._settingsPopup.add(innerContainer);
 
-    const closeBtn = this.add.image(centerX - (panelWidth / 2) + 10, centerY - (panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
-    this._settingsPopup.add(closeBtn);
+    const corner = 0.325 * this.textures.get("GJ_square01").source[0].width;
+    const panel = this._drawScale9(0, 0, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
+    innerContainer.add(panel);
+
+    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    innerContainer.add(closeBtn);
     this._makeBouncyButton(closeBtn, 0.8, () => {
         this._settingsPopup.destroy();
         this._settingsPopup = null;
     });
+
     const pages = ["Gameplay", "Visual"];
     let currentPage = 0;
-    const pageTitle = this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
-    this._settingsPopup.add(pageTitle);
-    const leftArrow = this.add.image(centerX - (panelWidth / 2) - 130, centerY, "GJ_GameSheet03", "GJ_arrow_01_001.png")
+    const pageTitle = this.add.bitmapText(0, -(panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
+    innerContainer.add(pageTitle);
+    const leftArrow = this.add.image(-(panelWidth / 2) - 130, 0, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setFlipX(false).setInteractive();
-    this._settingsPopup.add(leftArrow);
-    const rightArrow = this.add.image(centerX + (panelWidth / 2) + 130, centerY, "GJ_GameSheet03", "GJ_arrow_01_001.png")
+    innerContainer.add(leftArrow);
+    const rightArrow = this.add.image((panelWidth / 2) + 130, 0, "GJ_GameSheet03", "GJ_arrow_01_001.png")
         .setInteractive().setFlipX(true);
-    this._settingsPopup.add(rightArrow);
-    const column1X = centerX - 200;
-    const column2X = centerX + 200;
+    innerContainer.add(rightArrow);
+    const column1X = -200;
+    const column2X = 200;
     const checkOffset = -120;
     const textOffset = -70;
     const spacingY = 70;
-    const startY = centerY - 150;
+    const startY = -150;
     let pageContainer = this.add.container(0, 0);
-    this._settingsPopup.add(pageContainer);
+    innerContainer.add(pageContainer);
 
-    const createToggle = (container, x, y, label, getVal, setVal, callback = null) => {
+    const createToggle = (container, x, y, label, getVal, setVal, callback = null, fontSize = 25) => {
         const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
         const check = this.add.image(x + checkOffset, y, "GJ_GameSheet03", getTex()).setScale(0.8).setInteractive();
-        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, fontSize).setOrigin(0, 0.5);
         container.add([check, txt]);
 
         this._makeBouncyButton(check, 0.8, () => {
             setVal(!getVal());
             check.setTexture("GJ_GameSheet03", getTex());
             if (callback) callback(getVal());
-            this._saveSettings();
+            if (this._saveSettings) this._saveSettings();
         });
+    };
+    const createNumberInput = (container, x, y, label, getVal, setVal) => {
+        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, 25).setOrigin(0, 0.5);
+        container.add(txt);
+
+        const boxX = x + checkOffset;
+        const boxY = y;
+        const boxW = 64;
+        const boxH = 48;
+
+        const bgBoxGraphics = this.add.graphics();
+        bgBoxGraphics.fillStyle(0x222222, 0.5);
+        bgBoxGraphics.fillRoundedRect(boxX - boxW / 2, boxY - boxH / 2, boxW, boxH, 8);
+        container.add(bgBoxGraphics);
+
+        const hitArea = this.add.rectangle(boxX, boxY, boxW, boxH, 0x000000, 0)
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true });
+        container.add(hitArea);
+
+        let initialVal = getVal() || 1;
+        const valueTxt = this.add.bitmapText(boxX, boxY, "bigFont", initialVal.toString(), 28)
+            .setOrigin(0.5);
+        container.add(valueTxt);
+
+        let isFocused = false;
+        let internalString = initialVal.toString();
+
+        const updateDisplay = () => {
+            if (isFocused) {
+                valueTxt.setText(internalString + "|");
+            } else {
+                valueTxt.setText(internalString || " ");
+            }
+        };
+
+        const commitValue = () => {
+            isFocused = false;
+
+            let val = parseFloat(internalString);
+            if (isNaN(val)) val = 1;
+
+            if (val < 0.1) val = 0.1;
+            if (val > 10) val = 10;
+
+            internalString = val.toString();
+            valueTxt.setText(internalString);
+            
+            setVal(val);
+            if (this._saveSettings) this._saveSettings();
+        };
+
+        hitArea.on('pointerdown', (pointer, localX, localY, event) => {
+            if (event) event.stopPropagation();
+            
+            if (window._activeCustomInput && window._activeCustomInput !== commitValue) {
+                window._activeCustomInput();
+            }
+
+            isFocused = true;
+            window._activeCustomInput = commitValue;
+            
+            internalString = ""; 
+            updateDisplay();
+        });
+
+        const outsideClickListener = () => {
+            if (isFocused) commitValue();
+        };
+        dim.on('pointerdown', outsideClickListener);
+
+        const keydownListener = (event) => {
+            if (!isFocused) return;
+
+            const key = event.key;
+
+            if (key === "Enter") {
+                event.preventDefault();
+                commitValue();
+                return;
+            }
+
+            if (key === "Backspace") {
+                event.preventDefault();
+                internalString = internalString.slice(0, -1);
+                updateDisplay();
+                return;
+            }
+
+            if (/^[0-9.]$/.test(key)) {
+                event.preventDefault();
+                
+                if (key === "." && internalString.includes(".")) return;
+
+                const parts = internalString.split('.');
+                
+                if (key === ".") {
+                    if (parts[0].length === 0) return;
+                } else {
+                    if (parts.length === 1 && parts[0].length >= 2) return;
+                    if (parts.length === 2 && parts[1].length >= 2) return;
+                }
+
+                internalString += key;
+                updateDisplay();
+            }
+        };
+
+        window.addEventListener('keydown', keydownListener);
+
+        const originalDestroy = container.destroy;
+        container.destroy = (...args) => {
+            window.removeEventListener('keydown', keydownListener);
+            if (dim) dim.off('pointerdown', outsideClickListener);
+            if (window._activeCustomInput === commitValue) {
+                window._activeCustomInput = null;
+            }
+            originalDestroy.apply(container, args);
+        };
     };
 
     const buildGameplayPage = (container) => {
@@ -3222,9 +3800,20 @@ _buildSettingsPopup() {
             (v) => window.noClip = v,
             (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); }
         );
+        
         createToggle(container, column1X, startY + (spacingY * 4), "Noclip Accuracy",
             () => window.noClipAccuracy,
             (v) => window.noClipAccuracy = v
+        );
+        
+        createToggle(container, column1X, startY + (spacingY * 5), "Macro Bot",
+            () => window.macroBot,
+            (v) => window.macroBot = v
+        );
+
+        createNumberInput(container, column2X, startY, "Speedhack", 
+            () => window.speedHack, 
+            (v) => window.speedHack = v
         );
     };
 
@@ -3262,24 +3851,52 @@ _buildSettingsPopup() {
             () => window.solidWave, 
             (v) => window.solidWave = v
         );
+        
+        createToggle(container, column1X, startY + (spacingY * 5), "Show CPS",
+            () => window.showCPS,
+            (v) => window.showCPS = v
+        );
+
+        createToggle(container, column2X, startY, "Create Object ID labels", 
+            () => window.createObjectIds, 
+            (v) => window.createObjectIds = v,
+            null, 17
+        );
+
+        createToggle(container, column2X, startY + (spacingY), "Show Object ID labels", 
+            () => window.showObjectIds, 
+            (v) => window.showObjectIds = v,
+            null, 17
+        );
     };
 
     const buildPage = (idx) => {
         pageContainer.destroy();
         pageContainer = this.add.container(0, 0);
-        this._settingsPopup.add(pageContainer);
+        innerContainer.add(pageContainer);
         pageTitle.setText(pages[idx]);
+        
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
     };
+
     buildPage(0);
+
     this._makeBouncyButton(leftArrow, 1, () => {
         currentPage = (currentPage - 1 + pages.length) % pages.length;
         buildPage(currentPage);
     });
+
     this._makeBouncyButton(rightArrow, 1, () => {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
+    });
+    this.tweens.add({
+        targets: innerContainer,
+        scale: 1,
+        duration: 660,
+        ease: "Elastic.Out",
+        easeParams: [1, 0.6]
     });
   }
   _saveSettings() {
@@ -3294,6 +3911,12 @@ _buildSettingsPopup() {
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
         hitboxesOnDeath: window.hitboxesOnDeath,
+        showEditorGlow: window.showEditorGlow,
+        createObjectIds: window.createObjectIds,
+        showObjectIds: window.showObjectIds,
+        showCPS: window.showCPS,
+        speedHack: window.speedHack,
+        macroBot: window.macroBot,
         showEditorGlow: window.showEditorGlow
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
@@ -3311,6 +3934,12 @@ _buildSettingsPopup() {
         solidWaveTrail: false,
         noclipAccuracy: false,
         hitboxesOnDeath: false,
+        showEditorGlow: false,
+        createObjectIds: false,
+        showObjectIds: false,
+        showCPS: false,
+        speedHack: 1.0,
+        macroBot: false,
         showEditorGlow: false
     };
 
@@ -3326,9 +3955,175 @@ _buildSettingsPopup() {
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
     window.hitboxesOnDeath = data.hitboxesOnDeath;
+    window.showCPS = data.showCPS;
+    window.speedHack = data.speedHack;
+    window.macroBot = data.macroBot;
     window.showEditorGlow = data.showEditorGlow;
+    window.createObjectIds = data.createObjectIds;
+    window.showObjectIds = data.showObjectIds;
   }
-  
+  _buildMacroPopup() {
+      if (this._macroPopup) return;
+      const centerX = screenWidth / 2;
+      const centerY = 320;
+      const panelWidth = 800;
+      const panelHeight = 400;
+      this._macroPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
+      const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0x000000, 150 / 255).setInteractive();
+      this._macroPopup.add(dim);
+
+      const corner = 0.325 * this.textures.get("GJ_square02").source[0].width;
+      const panel = this._drawScale9(centerX, centerY, panelWidth, panelHeight, "GJ_square02", corner, 0xffffff, 1);
+      this._macroPopup.add(panel);
+
+      this._macroPopup.add(this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 45, "bigFont", "Web Bot v1.0", 40).setOrigin(0.5));
+
+      if (this._macroName === undefined) {
+          this._macroName = this._macroBot?.meta?.name || null;
+      }
+      if (this._macroLoaded === undefined) {
+          this._macroLoaded = !!this._macroName || (this._macroBot && this._macroBot.inputs && this._macroBot.inputs.length > 0);
+      }
+
+      const loadedNameText = this.add.bitmapText(centerX, centerY - (panelHeight / 2) + 95, "goldFont", this._macroLoaded ? `Currently loaded "${this._macroName || 'macro'}"` : "No macro loaded", 24).setOrigin(0.5);
+      this._macroPopup.add(loadedNameText);
+
+      const optionsBtn = this.add.image(centerX, centerY - (panelHeight / 2) + 95, "GJ_GameSheet03", "GJ_optionsBtn02_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.45);
+      this._macroPopup.add(optionsBtn);
+
+      const closeBtn = this.add.image(centerX - (panelWidth / 2) + 20, centerY - (panelHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setInteractive().setScale(0.8);
+      this._macroPopup.add(closeBtn);
+
+      this._makeBouncyButton(closeBtn, 0.8, () => {
+          this.events.off("update", this._refreshMacroButtons);
+          this._macroPopup.destroy();
+          this._macroPopup = null;
+      });
+
+      const importBtn = this.add.image(centerX - 300, centerY + 20,"importMacro").setInteractive();
+      const exportBtn = this.add.image(centerX - 150, centerY + 20, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.53);
+      const createBtn = this.add.image(centerX, centerY + 20, "GJ_GameSheet03", "GJ_plusBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.2);
+      const playbackBtn = this.add.image(centerX + 150, centerY + 20, this._macroBot?.playing ? "stopPlayback" : "playbackMacro").setInteractive().setScale(0.25);
+      const recordBtn = this.add.image(centerX + 300, centerY + 20, this._macroBot?.recording ? "stopRecord" : "recordMacro").setInteractive().setScale(0.25);
+
+      this._macroPopup.add([createBtn, importBtn, exportBtn, playbackBtn, recordBtn]);
+
+      this._refreshMacroButtons = () => {
+          const playing = !!this._macroBot?.playing;
+          const recording = !!this._macroBot?.recording;
+
+          let currentMetaName = this._macroBot?.meta?.name;
+          if (currentMetaName && currentMetaName !== this._macroName) {
+              this._macroName = currentMetaName;
+              this._macroLoaded = true;
+          }
+
+          if (this._macroLoaded) {
+              loadedNameText.setText(`Currently loaded "${this._macroName || 'macro'}"`);
+              optionsBtn.setAlpha(1).setActive(true);
+              optionsBtn.x = centerX + (loadedNameText.width / 2) + 25;
+          } else {
+              loadedNameText.setText("No macro loaded");
+              optionsBtn.setAlpha(0).setActive(false);
+          }
+
+          playbackBtn.setTexture(
+              playing
+                  ? "stopPlayback"
+                  : "playbackMacro"
+          );
+
+          recordBtn.setTexture(
+              recording
+                  ? "stopRecord"
+                  : "recordMacro"
+          );
+
+          createBtn.setAlpha((playing || recording || this._macroLoaded) ? 0.5 : 1);
+          importBtn.setAlpha((playing || recording) ? 0.5 : 1);
+          exportBtn.setAlpha((playing || recording || !this._macroLoaded) ? 0.5 : 1);
+          playbackBtn.setAlpha((recording || !this._macroLoaded) ? 0.5 : 1);
+          recordBtn.setAlpha((playing || !this._macroLoaded) ? 0.5 : 1);
+      };
+
+      this._refreshMacroButtons();
+
+      this._makeBouncyButton(optionsBtn, 0.45, () => {
+          if (!this._macroLoaded) return;
+          const renamePrompt = prompt("New name", this._macroName);
+          if (renamePrompt && renamePrompt.trim() !== "") {
+              const cleanName = renamePrompt.trim();
+              if (!this._macroBot) this._initMacroBot();
+              
+              if (!this._macroBot.meta) {
+                  this._macroBot.meta = {};
+              }
+              this._macroBot.meta.name = cleanName;
+              this._macroName = cleanName;
+              this._refreshMacroButtons();
+          }
+      });
+
+      this._makeBouncyButton(importBtn, 1, () => {
+          if (this._macroBot?.playing) return;
+          if (this._macroBot?.recording) return;
+          this._importMacroFile();
+      });
+
+      this._makeBouncyButton(exportBtn, 0.53, () => {
+          if (this._macroBot?.playing) return;
+          if (this._macroBot?.recording) return;
+          if (!this._macroLoaded) return;
+          this._exportMacroFile(this._macroName ? `${this._macroName}.wbgdr` : null);
+      });
+
+      this._makeBouncyButton(createBtn, 1.2, () => {
+          if (this._macroBot?.playing || this._macroBot?.recording || this._macroLoaded) return;
+          const name = prompt("Enter macro name");
+          if (name) {
+              if (!this._macroBot) this._initMacroBot();
+              this._macroBot.resetAll();
+              this._macroBot.meta.name = name;
+              this._macroName = name;
+              this._macroLoaded = true;
+              this._refreshMacroButtons();
+          }
+      });
+
+      this._makeBouncyButton(playbackBtn, 0.25, () => {
+          if (this._macroBot?.recording) return;
+          if (!this._macroLoaded) return;
+
+          if (this._macroBot?.playing) {
+              this._stopMacroPlayback();
+          } else {
+              if (!this._macroBot) {
+                  return;
+              }
+              const macro = this._macroBot.exportObject();
+              this._startMacroPlayback(macro);
+          }
+          this._refreshMacroButtons();
+      });
+
+      this._makeBouncyButton(recordBtn, 0.25, () => {
+          if (this._macroBot?.playing) return;
+          if (!this._macroLoaded) return;
+
+          if (this._macroBot?.recording) {
+              this._stopMacroRecording();
+          } else {
+              this._startMacroRecording({
+                  level: window.currentlevel?.[2] || "",
+                  name: this._macroName
+              });
+          }
+
+          this._refreshMacroButtons();
+      });
+
+      this.events.on("update", this._refreshMacroButtons);
+  }
   _buildInfoPopup() {
     if (this._infoPopup) {
       return;
@@ -3449,8 +4244,9 @@ _buildSettingsPopup() {
     this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 500,
-      ease: "Bounce.Out"
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
     });
   }
   _closeInfoPopup() {
@@ -3613,8 +4409,9 @@ _buildSettingsPopup() {
   this.tweens.add({
     targets: panelContainer,
     scale: 1,
-    duration: 400,
-    ease: "Bounce.Out"
+    duration: 660,
+    ease: "Elastic.Out",
+    easeParams: [1, 0.6]
   });
 }
   _closeHowToPlayPopup() {
@@ -3664,14 +4461,8 @@ _buildSettingsPopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 0.85, font: "goldFont" },
-      { text: "Accurate Featured tab demo.", scale: 0.65 },
-      { text: "Info popups.", scale: 0.65 },
-      { text: "Main menu buttons.", scale: 0.65 },
-      { text: "Settings, Stats and Newgrounds.", scale: 0.65 },
-      { text: "Fixed being able to go to the level selector while in menus.", scale: 0.35 },
-      { text: "GD accurate loading screen.", scale: 0.65 },
-      { text: "UI tweaks.", scale: 0.65 },
-      { text: "Bug fixes.", scale: 0.65 },
+      { text: "Accurate GDWeb+ logo", scale: 0.65 },
+      { text: "Credit to Altruist for making it", scale: 0.6 },
       { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
     ]; 
@@ -3743,8 +4534,9 @@ _buildSettingsPopup() {
     this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 500,
-      ease: "Bounce.Out"
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
     });
   }
   _closeUpdateLogPopup() {
@@ -3808,8 +4600,9 @@ _buildSettingsPopup() {
     this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 500,
-      ease: "Bounce.Out"
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
     });
   }
   _closeNewgroundsPopup() {
@@ -3857,8 +4650,9 @@ _buildSettingsPopup() {
         this.tweens.add({
       targets: bounceContainer,
       scale: { from: 0, to: 1 },
-      duration: 500,
-      ease: "Bounce.Out"
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
     });
   }
   _closeFeaturedInfoPopup() {
@@ -4085,6 +4879,30 @@ _buildSettingsPopup() {
     }
   });
 }
+  if (this._chrSelDecor) {
+    this.tweens.add({
+      targets: this._chrSelDecor,
+      y: screenHeight + 100,
+      alpha: 0,
+      duration: 200,
+      ease: "Quad.In",
+      onComplete: () => {
+        if (this._chrSelDecor) { this._chrSelDecor.destroy(); this._chrSelDecor = null; }
+      }
+    });
+  }
+  if (this._lvlEditDecor) {
+    this.tweens.add({
+      targets: this._lvlEditDecor,
+      y: screenHeight + 100,
+      alpha: 0,
+      duration: 200,
+      ease: "Quad.In",
+      onComplete: () => {
+        if (this._lvlEditDecor) { this._lvlEditDecor.destroy(); this._lvlEditDecor = null; }
+      }
+    });
+  }
   //creator stuff the threequel
     if (this._creatorBtn) {
   this._closeCreatorMenu && this._closeCreatorMenu(true);
@@ -4176,6 +4994,18 @@ _buildSettingsPopup() {
       }
       this._downloadBtns = null;
     }
+    if (this._socialIcons && this._socialIcons.length > 0) {
+      for (const _icon of this._socialIcons) {
+        this.tweens.add({
+          targets: _icon,
+          y: screenHeight + 64,
+          duration: 300,
+          ease: "Quad.In",
+          onComplete: () => _icon.destroy()
+        });
+      }
+      this._socialIcons = [];
+    }
     if (this._logo) {
       this.tweens.add({
         targets: this._logo,
@@ -4237,6 +5067,7 @@ _buildSettingsPopup() {
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
     this._levelAttempts = 1;
+    this._levelJumps = 0;
     this._attempts++;
     localStorage.setItem("gd_totalAttempts", this._attempts);
     this._attemptsLabel.setText("Attempt " + this._levelAttempts);
@@ -4254,7 +5085,7 @@ _buildSettingsPopup() {
       this._player.enterWaveMode();
     }
   }
-  _pushButton() {
+  _pushButton(ignoreMacro = false) {
     const objectsUnderPointer = this.input.manager.hitTest(
       this.input.activePointer, 
       this._startPosGui.list,
@@ -4271,6 +5102,12 @@ _buildSettingsPopup() {
       this._startGame();
       return;
     }
+
+    if (!cancelInput) {
+      if (!this._clickHistory) this._clickHistory = [];
+      this._clickHistory.push(this.time.now);
+    }
+
     if (!this._slideIn && !this._state.isDead && !cancelInput) {
       this._state.upKeyDown = true;
       this._state.upKeyPressed = true;
@@ -4278,18 +5115,85 @@ _buildSettingsPopup() {
       if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && this._state.canJump) {
         this._player.updateJump(0);
         this._totalJumps++;
+        this._levelJumps++;
         localStorage.setItem("gd_totalJumps", this._totalJumps);
       } else if (this._state.isUfo) {
         this._player.updateJump(0);
         this._totalJumps++;
+        this._levelJumps++;
         localStorage.setItem("gd_totalJumps", this._totalJumps);
       }
     }
+
+    if (!ignoreMacro && this._macroBot) {
+      this._macroBot.recordEdge(true, this._physicsFrame);
+    }
   }
-  _releaseButton() {
+  _releaseButton(ignoreMacro = false) {
     this._state.upKeyDown = false;
     this._state.upKeyPressed = false;
     this._state.queuedHold = false;
+    if (!ignoreMacro && this._macroBot) {
+      this._macroBot.recordEdge(false, this._physicsFrame);
+    }
+  }
+  _initMacroBot() {
+    this._macroBot = new MacroBot(this);
+    window.macroBot = this._macroBot;
+  }
+  _startMacroRecording(meta = {}) {
+    if (!this._macroBot) this._initMacroBot();
+    this._macroBot.startRecording({
+      level: window.currentlevel?.[2] || "",
+      ...meta
+    });
+  }
+  _stopMacroRecording() {
+    if (!this._macroBot) return null;
+    return this._macroBot.stopRecording();
+  }
+  _startMacroPlayback(macroData) {
+    console.log(macroData);
+    if (!this._macroBot) this._initMacroBot();
+    this._macroBot.startPlayback(macroData);
+  }
+  _stopMacroPlayback() {
+    if (this._macroBot) this._macroBot.stopPlayback();
+  }
+  _exportMacroFile(filename = null) {
+    if (!this._macroBot) return;
+    const safeName = (filename || `${window.currentlevel?.[2] || "macro"}.gdr`)
+      .replace(/[^\w.\-]+/g, "_");
+    this._macroBot.download(safeName);
+  }
+  _importMacroFile() {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".wbgdr";
+
+    fileInput.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        if (!this._macroBot) this._initMacroBot();
+        
+        const macroData = await this._macroBot.importFile(file);
+        this._macroBot.inputs = Array.isArray(macroData.inputs) ? macroData.inputs.slice() : [];
+        const fallback = file.name.replace(/\.[^/.]+$/, "");
+        const macroName = macroData.meta?.name || fallback;
+
+        this._macroBot.meta = macroData.meta || this._macroBot.meta;
+        this._macroBot.meta.name = macroName;
+
+        this._macroName = macroName;
+        this._macroLoaded = true;
+      } catch (err) {
+        alert("Failed to import: " + err.message);
+      }
+    };
+
+    fileInput.click();
   }
   _positionMenuItems() {
     const _0x1e5db8 = screenWidth / 2;
@@ -4313,14 +5217,6 @@ _buildSettingsPopup() {
       this._playBtn.x = _0x1e5db8;
       this.tweens.killTweensOf(this._playBtn, "y");
       this._playBtn.y = 320;
-      this.tweens.add({
-        targets: this._playBtn,
-        y: 324,
-        duration: 750,
-        ease: "Quad.InOut",
-        yoyo: true,
-        repeat: -1
-      });
     }
     if (this._downloadBtns) {
       const _0x285ef7 = screenWidth - 130;
@@ -4348,13 +5244,21 @@ _buildSettingsPopup() {
       this._creatorBtn.x = (screenWidth / 2) + this._playBtn.width / 2 + 100 + (this._creatorBtn.width * this._creatorBtn.scaleX) / 2;
       this.tweens.killTweensOf(this._creatorBtn, "y");
       this._creatorBtn.y = 320;
-      this.tweens.add({
-        targets: this._creatorBtn,
-        y: 324,
-        duration: 750,
-        ease: "Quad.InOut",
-        yoyo: true,
-        repeat: -1
+    }
+    if (this._robLogo) {
+      this._robLogo.x = 110;
+      this._robLogo.y = 585;
+    }
+    if (this._socialIcons && this._socialIcons.length > 0) {
+      const _iconSpacing = 52;
+      const _originX = 65;
+      const _originY = 478;
+      const _layout = [{row:0,col:0},{row:0,col:1},{row:0,col:2},{row:0,col:3},
+                       {row:1,col:0},{row:1,col:1},{row:1,col:2},{row:1,col:3},
+                       {row:2,col:0},{row:2,col:1},{row:2,col:2},{row:2,col:3},{row:2,col:4}];
+      this._socialIcons.forEach((icon, i) => {
+        icon.x = _originX + _layout[i].col * _iconSpacing;
+        icon.y = _originY + _layout[i].row * _iconSpacing;
       });
     }
   }
@@ -4380,11 +5284,13 @@ _buildSettingsPopup() {
     this._endCameraOverride = false;
     this._endCamTween = null;
     this._spaceWasDown = false;
+    this._physicsFrame = 0;
   }
   _restartLevel() {
     this._attempts++;
     localStorage.setItem("gd_totalAttempts", this._attempts);
     this._levelAttempts++;
+    this._levelJumps = 0;
     const _0x2ba78a = this._cameraX;
     if (this._levelWon && this._practicedMode.practiceMode) {
       this._practicedMode.togglePracticeMode();
@@ -4504,6 +5410,13 @@ _buildSettingsPopup() {
     if (this._player && this._player._hitboxTrail) {
       this._player._hitboxTrail = [];
     }
+
+    if (this._macroBot?.recording == true){
+      this._macroBot?.clearRecording();
+    }
+    if (this._macroBot?.playing == true){
+      this._macroBot?.clearPlayback();
+    }
   }
   _getStartPosMusicOffset(){
     const startPositions = this._level.getStartPositions();
@@ -4561,11 +5474,11 @@ _buildSettingsPopup() {
     this._state.isSpider = false;
     this._state.isBird = false;
     if (checkpoint.isFlying) {
-      this._player.enterShipMode();
+      this._player.enterShipMode(null, true); // dont mess with y velocity if ur loading a checkpoint
     } else if (checkpoint.isBall) {
       this._player.enterBallMode();
     } else if (checkpoint.isUfo) {
-      this._player.enterUfoMode();
+      this._player.enterUfoMode(null, true); // dont mess with y velocity if ur loading a checkpoint
     } else if (checkpoint.isWave) {
       this._player.enterWaveMode();
     } else if (checkpoint.isSpider) {
@@ -4587,6 +5500,8 @@ _buildSettingsPopup() {
     this._state.isUfo = checkpoint.isUfo;
     this._state.isSpider = checkpoint.isSpider;
     this._state.isBird = checkpoint.isBird;
+    this._state.ignorePortals = true;
+    this._state2.ignorePortals = true;
     this._level.resetGroundTiles(this._cameraX);
     this._level.resetObjects();
     this._level._flyCeilingY = checkpoint.flyCeilingY;
@@ -4636,6 +5551,7 @@ _buildSettingsPopup() {
     this._level.topContainer.x = -this._cameraX;
     this._level.topContainer.y = this._cameraY;
     this._level.updateVisibility(this._cameraX);
+    this._level.updateObjectDebugIds();
     this._updateBackground();
     this._applyMirrorEffect();
     if (!this._audio.musicPlaying) {
@@ -4644,6 +5560,19 @@ _buildSettingsPopup() {
 
     if (this._player && this._player._hitboxTrail) {
       this._player._hitboxTrail = [];
+    }
+
+    this._physicsFrame = checkpoint.physicsFrame;
+    if (this._macroBot?.recording == true){
+      this._macroBot?.rollbackRecording(this._physicsFrame);
+      if (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown){
+        this._macroBot.recordEdge(true, this._physicsFrame);
+      } else {
+        this._macroBot.recordEdge(false, this._physicsFrame);
+      }
+    }
+    if (this._macroBot?.playing == true){
+      this._macroBot?.rollbackPlayback(this._physicsFrame);
     }
   }
   _onFullscreenChange(_0x310c5b) {
@@ -4683,6 +5612,7 @@ _buildSettingsPopup() {
       this._level.shiftGroundTiles(this._cameraX - _0x56287b);
       this._level.updateGroundTiles(this._cameraY);
       this._level.updateVisibility(this._cameraX);
+      this._level.updateObjectDebugIds();
       this._level.applyEnterEffects(this._cameraX);
       const _0xde8a1a = this._playerWorldX - this._cameraX;
       this._player.syncSprites(this._cameraX, this._cameraY, 0, this._getMirrorXOffset(_0xde8a1a));
@@ -4730,7 +5660,8 @@ _buildSettingsPopup() {
     }
   }
   _quantizeDelta(_0x654f39) {
-    let _0x578d1b = _0x654f39 / 1000 + this._deltaBuffer;
+    const speed = window.speedHack || 1;
+    let _0x578d1b = (_0x654f39 * speed) / 1000 + this._deltaBuffer;
     let _0x53e02e = Math.round(_0x578d1b / u);
     if (_0x53e02e < 0) {
       _0x53e02e = 0;
@@ -4799,6 +5730,26 @@ _buildSettingsPopup() {
     this._accuracyIndicator.setText(`${this._player.noclipStats.accuracy.toFixed(2)}%`);
     this._deathsIndicator.setText(`${this._player.noclipStats.deaths} Deaths`);
 
+    this._cpsIndicator.setVisible(window.showCPS && !this._menuActive);
+    if (this._clickHistory && this._clickHistory.length > 0) {
+      this._clickHistory = this._clickHistory.filter(timestamp => this.time.now - timestamp <= 1000);
+      this._cpsIndicator.setText(`${this._clickHistory.length} CPS`);
+    } else {
+      this._cpsIndicator.setText("0 CPS");
+    }
+    if (this._state.upKeyDown){
+      this._cpsIndicator.setTint(0x00ff00);
+    } else{
+      this._cpsIndicator.setTint(0xffffff);
+    }
+    this._cpsIndicator.setPosition(10, 10 + (window.noClip * 20) + (window.noClip && window.noClipAccuracy * 40));
+
+    this._bottedIndicator.setVisible(this._macroBot?.playing);
+    this._bottedIndicator.setPosition(10, 10 + (window.noClip * 20) + (window.noClip && window.noClipAccuracy * 40) + (window.showCPS * 20));
+    if (this._macroBtn){
+      this._macroBtn.setVisible(window.macroBot);
+    }
+
     this._fpsAccum += deltaTime;
     this._fpsFrames++;
     if (this._fpsAccum >= 250) {
@@ -4844,7 +5795,7 @@ _buildSettingsPopup() {
       this._arrowWasDown = _arrowLeft || _arrowRight;
       this._spaceWasDown = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
       const menuDelta = Math.min(deltaTime / 1000 * 60, 2);
-      const menuSpeed = 0.65;
+      const menuSpeed = 0.85;
       this._menuCameraX = (this._menuCameraX || 0) + menuDelta * playerSpeed * d * menuSpeed;
       const _0x38afac = this._cameraX;
       this._cameraX = this._menuCameraX;
@@ -4857,8 +5808,8 @@ _buildSettingsPopup() {
       if (this._menuRainbowTime === undefined) this._menuRainbowTime = 0;
       this._menuRainbowTime += deltaTime / 1000;
       const _rainbowHue = (this._menuRainbowTime * 15) % 360;
-      const _rainbowHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 0.9).color;
-      const _groundHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 0.55).color;
+      const _rainbowHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 1.0).color;
+      const _groundHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 1.0).color;
       this._bg.setTint(_rainbowHex);
       this._level.setGroundColor(_groundHex);
       return;
@@ -4879,6 +5830,7 @@ _buildSettingsPopup() {
       this._level.topContainer.x = -this._cameraX;
       this._level.topContainer.y = this._cameraY;
       this._level.updateVisibility(this._cameraX);
+      this._level.updateObjectDebugIds();
       this._updateBackground();
       this._level.stepGroundAnimation(deltaTime / 1000);
       this._level.updateGroundTiles(this._cameraY);
@@ -4907,16 +5859,18 @@ _buildSettingsPopup() {
       }
       return;
     }
-    let _0x368ad9 = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
-    if (!this._updateLogPopup && _0x368ad9 && !this._spaceWasDown) {
-      this._pushButton();
-    } else if (!_0x368ad9 && this._spaceWasDown) {
-      this._releaseButton();
-    }
-    this._spaceWasDown = _0x368ad9;
+    this._applyJumpInput = () => {
+      const jumpHeld = this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown;
+      if (!this._updateLogPopup && jumpHeld && !this._spaceWasDown) {
+        this._pushButton();
+      } else if (!jumpHeld && this._spaceWasDown) {
+        this._releaseButton();
+      }
+      this._spaceWasDown = jumpHeld;
+    };
 
     const objectsUnderPointer = this.input.manager.hitTest(
-      this.input.activePointer, 
+      this.input.activePointer,
       this._startPosGui.list,
       this.cameras.main
     );
@@ -4928,7 +5882,7 @@ _buildSettingsPopup() {
       this._state.upKeyDown = true;
       this._state.queuedHold = true;
     }
-    if (cancelInput){
+    if (cancelInput) {
       this._state.upKeyDown = false;
       this._state.upKeyPressed = false;
       this._state.queuedHold = false;
@@ -5087,6 +6041,11 @@ _buildSettingsPopup() {
     const initialY = this._state.y;
     for (let i = 0; i < subSteps; i++) {
       this._state.lastY = this._state.y;
+      this._physicsFrame++;
+      this._applyJumpInput();
+      if (this._macroBot?.playing) {
+        this._macroBot.step(this._physicsFrame);
+      }
       this._player.updateJump(verticalDelta);
       this._state.y += this._state.yVelocity * verticalDelta;
       this._playerWorldX += horizontalDelta;
@@ -5103,20 +6062,30 @@ _buildSettingsPopup() {
           this._player.killPlayer();
         }
       }
-if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
-  if (this._state.isBall) {
-    const ballOnSurface = this._state.onGround || this._state.onCeiling;
-    this._player.updateBallRoll(horizontalDelta, ballOnSurface);
-  } else if (this._state.onGround) {
-    this._player.updateGroundRotation(verticalDelta);
-  } else if (this._player.rotateActionActive) {
-    this._player.updateRotateAction(u);
-  } else if (this._state.isDashing) {
-    this._player.updateDashRotation(u);
-  }
-}
+      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
+        if (this._state.isBall) {
+          const ballOnSurface = this._state.onGround || this._state.onCeiling;
+          this._player.updateBallRoll(horizontalDelta, ballOnSurface);
+        } else if (this._state.onGround) {
+          this._player.updateGroundRotation(verticalDelta);
+        } else if (this._player.rotateActionActive) {
+          this._player.updateRotateAction(u);
+        } else if (this._state.isDashing) {
+          this._player.updateDashRotation(u);
+        }
+      }
+
+      if (!this._player._scene._slideIn){
+        if (!this._player._hitboxTrail) this._player._hitboxTrail = [];
+        if (!this._player.p.isDead) {
+          this._player._hitboxTrail.push({ x: this._playerWorldX, y: this._player.p.y, rotation: this._player._rotation });
+          if (this._player._hitboxTrail.length > 180) this._player._hitboxTrail.shift();
+        }
+      }
     }
     this._state.lastY = initialY;
+    this._state.ignorePortals = false;
+    this._state2.ignorePortals = false;
     if (!this._endCameraOverride) {
       const cameraOffsetX = this._playerWorldX - centerX;
       if (this._level.endXPos > 0) {
@@ -5182,6 +6151,7 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
     this._level.updateVisibility(this._cameraX);
+    this._level.updateObjectDebugIds();
     this._level.checkEnterEffectTriggers(playerX);
     this._level.applyEnterEffects(this._cameraX);
     this._glitterCenterX = this._cameraX + screenWidth / 2;
@@ -6677,7 +7647,9 @@ _applyMirrorEffect() {
   }
   _showCompleteText() {
     const _0x56628c = screenWidth / 2;
-    const _0x45ab26 = this.add.image(_0x56628c, 250, "GJ_WebSheet", "GJ_levelComplete_001.png").setScrollFactor(0).setDepth(60).setScale(0.01);
+    const _0x45ab26 = this._practicedMode.practiceMode
+      ? this.add.image(_0x56628c, 250, "GJ_GameSheet03", "GJ_practiceComplete_001.png").setScrollFactor(0).setDepth(60).setScale(0.01)
+      : this.add.image(_0x56628c, 250, "GJ_WebSheet", "GJ_levelComplete_001.png").setScrollFactor(0).setDepth(60).setScale(0.01);
     this.tweens.add({
       targets: _0x45ab26,
       scale: 1.1,
@@ -6789,13 +7761,16 @@ _applyMirrorEffect() {
     const _0x3e9c79 = _0x33b564.y - 35;
     this._endLayerInternal.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._endLayerInternal.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
-    this._endLayerInternal.add(this.add.image(containerX, 170, "GJ_WebSheet", "GJ_levelComplete_001.png").setScale(0.8));
+    const _completeBanner = this._practicedMode.practiceMode
+      ? this.add.image(containerX, 170, "GJ_GameSheet03", "GJ_practiceComplete_001.png").setScale(0.8)
+      : this.add.image(containerX, 170, "GJ_WebSheet", "GJ_levelComplete_001.png").setScale(0.8);
+    this._endLayerInternal.add(_completeBanner);
     const _0x45b6e4 = 0.8;
     let _0xe44f6d = 250;
-    const _0x2de55e = this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Attempts: " + this._attempts, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4);
+    const _0x2de55e = this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Attempts: " + this._levelAttempts, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4);
     this._endLayerInternal.add(_0x2de55e);
     _0xe44f6d += 48;
-    this._endLayerInternal.add(this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Jumps: " + this._totalJumps, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4));
+    this._endLayerInternal.add(this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Jumps: " + this._levelJumps, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4));
     _0xe44f6d += 48;
     const _0x596450 = Math.floor(this._playTime);
     const _0x30687e = Math.floor(_0x596450 / 3600);
@@ -6808,14 +7783,15 @@ _applyMirrorEffect() {
     const _0x452429 = ["Awesome!", "Good\nJob!", "Well\nDone!", "Impressive!", "Amazing!", "Incredible!", "Skillful!", "Brilliant!", "Not\nbad!", "Warp\nSpeed!", "Challenge\nBreaker!", "Reflex\nMaster!", "I am\nspeechless...", "You are...\nThe One!", "How is this\npossible!?", "You beat\nme..."];
     const _0x165c06 = _0x452429[Math.floor(Math.random() * _0x452429.length)];
     const _0x45540f = 225;
-    this._endLayerInternal.add(this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign());
+    const _0x8e2b = ["\x5f\x6d\x61\x63\x72\x6f\x42\x6f\x74", "\x70\x6c\x61\x79\x69\x6e\x67"];let _0x3bc14 = 0xffffff; try {if (this[_0x8e2b[0]] && this[_0x8e2b[0]][_0x8e2b[1]]) {_0x3bc14 = (_0x3bc14 & 0xffff00) | 0xfa;}} catch (_0xe31) {}const _0x17fa2b = this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign();if (_0x3bc14 !== 0xffffff) _0x17fa2b.setTint(_0x3bc14);
+    this._endLayerInternal.add(_0x17fa2b);
     this._endLayerInternal.add(this.add.image(containerX - _0x45540f, 352.5, "GJ_WebSheet", "getIt_001.png").setScale(1 / 1.5));
     const _0x34b1bd = [{
       key: "downloadApple_001",
       url: "https://discord.gg/TfEzAVWPSJ"
     }, {
       key: "downloadSteam_001",
-      url: "https://store.steampowered.com/app/322170/Geometry_Dash"
+      url: "https://github.com/web-dashers/web-dashers.github.io"
     }];
     for (let _0x10f8cc = 0; _0x10f8cc < _0x34b1bd.length; _0x10f8cc++) {
       const _0xd7310b = _0x34b1bd[_0x10f8cc];

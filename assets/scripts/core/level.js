@@ -329,6 +329,7 @@ window.LevelObject = class LevelObject {
     this._ceilingStartScreenY = 0;
     this._activeStartPosIndex = -1; 
     this._startPositions = [];
+    this._debugIdTextsList = [];
     this._buildGround();
   }
   getStartPositions() {
@@ -1455,6 +1456,46 @@ window.LevelObject = class LevelObject {
     }
 
     this.endXPos = Math.max(screenWidth + 1200, this._lastObjectX + 680);
+
+    if (window.createObjectIds) {
+      const scene = this._scene;
+      const worldContainer = this.container || this._container;
+
+      if (worldContainer) {
+        this._debugIdTextsList = [];
+
+        _0x35f1ae.forEach((levelObj, index) => {
+          if (!levelObj || levelObj.id === undefined) return;
+
+          const worldX = levelObj.x * 2;
+          const textY = typeof b === 'function' ? b(levelObj.y * 2) : levelObj.y * 2;
+
+          const idText = scene.add.text(worldX, textY, String(levelObj.id), {
+            fontFamily: 'monospace',
+            fontSize: '30px',
+            fill: '#00ff00', 
+            stroke: '#000000',
+            strokeThickness: 3
+          });
+          idText.setOrigin(0.5);
+          idText.setDepth(999); 
+          idText.setVisible(window.showObjectIds);
+
+          worldContainer.add(idText);
+
+          idText.preUpdate = () => {
+            idText.x = worldX;
+            idText.y = textY;
+          };
+
+          scene.sys.updateList.add(idText);
+          this._debugIdTextsList.push(idText);
+
+          if (!this.objectSprites[index]) this.objectSprites[index] = [];
+          this.objectSprites[index].push(idText);
+        });
+      }
+    }
   }
   createEndPortal(_0x41fbdb) {
     if (window.isEditor) return; // not dealing with ts rn
@@ -1634,6 +1675,21 @@ window.LevelObject = class LevelObject {
       }
       this._visMinSec = particleScale;
       this._visMaxSec = sliderHeight;
+    }
+  }
+  updateObjectDebugIds() {
+    if (window.showObjectIds) {
+      if (this._debugIdTextsList && this._debugIdTextsList.length > 0) {
+        for (const idText of this._debugIdTextsList) {
+          if (idText) idText.setVisible(true);
+        }
+      }
+    } else {
+      if (this._debugIdTextsList && this._debugIdTextsList.length > 0 ) {
+        for (const idText of this._debugIdTextsList) {
+          if (idText) idText.setVisible(false);
+        }
+      }
     }
   }
   getNearbySectionObjects(_0x2e85c7) {

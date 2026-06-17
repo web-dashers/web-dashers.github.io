@@ -35,6 +35,7 @@ class PlayerState {
     this.isDashing = false;
     this.dashYVelocity = 0;
     this.isDual = false;
+    this.ignorePortals = false;
   }
 }
 
@@ -927,11 +928,6 @@ if (this.p.isFlying || this.p.isUfo) {
     }
 
     if (!this._scene._slideIn){
-      if (!this._hitboxTrail) this._hitboxTrail = [];
-      if (!this.p.isDead) {
-        this._hitboxTrail.push({ x: this._scene._playerWorldX, y: this.p.y, rotation: this._rotation });
-        if (this._hitboxTrail.length > 180) this._hitboxTrail.shift();
-      }
       if (window.showHitboxes || this.p.isDead && window.hitboxesOnDeath) {
         this.drawHitboxes(this._hitboxGraphics, cameraX, cameraY);
       } else if (this._hitboxGraphics) {
@@ -939,7 +935,7 @@ if (this.p.isFlying || this.p.isUfo) {
       }
     }
   }
-  enterShipMode(_0xeb37c6 = null) {
+  enterShipMode(_0xeb37c6 = null, fromCheckpoint = false) {
     if (this.p.isFlying) {
       return;
     }
@@ -947,7 +943,9 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitWaveMode();
     this.p.isFlying = true;
     this._scene.toggleGlitter(true);
-    this.p.yVelocity *= 0.5;
+    if (!fromCheckpoint){ // dont mess with y velocity if ur loading a checkpoint
+      this.p.yVelocity *= 0.5;
+    }
     this.p.onGround = false;
     this.p.canJump = false;
     this.p.isJumping = false;
@@ -1123,14 +1121,16 @@ if (this.p.isFlying || this.p.isUfo) {
     this.setCubeVisible(true);
     this._gameLayer.setFlyMode(false, 0);
   }
-  enterUfoMode(_portal = null) {
+  enterUfoMode(_portal = null, fromCheckpoint = false) {
     if (this.p.isUfo) return;
     this.exitBallMode();
     this.exitWaveMode();
     this.exitShipMode();
     this.p.isUfo = true;
     this._scene.toggleGlitter(true);
-    this.p.yVelocity *= 0.4;
+    if (!fromCheckpoint){ // dont mess with y velocity if ur loading a checkpoint
+      this.p.yVelocity *= 0.4;
+    }
     this.p.onGround = false;
     this.p.canJump = false;
     this.p.isJumping = false;
@@ -1705,7 +1705,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this._updateUfoJump(_0x3d1c6f);
     } else if (this.p.isSpider) {
       this._updateSpiderJump(_0x3d1c6f);
-    } else if (this.p.upKeyDown && this.p.canJump && !this.p.touchingRing) {
+    } else if (this.p.upKeyDown && this.p.canJump) {
       this.p.isJumping = true;
       this.p.onGround = false;
       this.p.canJump = false;
@@ -1979,6 +1979,10 @@ _updateWaveJump() {
       }
       if (_broadPhaseHit) {
         const _colType = gameObj.type;
+        if (this.p.ignorePortals && (_colType.startsWith("portal_") || _colType === "speed")) {
+          gameObj.activated = true;
+          continue;
+        }
         if (_colType === "portal_fly") {
           if (!gameObj.activated) {
             gameObj.activated = true;
