@@ -1,5 +1,14 @@
 .DS_Store
 /.claude
+/.cursor
+/.cursorrules
+/.kilo
+/.opencode
 /node_modules
 /server.js
 *.env*
+/AGENTS.md
+/agents.md
+/AGENTS.mdc
+/CLAUDE.md
+/.github/copilot-instructions.md

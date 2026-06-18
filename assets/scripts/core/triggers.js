@@ -86,14 +86,58 @@ class TriggerStepper {
       };
       this.done = true;
     } else {
+      let currentOpacity = 1;
+      if (this.from.opacity !== undefined && this.to.opacity !== undefined) {
+        currentOpacity = this.from.opacity + (this.to.opacity - this.from.opacity) * progress;
+      } else if (this.to.opacity !== undefined) {
+        currentOpacity = 1 + (this.to.opacity - 1) * progress;
+      }
       this.current = {
         r: Math.round(this.from.r + (this.to.r - this.from.r) * progress),
         g: Math.round(this.from.g + (this.to.g - this.from.g) * progress),
-        b: Math.round(this.from.b + (this.to.b - this.from.b) * progress)
+        b: Math.round(this.from.b + (this.to.b - this.from.b) * progress),
+        opacity: currentOpacity,
+        blending: this.to.blending
       };
     }
   }
 }
+function colorFromHex(hex) {
+  if (typeof hex === "string") {
+    hex = hex.replace(/^#/, "");
+    hex = parseInt(hex, 16);
+  }
+  hex = Number(hex) >>> 0;
+  return { r: (hex >> 16) & 0xff, g: (hex >> 8) & 0xff, b: hex & 0xff };
+}
+
+function cloneColor(color) {
+  return { r: color.r, g: color.g, b: color.b };
+}
+
+function colorValue(color) {
+  return Math.max(color.r, color.g, color.b) / 255;
+}
+
+function lightenColorValue(color, value) {
+  const current = Math.max(color.r, color.g, color.b);
+  if (current <= 0) return cloneColor(color);
+  const scale = (value * 255) / current;
+  return {
+    r: Math.min(255, Math.round(color.r * scale)),
+    g: Math.min(255, Math.round(color.g * scale)),
+    b: Math.min(255, Math.round(color.b * scale))
+  };
+}
+
+function lerpColor(a, b, t) {
+  return {
+    r: Math.round(a.r + (b.r - a.r) * t),
+    g: Math.round(a.g + (b.g - a.g) * t),
+    b: Math.round(a.b + (b.b - a.b) * t)
+  };
+}
+
 class ColorManager {
   constructor() {
     this._initialColors = {};
@@ -114,8 +158,31 @@ class ColorManager {
         r: 0,
         g: 68,
         b: 170
+      },
+      [1010]: {
+        r: 0,
+        g: 0,
+        b: 0
+      },
+      [1003]: {
+        r: 255,
+        g: 255,
+        b: 255
+      },
+      [1011]: {
+        r: 255,
+        g: 255,
+        b: 255
       }
     };
+    if (!this._initialColors[1]) {
+      this._initialColors[1] = colorFromHex(window.mainColor);
+      this._colors[1] = { ...this._initialColors[1] };
+    }
+    if (!this._initialColors[2]) {
+      this._initialColors[2] = colorFromHex(window.secondaryColor);
+      this._colors[2] = { ...this._initialColors[2] };
+    }
     for (let chId in this._initialColors) {
       this._colors[chId] = { ...this._initialColors[chId] };
     }
@@ -144,8 +211,21 @@ class ColorManager {
       }
     }
   }
+  getLightBackgroundColor() {
+    const bg = this.getColor(fs);
+    const p1 = this.getColor(1);
+    const bgValue = colorValue(bg);
+    if (bgValue <= 0) return cloneColor(p1);
+
+    const lightBg = lightenColorValue(bg, Math.min(1, bgValue + 0.2));
+    if (bgValue >= 0.2) return lightBg;
+
+    return lerpColor(p1, lightBg, bgValue / 0.2);
+  }
   getColor(index) {
-    return this._colors[index] || {
+    const ch = parseInt(index, 10);
+    if (ch === 1007) return this.getLightBackgroundColor();
+    return this._colors[ch] || {
       r: 255,
       g: 255,
       b: 255

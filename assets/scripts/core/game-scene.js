@@ -1,3 +1,7 @@
+// Removed player color defaults
+if (typeof window.mainColor === 'undefined') window.mainColor = '#ff0000';
+if (typeof window.secondaryColor === 'undefined') window.secondaryColor = '#00ff00';
+
 class PracticeMode {
   constructor() {
     this.checkpoints = [];
@@ -5029,6 +5033,12 @@ _buildSettingsPopup() {
         if (_saw && _saw.active) _saw.rotation += sawRotation;
       }
     }
+    if (this._level && this._level._spinSprites) {
+      const spinRotation = deltaTime * 0.003;
+      for (let _spin of this._level._spinSprites) {
+        if (_spin && _spin.active) _spin.rotation += spinRotation * (_spin._spinSpeed ?? 1);
+      }
+    }
     this._level.updateAudioScale(this._audio.getMeteringValue());
     if (!this._orbGfx) {
       this._orbGfx = this.add.graphics().setDepth(54).setBlendMode(S);
@@ -5164,9 +5174,25 @@ if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
     this._level.topContainer.y = this._cameraY;
     let playerX = this._playerWorldX;
     for (let colorTrigger of this._level.checkColorTriggers(playerX)) {
-      this._colorManager.triggerColor(colorTrigger.index, colorTrigger.color, colorTrigger.duration);
+      let trigColor = colorTrigger.color;
+      // Resolve copyPlayerColor at runtime using the player's actual color
+      if (colorTrigger.copyPlayerColor === 1) {
+        const hex = typeof window.mainColor === "string"
+          ? parseInt(window.mainColor.replace(/^#/, ""), 16)
+          : (window.mainColor || 0x00a8f0);
+        trigColor = { r: (hex >> 16) & 0xff, g: (hex >> 8) & 0xff, b: hex & 0xff, opacity: colorTrigger.color.opacity, blending: colorTrigger.color.blending };
+      } else if (colorTrigger.copyPlayerColor === 2) {
+        const hex = typeof window.secondaryColor === "string"
+          ? parseInt(window.secondaryColor.replace(/^#/, ""), 16)
+          : (window.secondaryColor || 0x00ff00);
+        trigColor = { r: (hex >> 16) & 0xff, g: (hex >> 8) & 0xff, b: hex & 0xff, opacity: colorTrigger.color.opacity, blending: colorTrigger.color.blending };
+      } else if (colorTrigger.copyChannel > 0) {
+        const srcColor = this._colorManager.getColor(colorTrigger.copyChannel);
+        trigColor = { r: srcColor.r, g: srcColor.g, b: srcColor.b, opacity: colorTrigger.color.opacity, blending: colorTrigger.color.blending };
+      }
+      this._colorManager.triggerColor(colorTrigger.index, trigColor, colorTrigger.duration);
       if (colorTrigger.tintGround) {
-        this._colorManager.triggerColor(gs, colorTrigger.color, colorTrigger.duration);
+        this._colorManager.triggerColor(gs, trigColor, colorTrigger.duration);
       }
     }
     this._level.checkMoveTriggers(playerX);

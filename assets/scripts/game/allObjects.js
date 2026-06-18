@@ -1664,6 +1664,7 @@ window.allobjects = function() {
   },
   "137": {
     "type": "deco",
+    "spinSpeed": 0.75,
     "frame": "d_wheel_01_001.png",
     "gridW": 1.350000023841858,
     "gridH": 2.6666667461395264,
@@ -1671,12 +1672,14 @@ window.allobjects = function() {
       {
         "frame": "d_wheel_01_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_wheel_01_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": -1
       }
@@ -31444,10 +31447,33 @@ window.allobjects = function() {
   },
   "1831": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_scaleFadeRing_01_001.png",
         "localDy": 0,
+        "rot": 0,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31466,10 +31492,34 @@ window.allobjects = function() {
   },
   "1832": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "default_scale": 2,
     "children": [
       {
         "frame": "d_scaleFadeRing_03_001.png",
         "localDy": 0,
+        "rot": 0,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31477,8 +31527,8 @@ window.allobjects = function() {
     "default_base_color_channel": 1007,
     "frame": "d_scaleFadeRing_03_001.png",
     "glow_frame": "d_scaleFadeRing_03_glow_001.png",
-    "gridH": 0.5,
-    "gridW": 0.5,
+    "gridH": 1,
+    "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
     "type": "deco",
     "z": 9,
@@ -31488,10 +31538,33 @@ window.allobjects = function() {
   },
   "1833": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_scaleFadeRing_02_001.png",
         "localDy": 0,
+        "rot": 0,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31510,10 +31583,34 @@ window.allobjects = function() {
   },
   "1834": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "default_scale": 2,
     "children": [
       {
         "frame": "d_scaleFadeRing_04_001.png",
         "localDy": 0,
+        "rot": 0,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31521,8 +31618,8 @@ window.allobjects = function() {
     "default_base_color_channel": 1007,
     "frame": "d_scaleFadeRing_04_001.png",
     "glow_frame": "d_scaleFadeRing_04_glow_001.png",
-    "gridH": 0.5,
-    "gridW": 0.5,
+    "gridH": 1,
+    "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
     "type": "deco",
     "z": 9,
@@ -31532,6 +31629,33 @@ window.allobjects = function() {
   },
   "1835": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "children": [
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 0,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_01_001.png",
+        "localDy": 0,
+        "rot": 270,
+        "z": -1
+      }
+    ],
     "default_base_color_channel": 1004,
     "frame": "d_scaleFadeRing_01_001.png",
     "glow_frame": "d_scaleFadeRing_01_glow_001.png",
@@ -31546,11 +31670,39 @@ window.allobjects = function() {
   },
   "1836": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "default_scale": 2,
+    "children": [
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 0,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_03_001.png",
+        "localDy": 0,
+        "rot": 270,
+        "z": -1
+      }
+    ],
     "default_base_color_channel": 1004,
     "frame": "d_scaleFadeRing_03_001.png",
     "glow_frame": "d_scaleFadeRing_03_glow_001.png",
-    "gridH": 0.5,
-    "gridW": 0.5,
+    "gridH": 1,
+    "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
     "type": "deco",
     "z": 9,
@@ -31560,6 +31712,33 @@ window.allobjects = function() {
   },
   "1837": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "children": [
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 0,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_02_001.png",
+        "localDy": 0,
+        "rot": 270,
+        "z": -1
+      }
+    ],
     "default_base_color_channel": 1004,
     "frame": "d_scaleFadeRing_02_001.png",
     "glow_frame": "d_scaleFadeRing_02_glow_001.png",
@@ -31574,11 +31753,39 @@ window.allobjects = function() {
   },
   "1838": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "default_scale": 2,
+    "children": [
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 0,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 90,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 180,
+        "z": -1
+      },
+      {
+        "frame": "d_scaleFadeRing_04_001.png",
+        "localDy": 0,
+        "rot": 270,
+        "z": -1
+      }
+    ],
     "default_base_color_channel": 1004,
     "frame": "d_scaleFadeRing_04_001.png",
     "glow_frame": "d_scaleFadeRing_04_glow_001.png",
-    "gridH": 0.5,
-    "gridW": 0.5,
+    "gridH": 1,
+    "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
     "type": "deco",
     "z": 9,
@@ -31588,28 +31795,33 @@ window.allobjects = function() {
   },
   "1839": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_scaleFadeRing_01_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_01_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_01_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_01_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31617,8 +31829,8 @@ window.allobjects = function() {
     "default_base_color_channel": 1,
     "frame": "d_scaleFadeRing_01_001.png",
     "glow_frame": "d_scaleFadeRing_01_glow_001.png",
-    "gridH": 2,
-    "gridW": 2,
+    "gridH": 1,
+    "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
     "type": "deco",
     "z": 9,
@@ -31628,28 +31840,34 @@ window.allobjects = function() {
   },
   "1840": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "default_scale": 2,
     "children": [
       {
         "frame": "d_scaleFadeRing_03_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_03_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_03_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_03_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31668,28 +31886,33 @@ window.allobjects = function() {
   },
   "1841": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_scaleFadeRing_02_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_02_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_02_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_02_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }
@@ -31697,8 +31920,8 @@ window.allobjects = function() {
     "default_base_color_channel": 1,
     "frame": "d_scaleFadeRing_02_001.png",
     "glow_frame": "d_scaleFadeRing_02_glow_001.png",
-    "gridH": 2,
-    "gridW": 2,
+    "gridH": 1,
+    "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
     "type": "deco",
     "z": 9,
@@ -31708,28 +31931,34 @@ window.allobjects = function() {
   },
   "1842": {
     "can_color": true,
+    "spinSpeed": 0.75,
+    "default_scale": 2,
     "children": [
       {
         "frame": "d_scaleFadeRing_04_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_04_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_04_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_scaleFadeRing_04_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": -1
       }

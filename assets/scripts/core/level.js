@@ -50,6 +50,7 @@ function parseObject(objectString) {
       flipX: objectData[4] === "1",
       flipY: objectData[5] === "1",
       rot: parseFloat(objectData[6] || "0"),
+      animSpeed: parseFloat(objectData[20] || "0"),
       scale: parseFloat(objectData[32] || "1"),
       zLayer: parseInt(objectData[24] || "0", 10),
       zOrder: parseInt(objectData[25] || "0", 10),
@@ -298,6 +299,7 @@ window.LevelObject = class LevelObject {
     this._orbSprites = [];
     this._coinSprites = [];
     this._sawSprites = [];
+    this._spinSprites = [];
     this._enterEffectTriggers = [];
     this._enterEffectTriggerIdx = 0;
     this._activeEnterEffect = 0;
@@ -360,18 +362,18 @@ window.LevelObject = class LevelObject {
     this._initialColors = {};
     this._backgroundId = null;
     this._groundId = null;
+    window.settingsMap = {};
     if (!settingsStr) return;
     let pairs = settingsStr.split(",");
-    window.settingsMap = {};
     for (let i = 0; i + 1 < pairs.length; i += 2) {
-      settingsMap[pairs[i]] = pairs[i + 1];
+      window.settingsMap[pairs[i]] = pairs[i + 1];
     }
-    let colorStr = settingsMap["kS38"];
-    window._backgroundId = settingsMap["kA6"] ? settingsMap["kA6"] : "01";
+    let colorStr = window.settingsMap["kS38"];
+    window._backgroundId = window.settingsMap["kA6"] ? window.settingsMap["kA6"] : "01";
     if (window._backgroundId.length < 2) {
       window._backgroundId = "0"+window._backgroundId;
     }
-    window._groundId = getGroundTextureId(settingsMap["kA7"]);
+    window._groundId = getGroundTextureId(window.settingsMap["kA7"]);
     if (colorStr) {
       let channels = colorStr.split("|");
       for (let ch of channels) {
@@ -383,11 +385,24 @@ window.LevelObject = class LevelObject {
         }
         let channelId = parseInt(colorProps[6], 10);
         if (!isNaN(channelId)) {
-          this._initialColors[channelId] = {
-            r: parseInt(colorProps[1] || "255", 10),
-            g: parseInt(colorProps[2] || "255", 10),
-            b: parseInt(colorProps[3] || "255", 10)
-          };
+          let copyPlayer = parseInt(colorProps[4] || "-1", 10);
+          if (copyPlayer === 1) {
+            let hex = window.mainColor || 0x00a8f0;
+            if (typeof hex === "string") hex = parseInt(hex.replace(/^#/, ""), 16);
+            this._initialColors[channelId] = { r: (hex >> 16) & 0xff, g: (hex >> 8) & 0xff, b: hex & 0xff, opacity: parseFloat(colorProps[7] ?? 1), blending: colorProps[5] === "1" };
+          } else if (copyPlayer === 2) {
+            let hex = window.secondaryColor || 0x00ff00;
+            if (typeof hex === "string") hex = parseInt(hex.replace(/^#/, ""), 16);
+            this._initialColors[channelId] = { r: (hex >> 16) & 0xff, g: (hex >> 8) & 0xff, b: hex & 0xff, opacity: parseFloat(colorProps[7] ?? 1), blending: colorProps[5] === "1" };
+          } else {
+            this._initialColors[channelId] = {
+              r: parseInt(colorProps[1] || "255", 10),
+              g: parseInt(colorProps[2] || "255", 10),
+              b: parseInt(colorProps[3] || "255", 10),
+              opacity: parseFloat(colorProps[7] ?? 1),
+              blending: colorProps[5] === "1"
+            };
+          }
         }
       }
     }
@@ -404,12 +419,12 @@ window.LevelObject = class LevelObject {
         b: parseInt(cp[3] || "255", 10)
       };
     };
-    if (!this._initialColors[1000] && settingsMap["kS29"]) {
-      let col = parseColorEntry(settingsMap["kS29"]);
+    if (!this._initialColors[1000] && window.settingsMap["kS29"]) {
+      let col = parseColorEntry(window.settingsMap["kS29"]);
       if (col) this._initialColors[1000] = col;
     }
-    if (!this._initialColors[1001] && settingsMap["kS30"]) {
-      let col = parseColorEntry(settingsMap["kS30"]);
+    if (!this._initialColors[1001] && window.settingsMap["kS30"]) {
+      let col = parseColorEntry(window.settingsMap["kS30"]);
       if (col) this._initialColors[1001] = col;
     }
   }
@@ -733,6 +748,10 @@ window.LevelObject = class LevelObject {
     if (objectData.scale !== 1) {
       sprite.setScale(objectData.scale);
     }
+    if (objectData.spinSpeed !== undefined) {
+      sprite._spinSpeed = objectData.spinSpeed;
+      if (!this._spinSprites.includes(sprite)) this._spinSprites.push(sprite);
+    }
     if (colorData) {
       if (colorData.tint !== undefined) {
         sprite.setTint(colorData.tint);
@@ -800,16 +819,34 @@ window.LevelObject = class LevelObject {
 
   const scene = this._scene;
   const objectDef = getObjectFromId(levelObj.id);
+  const objectFrame = objectDef ? objectDef.frame : null;
+  if (objectDef && objectDef.default_scale !== undefined) {
+    levelObj.scale = (levelObj.scale || 1) * objectDef.default_scale;
+  }
+  if (objectDef && objectDef.spinSpeed !== undefined) {
+    levelObj.spinSpeed = objectDef.spinSpeed;
+  }
+  // ponytail: GD key 20 is animation/spin speed; this matches current 137 timing and supports negative direction.
+  if (Number.isFinite(levelObj.animSpeed) && levelObj.animSpeed !== 0) {
+    levelObj.spinSpeed = Math.sign(levelObj.animSpeed) * Math.max(0.25, Math.abs(levelObj.animSpeed) * 0.25);
+  }
 
   if (objectDef && objectDef.type === triggerType) {
-    if (levelObj.id === 29 || levelObj.id === 30) {
+    if (levelObj.id === 29 || levelObj.id === 30 || levelObj.id === 104 || levelObj.id === 105) {
+      let channelId = 1000; // ID 29 = BG color
+      if (levelObj.id === 30) channelId = 1001; // ID 30 = Ground color
+      else if (levelObj.id === 104) channelId = 1004; // ID 104 = Line/Object color
+      else if (levelObj.id === 105) channelId = 1002; // ID 105 = Line color
+      
       this._colorTriggers.push({
         x: levelObj.x * 2,
-        index: levelObj.id === 29 ? 1000 : 1001,
+        index: channelId,
         color: {
           r: parseInt(levelObj._raw[7] ?? 255, 10),
           g: parseInt(levelObj._raw[8] ?? 255, 10),
-          b: parseInt(levelObj._raw[9] ?? 255, 10)
+          b: parseInt(levelObj._raw[9] ?? 255, 10),
+          opacity: 1,
+          blending: false
         },
         duration: parseFloat(levelObj._raw[10] ?? 0),
         tintGround: levelObj._raw[14] === "1"
@@ -850,19 +887,36 @@ window.LevelObject = class LevelObject {
 
     if (levelObj.id === 899) {
       const _raw = levelObj._raw;
-      const targetChannel = parseInt(_raw[23] ?? 0, 10);
-      if (targetChannel > 0) {
-        this._colorTriggers.push({
-          x: levelObj.x * 2,
-          index: targetChannel,
-          color: {
-            r: parseInt(_raw[7] ?? 255, 10),
-            g: parseInt(_raw[8] ?? 255, 10),
-            b: parseInt(_raw[9] ?? 255, 10)
+       const targetChannel = parseInt(_raw[23] ?? 1, 10); // Default to Color 1 if omitted
+       if (targetChannel > 0) {
+         // GD 2.1 color trigger properties:
+         // 16 = Blending (additive blend mode)
+         // 17 = Copy Player Color 1
+         // 18 = Copy Player Color 2
+         // 19 = Copy Color from channel (value is channel ID)
+         const blending = _raw[16] === "1";
+         const copyP1 = _raw[17] === "1";
+         const copyP2 = _raw[18] === "1";
+         const copyChannel = _raw[19] ? parseInt(_raw[19], 10) : 0;
+         // 0=none, 1=P1color, 2=P2color
+         const copyPlayerColor = copyP1 ? 1 : copyP2 ? 2 : 0;
+         let r = parseInt(_raw[7] ?? 255, 10);
+         let g = parseInt(_raw[8] ?? 255, 10);
+         let b = parseInt(_raw[9] ?? 255, 10);
+         this._colorTriggers.push({
+           x: levelObj.x * 2,
+           index: targetChannel,
+           color: {
+            r,
+            g,
+            b,
+            opacity: parseFloat(_raw[35] ?? 1),
+            blending
           },
+          copyPlayerColor,
+          copyChannel,
           duration: parseFloat(_raw[10] ?? 0),
-          tintGround: _raw[14] === "1",
-          opacity: parseFloat(_raw[35] ?? 1)
+          tintGround: _raw[14] === "1"
         });
       }
     }
@@ -929,7 +983,7 @@ window.LevelObject = class LevelObject {
     this._lastObjectX = worldX;
   }
 
-  let frameName = objectDef ? objectDef.frame : null;
+  let frameName = objectFrame;
   if (objectDef && objectDef.randomFrames) {
     frameName = objectDef.randomFrames[Math.floor(Math.random() * objectDef.randomFrames.length)];
   }
@@ -955,14 +1009,39 @@ window.LevelObject = class LevelObject {
     const depthBase = { "-3": -6, "-1": -3, 0: 0, 1: 3, 3: 6, 5: 9 };
     const objZDepth = (depthBase[zLayer] !== undefined ? depthBase[zLayer] : 0) + zOrd * 0.01;
 
-    let col1 = levelObj.color1 || (objectDef.default_base_color_channel !== undefined ? objectDef.default_base_color_channel : 0);
-    if (col1 === 0 && (objectDef.type === solidType || objectDef.type === hazardType)) col1 = 1;
+    const isBlackChannelObject =
+      (objectDef.type === hazardType && (
+        frameName.startsWith("spike_") ||
+        frameName.indexOf("sawblade") >= 0 ||
+        frameName.startsWith("spinBlade") ||
+        frameName.startsWith("blade") ||
+        frameName.startsWith("darkblade") ||
+        frameName.startsWith("bladeTrap") ||
+        frameName.startsWith("blackCogwheel")
+      )) ||
+      (objectDef.type === decoType && (
+        frameName === "chain_01_001.png" ||
+        frameName.startsWith("d_02_chain_") ||
+        frameName.startsWith("d_03_chain_") ||
+        frameName.startsWith("d_chain_")
+      ));
+    const hasExplicitColor1 = levelObj.color1 !== undefined && levelObj.color1 > 0;
+    let col1 = levelObj.color1 ?? (objectDef.default_base_color_channel !== undefined ? objectDef.default_base_color_channel : 0);
+    if (!hasExplicitColor1 && isBlackChannelObject) {
+      col1 = 1010;
+    }
+    if (col1 <= 0 && objectDef.type === decoType && objectDef.tint !== undefined && frameName.startsWith("d_spike")) {
+      col1 = 1001;
+    }
+    // Do not force uncolored solids/hazards to channel 1 — leave them as natural texture color
 
-    const col2 = levelObj.color2 || (objectDef.default_detail_color_channel !== undefined ? objectDef.default_detail_color_channel : -1);
+    let col2 = levelObj.color2 ?? (objectDef.default_detail_color_channel !== undefined ? objectDef.default_detail_color_channel : -1);
+    if (objectDef.type === hazardType && col2 <= 0) col2 = 1001;
     const canColor = objectDef.can_color !== false;
 
     const registerColor = (spr, ch) => {
-      if (ch > 0 && canColor && spr && !spr._isSaw) {
+      if (ch > 0 && canColor && spr && !objectDef.black) {
+        if (spr._isSaw && ch !== 1010) return;
         spr._eeColorChannel = ch;
         if (!this._colorChannelSprites[ch]) this._colorChannelSprites[ch] = [];
         this._colorChannelSprites[ch].push(spr);
@@ -1030,6 +1109,36 @@ window.LevelObject = class LevelObject {
       this._addToSection(sprite);
       registerObjectSprite(sprite);
 
+      // For black-body objects with a glow frame, spawn the glow as an additively-blended
+      // colored outline registered to the object's color channel
+      if (objectDef && objectDef.black && objectDef.glow_frame) {
+        const blackGlowFrame = objectDef.glow_frame;
+        if (getAtlasFrame(scene, blackGlowFrame) || scene.textures.exists(blackGlowFrame)) {
+          const blackGlow = addImageToScene(scene, spriteWorldX, baseY, blackGlowFrame);
+          if (blackGlow) {
+            this._applyVisualProps(scene, blackGlow, blackGlowFrame, levelObj);
+            blackGlow.setBlendMode(S);
+            blackGlow._eeLayer = 0;
+            blackGlow._eeWorldX = worldX;
+            blackGlow._eeBaseY = baseY;
+            blackGlow._eeZDepth = objZDepth + 0.001;
+            blackGlow._eeOrigAlpha = 1;
+            // Register in color channel so it gets tinted with the player color
+            if (col1 > 0 && canColor) {
+              blackGlow._eeColorChannel = col1;
+              if (!this._colorChannelSprites[col1]) this._colorChannelSprites[col1] = [];
+              this._colorChannelSprites[col1].push(blackGlow);
+            }
+            this._addToSection(blackGlow);
+            registerObjectSprite(blackGlow);
+            if (objGids && objGids.length) {
+              blackGlow._eeGroups = objGids;
+              registerToGroups(blackGlow, worldX, baseY);
+            }
+          }
+        }
+      }
+
       if (objGids && objGids.length) {
         sprite._eeGroups = objGids;
         registerToGroups(sprite, sprite._eeWorldX, sprite._eeBaseY);
@@ -1075,6 +1184,7 @@ window.LevelObject = class LevelObject {
           sawMirror.setTint(0x000000);
           sawMirror.rotation = sprite.rotation + Math.PI;
           sawMirror._isSaw = true;
+          registerColor(sawMirror, col1);
           sawMirror._eeWorldX = worldX;
           sawMirror._eeBaseY = baseY;
           this._addToSection(sawMirror);
@@ -1099,7 +1209,7 @@ window.LevelObject = class LevelObject {
         overlaySprite._eeOrigAlpha = 1;
 
         let oc2 = col2;
-        if (oc2 <= 0) oc2 = 2;
+        if (oc2 <= 0) oc2 = 1001;
         registerColor(overlaySprite, oc2);
 
         this._addToSection(overlaySprite);
@@ -1129,12 +1239,14 @@ window.LevelObject = class LevelObject {
           childDy = localDx * Math.sin(rot) + localDy * Math.cos(rot);
         }
 
-        const childWorldX = worldX + childDx;
-        const childBaseY = baseY + childDy;
-        const childSprite = addImageToScene(scene, spriteWorldX + childDx, baseY + childDy, childDef.frame);
+          const childWorldX = worldX + childDx;
+          const childBaseY = baseY + childDy;
+          const childRot = (levelObj.rot || 0) + (childDef.rot || 0);
+          const childVisualData = { ...levelObj, rot: childRot };
+          const childSprite = addImageToScene(scene, spriteWorldX + childDx, baseY + childDy, childDef.frame);
 
-        if (childSprite) {
-          this._applyVisualProps(scene, childSprite, childDef.frame, levelObj, childDef);
+          if (childSprite) {
+            this._applyVisualProps(scene, childSprite, childDef.frame, childVisualData, childDef);
 
           if (childDef.audioScale) {
             childSprite.setScale(0.1);
@@ -1170,6 +1282,7 @@ window.LevelObject = class LevelObject {
               childMirror.setTint(0x000000);
               childMirror.rotation = childSprite.rotation + Math.PI;
               childMirror._isSaw = true;
+              registerColor(childMirror, col1);
               childMirror._eeWorldX = childWorldX;
               childMirror._eeBaseY = childBaseY;
               this._addToSection(childMirror);
@@ -1973,13 +2086,22 @@ window.LevelObject = class LevelObject {
     for (const chId in this._colorChannelSprites) {
       const sprites = this._colorChannelSprites[chId];
       if (!sprites || !sprites.length) continue;
+      const chColor = colorManager.getColor(parseInt(chId, 10));
       const hex = colorManager.getHex(parseInt(chId, 10));
       for (const spr of sprites) {
         if (!spr || !spr.active) continue;
         if (spr._eePulsed) continue;
-        if (spr._isSaw) continue;
         if (spr._eeAudioScale) continue;
         spr.setTint(hex);
+        if (chColor.opacity !== undefined) {
+          spr._eeColorAlpha = chColor.opacity;
+        } else {
+          spr._eeColorAlpha = 1;
+        }
+        spr.setAlpha(this._getGroupOpacityForSprite(spr));
+        if (chColor.blending) {
+          spr.setBlendMode(S);
+        }
       }
     }
   }
@@ -2007,12 +2129,16 @@ window.LevelObject = class LevelObject {
     }
   }
   _getGroupOpacityForSprite(spr) {
-    const groups = spr && spr._eeGroups;
-    if (!groups || !groups.length) return 1;
     let op = 1;
-    for (const gid of groups) {
-      const g = this._groupOpacity[gid];
-      if (g !== undefined && g < op) op = g;
+    const groups = spr && spr._eeGroups;
+    if (groups && groups.length) {
+      for (const gid of groups) {
+        const g = this._groupOpacity[gid];
+        if (g !== undefined && g < op) op = g;
+      }
+    }
+    if (spr && spr._eeColorAlpha !== undefined) {
+      op *= spr._eeColorAlpha;
     }
     return op;
   }
