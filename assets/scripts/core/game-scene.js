@@ -6201,8 +6201,13 @@ _handleEditorCamera = (delta) => {
 _initEditorLogic = () => {
     if (this._editorGridGraphics) this._editorGridGraphics.destroy();
     this._editorGridGraphics = this.add.graphics().setDepth(5);
-    const allObj = window.allobjects();
-    this._totalIds = Object.keys(allObj).length;
+const allObj = window.allobjects();
+let maxId = 0;
+for (const key in allObj) {
+    const num = parseInt(key, 10);
+    if (!isNaN(num) && num > maxId) maxId = num;
+}
+this._totalIds = maxId;
     this._editorPage = 0;
     this._maxPerPage = 12;
     this._isSwipeEnabled = false;
@@ -6989,6 +6994,17 @@ _placeObject = () => {
 
     window.levelObjects.push(saveData);
     this._level._spawnObject(saveData);
+
+    // teleport portal pairing
+    if (objId === 747) {
+        const outData = JSON.parse(JSON.stringify(saveData));
+        outData.id = 749;
+        outData._raw["1"] = "749";
+        window.levelObjects.push(outData);
+        this._level._spawnObject(outData);
+        const outIndex = this._level.objectSprites.length - 1;
+        this._selectEditorObjectByIndex(outIndex);
+    }
 
     const placedIndex = this._level.objectSprites.length - 1;
     const newestSprites = this._level.objectSprites[placedIndex];
