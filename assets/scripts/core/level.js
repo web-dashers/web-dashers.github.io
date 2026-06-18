@@ -820,6 +820,11 @@ window.LevelObject = class LevelObject {
   const scene = this._scene;
   const objectDef = getObjectFromId(levelObj.id);
   const objectFrame = objectDef ? objectDef.frame : null;
+  const isNativeSpinFrame = objectFrame && (
+    objectFrame.startsWith("d_wheel_0") ||
+    objectFrame.startsWith("d_cogwheel_") ||
+    objectFrame.startsWith("d_cartwheel_")
+  );
   if (objectDef && objectDef.default_scale !== undefined) {
     levelObj.scale = (levelObj.scale || 1) * objectDef.default_scale;
   }
@@ -827,7 +832,7 @@ window.LevelObject = class LevelObject {
     levelObj.spinSpeed = objectDef.spinSpeed;
   }
   // ponytail: GD key 20 is animation/spin speed; this matches current 137 timing and supports negative direction.
-  if (Number.isFinite(levelObj.animSpeed) && levelObj.animSpeed !== 0) {
+  if (isNativeSpinFrame && Number.isFinite(levelObj.animSpeed) && levelObj.animSpeed !== 0) {
     levelObj.spinSpeed = Math.sign(levelObj.animSpeed) * Math.max(0.25, Math.abs(levelObj.animSpeed) * 0.25);
   }
 
