@@ -2666,23 +2666,25 @@ _updateWaveJump() {
           const trailXRaw = pos.x - camX;
           const trailX = isFlipped ? screenWidth - trailXRaw : trailXRaw;
           const trailY = b(pos.y) + camY;
+          const entrySize = pos.size ?? (this.p.isMini ? 18 : 30);
+          const entryHitboxSize = entrySize * 2;
           graphics.lineStyle(1, hexToHexadecimal("ff0000"), 1);
 
-          if (!this.p.isWave){
+          if (!pos.isWave){
             // outer box (red)
             graphics.lineStyle(1, hexToHexadecimal("ff0000"), 0.5);
-            graphics.strokeRect(trailX - playerSize, trailY - playerSize, hitboxsize, hitboxsize);
+            graphics.strokeRect(trailX - entrySize, trailY - entrySize, entryHitboxSize, entryHitboxSize);
 
             // inner circle (dark red)
             graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
-            graphics.strokeCircle((trailX - playerSize) + hitboxsize / 2, (trailY - playerSize) + hitboxsize / 2, hitboxsize / 2);
+            graphics.strokeCircle((trailX - entrySize) + entryHitboxSize / 2, (trailY - entrySize) + entryHitboxSize / 2, entryHitboxSize / 2);
 
             // box that rotates with the player (dark red)
             graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
             {
-              const cx = (trailX - playerSize) + hitboxsize / 2;
-              const cy = (trailY - playerSize) + hitboxsize / 2;
-              const hw = hitboxsize / 2;
+              const cx = (trailX - entrySize) + entryHitboxSize / 2;
+              const cy = (trailY - entrySize) + entryHitboxSize / 2;
+              const hw = entryHitboxSize / 2;
               const cos = Math.cos(pos.rotation ?? 0);
               const sin = Math.sin(pos.rotation ?? 0);
               const corners = [
