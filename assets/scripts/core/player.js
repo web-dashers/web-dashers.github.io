@@ -800,74 +800,81 @@ class PlayerObject {
     if (this._endAnimating) {
       return;
     }
-    const _0x7f0705 = mirrorOffset !== undefined ? mirrorOffset : centerX;
-    const _0x1a433c = b(this.p.y) + cameraY;
+    const currentCenterX = mirrorOffset !== undefined ? mirrorOffset : centerX;
+    const adjustedPlayerY = b(this.p.y) + cameraY;
     const playerRotation = this._rotation;
     this._lastCameraX = cameraX;
     this._lastCameraY = cameraY;
     this._aboveContainer.x = -cameraX;
     this._aboveContainer.y = cameraY;
-if (this.p.isFlying || this.p.isUfo) {
-      const _0x3904f8 = 10;
+    if (this.p.isFlying || this.p.isUfo) {
       const _miniS = this.p.isMini ? 0.6 : 1;
-      const playerOffset = this.p.gravityFlipped ? (-30 * _miniS) : (10 * _miniS);  
+      const mirrored = this.p.mirrored ? -1 : 1;
+      const gravityDir = this.p.gravityFlipped ? -1 : 1;
+
       const cosRotation = Math.cos(playerRotation);
       const sinRotation = Math.sin(playerRotation);
-	    const mirrored = this.p.mirrored ? -1 : 1;
-      const _0x1b1d28 = -_0x3904f8 * sinRotation * mirrored;
-      const _0x185f91 = _0x3904f8 * cosRotation; 
-      const _0x562424 = playerOffset * sinRotation * mirrored;
-      const _0x3011c9 = -playerOffset * cosRotation;
+
+      const localVehicleY = 12 * gravityDir * _miniS;
+      const vehicleOffsetX = -localVehicleY * sinRotation * mirrored;
+      const vehicleOffsetY = localVehicleY * cosRotation;
+
+      const localCubeY = -12 * _miniS;
+      const cubeOffsetX = -localCubeY * sinRotation * mirrored * gravityDir;
+      const cubeOffsetY = localCubeY * cosRotation * gravityDir;
+
       const _ufoMode = this.p.isUfo && !this.p.isFlying;
+      
       if (this.p.isFlying) {
         for (const layer of this._shipLayers) {
           if (layer) {
-            const _miniS = this.p.isMini ? 0.6 : 1;
-            layer.sprite.x = _0x7f0705 + _0x1b1d28;
-            layer.sprite.y = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? (-20 * _miniS) : 0)
-            layer.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
+            layer.sprite.x = currentCenterX + vehicleOffsetX;
+            layer.sprite.y = adjustedPlayerY + vehicleOffsetY; 
+            
+            layer.sprite.rotation = playerRotation;
             layer.sprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
             layer.sprite.scaleX = this.p.mirrored ? -_miniS : _miniS;
           }
         }
-      }
-	if (this.p.isUfo && !this.p.isDead) {
-        for (const layer of this._birdLayers) {
-          if (layer) {
-            layer.sprite.setVisible(true);
-            layer.sprite.x = _0x7f0705 + _0x1b1d28;
-            layer.sprite.y = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? -15 : 5);
-            layer.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
-            const _miniS = this.p.isMini ? 0.6 : 1;
-            layer.sprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
-            layer.sprite.scaleX = this.p.mirrored ? -_miniS : _miniS;
+        }
+      if (this.p.isUfo && !this.p.isDead) {
+          for (const layer of this._birdLayers) {
+            if (layer) {
+              layer.sprite.setVisible(true);
+              layer.sprite.x = currentCenterX + vehicleOffsetX;
+              layer.sprite.y = adjustedPlayerY + vehicleOffsetY + (this.p.gravityFlipped ? -15 : 5);
+              layer.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
+              const _miniS = this.p.isMini ? 0.6 : 1;
+              layer.sprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
+              layer.sprite.scaleX = this.p.mirrored ? -_miniS : _miniS;
+            }
           }
         }
-      }
-      
+        
       for (const playerLayerItem of this._playerLayers) {
         if (playerLayerItem) {
-          const _miniS = this.p.isMini ? 0.6 : 1;
-          playerLayerItem.sprite.x = _0x7f0705 + _0x562424;
-          playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9) + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
-          playerLayerItem.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
+          playerLayerItem.sprite.x = currentCenterX + cubeOffsetX;
+          playerLayerItem.sprite.y = adjustedPlayerY + cubeOffsetY;
+          
+          playerLayerItem.sprite.rotation = playerRotation;
+          
           const _shipCubeS = _miniS * 0.55;
           playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
           playerLayerItem.sprite.scaleX = this.p.mirrored ? -_shipCubeS : _shipCubeS;
         }
       }
       if (_ufoMode) {
-        const _ufoTilt = Math.max(-0.05, Math.min(0.05, -(this.p.y - this.p.lastY) * 0.008));
-        for (const layer of this._birdLayers) {
-          if (layer) {
-            layer.sprite.rotation = this.p.mirrored ? -_ufoTilt : _ufoTilt;
+          const _ufoTilt = Math.max(-0.05, Math.min(0.05, -(this.p.y - this.p.lastY) * 0.008));
+          for (const layer of this._birdLayers) {
+            if (layer) {
+              layer.sprite.rotation = this.p.mirrored ? -_ufoTilt : _ufoTilt;
+            }
           }
-        }
-		  for (const playerLayerItem of this._playerLayers) {
-          if (playerLayerItem) {
-            playerLayerItem.sprite.rotation = this.p.mirrored ? -_ufoTilt : _ufoTilt;
+        for (const playerLayerItem of this._playerLayers) {
+            if (playerLayerItem) {
+              playerLayerItem.sprite.rotation = this.p.mirrored ? -_ufoTilt : _ufoTilt;
+            }
           }
-        }
       }
     } else {
       for (const layer of this._spiderLayers) {
@@ -878,8 +885,8 @@ if (this.p.isFlying || this.p.isUfo) {
       
       for (const playerLayer of this._allLayers) {
         if (playerLayer) {
-            playerLayer.sprite.x = _0x7f0705;
-            playerLayer.sprite.y = _0x1a433c;
+            playerLayer.sprite.x = currentCenterX;
+            playerLayer.sprite.y = adjustedPlayerY;
             const isBallLayer = this._ballLayers.includes(playerLayer);
             playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -playerRotation : playerRotation);
             let _miniS = this.p.isMini ? 0.6 : 1;
@@ -898,8 +905,8 @@ if (this.p.isFlying || this.p.isUfo) {
       
       for (const playerLayer of this._allLayers) {
         if (playerLayer) {
-            playerLayer.sprite.x = _0x7f0705;
-            playerLayer.sprite.y = _0x1a433c;
+            playerLayer.sprite.x = currentCenterX;
+            playerLayer.sprite.y = adjustedPlayerY;
             const isBallLayer = this._ballLayers.includes(playerLayer);
             playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -playerRotation : playerRotation);
             let _miniS = this.p.isMini ? 0.6 : 1;
@@ -920,8 +927,8 @@ if (this.p.isFlying || this.p.isUfo) {
     
     this._updateDashAnimation(_0x3afedf * 1000);
     if (this._dashAnimationSprite && this._dashAnimationSprite.visible) {
-      this._dashAnimationSprite.x = _0x7f0705;
-      this._dashAnimationSprite.y = _0x1a433c;
+      this._dashAnimationSprite.x = currentCenterX;
+      this._dashAnimationSprite.y = adjustedPlayerY;
       const _miniS = this.p.isMini ? 0.6 : 1;
       this._dashAnimationSprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
       this._dashAnimationSprite.scaleX = _miniS;

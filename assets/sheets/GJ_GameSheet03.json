@@ -9292,6 +9292,27 @@
                     }
                 },
                 {
+                    "filename": "gj_wbdlIcon_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 62,
+                        "h": 62
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 1,
+                        "w": 62,
+                        "h": 62
+                    },
+                    "frame": {
+                        "x": 1478,
+                        "y": 1929,
+                        "w": 62,
+                        "h": 62
+                    }
+                },
+                {
                     "filename": "gj_ytIcon_001.png",
                     "rotated": false,
                     "trimmed": false,
