@@ -622,6 +622,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const isSearchButton  = frame === "GJ_searchBtn_001.png";
         const isFeaturedButton = frame === "GJ_featuredBtn_001.png";
         const isEditorButton = frame === "GJ_createBtn_001.png"; 
+        const isMapButton = frame === "GJ_mapBtn_001.png";
         if (isSearchButton) {
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
@@ -640,7 +641,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             this._closeCreatorMenu(true);
             this._openEditorMenu();
           }, () => true);
-        } else {
+        } else if (isMapButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._openMapMenu();
+          }, () => true);
+        }
+        else        
+        {
           btn.setTint(0x666666);
         }
         this._creatorOverlayObjects.push(btn);
@@ -1776,6 +1784,54 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         }
       });
     };
+    this._openMapMenu = () => {
+        if (this._mapMenu) return;
+
+        const centerX = screenWidth / 2,
+              centerY = 320,
+              panelWidth = 800,
+              panelHeight = 550;
+
+        this._mapPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
+
+        const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0, 150 / 255).setInteractive();
+        this._mapPopup.add(dim);
+
+        const innerContainer = this.add.container(centerX, centerY).setScale(0);
+        this._mapPopup.add(innerContainer);
+
+        const map = this.add.image(0, 0, "roadmap_1").setScale(0.5);
+        innerContainer.add(map);
+
+        const closeMenu = () => {
+            window.removeEventListener('keydown', escListener);
+            this._mapPopup.destroy();
+            this._mapPopup = null;
+        };
+
+        const closeBtn = this.add.image(-(panelWidth / 2) - 25, -(panelHeight / 2) - 5, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+        innerContainer.add(closeBtn);
+        this._makeBouncyButton(closeBtn, 0.8, closeMenu);
+
+        const escListener = (event) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                closeMenu();
+            }
+        };
+        window.addEventListener('keydown', escListener);
+
+        this.tweens.add({
+            targets: innerContainer,
+            scale: 1,
+            duration: 660,
+            ease: "Elastic.Out",
+            easeParams: [1, 0.6]
+        });
+    };
+    this._closeMapMenu = () => {
+    }
     this._makeBouncyButton(this._creatorBtn, 1, () => {
       this._openCreatorMenu();
     }, () => this._menuActive && !this._levelSelectOverlay);
