@@ -846,12 +846,15 @@ window.LevelObject = class LevelObject {
   const scene = this._scene;
   const objectDef = getObjectFromId(levelObj.id);
   const objectFrame = objectDef ? objectDef.frame : null;
+  const isJumpPadLineFrame = objectFrame && (
+    objectFrame.startsWith("bump_") ||
+    objectFrame.startsWith("gravbump_")
+  );
   const isNativeSpinFrame = objectFrame && (
     objectFrame.startsWith("d_wheel_0") ||
     objectFrame.startsWith("d_cogwheel_") ||
     objectFrame.startsWith("d_cartwheel_") ||
-    objectFrame.startsWith("bump_") ||
-    objectFrame.startsWith("gravbump_")
+    isJumpPadLineFrame
   );
   if (objectDef && objectDef.default_scale !== undefined) {
     levelObj.scale = (levelObj.scale || 1) * objectDef.default_scale;
@@ -862,6 +865,8 @@ window.LevelObject = class LevelObject {
   // ponytail: GD key 20 is animation/spin speed; this matches current 137 timing and supports negative direction.
   if (isNativeSpinFrame && Number.isFinite(levelObj.animSpeed) && levelObj.animSpeed !== 0) {
     levelObj.spinSpeed = Math.sign(levelObj.animSpeed) * Math.min(10, Math.max(0.75, Math.abs(levelObj.animSpeed) * 0.75));
+  } else if (isJumpPadLineFrame && levelObj.spinSpeed === undefined) {
+    levelObj.spinSpeed = 1;
   }
 
   if (objectDef && objectDef.type === triggerType) {
