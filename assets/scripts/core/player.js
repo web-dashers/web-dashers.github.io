@@ -320,6 +320,11 @@ class PlayerObject {
     this.p = _0x3f50cc;
     this._gameLayer = _0x2811e1;
     this._rotation = 0;
+    this._onSlopeAngle = null;
+    this._activeSlopeObj = null;
+    this._activeSlopeAngle = null;
+    this._prevSlopeObj = null;
+    this._prevSlopeAngle = null;
     this.rotateActionActive = false;
     this.rotateActionTime = 0;
     this.rotateActionDuration = 0;
@@ -1531,6 +1536,196 @@ if (this.p.isFlying || this.p.isUfo) {
       });
     }
   }
+  _getSlopeHitSize(playerSize, waveHitSize) {
+    return this.p.isWave ? waveHitSize : playerSize;
+  }
+  _isOnSlopeSurface(surfaceY, footProbe, headProbe, hitSize, useFloorLanding) {
+    const tolerance = Math.max(14, hitSize * 0.45);
+    if (useFloorLanding) {
+      return Math.abs(footProbe - surfaceY) < tolerance && footProbe >= surfaceY - 2;
+    }
+    return Math.abs(headProbe - surfaceY) < tolerance && headProbe <= surfaceY + 2;
+  }
+  _landOnSlopeFloor(gameObj, surfaceY, hitSize, footProbe, lastFootProbe, playersY) {
+    if (!this.p.gravityFlipped &&
+      (footProbe >= surfaceY || lastFootProbe >= surfaceY) &&
+      (this.p.yVelocity <= 0 || this.p.onGround) &&
+      playersY <= surfaceY + hitSize + 8) {
+      this.p.y = surfaceY + hitSize;
+      this.hitGround();
+      this.p.collideBottom = surfaceY;
+      this._onSlopeAngle = gameObj.getSlopeAngleRad();
+      return true;
+    }
+    return false;
+  }
+  _landOnSlopeCeiling(gameObj, surfaceY, hitSize, headProbe, lastHeadProbe, playersY) {
+    if ((headProbe <= surfaceY || lastHeadProbe <= surfaceY) &&
+      (this.p.yVelocity >= 0 || this.p.onGround) &&
+      playersY >= surfaceY - hitSize - 8) {
+      this.p.y = surfaceY - hitSize;
+      this.hitGround();
+      this.p.onCeiling = true;
+      this.p.collideTop = surfaceY;
+      this._onSlopeAngle = gameObj.getSlopeAngleRad();
+      return true;
+    }
+    return false;
+  }
+  _landOnSlopeCeilingFlipped(gameObj, surfaceY, hitSize, footProbe, lastFootProbe, playersY) {
+    if (this.p.gravityFlipped &&
+      (footProbe >= surfaceY || lastFootProbe >= surfaceY) &&
+      (this.p.yVelocity <= 0 || this.p.onGround) &&
+      playersY <= surfaceY + hitSize + 8) {
+      this.p.y = surfaceY + hitSize;
+      this.hitGround();
+      this.p.onCeiling = true;
+      this.p.collideTop = surfaceY;
+      this._onSlopeAngle = gameObj.getSlopeAngleRad();
+      return true;
+    }
+    return false;
+  }
+  _trySnapToSlopeSurface(gameObj, pieceWidth, playersY, hitSize, gamemodeAddition, useFloorLanding) {
+    const surfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
+    if (surfaceY === null) return false;
+    const pad = Math.max(10, hitSize * 0.4);
+    const footProbe = playersY - hitSize + gamemodeAddition;
+    const headProbe = playersY + hitSize - gamemodeAddition;
+    if (useFloorLanding) {
+      if (footProbe < surfaceY - pad) return false;
+      if (!gameObj.slopeFlipY && footProbe > surfaceY + pad * 2) return false;
+      if (gameObj.slopeFlipY && footProbe > surfaceY + pad) return false;
+      this.p.y = surfaceY + hitSize;
+      this.hitGround();
+      this.p.collideBottom = surfaceY;
+      this.p.onCeiling = false;
+      this._onSlopeAngle = gameObj.getSlopeAngleRad();
+      return true;
+    }
+    if (headProbe < surfaceY - pad * 2) return false;
+    if (headProbe > surfaceY + pad) return false;
+    this.p.y = surfaceY - hitSize;
+    this.hitGround();
+    this.p.onCeiling = true;
+    this.p.collideTop = surfaceY;
+    this._onSlopeAngle = gameObj.getSlopeAngleRad();
+    return true;
+  }
+  _trySlopeVelocityLanding(gameObj, surfaceY, hitSize, footProbe, lastFootProbe, headProbe, lastHeadProbe, playersY, useFloorLanding) {
+    if (useFloorLanding) {
+      if (this.p.gravityFlipped) {
+        return this._landOnSlopeCeilingFlipped(gameObj, surfaceY, hitSize, footProbe, lastFootProbe, playersY);
+      }
+      return this._landOnSlopeFloor(gameObj, surfaceY, hitSize, footProbe, lastFootProbe, playersY);
+    }
+    return this._landOnSlopeCeiling(gameObj, surfaceY, hitSize, headProbe, lastHeadProbe, playersY);
+  }
+  _handleSlopeCollision(gameObj, pieceWidth, playersY, playersLastY, left, right, top, bottom, playerSize, waveHitSize, gamemodeAddition) {
+    const surfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
+    if (surfaceY === null) return { landed: false, died: false };
+    const hitSize = this._getSlopeHitSize(playerSize, waveHitSize);
+    const footProbe = playersY - hitSize + gamemodeAddition;
+    const lastFootProbe = playersLastY - hitSize + gamemodeAddition;
+    const headProbe = playersY + hitSize - gamemodeAddition;
+    const lastHeadProbe = playersLastY + hitSize - gamemodeAddition;
+    const tightPad = this.p.isWave ? 5 : 9;
+    const inXRange = pieceWidth + hitSize - 5 > left && pieceWidth - hitSize + 5 < right;
+    const useFloorLanding = gameObj.usesFloorLanding(this.p.gravityFlipped);
+    const onSlopeSurface = this._isOnSlopeSurface(surfaceY, footProbe, headProbe, hitSize, useFloorLanding);
+    let landed = false;
+    if (inXRange) {
+      if (this.p.isFlying || this.p.isUfo) {
+        if (!useFloorLanding && !this.p.gravityFlipped &&
+          (headProbe <= surfaceY || lastHeadProbe <= surfaceY) &&
+          (this.p.yVelocity >= 0 || this.p.onGround)) {
+          if (this._landOnSlopeCeiling(gameObj, surfaceY, hitSize, headProbe, lastHeadProbe, playersY)) {
+            landed = true;
+          }
+        }
+        if (!landed) {
+          landed = this._trySnapToSlopeSurface(gameObj, pieceWidth, playersY, hitSize, gamemodeAddition, useFloorLanding);
+        }
+      } else {
+        if (this._trySlopeVelocityLanding(gameObj, surfaceY, hitSize, footProbe, lastFootProbe, headProbe, lastHeadProbe, playersY, useFloorLanding)) {
+          landed = true;
+        }
+        if (!landed) {
+          landed = this._trySnapToSlopeSurface(gameObj, pieceWidth, playersY, hitSize, gamemodeAddition, useFloorLanding);
+        }
+      }
+      if (landed && !this.p.isFlying && !this.p.isWave) {
+        this._checkSnapJump(gameObj);
+      }
+    }
+    if (landed) {
+      this._activeSlopeObj = gameObj;
+      this._activeSlopeAngle = gameObj.getSlopeAngleRad();
+      return { landed: true, died: false };
+    }
+    const overlapping = pieceWidth + tightPad > left && pieceWidth - tightPad < right &&
+      playersY + tightPad > top && playersY - tightPad < bottom;
+    if (overlapping && !onSlopeSurface) {
+      if (!gameObj.slopeIsFilled && gameObj.isSlopeSolidAt(pieceWidth, playersY, this.p.gravityFlipped)) {
+        if (window.noClip) this.p.diedThisFrame = true;
+        else return { landed: false, died: true };
+      } else {
+        const backSide = gameObj.getSlopeBackWallSide(this.p.gravityFlipped);
+        const wallX = backSide === "left" ? left : right;
+        const wallSurface = gameObj.getSlopeSurfaceY(wallX);
+        let hitBackWall = false;
+        if (useFloorLanding) {
+          if (backSide === "left") {
+            hitBackWall = pieceWidth < wallX + tightPad && pieceWidth + hitSize > wallX &&
+              footProbe < wallSurface - 2 && headProbe > top + 2;
+          } else {
+            hitBackWall = pieceWidth > wallX - tightPad && pieceWidth - hitSize < wallX &&
+              footProbe < wallSurface - 2 && headProbe > top + 2;
+          }
+        } else if (backSide === "left") {
+          hitBackWall = pieceWidth < wallX + tightPad && pieceWidth + hitSize > wallX &&
+            headProbe > wallSurface + 2 && footProbe < bottom - 2;
+        } else {
+          hitBackWall = pieceWidth > wallX - tightPad && pieceWidth - hitSize < wallX &&
+            headProbe > wallSurface + 2 && footProbe < bottom - 2;
+        }
+        if (hitBackWall || gameObj.slopeIsFilled) {
+          if (window.noClip) this.p.diedThisFrame = true;
+          else return { landed: false, died: true };
+        }
+      }
+    }
+    return { landed: false, died: false };
+  }
+  _applySlopeExitBounce(slopeObj, slopeAngle, pieceWidth) {
+    if (!slopeObj || slopeAngle === null || slopeAngle === undefined) return;
+    if (this.p.isJumping && !this.p.onGround) return;
+    const angleRad = Math.abs(slopeAngle);
+    if (angleRad < 0.05) return;
+    const halfW = slopeObj.w / 2;
+    const left = slopeObj.x - halfW;
+    const right = slopeObj.x + halfW;
+    const exitMargin = 14;
+    const useFloorLanding = slopeObj.usesFloorLanding(this.p.gravityFlipped);
+    let exitHighEnd = slopeObj.slopeDir > 0
+      ? pieceWidth >= right - exitMargin
+      : pieceWidth <= left + exitMargin;
+    if (slopeObj.slopeFlipY) exitHighEnd = !exitHighEnd;
+    if (!exitHighEnd) return;
+    let bounceVel = Math.tan(angleRad) * playerSpeed * this.flipMod();
+    if (slopeObj.slopeFlipY) bounceVel = -bounceVel;
+    if (this.p.isWave) bounceVel *= 0.85;
+    else if (this.p.isMini) bounceVel *= 0.8;
+    if (Math.abs(bounceVel) < 0.5) return;
+    this.p.yVelocity = bounceVel;
+    this.p.onGround = false;
+    this.p.canJump = false;
+    if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider) {
+      this.p.isJumping = true;
+      this._rotation = slopeAngle;
+      this.stopRotation();
+    }
+  }
   _checkSnapJump(_0x1f801b) {
     const _0x483058 = [{
       dx: 240,
@@ -1543,7 +1738,7 @@ if (this.p.isFlying || this.p.isUfo) {
       dy: 120
     }];
     const _0x2b806a = this._lastLandObject;
-    if (_0x2b806a && _0x2b806a !== _0x1f801b && _0x2b806a.type === solidType) {
+    if (_0x2b806a && _0x2b806a !== _0x1f801b && (_0x2b806a.type === solidType || _0x2b806a.type === slopeType)) {
       const _0x34ef27 = _0x2b806a.x;
       const _0x4652bb = _0x2b806a.y;
       const _0x5de781 = _0x1f801b.x;
@@ -1652,7 +1847,7 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p.isBall || this.p.isWave || this.p.isSpider) {
       return;
     }
-    let _0x183c2a = this.convertToClosestRotation();
+    let _0x183c2a = this._onSlopeAngle !== null ? this._onSlopeAngle : this.convertToClosestRotation();
     let _0x108955 = 0.47250000000000003;
     let _0x17a9a6 = Math.min(_0x5c24f7 * 1, _0x108955 * _0x5c24f7);
     this._rotation = this.slerp2D(this._rotation, _0x183c2a, _0x17a9a6);
@@ -1948,6 +2143,9 @@ _updateWaveJump() {
     this.p.collideBottom = 0;
     this.p.onCeiling = false;
     this.p.touchingRing = false;
+    this._onSlopeAngle = null;
+    this._activeSlopeObj = null;
+    this._activeSlopeAngle = null;
     let _0x30410f = false;
     let _boostedThisStep = false;
     const _0x198534 = this._gameLayer.getNearbySectionObjects(pieceWidth);
@@ -2405,6 +2603,18 @@ _updateWaveJump() {
           }
           this.killPlayer();
           return;
+        } else if (_colType === slopeType) {
+          const slopeResult = this._handleSlopeCollision(
+            gameObj, pieceWidth, playersY, playersLastY, left, right, top, bottom, playerSize, waveHitSize, gamemodeAddition
+          );
+          if (slopeResult.died) {
+            this.killPlayer();
+            return;
+          }
+          if (slopeResult.landed) {
+            _0x30410f = true;
+          }
+          continue;
         } else if (_colType === solidType) {
           let _0x146a97 = playersY - playerSize + gamemodeAddition;
           let _0x869e42 = playersLastY - playerSize + gamemodeAddition;
@@ -2582,6 +2792,11 @@ _updateWaveJump() {
         this.p.onGround = false;
       }
     }
+    if (this._prevSlopeObj && !this._activeSlopeObj && this.p.onGround) {
+      this._applySlopeExitBounce(this._prevSlopeObj, this._prevSlopeAngle, pieceWidth);
+    }
+    this._prevSlopeObj = this._activeSlopeObj;
+    this._prevSlopeAngle = this._activeSlopeAngle;
     this.p.wasUpKeyDown = this.p.upKeyDown;
     if (this.p.diedThisFrame == true && window.noClipAccuracy){
       this.noclipStats.deathFrames++;
@@ -2628,6 +2843,8 @@ _updateWaveJump() {
         hitboxColor = 16744192;
       } else if (nearObject.type === jumpRingType) {
         hitboxColor = 16711935;
+      } else if (nearObject.type === slopeType) {
+        hitboxColor = 65535;
       }
       const xPos = isFlipped ? screenWidth - objXCenter : objXCenter;
       graphics.lineStyle(2, hitboxColor, 0.7);
@@ -2658,6 +2875,22 @@ _updateWaveJump() {
         graphics.lineTo(rotations[3].x, rotations[3].y);
         graphics.closePath();
         graphics.strokePath();
+        if (nearObject.type === slopeType) {
+          const halfW = nearObject.w / 2;
+          const leftWorld = nearObject.x - halfW;
+          const rightWorld = nearObject.x + halfW;
+          const leftSurfY = nearObject.getSlopeSurfaceY(leftWorld);
+          const rightSurfY = nearObject.getSlopeSurfaceY(rightWorld);
+          if (leftSurfY !== null && rightSurfY !== null) {
+            const leftX = isFlipped ? screenWidth - (leftWorld - camX) : leftWorld - camX;
+            const rightX = isFlipped ? screenWidth - (rightWorld - camX) : rightWorld - camX;
+            graphics.lineStyle(2, 16777215, 0.9);
+            graphics.beginPath();
+            graphics.moveTo(leftX, b(leftSurfY) + camY);
+            graphics.lineTo(rightX, b(rightSurfY) + camY);
+            graphics.strokePath();
+          }
+        }
       }
     }
 
@@ -2840,6 +3073,10 @@ _updateWaveJump() {
     this._endAnimating = false;
     this._lastLandObject = null;
     this._lastXOffset = 0;
+    this._prevSlopeObj = null;
+    this._prevSlopeAngle = null;
+    this._activeSlopeObj = null;
+    this._activeSlopeAngle = null;
     this.stopRotation();
     this.rotateActionTime = 0;
     this._rotation = 0;

@@ -29,6 +29,35 @@ class Collider {
     if (this.slopeFlipY) angleDeg = -angleDeg;
     return angleDeg * Math.PI / 180;
   }
+  usesFloorLanding(gravityFlipped) {
+    return !gravityFlipped;
+  }
+  isSolidBelowSurface(gravityFlipped) {
+    return this.slopeFlipY === gravityFlipped;
+  }
+  isSlopeSolidAt(worldX, worldY, gravityFlipped = false) {
+    if (this.type !== slopeType) return false;
+    const halfW = this.w / 2;
+    const halfH = this.h / 2;
+    const left = this.x - halfW;
+    const right = this.x + halfW;
+    const bboxBottom = this.y - halfH;
+    const bboxTop = this.y + halfH;
+    if (worldX < left || worldX > right || worldY < bboxBottom || worldY > bboxTop) {
+      return false;
+    }
+    if (this.slopeIsFilled) {
+      return true;
+    }
+    const surfaceY = this.getSlopeSurfaceY(worldX);
+    if (surfaceY === null) return false;
+    return this.isSolidBelowSurface(gravityFlipped) ? worldY < surfaceY : worldY > surfaceY;
+  }
+  getSlopeBackWallSide(gravityFlipped = false) {
+    let leftWall = this.slopeDir > 0;
+    if (!this.isSolidBelowSurface(gravityFlipped)) leftWall = !leftWall;
+    return leftWall ? "left" : "right";
+  }
 }
 
 function parseObject(objectString) {
@@ -226,6 +255,37 @@ const _SLOPE_DATA = {
   1901:{gw:0.367,gh:0.433,angle:45,sq:true},1902:{gw:0.967,gh:0.45,angle:45,sq:true},
   1906:{gw:1,gh:1,angle:45,sq:false},1907:{gw:2,gh:1,angle:22.5,sq:false},
 };
+function _resolveSlopeDir(objectDef, flipX) {
+  const frames = [];
+  if (objectDef) {
+    if (objectDef.frame) frames.push(objectDef.frame);
+    if (objectDef.children) {
+      for (const child of objectDef.children) {
+        if (child.frame) frames.push(child.frame);
+      }
+    }
+  }
+  const text = frames.join(" ");
+  let dir = 1;
+  if (/slope_02[^0-9]|slope_04|slope_06|slope_02[bcd]_|triangle_a_04|triangle_b_02|pit_0[14]_slope_02|plank_01_slope_02|slope_square_02|slope_square_04|slope_square_05/.test(text)) {
+    dir = -1;
+  }
+  if (flipX) dir = -dir;
+  return dir;
+}
+function _createSlopeCollider(levelObj, objectDef, worldX, worldY) {
+  const slopeData = _SLOPE_DATA[levelObj.id];
+  if (!slopeData) return null;
+  const w = slopeData.gw * a;
+  const h = slopeData.gh * a;
+  const collider = new Collider(slopeType, worldX, worldY, w, h, levelObj.rot || 0);
+  collider.objid = levelObj.id;
+  collider.slopeAngleDeg = slopeData.angle;
+  collider.slopeDir = _resolveSlopeDir(objectDef, levelObj.flipX);
+  collider.slopeIsFilled = slopeData.sq;
+  collider.slopeFlipY = levelObj.flipY;
+  return collider;
+}
 const flyPortal = "fly";
 const cubePortal = "cube";
 const portalWaveType = "portal_wave";
@@ -1267,7 +1327,13 @@ window.LevelObject = class LevelObject {
       }
     };
 
-    if (objectDef.type === solidType && objectDef.gridW > 0 && objectDef.gridH > 0) {
+    const slopeCollider = _createSlopeCollider(levelObj, objectDef, worldX, worldY);
+    if (slopeCollider) {
+      registerCollider(slopeCollider);
+      this.objects.push(slopeCollider);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(slopeCollider);
+    } else if (objectDef.type === solidType && objectDef.gridW > 0 && objectDef.gridH > 0) {
       const w = objectDef.gridW * a;
       const h = objectDef.gridH * a;
       const collider = new Collider(solidType, worldX, worldY, w, h, levelObj.rot || 0);
