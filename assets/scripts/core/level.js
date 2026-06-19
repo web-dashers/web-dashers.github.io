@@ -861,7 +861,7 @@ window.LevelObject = class LevelObject {
   }
   // ponytail: GD key 20 is animation/spin speed; this matches current 137 timing and supports negative direction.
   if (isNativeSpinFrame && Number.isFinite(levelObj.animSpeed) && levelObj.animSpeed !== 0) {
-    levelObj.spinSpeed = Math.sign(levelObj.animSpeed) * Math.max(0.25, Math.abs(levelObj.animSpeed) * 0.25);
+    levelObj.spinSpeed = Math.sign(levelObj.animSpeed) * Math.min(10, Math.max(0.75, Math.abs(levelObj.animSpeed) * 0.75));
   }
 
   if (objectDef && objectDef.type === triggerType) {
