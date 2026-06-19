@@ -847,14 +847,15 @@ window.LevelObject = class LevelObject {
   const objectDef = getObjectFromId(levelObj.id);
   const objectFrame = objectDef ? objectDef.frame : null;
   const isJumpPadLineFrame = objectFrame && (
-    objectFrame.startsWith("bump_") ||
-    objectFrame.startsWith("gravbump_")
+    objectFrame.startsWith("particle_209_") ||
+    objectFrame.startsWith("particle_210_") ||
+    objectFrame.startsWith("particle_211_") ||
+    objectFrame.startsWith("particle_212_")
   );
   const isNativeSpinFrame = objectFrame && (
     objectFrame.startsWith("d_wheel_0") ||
     objectFrame.startsWith("d_cogwheel_") ||
-    objectFrame.startsWith("d_cartwheel_") ||
-    isJumpPadLineFrame
+    objectFrame.startsWith("d_cartwheel_")
   );
   if (objectDef && objectDef.default_scale !== undefined) {
     levelObj.scale = (levelObj.scale || 1) * objectDef.default_scale;
