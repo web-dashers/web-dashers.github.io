@@ -31,6 +31,21 @@ class Collider {
   }
 }
 
+function parseCustomTransform(value) {
+  if (!value) return null;
+  const parts = String(value).split("a");
+  const rot = parseFloat(parts[0]);
+  const scaleX = parseFloat(parts[1]);
+  const scaleY = parseFloat(parts[2]);
+  const opacity = parseFloat(parts[4]);
+  return {
+    rot: Number.isFinite(rot) ? rot : 0,
+    scaleX: Number.isFinite(scaleX) && scaleX !== 0 ? scaleX : 1,
+    scaleY: Number.isFinite(scaleY) && scaleY !== 0 ? scaleY : 1,
+    opacity: Number.isFinite(opacity) && opacity > 0 ? opacity : undefined
+  };
+}
+
 function parseObject(objectString) {
   let objectParts = objectString.split(",");
   let objectData = {};
@@ -40,6 +55,7 @@ function parseObject(objectString) {
     objectData[key] = value;
   }
   let objectId = parseInt(objectData[1] || "0", 10);
+  const customTransform = parseCustomTransform(objectData[44]);
   if (objectId === 0) {
     return null;
   } else {
@@ -49,9 +65,12 @@ function parseObject(objectString) {
       y: parseFloat(objectData[3] || "0"),
       flipX: objectData[4] === "1",
       flipY: objectData[5] === "1",
-      rot: parseFloat(objectData[6] || "0"),
+      rot: customTransform ? customTransform.rot : parseFloat(objectData[6] || "0"),
       animSpeed: parseFloat(objectData[20] || "0"),
       scale: parseFloat(objectData[32] || "1"),
+      scaleX: customTransform ? customTransform.scaleX : undefined,
+      scaleY: customTransform ? customTransform.scaleY : undefined,
+      opacity: customTransform ? customTransform.opacity : undefined,
       zLayer: parseInt(objectData[24] || "0", 10),
       zOrder: parseInt(objectData[25] || "0", 10),
       groups: objectData[57] || "",
@@ -748,6 +767,13 @@ window.LevelObject = class LevelObject {
     if (objectData.scale !== 1) {
       sprite.setScale(objectData.scale);
     }
+    if (objectData.scaleX !== undefined || objectData.scaleY !== undefined) {
+      sprite.setScale(objectData.scaleX ?? objectData.scale ?? 1, objectData.scaleY ?? objectData.scale ?? 1);
+    }
+    if (objectData.opacity !== undefined) {
+      sprite._eeBaseAlpha = objectData.opacity;
+      sprite.setAlpha(objectData.opacity);
+    }
     if (objectData.spinSpeed !== undefined) {
       sprite._spinSpeed = objectData.spinSpeed;
       if (!this._spinSprites.includes(sprite)) this._spinSprites.push(sprite);
@@ -823,7 +849,9 @@ window.LevelObject = class LevelObject {
   const isNativeSpinFrame = objectFrame && (
     objectFrame.startsWith("d_wheel_0") ||
     objectFrame.startsWith("d_cogwheel_") ||
-    objectFrame.startsWith("d_cartwheel_")
+    objectFrame.startsWith("d_cartwheel_") ||
+    objectFrame.startsWith("bump_") ||
+    objectFrame.startsWith("gravbump_")
   );
   if (objectDef && objectDef.default_scale !== undefined) {
     levelObj.scale = (levelObj.scale || 1) * objectDef.default_scale;
@@ -1920,7 +1948,7 @@ window.LevelObject = class LevelObject {
       for (const spr of sprites) {
         if (!spr || !spr.active) continue;
         if (spr._eeActive) continue;
-        spr.setAlpha(op);
+        spr.setAlpha(op * (spr._eeBaseAlpha ?? 1));
       }
     }
   }
@@ -1933,7 +1961,7 @@ window.LevelObject = class LevelObject {
       for (const spr of this._groupSprites[gid]) {
         if (!spr || !spr.active) continue;
         if (spr._eeActive) continue;
-        spr.setAlpha(1);
+        spr.setAlpha(spr._eeBaseAlpha ?? 1);
         spr._eeOrigAlpha = 1;
       }
     }
@@ -2103,7 +2131,7 @@ window.LevelObject = class LevelObject {
         } else {
           spr._eeColorAlpha = 1;
         }
-        spr.setAlpha(this._getGroupOpacityForSprite(spr));
+        spr.setAlpha(this._getGroupOpacityForSprite(spr) * (spr._eeBaseAlpha ?? 1));
         if (chColor.blending) {
           spr.setBlendMode(S);
         }
@@ -2128,7 +2156,7 @@ window.LevelObject = class LevelObject {
           if (!visMinSection._eeAudioScale) {
             visMinSection.setScale(1);
           }
-          visMinSection.setAlpha(this._getGroupOpacityForSprite(visMinSection));
+          visMinSection.setAlpha(this._getGroupOpacityForSprite(visMinSection) * (visMinSection._eeBaseAlpha ?? 1));
         }
       }
     }
@@ -2232,7 +2260,7 @@ window.LevelObject = class LevelObject {
         if (effectSprite.y !== _0x50e6d9) {
           effectSprite.y = _0x50e6d9;
         }
-        const _eeFinalAlpha = _0x2128bf * this._getGroupOpacityForSprite(effectSprite);
+        const _eeFinalAlpha = _0x2128bf * this._getGroupOpacityForSprite(effectSprite) * (effectSprite._eeBaseAlpha ?? 1);
         if (effectSprite.alpha !== _eeFinalAlpha) {
           effectSprite.alpha = _eeFinalAlpha;
         }
