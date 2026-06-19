@@ -332,6 +332,7 @@ class PlayerObject {
     this._dashAnimationFrame = 0;
     this._dashAnimationTimer = 0;
     this._dashAnimationSprite = null;
+    this._ballRollDir = 1;
     this._createSprites();
     this._hitboxGraphics = scene.add.graphics().setScrollFactor(0).setDepth(20);
     this._initParticles(scene);
@@ -886,27 +887,9 @@ if (this.p.isFlying || this.p.isUfo) {
             if (this.p.isWave && this._waveLayers.includes(playerLayer)) {
               _miniS *= 0.94; //fix wave size
             }
-            playerLayer.sprite.scaleY = (this.p.gravityFlipped ? -_miniS : _miniS);
-            playerLayer.sprite.scaleX = (this.p.mirrored ? -_miniS : _miniS);
-        }
-      }
-      for (const layer of this._spiderLayers) {
-        if (layer) {
-          layer.sprite.setVisible(false);
-        }
-      }
-      
-      for (const playerLayer of this._allLayers) {
-        if (playerLayer) {
-            playerLayer.sprite.x = _0x7f0705;
-            playerLayer.sprite.y = _0x1a433c;
-            const isBallLayer = this._ballLayers.includes(playerLayer);
-            playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -playerRotation : playerRotation);
-            let _miniS = this.p.isMini ? 0.6 : 1;
-            if (this.p.isWave && this._waveLayers.includes(playerLayer)) {
-              _miniS *= 0.94; //fix wave size
-            }
-            playerLayer.sprite.scaleY = (this.p.gravityFlipped ? -_miniS : _miniS);
+            const ballFlipped = this.p.isBall && isBallLayer && this._ballRollDir === -1;
+            const flipped = this.p.isBall ? ballFlipped : this.p.gravityFlipped;
+            playerLayer.sprite.scaleY = (flipped ? -_miniS : _miniS);
             playerLayer.sprite.scaleX = (this.p.mirrored ? -_miniS : _miniS);
         }
       }
@@ -1006,6 +989,7 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     this.exitWaveMode();
     this.p.isBall = true;
+    this._ballRollDir = this.p.gravityFlipped ? -1 : 1;
     this.p.onGround = false;
     this.p.canJump = false;
     this.p.isJumping = false;
@@ -1191,6 +1175,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.isJumping = false;
     this.p.queuedHold = false;
     if (this.p.isBall) {
+      this._ballRollDir = this.p.gravityFlipped ? -1 : 1;
       if (_0x4a38a5) {
         this._rotation = Math.round(this._rotation / Math.PI) * Math.PI;
       }
@@ -1658,8 +1643,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this._rotation = this.slerp2D(this._rotation, _0x183c2a, _0x17a9a6);
   }
   updateBallRoll(_0x1dd8af, onSurface) {
-    const gravityDir = this.p.gravityFlipped ? -1 : 1;
-	  const rollDir = this.p.mirrored ? -gravityDir : gravityDir;
+    const gravityDir = this._ballRollDir;
     const speedFactor = onSurface ? 0.5 : 0.35;
     const miniRollScale = this.p.isMini ? 1 / 0.8 : 1;
     this._rotation += _0x1dd8af / (g / 2) * gravityDir * speedFactor * miniRollScale;
@@ -1823,13 +1807,12 @@ _updateWaveJump() {
     this._rotation = _0x312a7f === 0 ? 0 : _0x312a7f > 0 ? -_waveAngle : _waveAngle;
 }
   _updateUfoJump(_dt) {
-    const _ufoJump = this.p.isMini ? 13.296 : 13.742;
-    const _ufoThreshold = 3.832796;
-    const _ufoFastGrav = this.p.isMini ? 0.634524 : 0.540121;
-    const _ufoSlowGrav = this.p.isMini ? 0.421624 : 0.359973;
+    const _ufoJump = this.p.isMini ? 11.2 : 14.0;
     const _ufoUpVel = this.p.yVelocity * this.flipMod();
-    const _ufoGrav = _ufoUpVel > _ufoThreshold ? _ufoFastGrav : _ufoSlowGrav;
-    this.p.yVelocity -= p * _ufoGrav * _dt * this.flipMod();
+    const _ufoLightGrav = this.p.isMini ? 0.634524 : 0.540121;
+    const _ufoFallThreshold = this.p.isMini ? -7.5 : -6.4;
+    const _gravMul = _ufoUpVel < _ufoFallThreshold ? 1.0 : _ufoLightGrav;
+    this.p.yVelocity -= p * _gravMul * _dt * this.flipMod();
     if (this.p.upKeyPressed) {
       this.p.upKeyPressed = false;
       this.p.yVelocity = _ufoJump * this.flipMod();
