@@ -16475,28 +16475,33 @@ window.allobjects = function() {
   },
   "997": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_ringSeg_01_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_ringSeg_01_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_01_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_01_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": 1
       }
@@ -16515,28 +16520,33 @@ window.allobjects = function() {
   },
   "998": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_ringSeg_02_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_ringSeg_02_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_02_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_02_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": 1
       }
@@ -16555,28 +16565,33 @@ window.allobjects = function() {
   },
   "999": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_ringSeg_03_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_ringSeg_03_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_03_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_03_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": 1
       }
@@ -16595,28 +16610,33 @@ window.allobjects = function() {
   },
   "1000": {
     "can_color": true,
+    "spinSpeed": 0.75,
     "children": [
       {
         "frame": "d_ringSeg_04_001.png",
         "localDy": 0,
+        "rot": 0,
         "tint": 65280,
         "z": -1
       },
       {
         "frame": "d_ringSeg_04_001.png",
         "localDy": 0,
+        "rot": 90,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_04_001.png",
         "localDy": 0,
+        "rot": 180,
         "tint": 65280,
         "z": 1
       },
       {
         "frame": "d_ringSeg_04_001.png",
         "localDy": 0,
+        "rot": 270,
         "tint": 65280,
         "z": 1
       }
