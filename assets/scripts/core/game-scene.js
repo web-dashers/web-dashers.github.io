@@ -1204,10 +1204,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           const songKey = mainLevel[0];
           if (!this.cache.audio.exists(songKey)) {
             const songFileName = mainLevel[1].replaceAll(" ", "");
-            this.load.audio(songKey, "assets/music/" + songFileName + ".mp3");
-            this.load.once("complete", () => this.scene.restart());
-            this.load.start();
-            return;
+            await new Promise((resolve) => {
+              this.load.audio(songKey, "assets/music/" + songFileName + ".mp3");
+              this.load.once("complete", resolve);
+              this.load.start();
+            });
           }
         } else {
           const songId = level.songId;
