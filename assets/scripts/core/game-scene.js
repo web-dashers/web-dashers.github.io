@@ -3523,7 +3523,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const earnedOrbs = completedSet2.includes(levelId) ? maxOrbs : 0;
         const orbText = this.add.bitmapText(-cardW / 2 + 65, cardH / 2 - 30, "bigFont", earnedOrbs + "/" + maxOrbs, 20)
           .setScrollFactor(0).setDepth(155).setOrigin(0, 0.5).setTint(0x00ccff);
-        const orbIcon = this.add.image(-cardW / 2 + 45, cardH / 2 - 30, "GJ_GameSheet03", "GJ_diamondsIcon_001.png")
+        const orbIcon = this.add.image(-cardW / 2 + 45, cardH / 2 - 30, "GJ_GameSheet03", "currencyOrbIcon_001.png")
           .setScrollFactor(0).setDepth(155).setScale(0.6);
         cardContentObjs.push(orbText, orbIcon);
         cardBounceContainer.add([orbText, orbIcon]);
@@ -8879,7 +8879,7 @@ _applyMirrorEffect() {
       const orbY = _0x5a0e9 + 60;
       const orbLabel = this.add.bitmapText(_0x4edc03 + 10, orbY, "bigFont", "+" + orbCount, 22).setOrigin(0, 0.5).setScale(3).setAlpha(0).setTint(0x00ffff);
       this._endLayerInternal.add(orbLabel);
-      const orbIcon = this.add.image(_0x4edc03 - 8, orbY, "GJ_WebSheet", "GJ_bigDiamond_001.png").setScale(3).setAlpha(0).setOrigin(1, 0.5);
+      const orbIcon = this.add.image(_0x4edc03 - 8, orbY, "GJ_GameSheet03", "currencyOrbIcon_001.png").setScale(3).setAlpha(0).setOrigin(1, 0.5);
       this._endLayerInternal.add(orbIcon);
       this.tweens.add({
         targets: orbIcon,
