@@ -8900,7 +8900,6 @@ _applyMirrorEffect() {
         const bg = this.add.rectangle(cx, y, rowWidth, rowH, i % 2 === 0 ? 0xac531e : 0xcf6d30).setOrigin(0.5, 0.5);
         const lockFrame = isEarned ? "GJ_lock_open_001.png" : "GJ_lock_001.png";
         const lockIcon = this.add.image(rowLeft + 40, y, "GJ_GameSheet03", lockFrame);
-        if (!isEarned) { lockIcon.setAngle(90).setFlipY(true); }
         const nameText = this.add.bitmapText(rowLeft + 90, y - 18, "bigFont", ach.name, 28).setOrigin(0, 0.5).setTint(0xffff00);
         const descText = this.add.bitmapText(rowLeft + 90, y + 18, "goldFont", ach.desc, 24).setOrigin(0, 0.5);
         this._achLayerInternal.add([bg, lockIcon, nameText, descText]);
