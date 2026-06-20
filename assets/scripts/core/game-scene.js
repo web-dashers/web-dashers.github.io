@@ -1385,11 +1385,37 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const lenIcon = this.add.image(tableX + 250, infoY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(0.65);
         const lenTxt = this.add.bitmapText(lenIcon.x + 22, infoY, "bigFont", lengthValues[level.levelLength] || "NA", 18).setOrigin(0, 0.5);
 
-        const playBtn = this.add.nineslice(tableX + tableW - 80, slotY - 15, "GJ_button01", null, 120, 60, 24, 24, 24, 24).setScale(0.65).setInteractive();
-        const playTxt = this.add.bitmapText(playBtn.x - 2, playBtn.y - 1, "bigFont", "Play", 28).setOrigin(0.5).setScale(0.8);
-        this._makeBouncyButton(playBtn, 0.65, () => {
-          this._closeSavedMenu(false);
-          this._startCreatedLevel(level, false);
+        const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY - 15, "GJ_button01", null, 120, 60, 24, 24, 24, 24).setScale(0.65).setInteractive();
+        const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 28).setOrigin(0.5).setScale(0.8);
+        this._makeBouncyButton(viewBtn, 0.65, () => {
+          const levelData = {
+            id: (level.savedId || "").replace("online_", ""),
+            title: level.levelName || "Unknown",
+            author: level.author || "Unknown",
+            difficulty: 0,
+            stars: level.stars || 0,
+            downloads: level.downloads || 0,
+            likes: level.likes || 0,
+            length: level.levelLength || 0,
+            description: level.description || "",
+            orbs: 0,
+            officialSong: "0",
+            customSongID: level.songId > 0 ? String(level.songId) : "0",
+            isCustomSong: level.songId > 0,
+          };
+          window._onlineLevelString = level.levelString;
+          window._onlineLevelName = level.levelName;
+          window._onlineLevelId = level.savedId;
+          window._onlineSongTitle = level.song || "Unknown";
+          window._onlineSongArtist = "Unknown";
+          const songKey = level.songId > 0 ? `ng_song_${level.songId}` : (window.allLevels[Math.abs(level.songId) - 1] || ["unknown"])[0];
+          window.currentlevel = [songKey, level.levelName, level.savedId, ["Unknown"]];
+          const onPlay = () => {
+            this._closeLevelInfoPage();
+            this._closeSavedMenu(false);
+            this._startCreatedLevel(level, false);
+          };
+          this._showLevelInfoPage(levelData, songKey, onPlay);
         });
 
         const moveBtn = this.add.nineslice(tableX + tableW - 135, slotY + 25, "GJ_button01", null, 80, 40, 24, 24, 24, 24).setScale(0.55).setInteractive().setTint(0x4488ff);
@@ -1407,7 +1433,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           this._openSavedMenu(folder);
         });
 
-        listContainer.add([bgStripe, separator, nameTxt, authorTxt, lenIcon, lenTxt, playBtn, playTxt, moveBtn, moveTxt, deleteBtn, deleteTxt]);
+        listContainer.add([bgStripe, separator, nameTxt, authorTxt, lenIcon, lenTxt, viewBtn, viewTxt, moveBtn, moveTxt, deleteBtn, deleteTxt]);
         rowIndex++;
       });
 
