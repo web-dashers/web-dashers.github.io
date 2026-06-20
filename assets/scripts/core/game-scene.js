@@ -8865,21 +8865,22 @@ _applyMirrorEffect() {
     }
     const orbCount = this._orbsAwarded || 0;
     if (orbCount > 0) {
-      const orbIcon = this.add.image(_0x4edc03, _0x5a0e9 + 75, "GJ_WebSheet", "GJ_bigDiamond_001.png").setScale(3).setAlpha(0);
+      const orbY = _0x5a0e9 + 60;
+      const orbLabel = this.add.bitmapText(_0x4edc03 + 10, orbY, "bigFont", "+" + orbCount, 22).setOrigin(0, 0.5).setScale(3).setAlpha(0).setTint(0x00ffff);
+      this._endLayerInternal.add(orbLabel);
+      const orbIcon = this.add.image(_0x4edc03 - 8, orbY, "GJ_WebSheet", "GJ_bigDiamond_001.png").setScale(3).setAlpha(0).setOrigin(1, 0.5);
       this._endLayerInternal.add(orbIcon);
       this.tweens.add({
         targets: orbIcon,
-        scale: 0.5,
+        scale: 0.4,
         alpha: 1,
         duration: 300,
         delay: 300,
         ease: "Bounce.Out"
       });
-      const orbLabel = this.add.bitmapText(_0x4edc03, _0x5a0e9 + 105, "bigFont", "+" + orbCount, 24).setOrigin(0.5, 0.5).setScale(3).setAlpha(0).setTint(0x00ffff);
-      this._endLayerInternal.add(orbLabel);
       this.tweens.add({
         targets: orbLabel,
-        scale: 1,
+        scale: 0.8,
         alpha: 1,
         duration: 300,
         delay: 400,
