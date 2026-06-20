@@ -8946,18 +8946,23 @@ _applyMirrorEffect() {
     }
     c.add(this.add.bitmapText(cx, practY, "bigFont", Math.round(bestPractice) + "%", 16).setOrigin(0.5, 0.5).setDepth(252));
 
-    const songBarY = sh - 42;
-    const songBarW = sw - 60;
+    const songCardW = sw - 80;
+    const songCardH = 80;
+    const songCardX = cx;
+    const songCardY = sh - 55;
     const songBg = this.add.graphics().setScrollFactor(0).setDepth(250);
-    songBg.fillStyle(0x7c3813, 1);
-    songBg.fillRoundedRect(cx - songBarW / 2, songBarY - 30, songBarW, 60, 10);
+    songBg.fillStyle(0x8B4513, 1);
+    songBg.fillRoundedRect(songCardX - songCardW / 2, songCardY - songCardH / 2, songCardW, songCardH, 14);
+    songBg.lineStyle(2, 0x5a2d0c, 1);
+    songBg.strokeRoundedRect(songCardX - songCardW / 2, songCardY - songCardH / 2, songCardW, songCardH, 14);
     c.add(songBg);
     const sTitle = window._onlineSongTitle || "Unknown";
     const sArtist = window._onlineSongArtist || "Unknown";
-    c.add(this.add.bitmapText(cx - songBarW / 2 + 20, songBarY - 10, "bigFont", sTitle, 22).setOrigin(0, 0.5));
-    c.add(this.add.bitmapText(cx - songBarW / 2 + 20, songBarY + 12, "goldFont", "By: " + sArtist, 20).setOrigin(0, 0.5));
     const songId = levelData.isCustomSong ? levelData.customSongID : levelData.officialSong;
-    c.add(this.add.bitmapText(cx + songBarW / 2 - 20, songBarY, "goldFont", "SongID: " + songId, 18).setOrigin(1, 0.5));
+    const sLeft = songCardX - songCardW / 2 + 20;
+    c.add(this.add.bitmapText(sLeft, songCardY - 20, "bigFont", sTitle, 24).setOrigin(0, 0.5));
+    c.add(this.add.bitmapText(sLeft, songCardY + 5, "goldFont", "By: " + sArtist, 20).setOrigin(0, 0.5));
+    c.add(this.add.bitmapText(sLeft, songCardY + 27, "goldFont", "SongID: " + songId, 16).setOrigin(0, 0.5).setTint(0xcccccc));
 
     const backArrow = this.add.image(45, 40, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive().setTint(0x00ff00);
     c.add(backArrow);
