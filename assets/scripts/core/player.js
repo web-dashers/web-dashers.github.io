@@ -1476,6 +1476,41 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     this._explosionPieces = null;
   }
+  _findTeleportOut(fromPortal) {
+    const sections = this._gameLayer && this._gameLayer._collisionSections;
+    if (!sections) return null;
+    const SECTION_SIZE = 400;
+    const startSec = Math.max(0, Math.floor(fromPortal.x / SECTION_SIZE));
+    const endSec = sections.length - 1;
+    let bestOut = null;
+    let bestDist = Infinity;
+    for (let si = startSec; si <= endSec; si++) {
+      const sec = sections[si];
+      if (!sec) continue;
+      for (const obj of sec) {
+        if ((obj.type === "portal_teleport_out" || obj.sub === "teleport_out") && obj !== fromPortal) {
+          const dist = obj.x - fromPortal.x;
+          const xDiff = Math.abs(obj.x - fromPortal.x);
+          if (xDiff < 200 && dist >= 0 && dist < bestDist) {
+            bestDist = dist;
+            bestOut = obj;
+          }
+        }
+      }
+    }
+    return bestOut;
+  }
+  _teleportPlayer(toPortal) {
+    const targetY = toPortal.portalY !== undefined ? toPortal.portalY : toPortal.y;
+    this.p.y = targetY;
+    this.p.lastY = targetY;
+    this.p.lastGroundPosY = targetY;
+    this.p.yVelocity *= 0.8;
+    this.p.onGround = false;
+    this.p.canJump = false;
+    this.p.isJumping = false;
+    this._playPortalShine(toPortal, 1);
+  }
   _playPortalShine(_0x49e81f, type = 1) {
     const _0x4ed8ff = this._scene;
     const _0xf31b0d = _0x49e81f.x;
@@ -2078,6 +2113,19 @@ _updateWaveJump() {
             gameObj.activated = true;
             this._playPortalShine(gameObj);
             this._scene._disableDualMode();
+          }
+        } else if (_colType === "portal_teleport_in" || gameObj.sub === "teleport_in") {
+          if (!gameObj.activated) {
+            gameObj.activated = true;
+            this._playPortalShine(gameObj);
+            const teleportOut = this._findTeleportOut(gameObj);
+            if (teleportOut) {
+              this._teleportPlayer(teleportOut);
+            }
+          }
+        } else if (_colType === "portal_teleport_out" || gameObj.sub === "teleport_out") {
+          if (!gameObj.activated) {
+            gameObj.activated = true;
           }
         } else if (_colType === speedType) {
           if (!gameObj.activated) {

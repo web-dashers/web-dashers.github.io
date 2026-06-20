@@ -1328,7 +1328,9 @@ window.LevelObject = class LevelObject {
         111: "ufo",
         1331: "spider",
         286: "dual_on",
-        287: "dual_off"
+        287: "dual_off",
+        747: "teleport_in",
+        749: "teleport_out"
       }[levelObj.id];
 
       const portalColliderType = {
@@ -1348,7 +1350,9 @@ window.LevelObject = class LevelObject {
         shrink: "portal_mini_on",
         grow: "portal_mini_off",
         dual_on: "portal_dual_on",
-        dual_off: "portal_dual_off"
+        dual_off: "portal_dual_off",
+        teleport_in: "portal_teleport_in",
+        teleport_out: "portal_teleport_out"
       }[portalSub] || null;
 
       if (portalColliderType) {
@@ -1437,6 +1441,48 @@ window.LevelObject = class LevelObject {
 
     unknownObjectIds.size;
     if (unknownObjectIds.size > 0) {
+    }
+
+    const _tpInList = this.objects.filter(o => o.type === "portal_teleport_in");
+    const _tpOutList = this.objects.filter(o => o.type === "portal_teleport_out");
+    if (_tpInList.length > 0 && _tpOutList.length === 0) {
+      let possibleOrangePortals = [];
+      for (const levelObj of _0x35f1ae) {
+        if (levelObj && levelObj.id === 749) {
+          possibleOrangePortals.push(levelObj);
+        }
+      }
+      if (possibleOrangePortals.length > 0) {
+        for (const orangeObj of possibleOrangePortals) {
+          this._spawnObject(orangeObj);
+        }
+      } else {
+        for (const _tpIn of _tpInList) {
+          let rawBluePortal = null;
+          let key54Value = 0;
+          for (const rawObj of _0x35f1ae) {
+            if (rawObj && rawObj.id === 747) {
+              const rawWorldX = rawObj.x * 2;
+              const rawWorldY = rawObj.y * 2;
+              if (Math.abs(rawWorldX - _tpIn.x) < 5 && Math.abs(rawWorldY - _tpIn.y) < 5) {
+                rawBluePortal = rawObj;
+                key54Value = rawObj._raw && rawObj._raw["54"] ? parseFloat(rawObj._raw["54"]) : 0;
+                break;
+              }
+            }
+          }
+          if (!rawBluePortal) continue;
+          const _orangeWorldY = (_tpIn.y || _tpIn.portalY || 0) + (key54Value * 2);
+          const _syntheticObj = {
+            id: 749, x: _tpIn.x / 2, y: _orangeWorldY / 2,
+            flipX: rawBluePortal.flipX || false, flipY: rawBluePortal.flipY || false,
+            rot: rawBluePortal.rot || 0, scale: 1, zLayer: 5, zOrder: 10,
+            groups: "", color1: 0, color2: -1, gameMode: 0, miniMode: 0,
+            speed: 0, mirrored: 0, flipGravity: false, _raw: {}
+          };
+          this._spawnObject(_syntheticObj);
+        }
+      }
     }
 
     const colTypeCounts = {};
