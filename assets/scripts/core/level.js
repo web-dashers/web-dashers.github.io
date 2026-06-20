@@ -1328,7 +1328,8 @@ window.LevelObject = class LevelObject {
         111: "ufo",
         1331: "spider",
         286: "dual_on",
-        287: "dual_off"
+        287: "dual_off",
+        747: "teleport"
       }[levelObj.id];
 
       const portalColliderType = {
@@ -1348,12 +1349,17 @@ window.LevelObject = class LevelObject {
         shrink: "portal_mini_on",
         grow: "portal_mini_off",
         dual_on: "portal_dual_on",
-        dual_off: "portal_dual_off"
+        dual_off: "portal_dual_off",
+        teleport: "portal_teleport"
       }[portalSub] || null;
 
       if (portalColliderType) {
         const collider = new Collider(portalColliderType, worldX, worldY, portalW, portalH, levelObj.rot || 0);
         collider.portalY = worldY;
+        if (portalColliderType === "portal_teleport") {
+          const targetY = parseFloat(levelObj._raw["51"] || "0");
+          collider.teleportY = targetY > 0 ? targetY : worldY;
+        }
         registerCollider(collider);
         this.objects.push(collider);
         hasCollisionEntry = true;

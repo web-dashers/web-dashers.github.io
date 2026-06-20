@@ -2079,6 +2079,16 @@ _updateWaveJump() {
             this._playPortalShine(gameObj);
             this._scene._disableDualMode();
           }
+        } else if (_colType === "portal_teleport") {
+          if (!gameObj.activated) {
+            gameObj.activated = true;
+            this._playPortalShine(gameObj);
+            if (gameObj.teleportY !== undefined) {
+              this.p.y = gameObj.teleportY;
+              this.p.yVelocity = 0;
+              this.p.onGround = false;
+            }
+          }
         } else if (_colType === speedType) {
           if (!gameObj.activated) {
             gameObj.activated = true;
