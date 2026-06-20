@@ -8167,6 +8167,99 @@ _applyMirrorEffect() {
     this._coinsCollected++;
     this._audio.playEffect("highscoreGet02");
   }
+  _getAchievements() {
+    return [
+      { id: "stereo_bump", name: "Stereo Bump.", desc: "Complete Stereo Madness in Practice mode", level: "level_1", mode: "practice", reward: "Colour 4" },
+      { id: "stereo_madness", name: "Stereo Madness!", desc: "Complete Stereo Madness in Normal mode", level: "level_1", mode: "normal", reward: "Cube 5" },
+      { id: "on_my_way", name: "On my way!", desc: "Complete Back On Track in Practice mode", level: "level_2", mode: "practice", reward: "Colour 5" },
+      { id: "back_on_track", name: "Back On Track!", desc: "Complete Back On Track in Normal mode", level: "level_2", mode: "normal", reward: "Cube 6" },
+      { id: "polarbear", name: "Polarbear", desc: "Complete Polargeist in Practice mode", level: "level_3", mode: "practice", reward: "Colour 6" },
+      { id: "polargeist", name: "Polargeist!!", desc: "Complete Polargeist in Normal mode", level: "level_3", mode: "normal", reward: "Cube 7" },
+      { id: "dehydrated", name: "Dehydrated", desc: "Complete Dry Out in Practice mode", level: "level_4", mode: "practice", reward: "Colour 7" },
+      { id: "dry_out", name: "Dry Out!", desc: "Complete Dry Out in Normal mode", level: "level_4", mode: "normal", reward: "Cube 8" },
+      { id: "all_your_base", name: "All your base...", desc: "Complete Base After Base in Practice mode", level: "level_5", mode: "practice", reward: "Colour 8" },
+      { id: "base_after_base", name: "Base After Base!", desc: "Complete Base After Base in Normal mode", level: "level_5", mode: "normal", reward: "Cube 9" },
+      { id: "hold_on", name: "Hold on", desc: "Complete Can't Let Go in Practice mode", level: "level_6", mode: "practice", reward: "Colour 9" },
+      { id: "cant_let_go", name: "Can't Let Go!", desc: "Complete Can't Let Go in Normal mode", level: "level_6", mode: "normal", reward: "Cube 10" },
+      { id: "hop_hop", name: "Hop Hop...", desc: "Complete Jumper in Practice mode", level: "level_7", mode: "practice", reward: "Colour 10" },
+      { id: "jumper", name: "Jumper!", desc: "Complete Jumper in Normal mode", level: "level_7", mode: "normal", reward: "Cube 11" },
+      { id: "tick_tock", name: "Tick Tock", desc: "Complete Time Machine in Practice mode", level: "level_8", mode: "practice", reward: "Colour 12" },
+      { id: "time_machine", name: "Time Machine!", desc: "Complete Time Machine in Normal mode", level: "level_8", mode: "normal", reward: "Cube 14" },
+      { id: "loops", name: "Loops", desc: "Complete Cycles in Practice mode", level: "level_9", mode: "practice", reward: "Cube 15" },
+      { id: "cycles", name: "Cycles!", desc: "Complete Cycles in Normal mode", level: "level_9", mode: "normal", reward: "Cube 16" },
+      { id: "ystep", name: "yStep", desc: "Complete xStep in Practice mode", level: "level_10", mode: "practice", reward: "Cube 17" },
+      { id: "xstep", name: "xStep!", desc: "Complete xStep in Normal mode", level: "level_10", mode: "normal", reward: "Cube 18" },
+      { id: "funky", name: "Funky", desc: "Complete Clutterfunk in Practice mode", level: "level_11", mode: "practice", reward: "Colour 13" },
+      { id: "clutterfunk", name: "Clutterfunk!", desc: "Complete Clutterfunk in Normal mode", level: "level_11", mode: "normal", reward: "Ship 2" },
+      { id: "theory_of_something", name: "Theory of Something", desc: "Complete Theory of Everything in Practice mode", level: "level_12", mode: "practice", reward: "Colour 14" },
+      { id: "theory_of_everything", name: "Theory of Everything!", desc: "Complete Theory of Everything in Normal mode", level: "level_12", mode: "normal", reward: "Cube 27" },
+      { id: "electro_time", name: "Electro Time", desc: "Complete Electroman Adventures in Practice mode", level: "level_13", mode: "practice", reward: "Colour 16" },
+      { id: "electroman_adventures", name: "Electroman Adventures!", desc: "Complete Electroman Adventures in Normal mode", level: "level_13", mode: "normal", reward: "Ship 9" },
+      { id: "clubbin", name: "Clubbin", desc: "Complete Clubstep in Practice mode", level: "level_14", mode: "practice", reward: "UFO 2" },
+      { id: "clubstep", name: "Clubstep!", desc: "Complete Clubstep in Normal mode", level: "level_14", mode: "normal", reward: "Colour 15" },
+      { id: "electromaniac", name: "Electromaniac", desc: "Complete Electrodynamix in Practice mode", level: "level_15", mode: "practice", reward: "Colour 17" },
+      { id: "electrodynamix", name: "Electrodynamix!", desc: "Complete Electrodynamix in Normal mode", level: "level_15", mode: "normal", reward: "Cube 35" },
+      { id: "hexagonest", name: "Hexagonest", desc: "Complete Hexagon Force in Practice mode", level: "level_16", mode: "practice", reward: "Colour 18" },
+      { id: "hexagon_force", name: "Hexagon Force!", desc: "Complete Hexagon Force in Normal mode", level: "level_16", mode: "normal", reward: "Cube 42" },
+      { id: "blast_power", name: "Blast Power", desc: "Complete Blast Processing in Practice mode", level: "level_17", mode: "practice", reward: "Colour 20" },
+      { id: "blast_processing", name: "Blast Processing!", desc: "Complete Blast Processing in Normal mode", level: "level_17", mode: "normal", reward: "Cube 44" },
+      { id: "second_theory", name: "Second Theory", desc: "Complete Theory of Everything 2 in Practice mode", level: "level_18", mode: "practice", reward: "Colour 21" },
+      { id: "toe2", name: "Theory of Everything 2!", desc: "Complete Theory of Everything 2 in Normal mode", level: "level_18", mode: "normal", reward: "Cube 45" },
+      { id: "geometry_warrior", name: "Geometry Warrior", desc: "Complete Geometrical Dominator in Practice mode", level: "level_19", mode: "practice", reward: "Colour 24" },
+      { id: "geometrical_dominator", name: "Geometrical Dominator!", desc: "Complete Geometrical Dominator in Normal mode", level: "level_19", mode: "normal", reward: "Robot 3" },
+      { id: "living_open", name: "Living Open", desc: "Complete Deadlocked in Practice mode", level: "level_20", mode: "practice", reward: "Colour 25" },
+      { id: "deadlocked", name: "Deadlocked!", desc: "Complete Deadlocked in Normal mode", level: "level_20", mode: "normal", reward: "Robot 5" },
+      { id: "fingerdash_practice", name: "Fingerdash", desc: "Complete Fingerdash in Practice mode", level: "level_21", mode: "practice", reward: "Colour 29" },
+      { id: "fingerdash_normal", name: "Fingerdash!", desc: "Complete Fingerdash in Normal mode", level: "level_21", mode: "normal", reward: "Cube 74" },
+    ];
+  }
+  _checkAchievements(levelId, mode) {
+    let earned;
+    try { earned = JSON.parse(localStorage.getItem("gd_achievements") || "[]"); } catch(e) { earned = []; }
+    const newAchievements = [];
+    for (const ach of this._getAchievements()) {
+      if (ach.level === levelId && ach.mode === mode && !earned.includes(ach.id)) {
+        earned.push(ach.id);
+        newAchievements.push(ach);
+      }
+    }
+    if (newAchievements.length > 0) {
+      localStorage.setItem("gd_achievements", JSON.stringify(earned));
+      this._pendingAchievements = (this._pendingAchievements || []).concat(newAchievements);
+    }
+  }
+  _showAchievementNotification() {
+    if (!this._pendingAchievements || this._pendingAchievements.length === 0) return;
+    const ach = this._pendingAchievements.shift();
+    const cx = screenWidth / 2;
+    const bannerW = 500;
+    const bannerH = 70;
+    const bannerY = -bannerH;
+    const banner = this.add.container(cx, bannerY).setScrollFactor(0).setDepth(300);
+    const bg = this.add.rectangle(0, 0, bannerW, bannerH, 0x000000, 0.85).setStrokeStyle(2, 0xffff00);
+    const title = this.add.bitmapText(0, -12, "bigFont", ach.name, 24).setOrigin(0.5, 0.5).setTint(0xffff00);
+    const desc = this.add.bitmapText(0, 18, "goldFont", ach.reward, 22).setOrigin(0.5, 0.5);
+    banner.add([bg, title, desc]);
+    this.tweens.add({
+      targets: banner,
+      y: 50,
+      duration: 500,
+      ease: "Bounce.Out",
+      onComplete: () => {
+        this.tweens.add({
+          targets: banner,
+          y: bannerY,
+          duration: 300,
+          delay: 2000,
+          ease: "Quad.In",
+          onComplete: () => {
+            banner.destroy();
+            this._showAchievementNotification();
+          }
+        });
+      }
+    });
+  }
   _starsToOrbs(stars) {
     const orbTable = { 1:0, 2:0, 3:0, 4:125, 5:175, 6:225, 7:275, 8:350, 9:425, 10:500, 11:500, 12:500, 13:500, 14:500, 15:500 };
     return orbTable[stars] || stars * 50;
@@ -8228,6 +8321,9 @@ _applyMirrorEffect() {
       this.time.delayedCall(_0x481f7c * 50, () => circleEffect(this, _0x356782, _0x2d967b, 10, screenWidth, 500, false, true, window.mainColor));
     }
     circleEffect(this, _0x356782, _0x2d967b, 10, 1000, 500, true, false, window.mainColor);
+    const levelId = window.currentlevel[2] || "level_1";
+    const mode = this._practicedMode.practiceMode ? "practice" : "normal";
+    this._checkAchievements(levelId, mode);
     this._showCompleteEffect();
   }
   _showCompleteEffect() {
@@ -8416,7 +8512,7 @@ _applyMirrorEffect() {
       onUpdate: () => {
         this._endLayerInternal.y = _0x59b9ab.p * 650 - 640;
       },
-      onComplete: () => this._playStarAward()
+      onComplete: () => { this._playStarAward(); this.time.delayedCall(800, () => this._showAchievementNotification()); }
     });
     const _0x595215 = 712;
     const _0x950c8d = 460;
