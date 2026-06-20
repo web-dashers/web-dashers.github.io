@@ -2868,7 +2868,20 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._expandHitArea(this._pauseBtn, 2);
     this._pauseBtn.on("pointerdown", () => this._pauseGame());
     this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this._escHoldTimer = null;
+    this._escKey.on("up", () => {
+      if (this._escHoldTimer) {
+        clearTimeout(this._escHoldTimer);
+        this._escHoldTimer = null;
+      }
+    });
     this._escKey.on("down", () => {
+      if (this.scale.isFullscreen && !this._escHoldTimer) {
+        this._escHoldTimer = setTimeout(() => {
+          this._escHoldTimer = null;
+          this._toggleFullscreen();
+        }, 500);
+      }
       if (this._levelSelectOverlay) {
         this._closeLevelSelect();
         return;
@@ -5962,7 +5975,10 @@ _buildSettingsPopup() {
     }
   }
   _onFullscreenChange(_0x310c5b) {
-    if (!_0x310c5b) {
+    if (_0x310c5b) {
+      try { navigator.keyboard.lock(["Escape"]).catch(() => {}); } catch(e) {}
+    } else {
+      try { navigator.keyboard.unlock(); } catch(e) {}
       l(1138);
     }
     this.time.delayedCall(200, () => this._applyScreenResize());
