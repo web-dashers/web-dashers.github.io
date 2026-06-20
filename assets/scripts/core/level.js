@@ -766,6 +766,11 @@ window.LevelObject = class LevelObject {
   _updateGlowVisibility = () => {
       if (!this._glowSprites) return;
       for (const glow of this._glowSprites) {
+        if (window.isEditor) {
+              glow.setVisible(window.showEditorGlow);
+          } else {
+              glow.setVisible(window.showObjectGlow !== false);
+          }
           glow.setVisible(!window.isEditor || window.showEditorGlow);
       }
   };
@@ -786,7 +791,7 @@ window.LevelObject = class LevelObject {
         this._glowSprites = [];
       }
       this._glowSprites.push(glowSprite);
-      glowSprite.setVisible(!window.isEditor || window.showEditorGlow);
+      glowSprite.setVisible(window.isEditor ? window.showEditorGlow : window.showObjectGlow !== false);
       if (worldX !== undefined) {
         glowSprite._eeWorldX = worldX;
         glowSprite._eeBaseY = y;
