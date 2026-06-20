@@ -1303,12 +1303,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                   return `https://geometrydashfiles.b-cdn.net${path}?token=${token}&expires=${expires}`;
               };
 
-              const _tryFetchAudio = async (url) => {
+              const _tryFetchAudio = async (url, useProxy = true) => {
                   const audioCtx = this.game.sound.context;
                   if (audioCtx.state === "suspended") await audioCtx.resume();
-                  const corsProxy = window.ApiWrapper ? window.ApiWrapper.getProxy() : "https://proxy.corsfix.com/?";
-                  const audioRes = await fetch(corsProxy + url);
-                  if (!audioRes.ok) throw new Error(`cors proxy returned ${audioRes.status}`);
+                  let fetchUrl = url;
+                  if (useProxy) {
+                      const corsProxy = window.ApiWrapper ? window.ApiWrapper.getProxy() : "https://proxy.corsfix.com/?";
+                      fetchUrl = corsProxy + url;
+                  }
+                  const audioRes = await fetch(fetchUrl);
+                  if (!audioRes.ok) throw new Error(`fetch returned ${audioRes.status} for ${url}`);
                   const arrayBuf = await audioRes.arrayBuffer();
                   return await audioCtx.decodeAudioData(arrayBuf);
               };
@@ -1327,7 +1331,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                   try {
                       decoded = await _tryFetchAudio(_generateCdnUrl(songId));
                   } catch (e) {
-                      console.warn("CDN fallback also failed:", e.message);
+                      console.warn("CDN via proxy failed, trying direct:", e.message);
+                      try {
+                          decoded = await _tryFetchAudio(_generateCdnUrl(songId), false);
+                      } catch (e2) {
+                          console.warn("Direct CDN also failed:", e2.message);
+                      }
                   }
               }
 
