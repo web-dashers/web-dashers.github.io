@@ -279,6 +279,31 @@ class MacroBot {
   }
 }
 
+{
+  let _fsHoldTimer = null;
+  const _FS_HOLD_MS = 600;
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (_fsHoldTimer) return;
+
+    _fsHoldTimer = setTimeout(async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+      _fsHoldTimer = null;
+    }, _FS_HOLD_MS);
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!_fsHoldTimer) return;
+
+    clearTimeout(_fsHoldTimer);
+    _fsHoldTimer = null;
+  });
+}
+
 class GameScene extends Phaser.Scene {
   constructor() {
     super({
@@ -2868,20 +2893,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._expandHitArea(this._pauseBtn, 2);
     this._pauseBtn.on("pointerdown", () => this._pauseGame());
     this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    this._escHoldTimer = null;
-    this._escKey.on("up", () => {
-      if (this._escHoldTimer) {
-        clearTimeout(this._escHoldTimer);
-        this._escHoldTimer = null;
-      }
-    });
     this._escKey.on("down", () => {
-      if (this.scale.isFullscreen && !this._escHoldTimer) {
-        this._escHoldTimer = setTimeout(() => {
-          this._escHoldTimer = null;
-          this._toggleFullscreen();
-        }, 500);
-      }
       if (this._levelSelectOverlay) {
         this._closeLevelSelect();
         return;
@@ -5975,16 +5987,7 @@ _buildSettingsPopup() {
     }
   }
   _onFullscreenChange(_0x310c5b) {
-    if (_0x310c5b) {
-      setTimeout(() => {
-        if (navigator.keyboard && navigator.keyboard.lock) {
-          navigator.keyboard.lock().catch(() => {});
-        }
-      }, 100);
-    } else {
-      if (navigator.keyboard && navigator.keyboard.unlock) {
-        navigator.keyboard.unlock();
-      }
+    if (!_0x310c5b) {
       l(1138);
     }
     this.time.delayedCall(200, () => this._applyScreenResize());
