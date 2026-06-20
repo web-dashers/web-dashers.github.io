@@ -8964,7 +8964,7 @@ _applyMirrorEffect() {
     c.add(this.add.bitmapText(sLeft, songCardY + 5, "goldFont", "By: " + sArtist, 20).setOrigin(0, 0.5));
     c.add(this.add.bitmapText(sLeft, songCardY + 27, "goldFont", "SongID: " + songId, 16).setOrigin(0, 0.5).setTint(0xcccccc));
 
-    const backArrow = this.add.image(45, 40, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive().setTint(0x00ff00);
+    const backArrow = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive();
     c.add(backArrow);
     this._makeBouncyButton(backArrow, 1, () => this._closeLevelInfoPage());
 
