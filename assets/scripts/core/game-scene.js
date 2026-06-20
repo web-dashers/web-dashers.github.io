@@ -629,6 +629,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const isEditorButton = frame === "GJ_createBtn_001.png";
         const isSavedButton = frame === "GJ_savedBtn_001.png";
         const isScoresButton = frame === "GJ_highscoreBtn_001.png";
+        const isMapPacksButton = frame === "GJ_mapPacksBtn_001.png";
         if (isSearchButton) {
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
@@ -657,6 +658,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           btn.setInteractive();
           this._makeBouncyButton(btn, btnScale, () => {
             window.open("https://webdemonlist.org/leaderboard", "_blank");
+          }, () => true);
+        } else if (isMapPacksButton) {
+          btn.setInteractive();
+          this._makeBouncyButton(btn, btnScale, () => {
+            this._closeCreatorMenu(true);
+            this._openMapPacksScene();
           }, () => true);
         } else {
           btn.setTint(0x666666);
@@ -2898,6 +2905,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       if (this._onlineLevelsOverlay) {
         this._closeOnlineLevelsScene();
+        return;
+      }
+      if (this._mapPacksOverlay) {
+        this._closeMapPacksOverlay();
+        this._openCreatorMenu();
         return;
       }
       if (this._savedOverlay) {
@@ -8703,6 +8715,205 @@ _applyMirrorEffect() {
         },
         onComplete: () => _0x43203f.destroy()
       });
+    });
+  }
+  _openMapPacksScene() {
+    if (this._mapPacksOverlay) return;
+    const packs = window.mapPacks || [];
+    const sw = screenWidth;
+    const sh = screenHeight;
+    const rowH = 80;
+    const shell = this._openListScene("Map Packs", rowH, () => {
+      this._mapPacksOverlay = null;
+      this._openCreatorMenu();
+    });
+    const { objects, listLeft, listTop, panelW, panelH, panelCX, addRow, closeOverlay } = shell;
+    this._mapPacksOverlay = shell.overlay;
+    this._closeMapPacksOverlay = closeOverlay;
+
+    const _panelBoundaryTop = listTop + 12;
+    const _panelBoundaryBottom = listTop + panelH - 22;
+    const maskGfx = this.add.graphics().setScrollFactor(0);
+    maskGfx.fillStyle(0xffffff);
+    maskGfx.fillRect(listLeft, _panelBoundaryTop, panelW, _panelBoundaryBottom - _panelBoundaryTop);
+    const panelMask = maskGfx.createGeometryMask();
+    objects.push(maskGfx);
+
+    const container = this.add.container(0, 0).setScrollFactor(0).setDepth(204);
+    container.setMask(panelMask);
+    objects.push(container);
+
+    let scrollY = 0;
+    const diffFrames = [
+      "diffIcon_01_btn_001.png", "diffIcon_01_btn_001.png", "diffIcon_02_btn_001.png",
+      "diffIcon_03_btn_001.png", "diffIcon_04_btn_001.png", "diffIcon_05_btn_001.png",
+      "diffIcon_06_btn_001.png", "diffIcon_07_btn_001.png"
+    ];
+
+    packs.forEach((pack, idx) => {
+      const ry = _panelBoundaryTop + idx * rowH;
+      const cx = panelCX;
+
+      const colorBar = this.add.rectangle(listLeft + 4, ry + 2, 6, rowH - 4, pack.color)
+        .setOrigin(0, 0);
+      container.add(colorBar);
+
+      const diffFrame = diffFrames[pack.difficulty] || "diffIcon_03_btn_001.png";
+      const diffIcon = this.add.image(listLeft + 40, ry + rowH / 2, "GJ_GameSheet03", diffFrame + ".png")
+        .setScale(0.55);
+      container.add(diffIcon);
+
+      const nameText = this.add.bitmapText(listLeft + 75, ry + rowH / 2 - 12, "bigFont", pack.name, 26)
+        .setOrigin(0, 0.5);
+      container.add(nameText);
+
+      const levelsStr = pack.levels.length + " levels";
+      const subText = this.add.bitmapText(listLeft + 75, ry + rowH / 2 + 14, "goldFont", levelsStr, 18)
+        .setOrigin(0, 0.5);
+      container.add(subText);
+
+      const starIcon = this.add.image(cx + panelW / 2 - 80, ry + rowH / 2, "GJ_WebSheet", "GJ_bigStar_001.png")
+        .setScale(0.3);
+      container.add(starIcon);
+      const starText = this.add.bitmapText(cx + panelW / 2 - 60, ry + rowH / 2, "bigFont", String(pack.stars), 22)
+        .setOrigin(0, 0.5);
+      container.add(starText);
+
+      const hitZone = this.add.zone(cx, ry + rowH / 2, panelW, rowH).setInteractive();
+      container.add(hitZone);
+      this._makeBouncyButton(hitZone, 1, () => {
+        this._openMapPackLevels(pack, closeOverlay);
+      }, () => true);
+
+      addRow();
+    });
+
+    const totalH = packs.length * rowH;
+    const viewH = _panelBoundaryBottom - _panelBoundaryTop;
+    const maxScroll = Math.max(0, totalH - viewH);
+
+    this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY) => {
+      if (!this._mapPacksOverlay) return;
+      scrollY = Math.max(0, Math.min(maxScroll, scrollY + deltaY * 0.5));
+      container.y = -scrollY;
+      shell.redrawStripes(scrollY);
+    });
+  }
+  _openMapPackLevels(pack, parentClose) {
+    const sw = screenWidth;
+    const sh = screenHeight;
+    const rowH = 70;
+    const shell = this._openListScene(pack.name + " Pack", rowH, () => {
+      this._mapPackLevelsOverlay = null;
+    });
+    const { objects, listLeft, listTop, panelW, panelH, panelCX, addRow, closeOverlay } = shell;
+    this._mapPackLevelsOverlay = shell.overlay;
+
+    const _panelBoundaryTop = listTop + 12;
+    const _panelBoundaryBottom = listTop + panelH - 22;
+    const container = this.add.container(0, 0).setScrollFactor(0).setDepth(204);
+    objects.push(container);
+
+    const PROXY = (window._gdProxyUrl || "").replace(/\/$/, "");
+
+    pack.levels.forEach((levelId, idx) => {
+      const ry = _panelBoundaryTop + idx * rowH;
+      const nameText = this.add.bitmapText(listLeft + 30, ry + rowH / 2, "goldFont", "Level " + levelId, 24)
+        .setOrigin(0, 0.5);
+      container.add(nameText);
+
+      const playBtn = this.add.image(panelCX + panelW / 2 - 50, ry + rowH / 2, "GJ_GameSheet03", "GJ_playBtn2_001.png")
+        .setScale(0.6).setInteractive().setFlipY(true).setAngle(90);
+      container.add(playBtn);
+
+      this._makeBouncyButton(playBtn, 0.6, async () => {
+        if (!PROXY) return;
+        nameText.setText("Loading...");
+        try {
+          const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
+          const res = await fetch(`${PROXY}/downloadGJLevel22.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const rawResponse = await res.text();
+          if (!rawResponse || rawResponse === "-1") throw new Error("not found");
+
+          const segs = rawResponse.split("#");
+          const lvlParts = segs[0].split(":");
+          const lvlMap = {};
+          for (let i = 0; i + 1 < lvlParts.length; i += 2) lvlMap[lvlParts[i]] = lvlParts[i + 1];
+
+          let author = "Unknown";
+          if (segs[3]) {
+            const up = segs[3].split(":");
+            if (up.length >= 2) author = up[1];
+          }
+
+          const title = (lvlMap["2"] || "Level").trim();
+          const levelString = lvlMap["4"] || "";
+          const customSongID = (lvlMap["35"] || "").trim();
+          const officialSong = lvlMap["12"] || "0";
+          const isCustomSong = customSongID && customSongID !== "0";
+          const songKey = isCustomSong ? `ng_song_${customSongID}` : window.allLevels[parseInt(officialSong)]?.[0] || "stereo_madness";
+
+          window._onlineSongBuffer = null;
+          window._onlineSongKey = null;
+          window._onlineSongOffset = 0;
+          window.currentlevel = [songKey, title, "online_" + levelId, [author]];
+
+          if (isCustomSong) {
+            try {
+              const ngRes = await fetch(`${PROXY}/getGJSongInfo.php`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `songID=${customSongID}&secret=Wmfd2893gb7`
+              });
+              const ngText = ngRes.ok ? await ngRes.text() : "-1";
+              if (ngText && ngText !== "-1") {
+                const ngParts = ngText.split("~|~"), ngMap = {};
+                for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
+                const songUrl = decodeURIComponent((ngMap["10"] || "").trim());
+                window._onlineSongArtist = (ngMap["4"] || "Unknown").trim();
+                window._onlineSongTitle = (ngMap["2"] || "Unknown").trim();
+                if (songUrl) {
+                  const audioCtx = this.game.sound.context;
+                  if (audioCtx.state === "suspended") await audioCtx.resume();
+                  const proxiedUrl = `${PROXY}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                  const audioRes = await fetch(proxiedUrl);
+                  const arrayBuf = await audioRes.arrayBuffer();
+                  const decoded = await audioCtx.decodeAudioData(arrayBuf);
+                  window._onlineSongBuffer = decoded;
+                  window._onlineSongKey = songKey;
+                }
+              }
+            } catch (e) {}
+          } else {
+            const mainLevel = window.allLevels[parseInt(officialSong)];
+            if (mainLevel && !this.cache.audio.exists(songKey)) {
+              const songFileName = mainLevel[1].replaceAll(" ", "");
+              await new Promise((resolve) => {
+                this.load.audio(songKey, "assets/music/" + songFileName + ".mp3");
+                this.load.once("complete", resolve);
+                this.load.start();
+              });
+            }
+          }
+
+          window._onlineLevelString = levelString;
+          window._onlineLevelName = title;
+          window._onlineLevelId = "online_" + levelId;
+          this.game.registry.set("autoStartGame", true);
+          closeOverlay();
+          if (parentClose) parentClose();
+          this.scene.restart();
+        } catch (err) {
+          nameText.setText("Failed to load");
+        }
+      }, () => true);
+
+      addRow();
     });
   }
   _openListScene(title, rowHeight, onBack) {
