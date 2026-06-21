@@ -8986,21 +8986,30 @@ _applyMirrorEffect() {
   }
   async _showNongPopup(songId, songKey) {
     if (this._nongPopupObjs) { this._nongPopupObjs.forEach(o => o.destroy()); this._nongPopupObjs = null; return; }
-    const sw = screenWidth;
-    const sh = screenHeight;
-    const cx = sw / 2;
-    const cy = sh / 2;
-    const popW = 600;
-    const popH = 400;
+    const cx = screenWidth / 2;
+    const cy = screenHeight / 2;
+    const popW = 620;
+    const popH = 420;
+    const d = 270;
 
-    const bg = this.add.rectangle(cx, cy, popW, popH, 0x1a1a2e, 0.95).setScrollFactor(0).setDepth(270).setStrokeStyle(2, 0x4444ff).setInteractive();
-    const title = this.add.bitmapText(cx, cy - popH / 2 + 25, "bigFont", "NONGs for Song " + songId, 24).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(271);
-    const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Loading...", 22).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(271);
-    this._nongPopupObjs = [bg, title, loadingText];
+    const overlay = this.add.rectangle(cx, cy, screenWidth, screenHeight, 0x000000, 0.5).setScrollFactor(0).setDepth(d).setInteractive();
+    const bg = this.add.graphics().setScrollFactor(0).setDepth(d);
+    bg.fillStyle(0x1a1a3a, 1);
+    bg.fillRoundedRect(cx - popW / 2, cy - popH / 2, popW, popH, 16);
+    bg.lineStyle(3, 0x5555cc, 1);
+    bg.strokeRoundedRect(cx - popW / 2, cy - popH / 2, popW, popH, 16);
+    const titleBg = this.add.graphics().setScrollFactor(0).setDepth(d);
+    titleBg.fillStyle(0x2a2a5a, 1);
+    titleBg.fillRoundedRect(cx - popW / 2 + 10, cy - popH / 2 + 8, popW - 20, 40, 8);
+    const title = this.add.bitmapText(cx, cy - popH / 2 + 28, "bigFont", "Song Replacements", 26).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(d + 1);
+    const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Loading...", 24).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(d + 1);
 
-    const closeBtn = this.add.bitmapText(cx + popW / 2 - 20, cy - popH / 2 + 15, "bigFont", "X", 28).setOrigin(1, 0).setScrollFactor(0).setDepth(272).setInteractive().setTint(0xff4444);
-    closeBtn.on("pointerdown", () => { this._nongPopupObjs.forEach(o => o.destroy()); this._nongPopupObjs = null; });
-    this._nongPopupObjs.push(closeBtn);
+    const closeNong = () => { if (this._nongPopupObjs) { this._nongPopupObjs.forEach(o => o.destroy()); this._nongPopupObjs = null; } };
+    overlay.on("pointerdown", closeNong);
+    const closeBtn = this.add.image(cx + popW / 2 - 25, cy - popH / 2 + 28, "GJ_GameSheet03", "GJ_deleteBtn_001.png").setScale(0.55).setScrollFactor(0).setDepth(d + 2).setInteractive().setAngle(90);
+    this._makeBouncyButton(closeBtn, 0.55, closeNong);
+
+    this._nongPopupObjs = [overlay, bg, titleBg, title, loadingText, closeBtn];
 
     try {
       const res = await fetch(`https://api.songfilehub.com/songs?songID=${songId}`);
@@ -9009,14 +9018,14 @@ _applyMirrorEffect() {
       loadingText.destroy();
 
       if (!songs || songs.length === 0) {
-        const noSongs = this.add.bitmapText(cx, cy, "goldFont", "No NONGs found for this song.", 22).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(271);
+        const noSongs = this.add.bitmapText(cx, cy, "goldFont", "No replacements found.", 24).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(d + 1);
         this._nongPopupObjs.push(noSongs);
         return;
       }
 
-      const listTop = cy - popH / 2 + 55;
-      const listBottom = cy + popH / 2 - 15;
-      const rowH = 50;
+      const listTop = cy - popH / 2 + 58;
+      const listBottom = cy + popH / 2 - 45;
+      const rowH = 55;
       const maxVisible = Math.floor((listBottom - listTop) / rowH);
       let page = 0;
       const totalPages = Math.ceil(songs.length / maxVisible);
@@ -9029,13 +9038,22 @@ _applyMirrorEffect() {
         const pageItems = songs.slice(start, start + maxVisible);
         pageItems.forEach((song, i) => {
           const y = listTop + i * rowH + rowH / 2;
-          const rowBg = this.add.rectangle(cx, y, popW - 30, rowH - 4, i % 2 === 0 ? 0x222244 : 0x2a2a55).setScrollFactor(0).setDepth(271);
-          const name = this.add.bitmapText(cx - popW / 2 + 30, y - 8, "bigFont", (song.songName || "Unknown").substring(0, 40), 18).setOrigin(0, 0.5).setScrollFactor(0).setDepth(272);
-          const dl = this.add.bitmapText(cx - popW / 2 + 30, y + 12, "goldFont", (song.state || "") + " | " + (song.downloads || 0) + " downloads", 14).setOrigin(0, 0.5).setScrollFactor(0).setDepth(272).setTint(0xaaaaaa);
+          const rowBg = this.add.rectangle(cx, y, popW - 24, rowH - 4, i % 2 === 0 ? 0x222250 : 0x2a2a60, 1)
+            .setScrollFactor(0).setDepth(d + 1);
+          const nameStr = (song.songName || "Unknown");
+          const name = this.add.bitmapText(cx - popW / 2 + 25, y - 10, "bigFont", nameStr.length > 38 ? nameStr.substring(0, 36) + ".." : nameStr, 18)
+            .setOrigin(0, 0.5).setScrollFactor(0).setDepth(d + 2);
+          const tag = song.state ? song.state.charAt(0).toUpperCase() + song.state.slice(1) : "";
+          const info = this.add.bitmapText(cx - popW / 2 + 25, y + 12, "goldFont", tag + (tag ? " - " : "") + (song.downloads || 0) + " downloads", 16)
+            .setOrigin(0, 0.5).setScrollFactor(0).setDepth(d + 2).setTint(0x999999);
           const isActive = window._activeNongId === song._id;
-          const useBtn = this.add.bitmapText(cx + popW / 2 - 30, y, "bigFont", isActive ? "Active" : "Use", 20).setOrigin(1, 0.5).setScrollFactor(0).setDepth(272).setInteractive().setTint(isActive ? 0xffff00 : 0x00ff00);
-          useBtn.on("pointerdown", async () => {
-            useBtn.setText("...");
+          const useBtn = this.add.nineslice(cx + popW / 2 - 55, y, "GJ_button01", null, 80, 36, 24, 24, 24, 24)
+            .setScale(0.6).setInteractive().setScrollFactor(0).setDepth(d + 2);
+          if (isActive) useBtn.setTint(0xffaa00);
+          const useTxt = this.add.bitmapText(cx + popW / 2 - 55, y - 1, "bigFont", isActive ? "Active" : "Use", 20)
+            .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(d + 3).setTint(isActive ? 0xffff00 : 0xffffff);
+          this._makeBouncyButton(useBtn, 0.6, async () => {
+            useTxt.setText("...");
             try {
               const audioCtx = this.game.sound.context;
               if (audioCtx.state === "suspended") await audioCtx.resume();
@@ -9047,31 +9065,36 @@ _applyMirrorEffect() {
               window._onlineSongKey = window.currentlevel[0];
               window._onlineSongTitle = song.songName || "NONG";
               window._activeNongId = song._id;
-              useBtn.setText("OK!").setTint(0xffff00);
+              useTxt.setText("Active").setTint(0xffff00);
+              useBtn.setTint(0xffaa00);
             } catch (e) {
               console.error("NONG download failed:", e.message);
-              useBtn.setText("Fail").setTint(0xff0000);
+              useTxt.setText("Fail").setTint(0xff0000);
             }
           });
-          rowObjs.push(rowBg, name, dl, useBtn);
-          this._nongPopupObjs.push(rowBg, name, dl, useBtn);
+          rowObjs.push(rowBg, name, info, useBtn, useTxt);
+          this._nongPopupObjs.push(rowBg, name, info, useBtn, useTxt);
         });
-        if (totalPages > 1) {
-          const pgText = this.add.bitmapText(cx, listBottom + 5, "goldFont", (page + 1) + "/" + totalPages, 18).setOrigin(0.5, 0).setScrollFactor(0).setDepth(272);
-          rowObjs.push(pgText);
-          this._nongPopupObjs.push(pgText);
-        }
       };
       buildPage();
 
-      if (totalPages > 1) {
-        bg.on("wheel", (p, dx, dy) => {
-          if (dy > 0 && page < totalPages - 1) { page++; buildPage(); }
-          else if (dy < 0 && page > 0) { page--; buildPage(); }
-        });
-      }
+      const navY = cy + popH / 2 - 22;
+      const pgLabel = this.add.bitmapText(cx, navY, "goldFont", (page + 1) + " / " + totalPages, 22).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(d + 2);
+      this._nongPopupObjs.push(pgLabel);
+
+      const prevBtn = this.add.image(cx - 80, navY, "GJ_GameSheet03", "GJ_arrow_03_001.png").setScale(0.6).setInteractive().setScrollFactor(0).setDepth(d + 2);
+      this._nongPopupObjs.push(prevBtn);
+      this._makeBouncyButton(prevBtn, 0.6, () => {
+        if (page > 0) { page--; buildPage(); pgLabel.setText((page + 1) + " / " + totalPages); }
+      });
+
+      const nextBtn = this.add.image(cx + 80, navY, "GJ_GameSheet03", "GJ_arrow_03_001.png").setScale(0.6).setFlipX(true).setInteractive().setScrollFactor(0).setDepth(d + 2);
+      this._nongPopupObjs.push(nextBtn);
+      this._makeBouncyButton(nextBtn, 0.6, () => {
+        if (page < totalPages - 1) { page++; buildPage(); pgLabel.setText((page + 1) + " / " + totalPages); }
+      });
     } catch (e) {
-      loadingText.setText("Failed to load NONGs.");
+      loadingText.setText("Failed to load.");
       console.error("SongFileHub error:", e.message);
     }
   }

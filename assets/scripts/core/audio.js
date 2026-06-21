@@ -41,7 +41,6 @@ class AudioManager {
         return;
       }
     }
-    console.log("[NONG debug] buffer:", !!window._onlineSongBuffer, "songKey:", window._onlineSongKey, "cl0:", window.currentlevel && window.currentlevel[0], "activeNong:", window._activeNongId);
     if (window._onlineSongBuffer && window._onlineSongKey === window.currentlevel[0]) {
       const startOffset = window.settingsMap['kA13'] ? new Number(window.settingsMap['kA13']) : 0;
       this._playOnlineBuffer(window._onlineSongBuffer, startOffset + StartPosOffset);
@@ -65,8 +64,7 @@ class AudioManager {
   _playOnlineBuffer(audioBuffer, startOffset = 0) {
     const soundMgr = this._scene.game.sound;
     const ctx = soundMgr.context;
-    console.log("[NONG debug] _playOnlineBuffer called, ctx:", ctx?.state, "duration:", audioBuffer?.duration, "offset:", startOffset, "volume:", this._effectiveVolume());
-    if (!ctx) { console.log("[NONG debug] no audio context!"); return; }
+    if (!ctx) return;
     if (this._onlineSource) {
       try { this._onlineSource.stop(); } catch(e) {}
       try { this._onlineSource.disconnect(); } catch(e) {}
