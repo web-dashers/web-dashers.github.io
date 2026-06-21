@@ -3776,6 +3776,18 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
         this._makeBouncyButton(leftArrow, 0.6, () => this.changeStartPos(-1));
         this._makeBouncyButton(rightArrow, 0.6, () => this.changeStartPos(1));
+        this._startPosFadeTimer = null;
+  }
+  _resetStartPosFade() {
+    if (!this._startPosGui) return;
+    this._startPosGui.setAlpha(1);
+    if (this._startPosFadeTimer) { this._startPosFadeTimer.remove(); this._startPosFadeTimer = null; }
+    if (this._startPosFadeTween) { this._startPosFadeTween.stop(); this._startPosFadeTween = null; }
+    this._startPosFadeTimer = this.time.delayedCall(5000, () => {
+      this._startPosFadeTween = this.tweens.add({
+        targets: this._startPosGui, alpha: 0, duration: 800, ease: "Quad.Out"
+      });
+    });
   }
   changeStartPos(direction) {
         if (this._paused || this._levelWon || this._menuActive || this._slideIn) return;
@@ -3796,6 +3808,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (this._startPosText) {
             const currentId = this._startPosIndex === -1 ? 0 : (this._startPosIndex + 1);
             this._startPosText.setText(`${currentId}/${totalPositions}`);
+            this._resetStartPosFade();
         }
 
         this._practicedMode.clearCheckpoints();
@@ -4205,6 +4218,7 @@ _buildSettingsPopup() {
                 if (this._startPosGui) this._startPosGui.setVisible(v);
                 const total = this._level.getStartPositions().length;
                 if (this._startPosText) this._startPosText.setText(`0/${total}`);
+                if (v) this._resetStartPosFade();
             }
         );
 
