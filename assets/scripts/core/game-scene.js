@@ -9035,9 +9035,11 @@ _applyMirrorEffect() {
               if (!audioRes.ok) throw new Error("Failed: " + audioRes.status);
               const arrayBuf = await audioRes.arrayBuffer();
               const decoded = await audioCtx.decodeAudioData(arrayBuf);
+              const nongKey = "nong_" + song._id;
               window._onlineSongBuffer = decoded;
-              window._onlineSongKey = songKey;
+              window._onlineSongKey = nongKey;
               window._onlineSongTitle = song.songName || "NONG";
+              window.currentlevel[0] = nongKey;
               useBtn.setText("OK!").setTint(0xffff00);
             } catch (e) {
               console.error("NONG download failed:", e.message);
