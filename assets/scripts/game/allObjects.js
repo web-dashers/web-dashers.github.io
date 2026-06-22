@@ -1771,7 +1771,7 @@ window.allobjects = function() {
   },
   "145": {
     "type": "hazard",
-    "frame": "invis_spike_03_001.png",
+    "frame": "invis_spike_03_glow_001.png",
     "gridW": 0.5,
     "gridH": 0.5,
     "spriteW": 20,
