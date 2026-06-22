@@ -1433,12 +1433,8 @@ window.LevelObject = class LevelObject {
     } else if (objectDef.type === slopeType) {
       const sd = _SLOPE_DATA[levelObj.id];
       if (sd) {
-        // slope gw/gh are in real GD grid units (30), not this engine's internal
-        // block constant `a` (60) -- confirmed against actual level data where
-        // adjacent slope pieces tile/connect exactly at 30-unit spacing
-        const slopeUnit = 30;
-        const hw0 = (sd.gw * slopeUnit) / 2;
-        const hh0 = (sd.gh * slopeUnit) / 2;
+        const hw0 = (sd.gw * a) / 2;
+        const hh0 = (sd.gh * a) / 2;
         // local triangle before flip/rotate: right-angle corner + the two hypotenuse ends
         let vRight = { x: hw0, y: -hh0 };
         let vLo    = { x: -hw0, y: -hh0 };

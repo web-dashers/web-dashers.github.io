@@ -321,6 +321,7 @@ class PlayerObject {
     this._gameLayer = _0x2811e1;
     this._rotation = 0;
     this._slopeGroundAngle = null;
+    this._visualTilt = 0;
     this.rotateActionActive = false;
     this.rotateActionTime = 0;
     this.rotateActionDuration = 0;
@@ -804,15 +805,21 @@ class PlayerObject {
     const _0x7f0705 = mirrorOffset !== undefined ? mirrorOffset : centerX;
     const _0x1a433c = b(this.p.y) + cameraY;
     const playerRotation = this._rotation;
-    // cosmetic-only tilt layered on top of the real rotation state, never written
-    // back into _rotation so jump/landing rotation logic stays untouched
-    let visualTilt = 0;
-    if (this._slopeGroundAngle !== null) {
-      visualTilt = this._slopeGroundAngle;
-    } else if (this.p.isUfo && !this.p.isFlying) {
-      visualTilt = Math.max(-0.05, Math.min(0.05, -(this.p.y - this.p.lastY) * 0.008));
-    }
-    const tiltedRotation = playerRotation + visualTilt;
+    // smooth cosmetic tilt — lerps toward slope angle when on slope, back to 0 otherwise
+    // never written back to _rotation so jump/landing logic stays untouched
+    const tiltTarget = this._slopeGroundAngle !== null ? this._slopeGroundAngle
+      : (this.p.isUfo && !this.p.isFlying ? Math.max(-0.05, Math.min(0.05, -(this.p.y - this.p.lastY) * 0.008)) : 0);
+    // fast ease-in, slower ease-out back to flat so it feels natural
+    const tiltSpeed = Math.abs(tiltTarget) > Math.abs(this._visualTilt) ? 0.25 : 0.12;
+    this._visualTilt += (tiltTarget - this._visualTilt) * tiltSpeed;
+    if (Math.abs(this._visualTilt) < 0.001) this._visualTilt = 0;
+    // when on a slope, snap base to nearest 90° first so a mid-spin landing
+    // doesn't add the slope lean on top of a wild in-flight angle
+    const halfPi = Math.PI / 2;
+    const renderBase = this._slopeGroundAngle !== null && !this.p.isFlying
+      ? Math.round(playerRotation / halfPi) * halfPi
+      : playerRotation;
+    const tiltedRotation = renderBase + this._visualTilt;
     this._lastCameraX = cameraX;
     this._lastCameraY = cameraY;
     this._aboveContainer.x = -cameraX;
