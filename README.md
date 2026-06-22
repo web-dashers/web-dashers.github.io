@@ -3,14 +3,14 @@
   width="400" 
   height="400" 
   alt="web-dashers logo" 
-  src="https://github.com/user-attachments/assets/1b647556-ef74-47f9-be61-46696c57f04e" 
+  src="https://cdn.discordapp.com/icons/1518348077906264185/933b9aae4c580ee0106d44e8762b5de3.webp" 
   />
   <h1>Web Dashers</h1>
   <p>
-  <strong>A Modded Geometry Dash demo with extra features added! (See list below!) </strong>
+  <strong>A Modded Web-Dashers with extra features added! (See list below!) </strong>
   </p>
   <a 
-  href="https://web-dashers.github.io/" 
+  href="https://theblehlollipop.github.io/Lollipop-Mod/" 
   target="_blank">
     <img 
     width="279" 
@@ -36,7 +36,7 @@
 
 ## Features currently implemented:
 - **Main Menu** - A mostly fully working main menu with all 2.1 levels.
-- **Custom Levels** - Some custom levels added in the main menu such as The Nightmare, Bloodbath, Nine Circles, and more!
+- **Custom Levels** - Search Features and stuff!
 - **Icon kit** - A working Icon Kit with different colors and icons to choose from!
 - **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Mini portals and Speed portals!
 - **Extra Settings** - You can enable and disable Noclip or Show Hitboxes from the pause menu in a level, along with other settings, like the level percentage!
