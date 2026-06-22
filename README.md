@@ -5,9 +5,9 @@
   alt="web-dashers logo" 
   src="https://cdn.discordapp.com/icons/1518348077906264185/933b9aae4c580ee0106d44e8762b5de3.webp" 
   />
-  <h1>Web Dashers</h1>
+  <h1>Lollipop Mod</h1>
   <p>
-  <strong>A Modded Web-Dashers with extra features added! (See list below!) </strong>
+  <strong>A Modded Web Dashers with extra features added! (See list below!) </strong>
   </p>
   <a 
   href="https://theblehlollipop.github.io/Lollipop-Mod/" 
@@ -38,7 +38,7 @@
 - **Main Menu** - A mostly fully working main menu with all 2.1 levels.
 - **Custom Levels** - Search Features and stuff!
 - **Icon kit** - A working Icon Kit with different colors and icons to choose from!
-- **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Mini portals and Speed portals!
+- **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Robot, Spider, Swing, Mini portals and Speed portals!
 - **Extra Settings** - You can enable and disable Noclip or Show Hitboxes from the pause menu in a level, along with other settings, like the level percentage!
 - **Account System** - You can save/load all level progress, and upload it to the cloud to keep your progress on different devices!
 
@@ -48,7 +48,6 @@
 - **Slopes** - Slopes are almost done, but we need to get their physics correct with other speed portals.
 
 ## What we hope to see added in the future:
-- **All Gamemodes** - This will allow every official main level to be playable, along with others that require currently un-implemented gamemodes.
 - **All Objects Working** - In the current state of Web Dashers, you might notice most objects seem to be bugged and/or not showing.
 
 ### Come try out the WIP Web Dashers demo at:
