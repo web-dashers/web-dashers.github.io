@@ -2825,12 +2825,14 @@ _updateWaveJump() {
           if (!this.p.isWave){
             // outer box (red)
             graphics.lineStyle(1, hexToHexadecimal("ff0000"), 0.5);
-            graphics.strokeRect(trailX - playerSize, trailY - playerSize, hitboxsize, hitboxsize);
-
+            if (!this.p.isFlying && !this.p.isUfo) {
+              graphics.strokeRect(trailX - playerSize, trailY - playerSize, hitboxsize, hitboxsize);
+            }
             // inner circle (dark red)
             graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
-            graphics.strokeCircle((trailX - playerSize) + hitboxsize / 2, (trailY - playerSize) + hitboxsize / 2, hitboxsize / 2);
-
+            if (!this.p.isFlying && !this.p.isUfo) {
+              graphics.strokeCircle((trailX - playerSize) + hitboxsize / 2, (trailY - playerSize) + hitboxsize / 2, hitboxsize / 2);
+            }
             // box that rotates with the player (dark red)
             graphics.lineStyle(1, hexToHexadecimal("b30001"), 0.5);
             {
@@ -2853,7 +2855,6 @@ _updateWaveJump() {
               graphics.closePath();
               graphics.strokePath();
             }
-
             graphics.lineStyle(1, hexToHexadecimal("0000ff"), 1);
           }
 
@@ -2865,15 +2866,17 @@ _updateWaveJump() {
     // comments so its easier for other people to read ts
     const _0x1e788a = b(playerY) + camY;
     const _playerDrawX = isFlipped ? screenWidth - centerX : centerX;
-    graphics.lineStyle(1, hexToHexadecimal("ff0000"), 1);
     if (!this.p.isWave){
       // outer box (red)
       graphics.lineStyle(2, hexToHexadecimal("ff0000"), 0.8);
-      graphics.strokeRect(_playerDrawX - playerSize, _0x1e788a - playerSize, hitboxsize, hitboxsize);
+      if (!this.p.isFlying && !this.p.isUfo) {
+        graphics.strokeRect(_playerDrawX - playerSize, _0x1e788a - playerSize, hitboxsize, hitboxsize);
+      }
       // inner circle (dark red)
       graphics.lineStyle(2, hexToHexadecimal("b30001"), 0.8);
-      graphics.strokeCircle((_playerDrawX - playerSize)+hitboxsize/2, (_0x1e788a - playerSize)+hitboxsize/2, hitboxsize/2);
-
+      if (!this.p.isFlying && !this.p.isUfo) {
+        graphics.strokeCircle((_playerDrawX - playerSize)+hitboxsize/2, (_0x1e788a - playerSize)+hitboxsize/2, hitboxsize/2);
+      }
       // box that rotates with the player (dark red)
       graphics.lineStyle(2, hexToHexadecimal("b30001"), 0.8);
       {
@@ -2896,7 +2899,6 @@ _updateWaveJump() {
         graphics.closePath();
         graphics.strokePath();
       }
-
       graphics.lineStyle(2, hexToHexadecimal("0000ff"), 1);
     }
     // inner hitbox
