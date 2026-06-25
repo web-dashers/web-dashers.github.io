@@ -358,16 +358,9 @@ class PlayerObject {
   }
 updateGroundRotation(delta) {
     if (this.p.isBird || this.p.isUfo) {
-      this._rotation = 0;
-      if (this._birdLayers) {
-        for (const layer of this._birdLayers) {
-          if (layer && layer.sprite) layer.sprite.setRotation(0);
-        }
-      }
-      if (this._playerLayers) {
-        for (const layer of this._playerLayers) {
-          if (layer && layer.sprite) layer.sprite.setRotation(0);
-        }
+      // Allow the UFO and inner Cube to keep their slope angle instead of forcing them back to 0
+      for (const layer of (this._birdLayers || []).concat(this._playerLayers || [])) {
+        if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
       }
       return;
     }
@@ -2163,48 +2156,43 @@ if (this.p.isFlying || this.p.isUfo) {
     return out + out;
   }
 updateGroundRotation(_0x5c24f7) {
-    // 1. UFO (Bird) Slope Fix: Keep the saucer and cube completely flat so they don't break apart
-    if (this.p.isBird || this.p.isUfo) {
-      this._rotation = 0;
-      if (this._birdLayers) {
-        for (const layer of this._birdLayers) {
-          if (layer && layer.sprite) layer.sprite.setRotation(0);
-        }
-      }
-      if (this._playerLayers) {
-        for (const layer of this._playerLayers) {
-          if (layer && layer.sprite) layer.sprite.setRotation(0);
-        }
-      }
-      return;
-    }
-
-    // 2. Slope Logic for Cube, Robot, and Swing
-    if (this._lastLandObject && (this._lastLandObject.type === "slope" || this._lastLandObject.type === 2)) {
+    // 1. Slope Logic: Calculate the exact hill angle
+    if (this._lastLandObject) {
       let slopeAngleRad = Math.atan2(
         this._lastLandObject.hypoBy - this._lastLandObject.hypoAy,
         this._lastLandObject.hypoBx - this._lastLandObject.hypoAx
       );
 
-      if (this.p.isCube || this.p.isRobot) {
-        this._rotation = slopeAngleRad;
-        let targetLayers = this.p.isCube ? this._playerLayers : (this._robotLayers || []);
-        for (const layer of targetLayers) {
-          if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
-        }
-        return;
+      this._rotation = slopeAngleRad;
+
+      let targetLayers = [];
+      if (this.p.isCube) {
+        targetLayers = this._playerLayers || [];
+      } else if (this.p.isBird || this.p.isUfo) {
+        // GLUE TOGETHER: This links BOTH the UFO saucer and the Cube inside so they rotate as one object!
+        targetLayers = (this._birdLayers || []).concat(this._playerLayers || []);
+      } else if (this.p.isRobot) {
+        targetLayers = this._robotLayers || [];
+      } else if (this.p.isSwing) {
+        this._rotation = this.p.gravityFlipped ? slopeAngleRad + Math.PI : slopeAngleRad;
+        targetLayers = this._swingLayers || [];
       }
 
-      if (this.p.isSwing) {
-        this._rotation = this.p.gravityFlipped ? slopeAngleRad + Math.PI : slopeAngleRad;
-        for (const layer of this._swingLayers || []) {
-          if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
-        }
-        return;
+      for (const layer of targetLayers) {
+        if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
       }
+      return;
     }
 
-    // 3. Fallback to normal behavior on flat ground or air
+    // 2. Fallback for when you leave the slope back into flat land or air
+    if (this.p.isBird || this.p.isUfo) {
+      this._rotation = 0;
+      for (const layer of (this._birdLayers || []).concat(this._playerLayers || [])) {
+        if (layer && layer.sprite) layer.sprite.setRotation(0);
+      }
+      return;
+    }
+
     if (this.p.isBall || this.p.isWave || this.p.isSpider || this.p.isRobot || this.p.isSwing) {
       if (this.p.onGround && (this.p.isRobot || this.p.isSwing)) {
         this._rotation = this.p.gravityFlipped ? Math.PI : 0;
