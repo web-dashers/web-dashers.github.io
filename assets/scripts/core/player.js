@@ -364,8 +364,10 @@ updateGroundRotation(delta) {
           if (layer && layer.sprite) layer.sprite.setRotation(0);
         }
       }
-      for (const layer of this._playerLayers) {
-        if (layer && layer.sprite) layer.sprite.setRotation(0);
+      if (this._playerLayers) {
+        for (const layer of this._playerLayers) {
+          if (layer && layer.sprite) layer.sprite.setRotation(0);
+        }
       }
       return;
     }
@@ -2161,7 +2163,7 @@ if (this.p.isFlying || this.p.isUfo) {
     return out + out;
   }
 updateGroundRotation(_0x5c24f7) {
-    // 1. UFO Slope Fix: Keep everything completely flat so the cube doesn't slide out
+    // 1. UFO (Bird) Slope Fix: Keep the saucer and cube completely flat so they don't break apart
     if (this.p.isBird || this.p.isUfo) {
       this._rotation = 0;
       if (this._birdLayers) {
@@ -2213,12 +2215,6 @@ updateGroundRotation(_0x5c24f7) {
       }
       return;
     }
-    
-    let _0x183c2a = this.convertToClosestRotation();
-    let _0x108955 = 0.47250000000000003;
-    let _0x17a9a6 = Math.min(_0x5c24f7 * 1, _0x108955 * _0x5c24f7);
-    this._rotation = this.slerp2D(this._rotation, _0x183c2a, _0x17a9a6);
-  }
     
     let _0x183c2a = this.convertToClosestRotation();
     let _0x108955 = 0.47250000000000003;
