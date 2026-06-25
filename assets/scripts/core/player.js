@@ -2148,10 +2148,55 @@ if (this.p.isFlying || this.p.isUfo) {
     let out = Math.atan2(interpSin, interpCos);
     return out + out;
   }
-  updateGroundRotation(_0x5c24f7) {
-    if (this.p.isBall || this.p.isWave || this.p.isSpider || this.p.isRobot || this.p.isSwing) {
+updateGroundRotation(_0x5c24f7) {
+    // 1. UFO Slope Fix: Keep the saucer completely flat so layers don't break apart
+    if (this.p.isUfo) {
+      this._rotation = 0;
+      if (this._birdLayers) {
+        for (const layer of this._birdLayers) {
+          if (layer && layer.sprite) layer.sprite.setRotation(0);
+        }
+      }
       return;
     }
+
+    // 2. Slope Logic for Cube, Robot, and Swing
+    if (this._lastLandObject && this._lastLandObject.type === "slope") {
+      let slopeAngleRad = Math.atan2(
+        this._lastLandObject.hypoBy - this._lastLandObject.hypoAy,
+        this._lastLandObject.hypoBx - this._lastLandObject.hypoAx
+      );
+
+      if (this.p.isCube || this.p.isRobot) {
+        this._rotation = slopeAngleRad;
+        let targetLayers = this.p.isCube ? this._playerLayers : (this._robotLayers || []);
+        for (const layer of targetLayers) {
+          if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
+        }
+        return;
+      }
+
+      if (this.p.isSwing) {
+        this._rotation = this.p.gravityFlipped ? slopeAngleRad + Math.PI : slopeAngleRad;
+        for (const layer of this._swingLayers || []) {
+          if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
+        }
+        return;
+      }
+    }
+
+    // 3. Fallback to normal behavior on flat ground or air
+    if (this.p.isBall || this.p.isWave || this.p.isSpider || this.p.isRobot || this.p.isSwing) {
+      if (this.p.onGround && (this.p.isRobot || this.p.isSwing)) {
+        this._rotation = this.p.gravityFlipped ? Math.PI : 0;
+        let targetLayers = this.p.isRobot ? this._robotLayers : (this._swingLayers || []);
+        for (const layer of targetLayers) {
+          if (layer && layer.sprite) layer.sprite.setRotation(this._rotation);
+        }
+      }
+      return;
+    }
+    
     let _0x183c2a = this.convertToClosestRotation();
     let _0x108955 = 0.47250000000000003;
     let _0x17a9a6 = Math.min(_0x5c24f7 * 1, _0x108955 * _0x5c24f7);
