@@ -2498,10 +2498,41 @@ window.allobjects = function() {
     "default_z_order": 1
   },
   "186": {
-        "type": "hazard",
+    "can_color": true,
+    "children": [
+      {
+        "frame": "blade_01_001.png",
+        "localDy": 0,
+        "tint": 65280,
+        "z": -1
+      },
+      {
+        "frame": "blade_01_001.png",
+        "localDy": 0,
+        "tint": 65280,
+        "z": 1
+      },
+      {
+        "frame": "blade_01_001.png",
+        "localDy": 0,
+        "tint": 65280,
+        "z": 1
+      },
+      {
+        "frame": "blade_01_001.png",
+        "localDy": 0,
+        "tint": 65280,
+        "z": 1
+      }
+    ],
+    "default_base_color_channel": 1004,
     "frame": "blade_01_001.png",
-    "gridW": 1,
-    "gridH": 1,
+    "glow_frame": "blade_01_glow_001.png",
+    "gridH": 1.4333332777023315,
+    "gridW": 1.4333332777023315,
+    "spritesheet": "GJ_GameSheet-uhd",
+    "type": "hazard",
+    "z": 1,
     "hitbox_radius": 32.29999923706055,
     "default_detail_color_channel": -1,
     "default_z_layer": 5,
