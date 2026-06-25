@@ -1739,10 +1739,14 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "144": {
-    "type": "deco",
-    "frame": "d_circle_02_001.png",
-    "gridW": 0,
-    "gridH": 0,
+    "type": "hazard",
+    "frame": "invis_spike_01_glow_001.png",
+    "gridW": 1,
+    "gridH": 1,
+    "spriteW": 30,
+    "spriteH": 30,
+    "hitboxScaleX": 0.2,
+    "hitboxScaleY": 0.4,
     "default_detail_color_channel": -1,
     "default_z_layer": 5,
     "default_z_order": 2

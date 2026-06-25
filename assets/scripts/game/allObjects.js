@@ -1756,20 +1756,28 @@ window.allobjects = function() {
     "default_z_layer": 5,
     "default_z_order": 2
   },
-  "144": {
-    "type": "deco",
-    "frame": "d_circle_02_001.png",
-    "gridW": 0,
-    "gridH": 0,
+   "144": {
+    "type": "hazard",
+    "frame": "invis_spike_01_glow_001.png",
+    "gridW": 1,
+    "gridH": 1,
+    "spriteW": 30,
+    "spriteH": 30,
+    "hitboxScaleX": 0.2,
+    "hitboxScaleY": 0.4,
     "default_detail_color_channel": -1,
     "default_z_layer": 5,
     "default_z_order": 2
   },
   "145": {
-    "type": "deco",
-    "frame": "d_smallBall_05_001.png",
-    "gridW": 0,
-    "gridH": 0,
+    "type": "hazard",
+    "frame": "invis_spike_03_glow_001.png",
+    "gridW": 0.5,
+    "gridH": 0.5,
+    "spriteW": 20,
+    "spriteH": 19,
+    "hitboxScaleX": 0.2,
+    "hitboxScaleY": 0.4,
     "default_detail_color_channel": -1,
     "default_z_layer": 5,
     "default_z_order": 2
@@ -2772,7 +2780,7 @@ window.allobjects = function() {
   "205": {
     "can_color": true,
     "default_base_color_channel": 1004,
-    "frame": "invis_spike_02_001.png",
+    "frame": "invis_spike_02_glow_001.png",
     "glow_frame": "invis_spike_02_glow_001.png",
     "gridH": 0.46666666865348816,
     "gridW": 1,
