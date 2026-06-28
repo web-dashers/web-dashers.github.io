@@ -3231,54 +3231,43 @@ _updateRobotJump(dt) {
             }
           }
         } else if (_colType === slopeType) {
-          // wave doesn't slide along slopes, it just bonks into them like a normal block -- I DONT CARE COPILOT
           if (this.p.isWave) {
-            const wLow      = playersY - playerSize + gamemodeAddition;
-            const wHigh     = playersY + playerSize - gamemodeAddition;
-            const wLastLow  = playersLastY - playerSize + gamemodeAddition;
-            const wLastHigh = playersLastY + playerSize - gamemodeAddition;
-            const wLandBot = (this.p.yVelocity <= 0 || this.p.onGround) && (wLow >= bottom || wLastLow >= bottom);
-            const wLandTop = (this.p.yVelocity >= 0 || this.p.onGround) && (wHigh <= top || wLastHigh <= top);
-            const wStanding = this.p.gravityFlipped ? wLandTop : wLandBot;
-            const wColliding = pieceWidth + 9 > left && pieceWidth - 9 < right && playersY + 9 > top && playersY - 9 < bottom;
-            if (wColliding && !wStanding) {
+            const surfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
+            if (surfaceY === null) continue;
+            // use wave's actual tight hitbox, not the wider playerSize box
+            const wHS = this.p.isMini ? 6 : 9;
+            const wLow  = playersY - wHS;
+            const wHigh = playersY + wHS;
+            // kill check is purely geometric: which side of the surface is solid?
+            // slopeSolidBelow=true → solid is at lower Y; slopeSolidBelow=false → solid is at higher Y
+            // gravity flip does not change where the solid is, only where the player is
+            const insideSolid = gameObj.slopeSolidBelow ? (wLow < surfaceY) : (wHigh > surfaceY);
+            if (insideSolid) {
               if (window.noClip) { this.p.diedThisFrame = true; continue; }
               this.killPlayer();
               return;
             }
-            if (!this.p.gravityFlipped && wLandBot) {
-              if (this.p.collideBottom !== 0 && this.p.collideBottom >= bottom) continue;
-              this.p.y = bottom + playerSize;
-              this.hitGround();
-              _0x30410f = true;
-              this.p.collideBottom = bottom;
-              continue;
-            }
-            if (this.p.gravityFlipped && wLandTop) {
-              if (this.p.collideTop !== 0 && this.p.collideTop <= top) continue;
-              this.p.y = top - playerSize;
-              this.hitGround();
-              _0x30410f = true;
-              this.p.onCeiling = true;
-              this.p.collideTop = top;
-              continue;
-            }
             continue;
           }
 
-          // ship follows the diagonal surface like cube, but never dies inside slope -- how do i make this guy shut up?
+          // ship follows the diagonal surface like cube, but never dies inside slope
           if (this.p.isFlying && !this.p.isUfo) {
             const surfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
             if (surfaceY === null) continue;
             const pLow      = playersY - playerSize + gamemodeAddition;
-            const pLastLow  = playersLastY - playerSize + gamemodeAddition;
             const pHigh     = playersY + playerSize - gamemodeAddition;
+            const pLastLow  = playersLastY - playerSize + gamemodeAddition;
             const pLastHigh = playersLastY + playerSize - gamemodeAddition;
             const isCeilSlope = !gameObj.slopeSolidBelow;
             const gFlip       = this.p.gravityFlipped;
             const actsAsFloor = (!isCeilSlope && !gFlip) || (isCeilSlope && gFlip);
-            if (actsAsFloor) {
-              if (pLow < surfaceY + playerSize * 1.5) {
+            // gravity flip inverts both the direction check and which side of the surface the ship sits on
+            const shipSnapsAbove = actsAsFloor !== gFlip;
+            if (shipSnapsAbove) {
+              // ship should be above surface (pLow is the contact edge)
+              const crossedFromAbove = pLastLow >= surfaceY - gamemodeAddition && pLow < surfaceY;
+              if ((this.p.yVelocity <= 0 || this.p.onGround || crossedFromAbove) &&
+                  pLow >= surfaceY - playerSize && pLow <= surfaceY + gamemodeAddition) {
                 if (this.p.collideBottom !== 0 && this.p.collideBottom >= surfaceY) continue;
                 this.p.y = surfaceY + playerSize;
                 this.hitGround();
@@ -3286,7 +3275,10 @@ _updateRobotJump(dt) {
                 this.p.collideBottom = surfaceY;
               }
             } else {
-              if (pHigh > surfaceY - playerSize * 1.5) {
+              // ship should be below surface (pHigh is the contact edge)
+              const crossedFromBelow = pLastHigh <= surfaceY + gamemodeAddition && pHigh > surfaceY;
+              if ((this.p.yVelocity >= 0 || this.p.onGround || crossedFromBelow) &&
+                  pHigh >= surfaceY - playerSize * 1.5 && pHigh <= surfaceY + playerSize) {
                 if (this.p.collideTop !== 0 && this.p.collideTop <= surfaceY) continue;
                 this.p.y = surfaceY - playerSize;
                 this.hitGround();
