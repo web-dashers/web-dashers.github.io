@@ -188,7 +188,7 @@ function particleEffect(gameScene, color1 = 16777215, color2 = 16777215) {
   const xPos = basePos + (screenWidth - 400) * Math.random();
   const yPos = basePos + Math.random() * 240;
   circleEffect(gameScene, xPos, yPos, 40, 140 + Math.random() * 60, 500, true, true, color2);
-  gameScene.add.particles(xPos, yPos, "GJ_WebSheet", {
+  const emitter = gameScene.add.particles(xPos, yPos, "GJ_WebSheet", {
     frame: "square.png",
     speed: {
       min: 520,
@@ -222,4 +222,19 @@ function particleEffect(gameScene, color1 = 16777215, color2 = 16777215) {
       max: 20
     }
   }).setScrollFactor(0).setDepth(57);
+
+  // stopAfter just stops new particles from spawning - the emitter object
+  // itself keeps living (and getting ticked every frame) forever unless we
+  // destroy it ourselves. This effect creates a brand new emitter on every
+  // call, so without this every single call permanently leaked one - call
+  // it a few hundred times over a session (e.g. once per death) and that's
+  // a few hundred dead emitters still being processed every frame, which is
+  // exactly the kind of thing that drags 60fps down to single digits.
+  emitter.once("complete", () => emitter.destroy());
+  // Safety net in case 'complete' never fires for some reason (paused
+  // scene, emitter knocked off-screen, Phaser version quirk, etc.) - never
+  // leave it alive indefinitely either way.
+  gameScene.time.delayedCall(3000, () => {
+    if (emitter && emitter.scene) emitter.destroy();
+  });
 }
