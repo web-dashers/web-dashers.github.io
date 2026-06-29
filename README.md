@@ -3,14 +3,14 @@
   width="400" 
   height="400" 
   alt="web-dashers logo" 
-  src="https://github.com/user-attachments/assets/1b647556-ef74-47f9-be61-46696c57f04e" 
+  src="https://github.com/user-attachments/assets/ce1ccbb1-b1e6-49c2-818c-f9c3ba1fda5c" 
   />
-  <h1>Web Dashers</h1>
+  <h1>Lollipop Mod</h1>
   <p>
-  <strong>A Modded Geometry Dash demo with extra features added! (See list below!) </strong>
+  <strong>A Modded Web Dashers with extra features added! (See list below!) </strong>
   </p>
   <a 
-  href="https://web-dashers.github.io/" 
+  href="https://theblehlollipop.github.io/Lollipop-Mod/" 
   target="_blank">
     <img 
     width="279" 
@@ -36,9 +36,9 @@
 
 ## Features currently implemented:
 - **Main Menu** - A mostly fully working main menu with all 2.1 levels.
-- **Custom Levels** - Some custom levels added in the main menu such as The Nightmare, Bloodbath, Nine Circles, and more!
+- **Custom Levels** - Search Features and stuff!
 - **Icon kit** - A working Icon Kit with different colors and icons to choose from!
-- **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Mini portals and Speed portals!
+- **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Robot, Spider, Swing, Mini portals and Speed portals!
 - **Extra Settings** - You can enable and disable Noclip or Show Hitboxes from the pause menu in a level, along with other settings, like the level percentage!
 - **Account System** - You can save/load all level progress, and upload it to the cloud to keep your progress on different devices!
 
@@ -48,7 +48,6 @@
 - **Slopes** - Slopes are almost done, but we need to get their physics correct with other speed portals.
 
 ## What we hope to see added in the future:
-- **All Gamemodes** - This will allow every official main level to be playable, along with others that require currently un-implemented gamemodes.
 - **All Objects Working** - In the current state of Web Dashers, you might notice most objects seem to be bugged and/or not showing.
 
 ### Come try out the WIP Web Dashers demo at:

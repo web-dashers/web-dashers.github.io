@@ -7,32 +7,38 @@ class Collider {
     this.h = height;
     this.activated = false;
     this.rotationDegrees = rotation;
-    this.slopeAngleDeg = 0;
-    this.slopeDir = 1;
-    this.slopeIsFilled = false;
-    this.slopeFlipY = false;
+    this.hypoAx = 0; this.hypoAy = 0;
+    this.hypoBx = 0; this.hypoBy = 0;
+    this.rightAx = 0; this.rightAy = 0;
+    this.slopeSolidBelow = true;
   }
   getSlopeSurfaceY(worldX) {
     if (this.type !== slopeType) return null;
-    const halfW = this.w / 2;
-    const left = this.x - halfW;
-    const right = this.x + halfW;
-    if (worldX < left || worldX > right) return null;
-    const frac = (worldX - left) / (right - left);
-    let surfaceFrac = this.slopeDir > 0 ? frac : (1 - frac);
-    if (this.slopeFlipY) surfaceFrac = 1 - surfaceFrac;
-    return (this.y - this.h / 2) + surfaceFrac * this.h;
+    const ax = this.x + this.hypoAx, ay = this.y + this.hypoAy;
+    const bx = this.x + this.hypoBx, by = this.y + this.hypoBy;
+    const lo = ax <= bx ? { x: ax, y: ay } : { x: bx, y: by };
+    const hi = ax <= bx ? { x: bx, y: by } : { x: ax, y: ay };
+    if (hi.x - lo.x < 0.01) return null;
+    if (worldX < lo.x || worldX > hi.x) return null;
+    const t = (worldX - lo.x) / (hi.x - lo.x);
+    return lo.y + t * (hi.y - lo.y);
   }
+  
   getSlopeAngleRad() {
-    let angleDeg = this.slopeAngleDeg;
-    if (this.slopeDir < 0) angleDeg = -angleDeg;
-    if (this.slopeFlipY) angleDeg = -angleDeg;
-    return angleDeg * Math.PI / 180;
+    if (this.type !== slopeType) return 0;
+    return Math.atan2(this.hypoBy - this.hypoAy, this.hypoBx - this.hypoAx);
   }
+}
+
+function rotateSlopePoint(localX, localY, rotDeg) {
+  const theta = -rotDeg * Math.PI / 180;
+  const cosT = Math.cos(theta), sinT = Math.sin(theta);
+  return { x: localX * cosT - localY * sinT, y: localX * sinT + localY * cosT };
 }
 
 function parseObject(objectString) {
   let objectParts = objectString.split(",");
+
   let objectData = {};
   for (let index = 0; index + 1 < objectParts.length; index += 2) {
     let key = objectParts[index];
@@ -117,7 +123,7 @@ const ringType = "ring";
 const triggerType = "trigger";
 const speedType = "speed";
 const slopeType = "slope";
-// ── Slope ID registry ──
+// this is slope id registry
 const _SLOPE_DATA = {
   289:{gw:1,gh:1,angle:45,sq:false},291:{gw:2,gh:1,angle:22.5,sq:false},
   294:{gw:1,gh:1,angle:45,sq:false},295:{gw:2,gh:1,angle:22.5,sq:false},
@@ -226,6 +232,19 @@ const _SLOPE_DATA = {
   1901:{gw:0.367,gh:0.433,angle:45,sq:true},1902:{gw:0.967,gh:0.45,angle:45,sq:true},
   1906:{gw:1,gh:1,angle:45,sq:false},1907:{gw:2,gh:1,angle:22.5,sq:false},
 };
+
+const _origAllobjects = window.allobjects;
+window.allobjects = function() {
+    const result = _origAllobjects();
+    for (const id in _SLOPE_DATA) {
+        const sd = _SLOPE_DATA[id];
+        if (sd && !sd.sq && result[id]) {
+            result[id] = Object.assign({}, result[id], { type: slopeType });
+        }
+    }
+    return result;
+};
+
 const flyPortal = "fly";
 const cubePortal = "cube";
 const portalWaveType = "portal_wave";
@@ -246,6 +265,7 @@ if (!allObjects[1331]) {
     "portalParticleColor": 0x00ffff
   };
 }
+
 
 const _speedPortalIds = [200, 201, 202, 203, 1334];
 for (const _spId of _speedPortalIds) {
@@ -323,6 +343,15 @@ window.LevelObject = class LevelObject {
     this._sectionContainers = [];
     this._collisionSections = [];
     this._nearbyBuffer = [];
+    // Sprites/colliders whose position is driven by a Move or Rotate
+    // trigger can end up far from the spawn-position "section" bucket they
+    // were filed under (sections are a one-time, spawn-time spatial index
+    // used to cheaply hide/skip far-away content). Anything in a dynamic
+    // group is tracked here so it's never wrongly culled after it moves.
+    this._dynamicGroups = new Set();
+    this._dynamicColliders = [];
+    this._dynamicSprites = [];
+    this._dynamicForceVisible = new Set();
     this._visMinSec = -1;
     this._visMaxSec = -1;
     this._groundStartScreenY = b(0);
@@ -337,6 +366,7 @@ window.LevelObject = class LevelObject {
   }
 
   fastForwardTriggers(targetX, colorManager) {
+    this._ensureInitialColorsApplied(colorManager);
     const triggers = this._colorTriggers.sort((a, b) => a.x - b.x);
 
     for (let trigger of triggers) {
@@ -353,12 +383,61 @@ window.LevelObject = class LevelObject {
       settings: settingslist
     } = parseLevel(levelData);
     this._spawnLevelObjects(levelObjects);
+    this._setupDynamicObjects();
     this._setUpSettings(settingslist);
     window.levelObjects = levelObjects;
     window.settingslist = settingslist;
   }
+  // Sprites/colliders that belong to a group targeted by a Move Trigger or
+  // Rotate Trigger get exempted from the spawn-time spatial culling: each
+  // frame their CURRENT (live) position is checked against the camera, so
+  // their section is shown only while they're actually nearby - not stuck
+  // hidden under a stale spawn-position bucket, and not forced visible
+  // forever either (which on a level with thousands of moved objects spread
+  // across half the map would mean permanently rendering a huge chunk of it
+  // - a real perf hit). Their collider is always included in nearby-
+  // collision queries regardless of which section it was filed under at
+  // spawn. Without this, an object that moves/rotates far enough from its
+  // spawn position can have its whole section hidden (it visually
+  // disappears) or get skipped by collision checks entirely (ground/hazards
+  // stop registering hits "randomly").
+  _setupDynamicObjects() {
+    for (const trig of this._moveTriggers) {
+      if (trig.targetGroup > 0) this._dynamicGroups.add(trig.targetGroup);
+    }
+    for (const trig of this._rotateTriggers) {
+      if (trig.targetGroup > 0) this._dynamicGroups.add(trig.targetGroup);
+      if (trig.centerGroup > 0) this._dynamicGroups.add(trig.centerGroup);
+    }
+    if (this._dynamicGroups.size === 0) return;
+
+    const seenSprites = new Set();
+    const seenColliders = new Set();
+    for (const gid of this._dynamicGroups) {
+      const sprites = this._groupSprites[gid];
+      if (sprites) {
+        for (const spr of sprites) {
+          if (!spr || seenSprites.has(spr)) continue;
+          seenSprites.add(spr);
+          const baseX = spr._eeWorldX !== undefined ? spr._eeWorldX : spr.x;
+          spr._eeDynSection = Math.max(0, Math.floor(baseX / 400));
+          this._dynamicSprites.push(spr);
+        }
+      }
+      const colliders = this._groupColliders[gid];
+      if (colliders) {
+        for (const col of colliders) {
+          if (!col || seenColliders.has(col)) continue;
+          seenColliders.add(col);
+          col._eeDynamic = true;
+          this._dynamicColliders.push(col);
+        }
+      }
+    }
+  }
   _setUpSettings(settingsStr) {
     this._initialColors = {};
+    this._initialColorsApplied = false;
     this._backgroundId = null;
     this._groundId = null;
     if (!settingsStr) return;
@@ -373,46 +452,130 @@ window.LevelObject = class LevelObject {
       window._backgroundId = "0"+window._backgroundId;
     }
     window._groundId = getGroundTextureId(settingsMap["kA7"]);
-    if (colorStr) {
-      let channels = colorStr.split("|");
-      for (let ch of channels) {
-        if (!ch) continue;
-        let props = ch.split("_");
-        let colorProps = {};
-        for (let j = 0; j + 1 < props.length; j += 2) {
-          colorProps[parseInt(props[j], 10)] = props[j + 1];
-        }
-        let channelId = parseInt(colorProps[6], 10);
-        if (!isNaN(channelId)) {
-          this._initialColors[channelId] = {
-            r: parseInt(colorProps[1] || "255", 10),
-            g: parseInt(colorProps[2] || "255", 10),
-            b: parseInt(colorProps[3] || "255", 10)
-          };
-        }
-      }
-    }
-    let parseColorEntry = (str) => {
-      if (!str) return null;
-      let props = str.split("_");
+
+    const parseChannelProps = (props) => {
       let cp = {};
       for (let j = 0; j + 1 < props.length; j += 2) {
         cp[parseInt(props[j], 10)] = props[j + 1];
       }
+      return cp;
+    };
+
+    // channelId -> 1 (P1) or 2 (P2) for channels set to "use player color"
+    const playerColorLink = {};
+    // channelId -> source channelId for channels set to "copy color"
+    const copyLink = {};
+
+    if (colorStr) {
+      // Every special channel (1000 BG, 1001 G1, 1002 Line, 1003 3DL,
+      // 1004 Obj, 1005 P1, 1006 P2, 1007 LBG, 1009 G2, 1010-1012, 1013/1014
+      // MG/MG2) and every custom channel (1-999) shows up here the same
+      // way, keyed by property 6 (channel ID), so they're all handled
+      // generically rather than singling out BG/Ground.
+      let channels = colorStr.split("|");
+      for (let ch of channels) {
+        if (!ch) continue;
+        let colorProps = parseChannelProps(ch.split("_"));
+        let channelId = parseInt(colorProps[6], 10);
+        if (isNaN(channelId)) continue;
+
+        this._initialColors[channelId] = {
+          r: parseInt(colorProps[1] || "255", 10),
+          g: parseInt(colorProps[2] || "255", 10),
+          b: parseInt(colorProps[3] || "255", 10)
+        };
+
+        const playerColor = parseInt(colorProps[4], 10);
+        if (playerColor === 1 || playerColor === 2) {
+          playerColorLink[channelId] = playerColor;
+        }
+
+        const copiedId = parseInt(colorProps[9], 10);
+        if (!isNaN(copiedId) && copiedId > 0) {
+          copyLink[channelId] = copiedId;
+        }
+      }
+    }
+
+    let parseColorEntry = (str) => {
+      if (!str) return null;
+      let cp = parseChannelProps(str.split("_"));
       return {
         r: parseInt(cp[1] || "255", 10),
         g: parseInt(cp[2] || "255", 10),
         b: parseInt(cp[3] || "255", 10)
       };
     };
-    if (!this._initialColors[1000] && settingsMap["kS29"]) {
-      let col = parseColorEntry(settingsMap["kS29"]);
-      if (col) this._initialColors[1000] = col;
+    // Pre-2.0 levels (or exports that still carry these for safety) store
+    // some channels under their own legacy key instead of in kS38. Same
+    // "don't override a value kS38 already gave us" guard as BG/Ground.
+    const legacyColorKeys = {
+      kS29: 1000, // BG
+      kS30: 1001, // Ground
+      kS31: 1002, // Line
+      kS32: 1004, // Obj
+      kS33: 1,    // Color 1
+      kS34: 2,    // Color 2
+      kS35: 3,    // Color 3
+      kS36: 4,    // Color 4
+      kS37: 1003  // 3DL
+    };
+    for (let key in legacyColorKeys) {
+      const channelId = legacyColorKeys[key];
+      if (!this._initialColors[channelId] && settingsMap[key]) {
+        let col = parseColorEntry(settingsMap[key]);
+        if (col) this._initialColors[channelId] = col;
+      }
     }
-    if (!this._initialColors[1001] && settingsMap["kS30"]) {
-      let col = parseColorEntry(settingsMap["kS30"]);
-      if (col) this._initialColors[1001] = col;
+
+    // Resolve "use player color" channels (e.g. Obj/Line/Ground set to
+    // track P1/P2) to the actual P1 (1005) / P2 (1006) channel color.
+    // If the engine exposes the real player-selected icon color (e.g.
+    // window.playerColor1/playerColor2, set by an icon/settings screen),
+    // that takes priority over the level's own stored P1/P2 placeholder -
+    // matching how GD actually shows YOUR icon color here, not the level
+    // author's. Falls back to the level's stored value if none is set.
+    if (this._initialColors[1005] && typeof window !== "undefined" && window.playerColor1) {
+      this._initialColors[1005] = { ...window.playerColor1 };
     }
+    if (this._initialColors[1006] && typeof window !== "undefined" && window.playerColor2) {
+      this._initialColors[1006] = { ...window.playerColor2 };
+    }
+    for (let chId in playerColorLink) {
+      const target = playerColorLink[chId] === 1 ? 1005 : 1006;
+      if (this._initialColors[target]) {
+        this._initialColors[chId] = { ...this._initialColors[target] };
+      }
+    }
+
+    // Resolve "copy color" channels (e.g. G2 copying G1, or a custom
+    // channel copying BG/Obj) by following the copy chain to a real color.
+    // Per-copy HSV fine-tuning isn't re-derived here, just the base color.
+    for (let chId in copyLink) {
+      let sourceId = copyLink[chId];
+      let seen = new Set([parseInt(chId, 10)]);
+      while (copyLink[sourceId] !== undefined && !seen.has(sourceId)) {
+        seen.add(sourceId);
+        sourceId = copyLink[sourceId];
+      }
+      if (this._initialColors[sourceId]) {
+        this._initialColors[chId] = { ...this._initialColors[sourceId] };
+      }
+    }
+  }
+
+  // The level's default channel colors (parsed above into _initialColors)
+  // need to land on the SAME ColorManager instance the game actually
+  // renders with. loadLevel() doesn't reliably have that instance in scope,
+  // so instead we piggyback on the methods below that already receive a
+  // live colorManager from the main loop every frame, and apply the
+  // level's colors the first time one of them runs after a level load.
+  _ensureInitialColorsApplied(colorManager) {
+    if (this._initialColorsApplied || !colorManager) return;
+    for (let chId in this._initialColors) {
+      colorManager.setInitialColor(parseInt(chId, 10), this._initialColors[chId]);
+    }
+    this._initialColorsApplied = true;
   }
   _buildGround() {
     if (window.isEditor) return; // not dealing with ts rn
@@ -765,9 +928,12 @@ window.LevelObject = class LevelObject {
   }
   _updateGlowVisibility = () => {
       if (!this._glowSprites) return;
-      const glowVisible = (!window.isEditor || window.showEditorGlow);
       for (const glow of this._glowSprites) {
-          glow.setVisible(glowVisible);
+          if (window.isEditor) {
+            glow.setVisible(window.showEditorGlow);
+          } else {
+            glow.setVisible(window.showObjectGlow !== false);
+          }
       }
   };
   _addGlowSprite(scene, x, y, frameName, objectData, worldX) {
@@ -787,7 +953,7 @@ window.LevelObject = class LevelObject {
         this._glowSprites = [];
       }
       this._glowSprites.push(glowSprite);
-      glowSprite.setVisible((!window.isEditor || window.showEditorGlow));
+      glowSprite.setVisible(window.isEditor ? window.showEditorGlow : window.showObjectGlow !== false);
       if (worldX !== undefined) {
         glowSprite._eeWorldX = worldX;
         glowSprite._eeBaseY = y;
@@ -922,8 +1088,6 @@ window.LevelObject = class LevelObject {
     this._nextObjectId = 0;
   }
   const linkedObjectId = this._nextObjectId++;
-  levelObj._eeObjectId = linkedObjectId;
-  if (levelObj._raw) delete levelObj._raw._eeObjectId;
   let hasCollisionEntry = false;
 
   const worldX = levelObj.x * 2;
@@ -952,6 +1116,26 @@ window.LevelObject = class LevelObject {
       (objectDef.type === portalType || objectDef.type === speedType) &&
       frameName.includes("_front_");
 
+    // define portalsub to stop reference errors
+    const portalSub = objectDef.sub || {
+      10: "gravity_flip",
+      11: "gravity_normal",
+      12: "cube",
+      13: "fly",
+      45: "mirrora",
+      46: "mirrorb",
+      47: "ball",
+      660: "wave",
+      111: "ufo",
+      745: "robot",
+      747: "teleport_in",
+      1933: "swing",
+      749: "teleport_out",
+      1331: "spider",
+      286: "dual_on",
+      287: "dual_off"
+    }[levelObj.id];
+
     const zLayer =
       levelObj.zLayer || (objectDef.default_z_layer !== undefined ? objectDef.default_z_layer : 0);
     const zOrd =
@@ -960,7 +1144,12 @@ window.LevelObject = class LevelObject {
     const objZDepth = (depthBase[zLayer] !== undefined ? depthBase[zLayer] : 0) + zOrd * 0.01;
 
     let col1 = levelObj.color1 || (objectDef.default_base_color_channel !== undefined ? objectDef.default_base_color_channel : 0);
-    if (col1 === 0 && (objectDef.type === solidType || objectDef.type === hazardType)) col1 = 1;
+    // Uncolored solids/hazards (plain blocks, spikes, etc.) fall back to GD's
+    // special "Obj" channel (1004), not custom channel 1. Channel 1 is just
+    // an ordinary custom channel a level may use for anything else, which is
+    // why spikes/ground tiles were picking up an unrelated accent color
+    // (e.g. a dark blue) instead of the level's real black Obj color.
+    if (col1 === 0 && (objectDef.type === solidType || objectDef.type === hazardType)) col1 = 1004;
 
     const col2 = levelObj.color2 || (objectDef.default_detail_color_channel !== undefined ? objectDef.default_detail_color_channel : -1);
     const canColor = objectDef.can_color !== false;
@@ -981,6 +1170,8 @@ window.LevelObject = class LevelObject {
       if (!objGids || !objGids.length || !spr) return;
       spr._origWorldX = baseWorldX;
       spr._origBaseY = baseBaseY;
+      spr._eeGroups = objGids;
+      if (spr._origRotation === undefined) spr._origRotation = spr.rotation;
       for (const gid of objGids) {
         if (!this._groupSprites[gid]) this._groupSprites[gid] = [];
         this._groupSprites[gid].push(spr);
@@ -1103,7 +1294,7 @@ window.LevelObject = class LevelObject {
         overlaySprite._eeOrigAlpha = 1;
 
         let oc2 = col2;
-        if (oc2 <= 0) oc2 = 2;
+        if (oc2 <= 0) oc2 = col1;
         registerColor(overlaySprite, oc2);
 
         this._addToSection(overlaySprite);
@@ -1254,6 +1445,10 @@ window.LevelObject = class LevelObject {
       col._baseY = col.y;
       col._origBaseX = col.x;
       col._origBaseY = col.y;
+      col._origRotationDeg = col.rotationDegrees;
+      col._origHypoAx = col.hypoAx; col._origHypoAy = col.hypoAy;
+      col._origHypoBx = col.hypoBx; col._origHypoBy = col.hypoBy;
+      col._origRightAx = col.rightAx; col._origRightAy = col.rightAy;
       col._eeObjectId = linkedObjectId;
 
       if (!this.objectSprites[linkedObjectId]) {
@@ -1325,6 +1520,10 @@ window.LevelObject = class LevelObject {
         47: "ball",
         660: "wave",
         111: "ufo",
+        745: "robot",
+        747: "teleport_in",
+        1933: "swing",
+        749: "teleport_out",
         1331: "spider",
         286: "dual_on",
         287: "dual_off"
@@ -1341,18 +1540,24 @@ window.LevelObject = class LevelObject {
         ball: "portal_ball",
         wave: portalWaveType,
         ufo: portalUfoType,
+        robot: "portal_robot",
+        swing: "portal_swing",
         spider: "portal_spider",
         mirrora: "portal_mirror_on",
         mirrorb: "portal_mirror_off",
         shrink: "portal_mini_on",
         grow: "portal_mini_off",
+        teleport_in: "portal_teleport_in",
+        teleport_out: "portal_teleport_out",
         dual_on: "portal_dual_on",
         dual_off: "portal_dual_off"
       }[portalSub] || null;
 
       if (portalColliderType) {
         const collider = new Collider(portalColliderType, worldX, worldY, portalW, portalH, levelObj.rot || 0);
+        // store portal Y for both portals
         collider.portalY = worldY;
+        collider.portalObjId = levelObj.id;
         registerCollider(collider);
         this.objects.push(collider);
         hasCollisionEntry = true;
@@ -1407,6 +1612,42 @@ window.LevelObject = class LevelObject {
       this.objects.push(speedObj);
       hasCollisionEntry = true;
       this._addCollisionToSection(speedObj);
+    } else if (objectDef.type === slopeType) {
+      const sd = _SLOPE_DATA[levelObj.id];
+      if (sd) {
+        const hw0 = (sd.gw * a) / 2;
+        const hh0 = (sd.gh * a) / 2;
+        let vRight = { x: hw0, y: -hh0 };
+        let vLo    = { x: -hw0, y: -hh0 };
+        let vHi    = { x: hw0, y: hh0 };
+        const fx = levelObj.flipX ? -1 : 1;
+        const fy = levelObj.flipY ? -1 : 1;
+        const flip = p => ({ x: p.x * fx, y: p.y * fy });
+        vRight = flip(vRight); vLo = flip(vLo); vHi = flip(vHi);
+        const rotDeg = levelObj.rot || 0;
+        vRight = rotateSlopePoint(vRight.x, vRight.y, rotDeg);
+        vLo = rotateSlopePoint(vLo.x, vLo.y, rotDeg);
+        vHi = rotateSlopePoint(vHi.x, vHi.y, rotDeg);
+        const xs = [vRight.x, vLo.x, vHi.x];
+        const ys = [vRight.y, vLo.y, vHi.y];
+        const w = Math.max(...xs) - Math.min(...xs);
+        const h = Math.max(...ys) - Math.min(...ys);
+        // this is impossible bruv
+        const col = new Collider(slopeType, worldX, worldY, w, h, 0);
+        col.objid = levelObj.id;
+        col.hypoAx = vLo.x; col.hypoAy = vLo.y;
+        col.hypoBx = vHi.x; col.hypoBy = vHi.y;
+        col.rightAx = vRight.x; col.rightAy = vRight.y;
+        // 3 hours for all ts above and under
+        const hypoDx = vHi.x - vLo.x;
+        col.slopeSolidBelow = Math.abs(hypoDx) < 0.01
+          ? vRight.x < vLo.x
+          : vRight.y < (vLo.y + ((vRight.x - vLo.x) / hypoDx) * (vHi.y - vLo.y));
+        registerCollider(col);
+        this.objects.push(col);
+        hasCollisionEntry = true;
+        this._addCollisionToSection(col);
+      }
     }
 
     if (!hasCollisionEntry) {
@@ -1434,8 +1675,94 @@ window.LevelObject = class LevelObject {
       }
     }
 
-    unknownObjectIds.size;
     if (unknownObjectIds.size > 0) {
+      console.log("[Level] Unknown object IDs skipped:", [...unknownObjectIds]);
+    }
+
+    // portal logic once again
+    
+    const _tpInList  = this.objects.filter(o => o.type === "portal_teleport_in");
+    const _tpOutList = this.objects.filter(o => o.type === "portal_teleport_out");
+
+    // check if we need to create orange portals from blue portals key 54 offsets
+    if (_tpInList.length > 0 && _tpOutList.length === 0) {
+      let possibleOrangePortals = [];
+      for (const levelObj of _0x35f1ae) {
+        if (levelObj && levelObj.id === 749) {
+          possibleOrangePortals.push(levelObj);
+        }
+      }
+      
+      if (possibleOrangePortals.length > 0) {
+        for (const orangeObj of possibleOrangePortals) {
+          this._spawnObject(orangeObj);
+        }
+      } else {
+        // ONLy create orange portal offsets if a blue teleport portal exists, with the raw data
+        
+        for (const _tpIn of _tpInList) {
+          let rawBluePortal = null;
+          let key54Value = 0;
+          
+          for (const rawObj of _0x35f1ae) {
+            if (rawObj && rawObj.id === 747) {
+              const rawWorldX = rawObj.x * 2;
+              const rawWorldY = rawObj.y * 2;
+              
+              if (Math.abs(rawWorldX - _tpIn.x) < 5 && Math.abs(rawWorldY - _tpIn.y) < 5) {
+                rawBluePortal = rawObj;
+                key54Value = rawObj._raw && rawObj._raw["54"] ? parseFloat(rawObj._raw["54"]) : 0;
+                break;
+              }
+            }
+          }
+          
+          const _orangeWorldY = (_tpIn.y || _tpIn.portalY || 0) + (key54Value * 2);
+          
+          // orange portal should use its rotation on raw data
+		  // will fix later
+          let orangeRotation = 0;
+          
+          for (const rawObj749 of _0x35f1ae) {
+            if (rawObj749 && rawObj749.id === 749) {
+              const raw749WorldX = rawObj749.x * 2;
+              const raw749WorldY = rawObj749.y * 2;
+              
+              if (Math.abs(raw749WorldX - _tpIn.x) < 5 && Math.abs(raw749WorldY - _orangeWorldY) < 5) {
+                orangeRotation = rawObj749._raw && rawObj749._raw["6"] ? parseFloat(rawObj749._raw["6"]) : (rawBluePortal._raw && rawBluePortal._raw["6"] ? parseFloat(rawBluePortal._raw["6"]) : 0);
+                break;
+              }
+            }
+          }
+          
+          if (orangeRotation === 0) {
+            orangeRotation = rawBluePortal._raw && rawBluePortal._raw["6"] ? parseFloat(rawBluePortal._raw["6"]) : 0;
+          }
+          
+          const _syntheticObj = {
+            id:         749,
+            x:          _tpIn.x / 2,        
+            y:          _orangeWorldY / 2,  
+            flipX:      rawBluePortal.flipX || false,
+            flipY:      rawBluePortal.flipY || false,
+            rot:        orangeRotation,     
+            scale:      1,
+            zLayer:     5,
+            zOrder:     10,
+            groups:     "",
+            color1:     0,
+            color2:     -1,
+            gameMode:   0,
+            miniMode:   0,
+            speed:      0,
+            mirrored:   0,
+            flipGravity: false,
+            _raw:       {}
+          };
+          
+          this._spawnObject(_syntheticObj);
+        }
+      }
     }
 
     const colTypeCounts = {};
@@ -1506,6 +1833,12 @@ window.LevelObject = class LevelObject {
     if (this.endXPos <= 0) {
       return;
     }
+    // Guard against leaking the previous set of objects if this is ever
+    // called again for the same level (container destroy(true) also
+    // destroys its child images).
+    if (this._endPortalContainer) { this._endPortalContainer.destroy(true); this._endPortalContainer = null; }
+    if (this._endPortalShine) { this._endPortalShine.destroy(); this._endPortalShine = null; }
+    if (this._endPortalEmitter) { this._endPortalEmitter.destroy(); this._endPortalEmitter = null; }
     const _0x3b56d4 = this.endXPos;
     const _0x1c3aea = b(240);
     const _0x46064b = Math.round(16);
@@ -1638,6 +1971,34 @@ window.LevelObject = class LevelObject {
       _0x141e9c.normal.visible = _0x488507;
     }
   }
+  // Checks each dynamic (move/rotate-driven) sprite's CURRENT position
+  // against the camera and force-shows/hides its section accordingly, but
+  // only touches sections the normal range-based logic above isn't already
+  // handling - so this never fights the normal culling, it just patches the
+  // cases that culling gets wrong for objects that have moved away from
+  // their spawn-position bucket.
+  _updateDynamicSectionVisibility(cameraX) {
+    if (this._dynamicSprites.length === 0) return;
+    const lo = cameraX - 200;
+    const hi = cameraX + screenWidth + 200;
+    const needed = new Set();
+    for (const spr of this._dynamicSprites) {
+      if (!spr) continue;
+      if (spr.x >= lo && spr.x <= hi) needed.add(spr._eeDynSection);
+    }
+    const minSec = this._visMinSec, maxSec = this._visMaxSec;
+    for (const idx of needed) {
+      if (!this._dynamicForceVisible.has(idx) && (idx < minSec || idx > maxSec)) {
+        this._setSectionVisible(idx, true);
+      }
+    }
+    for (const idx of this._dynamicForceVisible) {
+      if (!needed.has(idx) && (idx < minSec || idx > maxSec)) {
+        this._setSectionVisible(idx, false);
+      }
+    }
+    this._dynamicForceVisible = needed;
+  }
   updateVisibility(_0xa5f1e1) {
     const _0x1dce22 = this._sectionContainers.length - 1;
     if (_0x1dce22 < 0) {
@@ -1653,6 +2014,7 @@ window.LevelObject = class LevelObject {
       }
       this._visMinSec = particleScale;
       this._visMaxSec = sliderHeight;
+      this._updateDynamicSectionVisibility(_0xa5f1e1);
       return;
     }
     if (particleScale !== _0x1800fc || sliderHeight !== _0xc31046) {
@@ -1679,6 +2041,7 @@ window.LevelObject = class LevelObject {
       this._visMinSec = particleScale;
       this._visMaxSec = sliderHeight;
     }
+    this._updateDynamicSectionVisibility(_0xa5f1e1);
   }
   updateObjectDebugIds() {
     if (window.showObjectIds) {
@@ -1705,9 +2068,14 @@ window.LevelObject = class LevelObject {
       const _0x2171db = this._collisionSections[_0xe2cbfa];
       if (_0x2171db) {
         for (let _0x5cdca9 = 0; _0x5cdca9 < _0x2171db.length; _0x5cdca9++) {
-          _0x28a7c0.push(_0x2171db[_0x5cdca9]);
+          // Dynamic colliders are appended separately below (regardless of
+          // which stale section bucket they were originally filed under).
+          if (!_0x2171db[_0x5cdca9]._eeDynamic) _0x28a7c0.push(_0x2171db[_0x5cdca9]);
         }
       }
+    }
+    for (let _0xd1 = 0; _0xd1 < this._dynamicColliders.length; _0xd1++) {
+      _0x28a7c0.push(this._dynamicColliders[_0xd1]);
     }
     return _0x28a7c0;
   }
@@ -1722,7 +2090,7 @@ window.LevelObject = class LevelObject {
       this._enterEffectTriggerIdx++;
     }
   }
-  checkMoveTriggers(playerX) {
+  checkMoveTriggers(playerX, playerY) {
     while (this._moveTriggerIdx < this._moveTriggers.length) {
       const trig = this._moveTriggers[this._moveTriggerIdx];
       if (trig.x > playerX) break;
@@ -1730,6 +2098,8 @@ window.LevelObject = class LevelObject {
         trig,
         elapsed: 0,
         prevProgress: 0,
+        lastPlayerX: playerX,
+        lastPlayerY: playerY,
       });
       if (!this._groupOffsets[trig.targetGroup]) {
         this._groupOffsets[trig.targetGroup] = { x: 0, y: 0 };
@@ -1738,7 +2108,23 @@ window.LevelObject = class LevelObject {
     }
   }
 
-  stepMoveTriggers(dt) {
+  // NOTE: an object can belong to more than one group (e.g. a platform put in
+  // both an "X move" group and a separate "Y move" group to get independent
+  // easing per axis, which is a very common GD building technique). The old
+  // code positioned every sprite/collider using ONLY the offset of whichever
+  // group's trigger happened to be processed last that frame, so it would
+  // overwrite (not add to) any movement coming from the object's other
+  // group. With two triggers active at once that made the object's real
+  // position flip between the "X only" result and the "Y only" result frame
+  // to frame instead of combining them - which is exactly the snapping /
+  // "teleporting" behavior, and why a moving hazard or platform could clip
+  // into (or drop out from under) the player when X and Y moved together.
+  // The fix below sums the accumulated offset of every group an object
+  // belongs to before positioning it, so simultaneous move triggers on
+  // overlapping groups combine the way they do in GD instead of stomping
+  // on each other.
+  stepMoveTriggers(dt, playerX, playerY) {
+    const touchedGroups = new Set();
     let i = 0;
     while (i < this._activeMoveTweens.length) {
       const anim = this._activeMoveTweens[i];
@@ -1755,45 +2141,84 @@ window.LevelObject = class LevelObject {
 
       anim.prevProgress = progress;
 
-      const deltaX = trig.offsetX * amount;
-      const deltaY = -(trig.offsetY * amount);
+      let deltaX = trig.offsetX * amount;
+      let deltaY = -(trig.offsetY * amount);
 
-      const sprites = this._groupSprites[trig.targetGroup];
-      const colliders = this._groupColliders[trig.targetGroup];
-      if (sprites || colliders) {
-        const off = this._groupOffsets[trig.targetGroup];
-        off.x += deltaX;
-        off.y += deltaY;
-        if (sprites) {
-          for (const spr of sprites) {
-            if (!spr || !spr.active) continue;
-            spr.x = spr._origWorldX + off.x;
-            spr.y = spr._origBaseY + off.y;
-            spr._eeWorldX = spr.x;
-            spr._eeBaseY  = spr.y;
-            if (spr._coinWorldX !== undefined) {
-              spr._coinWorldX = (spr._origWorldX + off.x) / 2;
-            }
-            if (spr._coinWorldY !== undefined) {
-              spr._coinWorldY = (460 - (spr._origBaseY + off.y)) / 2;
-            }
-          }
-        }
-        if (colliders) {
-          for (const col of colliders) {
-            col.x = col._origBaseX + off.x;
-            col.y = col._origBaseY - off.y;
-            col._baseX = col.x;
-            col._baseY = col.y;
-          }
-        }
+      // "Lock to Player X/Y": the group continuously copies the player's
+      // own movement for as long as this trigger is active. This is a
+      // separate mechanism from the eased offset above - some triggers
+      // (e.g. ones with offsetX/Y at 0 but lockX/lockY set) rely on lock
+      // alone, which is why they didn't move at all before this existed.
+      if (trig.lockX && playerX !== undefined && anim.lastPlayerX !== undefined) {
+        deltaX += playerX - anim.lastPlayerX;
       }
+      if (trig.lockY && playerY !== undefined && anim.lastPlayerY !== undefined) {
+        deltaY += playerY - anim.lastPlayerY;
+      }
+      if (playerX !== undefined) anim.lastPlayerX = playerX;
+      if (playerY !== undefined) anim.lastPlayerY = playerY;
+
+      if (!this._groupOffsets[trig.targetGroup]) {
+        this._groupOffsets[trig.targetGroup] = { x: 0, y: 0 };
+      }
+      const off = this._groupOffsets[trig.targetGroup];
+      off.x += deltaX;
+      off.y += deltaY;
+      touchedGroups.add(trig.targetGroup);
 
       if (progress >= 1) {
         this._activeMoveTweens.splice(i, 1);
       } else {
         i++;
       }
+    }
+
+    if (touchedGroups.size === 0) return;
+
+    const movedSprites = new Set();
+    const movedColliders = new Set();
+    for (const gid of touchedGroups) {
+      const sprites = this._groupSprites[gid];
+      if (sprites) for (const spr of sprites) movedSprites.add(spr);
+      const colliders = this._groupColliders[gid];
+      if (colliders) for (const col of colliders) movedColliders.add(col);
+    }
+
+    for (const spr of movedSprites) {
+      if (!spr || !spr.active) continue;
+      let totalX = 0, totalY = 0;
+      const groups = spr._eeGroups;
+      if (groups) {
+        for (const gid of groups) {
+          const off = this._groupOffsets[gid];
+          if (off) { totalX += off.x; totalY += off.y; }
+        }
+      }
+      spr.x = spr._origWorldX + totalX;
+      spr.y = spr._origBaseY + totalY;
+      spr._eeWorldX = spr.x;
+      spr._eeBaseY  = spr.y;
+      if (spr._coinWorldX !== undefined) {
+        spr._coinWorldX = (spr._origWorldX + totalX) / 2;
+      }
+      if (spr._coinWorldY !== undefined) {
+        spr._coinWorldY = (460 - (spr._origBaseY + totalY)) / 2;
+      }
+    }
+
+    for (const col of movedColliders) {
+      let totalX = 0, totalY = 0;
+      const groups = col._eeGroups;
+      if (groups) {
+        for (const gid of groups) {
+          const off = this._groupOffsets[gid];
+          if (off) { totalX += off.x; totalY += off.y; }
+        }
+      }
+      col.x = col._origBaseX + totalX;
+      col.y = col._origBaseY - totalY;
+      col._baseX = col.x;
+      col._baseY = col.y;
     }
   }
 
@@ -1908,6 +2333,30 @@ window.LevelObject = class LevelObject {
       anim.prevProgress = progress;
       const sprites = this._groupSprites[trig.targetGroup];
       const colliders = this._groupColliders[trig.targetGroup];
+      // Rotates a collider's local slope/edge vectors in place. Without
+      // this, a rotating slope's hitbox keeps its pre-rotation edge angle
+      // while the sprite visually spins, so the walkable surface ends up
+      // in the wrong place relative to what's drawn - the random deaths.
+      //
+      // The slope edge vectors were originally built by rotateSlopePoint()
+      // at spawn time, which negates the angle before rotating (theta =
+      // -rotDeg) to match the texture's actual orientation - sprite
+      // rotation itself (spr.rotation += deltaRot) is NOT negated. So the
+      // shape rotation here has to use that same negated handedness, or it
+      // spins opposite to the sprite and the two drift further apart the
+      // more the trigger rotates (e.g. ~180 degrees off by the time the
+      // total rotation reaches 90 degrees) - this was the actual cause of
+      // the random deaths on heavily-rotating hazards (wheels, gears).
+      const rotateColliderShape = (col, cosD, sinD) => {
+        const sinShape = -sinD;
+        let px = col.hypoAx, py = col.hypoAy;
+        col.hypoAx = px * cosD - py * sinShape; col.hypoAy = px * sinShape + py * cosD;
+        px = col.hypoBx; py = col.hypoBy;
+        col.hypoBx = px * cosD - py * sinShape; col.hypoBy = px * sinShape + py * cosD;
+        px = col.rightAx; py = col.rightAy;
+        col.rightAx = px * cosD - py * sinShape; col.rightAy = px * sinShape + py * cosD;
+        col.rotationDegrees += deltaRot * 180 / Math.PI;
+      };
       if (trig.centerGroup > 0) {
         const centerSprites = this._groupSprites[trig.centerGroup];
         if (centerSprites && centerSprites.length > 0) {
@@ -1927,7 +2376,12 @@ window.LevelObject = class LevelObject {
                 spr.y = cy + dx * sinD + dy * cosD;
                 spr._eeWorldX = spr.x;
                 spr._eeBaseY = spr.y;
-                if (spr._origWorldX !== undefined) { spr._origWorldX = spr.x; spr._origBaseY = spr.y; }
+                // _origWorldX/_origBaseY must stay at the sprite's true
+                // spawn position - Move Triggers use it as their baseline
+                // (origin + offset). Overwriting it with the live rotated
+                // position here used to corrupt that baseline for anything
+                // also targeted by a Move Trigger, and broke resetRotateTriggers()'s
+                // ability to restore the original spot on respawn.
                 if (!trig.lockRotation) spr.rotation += deltaRot;
               }
             }
@@ -1937,16 +2391,26 @@ window.LevelObject = class LevelObject {
                 col.x = cx + dx * cosD - dy * sinD;
                 col.y = cy + dx * sinD + dy * cosD;
                 col._baseX = col.x; col._baseY = col.y;
-                if (col._origBaseX !== undefined) { col._origBaseX = col.x; col._origBaseY = col.y; }
+                if (!trig.lockRotation) rotateColliderShape(col, cosD, sinD);
               }
             }
           }
         }
       } else {
+        const cosD = Math.cos(deltaRot), sinD = Math.sin(deltaRot);
         if (sprites) {
           for (const spr of sprites) {
             if (!spr || !spr.active) continue;
             spr.rotation += deltaRot;
+          }
+        }
+        if (colliders) {
+          // Spin-in-place rotate triggers (no center group) previously
+          // never touched colliders at all, so a spinning slope's sprite
+          // would rotate while its hitbox stayed frozen at the original
+          // angle - same desync, just without the orbit.
+          for (const col of colliders) {
+            rotateColliderShape(col, cosD, sinD);
           }
         }
       }
@@ -1956,6 +2420,42 @@ window.LevelObject = class LevelObject {
   resetRotateTriggers() {
     this._rotateTriggerIdx = 0;
     this._activeRotateTweens = [];
+    const seen = new Set();
+    for (const trig of this._rotateTriggers) {
+      const sprites = this._groupSprites[trig.targetGroup];
+      if (sprites) {
+        for (const spr of sprites) {
+          if (!spr || seen.has(spr)) continue;
+          seen.add(spr);
+          if (spr._origWorldX !== undefined) {
+            spr.x = spr._origWorldX;
+            spr.y = spr._origBaseY;
+            spr._eeWorldX = spr._origWorldX;
+            spr._eeBaseY = spr._origBaseY;
+          }
+          if (spr._origRotation !== undefined) spr.rotation = spr._origRotation;
+        }
+      }
+      const colliders = this._groupColliders[trig.targetGroup];
+      if (colliders) {
+        for (const col of colliders) {
+          if (!col || seen.has(col)) continue;
+          seen.add(col);
+          if (col._origBaseX !== undefined) {
+            col.x = col._origBaseX;
+            col.y = col._origBaseY;
+            col._baseX = col._origBaseX;
+            col._baseY = col._origBaseY;
+          }
+          if (col._origHypoAx !== undefined) {
+            col.hypoAx = col._origHypoAx; col.hypoAy = col._origHypoAy;
+            col.hypoBx = col._origHypoBx; col.hypoBy = col._origHypoBy;
+            col.rightAx = col._origRightAx; col.rightAy = col._origRightAy;
+            col.rotationDegrees = col._origRotationDeg;
+          }
+        }
+      }
+    }
   }
 
   checkPulseTriggers(playerX) {
@@ -1968,6 +2468,7 @@ window.LevelObject = class LevelObject {
     }
   }
   stepPulseTriggers(dt, colorManager) {
+    this._ensureInitialColorsApplied(colorManager);
     let i = 0;
     while (i < this._activePulses.length) {
       const pulse = this._activePulses[i];
@@ -2029,6 +2530,7 @@ window.LevelObject = class LevelObject {
   }
 
   applyColorChannels(colorManager) {
+    this._ensureInitialColorsApplied(colorManager);
     for (const chId in this._colorChannelSprites) {
       const sprites = this._colorChannelSprites[chId];
       if (!sprites || !sprites.length) continue;
