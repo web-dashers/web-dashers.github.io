@@ -676,7 +676,7 @@ class PlayerObject {
       layer.sprite.scaleX = spriteData.scale[0] * miniScale * mirrorMult;
       layer.sprite.scaleY = spriteData.scale[1] * miniScale * gravityMult;
 
-      layer.sprite.rotation = spriteData.rotation * Math.PI / 180;
+      layer.sprite.rotation = spriteData.rotation * Math.PI / 180 + (this._robotTilt || 0);
 
       layer.sprite.setDepth(10 + spriteData.zValue);
 
@@ -1201,7 +1201,7 @@ if (this.p.isFlying || this.p.isUfo) {
           // for ufo: center the cube inside the ufo shell (same y as bird layers)
           const _cubeX = this.p.isUfo ? _0x1b1d28 : _0x562424;
           const _cubeY = this.p.isUfo
-            ? (_0x185f91 + (this.p.gravityFlipped ? -15 : 5))
+            ? _0x185f91  // same center as the UFO shell
             : (_0x3011c9 + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0));
           playerLayerItem.sprite.x = _0x7f0705 + _cubeX;
           playerLayerItem.sprite.y = _0x1a433c + _cubeY;
@@ -1227,9 +1227,9 @@ if (this.p.isFlying || this.p.isUfo) {
           
           if (isRobotLayer) {
             playerLayer.sprite.setVisible(this.p.isRobot);
-            playerLayer.sprite.rotation = 0;
             this._robotBaseX = _0x7f0705;
             this._robotBaseY = _0x1a433c;
+            this._robotTilt = this.p.mirrored ? -tiltedRotation : tiltedRotation;
           } else {
             // This ensures your Cube and UFO rotate on slopes!
             playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -tiltedRotation : tiltedRotation);
