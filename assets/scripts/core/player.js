@@ -1207,17 +1207,17 @@ if (this.p.isFlying || this.p.isUfo) {
           playerLayerItem.sprite.y = _0x1a433c + _cubeY;
           playerLayerItem.sprite.rotation = this.p.mirrored ? -tiltedRotation : tiltedRotation;
 
-          // --- FIXED UFO SLOPE OFFSET ---
+          // --- INVERTED UFO SLOPE OFFSET FIX ---
           if (this.p.isUfo) {
-            const ufoDistance = 15 * _miniS; // Your 15 offset value goes here!
+            const ufoDistance = 15 * _miniS; // Your 15 offset value
             const direction = this.p.gravityFlipped ? 1 : -1;
-            const angleRad = tiltedRotation; // Uses the slope angle
+            const angleRad = tiltedRotation; 
 
-            // This pushes the cube straight up relative to the tilted UFO angle
-            playerLayerItem.sprite.x += Math.sin(angleRad) * ufoDistance * direction;
+            // Swapped the mathematical operators to correctly realign with the game's slope physics
+            playerLayerItem.sprite.x -= Math.sin(angleRad) * ufoDistance * direction;
             playerLayerItem.sprite.y += Math.cos(angleRad) * ufoDistance * direction;
           }
-          // ------------------------------
+          // -------------------------------------
 
           const _shipCubeS = _miniS * 0.55;
           playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
