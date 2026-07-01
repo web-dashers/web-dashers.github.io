@@ -1197,22 +1197,18 @@ if (this.p.isFlying || this.p.isUfo) {
       for (const playerLayerItem of this._playerLayers) {
         if (playerLayerItem) {
           const _miniS = this.p.isMini ? 0.6 : 1;
+          // for ship: offset the cube icon inside the ship body
+          // for ufo: center the cube inside the ufo shell (same y as bird layers)
+          const _cubeX = this.p.isUfo ? _0x1b1d28 : _0x562424;
+          const _cubeY = this.p.isUfo
+            ? (_0x185f91 + (this.p.gravityFlipped ? -15 : 5))
+            : (_0x3011c9 + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0));
+          playerLayerItem.sprite.x = _0x7f0705 + _cubeX;
+          playerLayerItem.sprite.y = _0x1a433c + _cubeY;
+          playerLayerItem.sprite.rotation = this.p.mirrored ? -tiltedRotation : tiltedRotation;
           const _shipCubeS = _miniS * 0.55;
-          if (_ufoMode) {
-            // in ufo mode, inner cube anchors to the ufo body position and rotation
-            // so they move as one — fixes cube clipping out on slopes
-            playerLayerItem.sprite.x = _0x7f0705 + _0x1b1d28;
-            playerLayerItem.sprite.y = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? -15 : 5);
-            playerLayerItem.sprite.rotation = this.p.mirrored ? -tiltedRotation : tiltedRotation;
-            playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
-            playerLayerItem.sprite.scaleX = this.p.mirrored ? -_shipCubeS : _shipCubeS;
-          } else {
-            playerLayerItem.sprite.x = _0x7f0705 + _0x562424;
-            playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9) + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
-            playerLayerItem.sprite.rotation = this.p.mirrored ? -tiltedRotation : tiltedRotation;
-            playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
-            playerLayerItem.sprite.scaleX = this.p.mirrored ? -_shipCubeS : _shipCubeS;
-          }
+          playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
+          playerLayerItem.sprite.scaleX = this.p.mirrored ? -_shipCubeS : _shipCubeS;
         }
       }
     } else {
@@ -2662,9 +2658,6 @@ _updateRobotJump(dt) {
     this._slopeGroundAngle = null;
     const _0x198534 = this._gameLayer.getNearbySectionObjects(pieceWidth);
     for (let gameObj of _0x198534) {
-      // skip glow sprites and deco objects — no collision
-      if (gameObj._isGlowSprite) continue;
-      if (gameObj.type === decoType || gameObj.type === "deco") continue;
       let left = gameObj.x - gameObj.w / 2;
       let right = gameObj.x + gameObj.w / 2;
       let top = gameObj.y - gameObj.h / 2;
@@ -3285,12 +3278,14 @@ _updateRobotJump(dt) {
           if (this.p.isWave) {
             const surfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
             if (surfaceY === null) continue;
+            // use wave's actual tight hitbox, not the wider playerSize box
             const wHS = this.p.isMini ? 6 : 9;
             const wLow  = playersY - wHS;
             const wHigh = playersY + wHS;
-            // small buffer so wave doesn't die from grazing a slope edge
-            const wBuf = 2;
-            const insideSolid = gameObj.slopeSolidBelow ? (wLow < surfaceY - wBuf) : (wHigh > surfaceY + wBuf);
+            // kill check is purely geometric: which side of the surface is solid?
+            // slopeSolidBelow=true → solid is at lower Y; slopeSolidBelow=false → solid is at higher Y
+            // gravity flip does not change where the solid is, only where the player is
+            const insideSolid = gameObj.slopeSolidBelow ? (wLow < surfaceY) : (wHigh > surfaceY);
             if (insideSolid) {
               if (window.noClip) { this.p.diedThisFrame = true; continue; }
               this.killPlayer();
@@ -3356,7 +3351,7 @@ _updateRobotJump(dt) {
           if (actsAsFloor) {
             if ((pLastLow >= surfaceY || this.p.onGround) &&
                 (this.p.yVelocity <= 0 || this.p.onGround)) {
-              if (pLow >= surfaceY - playerSize * 2) {
+              if (pLow >= surfaceY - playerSize) {
                 if (this.p.collideBottom !== 0 && this.p.collideBottom >= surfaceY) continue;
                 this.p.y = surfaceY + playerSize;
                 this.hitGround();
@@ -3372,9 +3367,10 @@ _updateRobotJump(dt) {
               return;
             }
           } else {
+			// idk if i put a space here or no but i just did it so ok
             if ((pLastHigh <= surfaceY || this.p.onGround) &&
                 (this.p.yVelocity >= 0 || this.p.onGround)) {
-              if (pHigh <= surfaceY + playerSize * 2) {
+              if (pHigh <= surfaceY + playerSize) {
                 if (this.p.collideTop !== 0 && this.p.collideTop <= surfaceY) continue;
                 this.p.y = surfaceY - playerSize;
                 this.hitGround();
@@ -3501,10 +3497,6 @@ _updateRobotJump(dt) {
     const playerY = this.p.y;
     const nearbyObjects = this._gameLayer.getNearbySectionObjects(camXCenter);
     for (let nearObject of nearbyObjects) {
-      // skip glow sprites and deco objects — they have no hitbox
-      if (nearObject._isGlowSprite) continue;
-      if (nearObject.type === decoType || nearObject.type === "deco") continue;
-      if (!nearObject.type && !nearObject.w && !nearObject.hitbox_radius) continue;
       let objXCenter = nearObject.x - camX;
       let objYCenter = b(nearObject.y) + camY;
       let hitboxColor = 65280;
