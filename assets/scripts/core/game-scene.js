@@ -9024,6 +9024,25 @@ _rotateObject = (degrees) => {
         }
     }
 
+    // Pads re-seat against the cell wall their base now faces (like real GD):
+    // rot 0 = bottom, 90 = left wall, 180 = top, 270 = right wall
+    const _rotDef = getObjectFromId(saveObj.id);
+    if (_rotDef && _rotDef.type === "pad") {
+        const _off = 15 - (_rotDef.gridH || 0.2) * 15;
+        const _seat = (r) => {
+            r = ((r % 360) + 360) % 360;
+            if (r === 90) return { x: -_off, y: 0 };
+            if (r === 180) return { x: 0, y: _off };
+            if (r === 270) return { x: _off, y: 0 };
+            return { x: 0, y: -_off };
+        };
+        const _prev = _seat(saveObj.rot - degrees);
+        const _next = _seat(saveObj.rot);
+        const _dxPx = (_next.x - _prev.x) * 2;
+        const _dyPx = -(_next.y - _prev.y) * 2;
+        if (_dxPx || _dyPx) this._moveObject(_dxPx, _dyPx);
+    }
+
     this._refreshEditorCollisionCaches();
 };
 
@@ -9314,12 +9333,18 @@ _placeObject = () => {
     const snapY = Math.floor((worldY + 20) / 60) * 60;
 
     const transformedX = (snapX / 2) + 15;
-    const transformedY = -(snapY / 2) + 225;
+    let transformedY = -(snapY / 2) + 225;
 
     const objId = window.selectedObjId;
     const objectDef = getObjectFromId(objId);
 
     if (!objectDef) return;
+
+    // Pads sit flush against the cell's bottom edge like real GD, not centered
+    // (rotating one re-seats it against the matching cell wall — see _rotateObject)
+    if (objectDef.type === "pad") {
+        transformedY -= 15 - (objectDef.gridH || 0.2) * 15;
+    }
 
     const saveData = {
         id: objId,
