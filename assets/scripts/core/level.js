@@ -238,7 +238,11 @@ window.allobjects = function() {
     const result = _origAllobjects();
     for (const id in _SLOPE_DATA) {
         const sd = _SLOPE_DATA[id];
-        if (sd && !sd.sq && result[id]) {
+        if (!sd || !result[id]) continue;
+        if (sd.sq) {
+            // corner-fill pieces — visual only, no hitbox
+            result[id] = Object.assign({}, result[id], { type: decoType });
+        } else {
             result[id] = Object.assign({}, result[id], { type: slopeType });
         }
     }
@@ -950,6 +954,7 @@ window.LevelObject = class LevelObject {
       this._applyVisualProps(scene, glowSprite, glowFrameName, objectData);
       glowSprite.setBlendMode(S);
       glowSprite._eeLayer = 0;
+      glowSprite._isGlowSprite = true; // skip collision hitbox drawing
       if (!this._glowSprites) {
         this._glowSprites = [];
       }

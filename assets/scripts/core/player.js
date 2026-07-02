@@ -676,7 +676,7 @@ class PlayerObject {
       layer.sprite.scaleX = spriteData.scale[0] * miniScale * mirrorMult;
       layer.sprite.scaleY = spriteData.scale[1] * miniScale * gravityMult;
 
-      layer.sprite.rotation = spriteData.rotation * Math.PI / 180;
+      layer.sprite.rotation = spriteData.rotation * Math.PI / 180 + (this._robotTilt || 0);
 
       layer.sprite.setDepth(10 + spriteData.zValue);
 
@@ -1197,9 +1197,28 @@ if (this.p.isFlying || this.p.isUfo) {
       for (const playerLayerItem of this._playerLayers) {
         if (playerLayerItem) {
           const _miniS = this.p.isMini ? 0.6 : 1;
-          playerLayerItem.sprite.x = _0x7f0705 + _0x562424;
-          playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9) + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
+          // for ship: offset the cube icon inside the ship body
+          // for ufo: center the cube inside the ufo shell (same y as bird layers)
+          const _cubeX = this.p.isUfo ? _0x1b1d28 : _0x562424;
+          const _cubeY = this.p.isUfo
+            ? _0x185f91  // Back to the original flat center point
+            : (_0x3011c9 + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0));
+          playerLayerItem.sprite.x = _0x7f0705 + _cubeX;
+          playerLayerItem.sprite.y = _0x1a433c + _cubeY;
           playerLayerItem.sprite.rotation = this.p.mirrored ? -tiltedRotation : tiltedRotation;
+
+          // --- INVERTED UFO SLOPE OFFSET FIX ---
+          if (this.p.isUfo) {
+            const ufoDistance = 18 * _miniS; // Your 15 offset value
+            const direction = this.p.gravityFlipped ? 1 : -1;
+            const angleRad = tiltedRotation; 
+
+            // Swapped the mathematical operators to correctly realign with the game's slope physics
+            playerLayerItem.sprite.x -= Math.sin(angleRad) * ufoDistance * direction;
+            playerLayerItem.sprite.y += Math.cos(angleRad) * ufoDistance * direction;
+          }
+          // -------------------------------------
+
           const _shipCubeS = _miniS * 0.55;
           playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
           playerLayerItem.sprite.scaleX = this.p.mirrored ? -_shipCubeS : _shipCubeS;
@@ -1221,9 +1240,9 @@ if (this.p.isFlying || this.p.isUfo) {
           
           if (isRobotLayer) {
             playerLayer.sprite.setVisible(this.p.isRobot);
-            playerLayer.sprite.rotation = 0;
             this._robotBaseX = _0x7f0705;
             this._robotBaseY = _0x1a433c;
+            this._robotTilt = this.p.mirrored ? -tiltedRotation : tiltedRotation;
           } else {
             // This ensures your Cube and UFO rotate on slopes!
             playerLayer.sprite.rotation = isBallLayer ? playerRotation : (this.p.mirrored ? -tiltedRotation : tiltedRotation);
@@ -1613,6 +1632,8 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.yVelocity *= 0.5;
     this.p.onGround = false;
     this.p.canJump = false;
+    this._streak.stop();
+    this._streak.reset();
     this.p.isJumping = false;
     this.stopRotation();
     this._rotation = 0;
@@ -1652,8 +1673,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this._rotation = 0;
     
     } else if (this.p.isRobot) {
-      // if gravity flipped be upside down
-      this._rotation = this.p.gravityFlipped ? Math.PI : 0;
+      this._rotation = 0;
       this.stopRotation();
       this.p._robotHold = false;
       this.p._robotHoldTimer = 0;
@@ -2128,6 +2148,14 @@ if (this.p.isFlying || this.p.isUfo) {
       }
   }
   runRotateAction() {
+    // Robot has its own per-part flip (position/scale) driven by gravityFlipped in
+    // applyRobotAnimationFrame, and its slope lean comes from _visualTilt/_slopeGroundAngle.
+    // The cube-style 180deg spin this function performs isn't used by the robot rig and
+    // was causing double-flips (spin + mirror) on gravity toggles, orbs and pads.
+    if (this.p.isRobot) {
+      this.rotateActionActive = false;
+      return;
+    }
     this.rotateActionActive = true;
     this.rotateActionTime = 0;
     const _miniDurScale = this.p.isMini ? (1 / 1.4) : 1;

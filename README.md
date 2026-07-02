@@ -45,7 +45,7 @@
 ## Things currently in development:
 - **Practice Mode** - Although a early version of Practice mode is already in the game, we hope to make a completely working Practice Mode with no bugs at all.
 - **Level Editor** - We wish to add a fully working level editor, with all of the objects in Geometry Dash to choose from, and more!
-- **Slopes** - Slopes are almost done, but we need to get their physics correct with other speed portals.
+- **Slopes** - Slopes are almost done, but we need to get their physics correct with the other gamemodes, and the rotation needs to be fixed, and deco slopes should not have a hitbox, which leads to alot of other normal objects having slope hitboxes.
 
 ## What we hope to see added in the future:
 - **All Objects Working** - In the current state of Web Dashers, you might notice most objects seem to be bugged and/or not showing.
