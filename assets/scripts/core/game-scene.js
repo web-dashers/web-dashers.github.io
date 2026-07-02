@@ -6795,10 +6795,11 @@ _buildSettingsPopup() {
           if (!go.visible || (_pc && !_pc.visible)) continue;
         }
         let _parVis = true; { let _chk = go.parentContainer; while (_chk) { if (!_chk.visible) { _parVis = false; break; } _chk = _chk.parentContainer; } }
-        // Object-sheet sprites with a color tint (not white/black) or a non-normal blend
-        // mode can't be replicated by a DOM img — hide the overlay so the canvas sprite
-        // shows through (it isn't covered by anything in-world).
-        const _objUnsupported = entry.obj && ((go.tintTopLeft !== 0xffffff && go.tintTopLeft !== 0) || (go.blendMode && go.blendMode !== 0));
+        // Object-sheet sprites with a color tint (not white/black) can't be replicated
+        // by a DOM img; nor can any sprite with a non-normal blend mode (e.g. the
+        // additive spider dash streak from GJ_GameSheet04) — hide the overlay so the
+        // canvas sprite shows through.
+        const _objUnsupported = (entry.obj && go.tintTopLeft !== 0xffffff && go.tintTopLeft !== 0) || (go.blendMode && go.blendMode !== 0);
         const vis = go.visible && _parVis && entry.group === _effectiveCtx && !_objUnsupported && (entry.obj ? _uhdObjOn : _uhdOn);
         if (!vis) {
           if (entry.obj) {
