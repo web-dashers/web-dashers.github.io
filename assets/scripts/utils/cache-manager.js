@@ -2,7 +2,7 @@ class GameCacheManager {
     constructor() {
         this.CACHE_PREFIX = 'webdash_cache_';
         this.CACHE_VERSION_KEY = 'webdash_cache_version';
-        this.CACHE_VERSION = '1.0.0';
+        this.CACHE_VERSION = '1.0.6';
         this.CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000;
         this.cachedFiles = new Map();
         this.loadingPromises = new Map();

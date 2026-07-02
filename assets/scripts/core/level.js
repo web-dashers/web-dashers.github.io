@@ -342,6 +342,7 @@ window.LevelObject = class LevelObject {
     this._sections = [];
     this._sectionContainers = [];
     this._collisionSections = [];
+    this._portalEmitters = [];
     this._nearbyBuffer = [];
     // Sprites/colliders whose position is driven by a Move or Rotate
     // trigger can end up far from the spawn-position "section" bucket they
@@ -1437,6 +1438,7 @@ window.LevelObject = class LevelObject {
     particles._eeWorldX = worldX;
     particles._eeBaseY = particleY;
     this._addToSection(particles);
+    this._portalEmitters.push(particles);
   }
 
   if (objectDef) {
@@ -2003,6 +2005,18 @@ window.LevelObject = class LevelObject {
     const _0x1dce22 = this._sectionContainers.length - 1;
     if (_0x1dce22 < 0) {
       return;
+    }
+    // Portal particle emitters sit in the always-visible topContainer (layer 2), so
+    // section culling never pauses them — in a long level every off-screen portal
+    // would keep simulating particles every frame. Stop + hide the far-away ones.
+    if (this._portalEmitters.length) {
+      const _emLo = _0xa5f1e1 - 600;
+      const _emHi = _0xa5f1e1 + screenWidth + 600;
+      for (const _em of this._portalEmitters) {
+        if (!_em || !_em.active) continue;
+        const _on = _em._eeWorldX >= _emLo && _em._eeWorldX <= _emHi;
+        if (_em.emitting !== _on) { _em.emitting = _on; _em.setVisible(_on); }
+      }
     }
     const particleScale = Math.max(0, Math.floor((_0xa5f1e1 - 200) / 400));
     const sliderHeight = Math.min(_0x1dce22, Math.floor((_0xa5f1e1 + screenWidth + 200) / 400));
@@ -2683,12 +2697,15 @@ window.LevelObject = class LevelObject {
   }
   updateAudioScale(_0x337bf7) {
     for (let _0x24afdb of this._audioScaleSprites) {
+      // Skip sprites in culled sections — no point dirtying their transforms
+      if (_0x24afdb.parentContainer && !_0x24afdb.parentContainer.visible) continue;
       _0x24afdb.setScale(_0x337bf7);
     }
     const _now = Date.now();
     const _clickMult = window.orbClickScale || 2.0;
     const _shrinkMs = window.orbClickShrinkTime || 250;
     for (let _0xOrbSpr of this._orbSprites) {
+      if (!_0xOrbSpr._hitTime && _0xOrbSpr.parentContainer && !_0xOrbSpr.parentContainer.visible) continue;
       const _baseScale = 0.75 + _0x337bf7 * 0.15;
       if (_0xOrbSpr._hitTime) {
         const _elapsed = _now - _0xOrbSpr._hitTime;

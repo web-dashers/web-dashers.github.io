@@ -6,9 +6,14 @@
 body {
   overflow: hidden;
   background: #000;
+  height: 100vh;
 }
 
 canvas {
-  display: block;
-  margin: 0 auto;
+  display: block !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
 }

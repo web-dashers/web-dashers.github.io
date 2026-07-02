@@ -286,6 +286,126 @@ class GameScene extends Phaser.Scene {
     });
   }
   create() {
+    // Clean up any UHD overlay divs from previous scene instance
+    ['gj-s03-uhd', 'gj-s03-uhd-fade', 'gj-s03-uhd-flash', 'gj-s03-menu-dom'].forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
+
+    // Universal GJ_GameSheet03/04 UHD overlay system.
+    // Intercepts every this.add.image call for those sheets and layers a native
+    // DOM <img> over it so the browser renders UHD pixels at full DPR.
+    const _uhdCont = document.createElement('div');
+    _uhdCont.id = 'gj-s03-uhd';
+    _uhdCont.style.cssText = 'position:fixed;pointer-events:none;z-index:499;overflow:hidden;left:0;top:0;width:0;height:0;';
+    document.body.appendChild(_uhdCont);
+    this._uhdCont = _uhdCont;
+    const _uhdFadeDiv = document.createElement('div');
+    _uhdFadeDiv.id = 'gj-s03-uhd-fade';
+    _uhdFadeDiv.style.cssText = 'position:fixed;pointer-events:none;z-index:500;left:0;top:0;width:0;height:0;background:#000;opacity:0;';
+    document.body.appendChild(_uhdFadeDiv);
+    this._uhdFadeDiv = _uhdFadeDiv;
+    // Noclip death flash mirror — must sit above EVERYTHING, including all UHD
+    // overlay imgs and the black fade div. Driven by this.noclipFlash's alpha.
+    const _uhdFlashDiv = document.createElement('div');
+    _uhdFlashDiv.id = 'gj-s03-uhd-flash';
+    _uhdFlashDiv.style.cssText = 'position:fixed;pointer-events:none;z-index:9000;left:0;top:0;width:0;height:0;background:#f00;opacity:0;';
+    document.body.appendChild(_uhdFlashDiv);
+    this._uhdFlashDiv = _uhdFlashDiv;
+    this._uhdContPos = null; // reset cache so update() resizes the new container immediately
+    this._uhdMap = new Map();
+    this._uhdContext = null; // null = main menu; must be set before any add.image calls
+    // Sync overlay positions after update() has moved containers/cameras for the frame
+    // (off-before-on: scene restarts reuse the same instance, avoid double registration)
+    this.events.off('postupdate', this._syncUhdOverlays);
+    this.events.on('postupdate', this._syncUhdOverlays);
+    const _sc = this;
+    // On scene restart this.add is the same plugin instance, so the patch from the
+    // previous create() may still be in place. Always unwrap to the true original first.
+    if (this.add.image._uhd_orig) this.add.image = this.add.image._uhd_orig;
+    const _uhdDirs = { GJ_GameSheet03: 'GJ_GameSheet03-uhd/', GJ_GameSheet04: 'GJ_GameSheet04-uhd/', GJ_WebSheet: 'GJ_WebSheet-uhd/', GJ_GameSheet: 'GJ_GameSheet-uhd/', GJ_GameSheet02: 'GJ_GameSheet02-uhd/' };
+    // Per-frame shrink applied only to the UHD overlay's own box (not the underlying sprite),
+    // so the replacement art renders smaller than the original frame while staying centered
+    // on it. Keyed as "textureKey:frameName".
+    const _uhdScaleOverrides = { 'GJ_WebSheet:GJ_logo_001.png': 0.95 };
+    // Atlas-rotated frames normally get CSS rotation suppressed (their UHD PNGs are saved in
+    // final visual orientation). But frames listed here are drawn at several code rotations
+    // (editor move arrows), so their overlay must follow go.rotation; the value is the offset
+    // between the PNG's on-disk orientation (up) and the frame's design orientation (left).
+    const _uhdRotateOverrides = {
+      'GJ_GameSheet03:edit_upBtn2_001.png': -Math.PI / 2,
+      'GJ_GameSheet03:edit_upBtn3_001.png': -Math.PI / 2,
+    };
+    // Per-frame position nudge (game units) applied only to the UHD overlay, not the
+    // underlying sprite. Keyed as "textureKey:frameName".
+    const _uhdOffsetOverrides = { 'GJ_WebSheet:GJ_logo_001.png': { x: -5, y: -5 } };
+    // Per-frame object-fit override. Default 'contain' never crops but can leave the old
+    // sprite visible in the letterboxed gap when the replacement art's aspect ratio doesn't
+    // match the original frame; 'cover' guarantees full coverage of the old frame's box
+    // (cropping the replacement's edges slightly) for cases where that gap is worse than the crop.
+    const _uhdFitOverrides = {};
+    // GJ_GameSheet03/04 have broad UHD coverage, so any frame from those sheets is safe to
+    // intercept (onerror hides the rare miss). GJ_WebSheet only has UHD art for the logo so
+    // far — intercepting every frame from it would create <img>s that 404 for everything else
+    // (toggle buttons, progress bars, etc.), and a broken-image icon can flash briefly before
+    // onerror hides it. Whitelist which GJ_WebSheet frames actually have UHD art.
+    const _uhdWebSheetFrames = new Set(['GJ_logo_001.png']);
+    const _uhdFrameAllowed = (key, frame) => key !== 'GJ_WebSheet' || _uhdWebSheetFrames.has(frame);
+    // GJ_GameSheet/GJ_GameSheet02 hold the gameplay objects. Their overlays are tagged
+    // obj-mode: alpha maps to CSS opacity (not the disabled-button grayscale), and the
+    // overlay hides for color-tinted or additive-blend sprites (canvas fallback), since
+    // DOM imgs can't replicate arbitrary tints or blend modes.
+    const _uhdObjSheet = (key) => key === 'GJ_GameSheet' || key === 'GJ_GameSheet02';
+    const _origAddImg = this.add.image.bind(this.add);
+    const _patchedAddImg = function(x, y, key, frame, ...rest) {
+      const go = _origAddImg(x, y, key, frame, ...rest);
+      if (_uhdDirs[key] && typeof frame === 'string' && _uhdFrameAllowed(key, frame)) {
+        // object-fit:contain (rather than the default fill/stretch) lets a UHD replacement
+        // whose own aspect ratio doesn't exactly match the original frame's sourceSize (e.g.
+        // a redrawn logo) scale in without distortion; it's a no-op when the aspect already
+        // matches, so it doesn't change anything for the existing GameSheet03/04 assets.
+        const _fitMode = _uhdFitOverrides[key + ':' + frame] || 'contain';
+        // Editor build-tab preview icons draw from the object sheets but are UI, not
+        // in-game objects — exempt them from the In-Game UHD toggle & lazy lifecycle,
+        // or they'd vanish behind their button-background overlays when it's off.
+        const _isObj = _uhdObjSheet(key) && !_sc._uhdPreviewIcons;
+        // Object-sheet sprites (level objects) get their DOM img lazily, in the sync
+        // loop, only while actually on screen — a long level would otherwise create
+        // thousands of img nodes up front and keep them all alive forever.
+        let di = null;
+        if (!_isObj) {
+          di = document.createElement('img');
+          di.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;display:none;object-fit:' + _fitMode + ';';
+          di.onerror = () => { di.style.display = 'none'; };
+          di.src = _uhdDirs[key] + frame;
+          _uhdCont.appendChild(di);
+        }
+        const entry = { img: di, src: _uhdDirs[key] + frame, fit: _fitMode, group: _sc._uhdContext, obj: _isObj, _sized: false, _vis: null, _t: null, uhdScale: _uhdScaleOverrides[key + ':' + frame] || 1, uhdOffset: _uhdOffsetOverrides[key + ':' + frame] || null, uhdRot: _uhdRotateOverrides[key + ':' + frame] != null ? _uhdRotateOverrides[key + ':' + frame] : null };
+        _sc._uhdMap.set(go, entry);
+        // Follow dynamic texture swaps (nav dots, checkboxes, etc.)
+        const _oST = go.setTexture.bind(go);
+        go.setTexture = function(k, f, ...a) {
+          const r = _oST(k, f, ...a);
+          if (_uhdDirs[k] && typeof f === 'string' && _uhdFrameAllowed(k, f)) {
+            const e = _sc._uhdMap.get(go);
+            if (e) { e.src = _uhdDirs[k] + f; if (e.img) e.img.src = e.src; e._sized = false; e.obj = _uhdObjSheet(k); e.uhdScale = _uhdScaleOverrides[k + ':' + f] || 1; e.uhdOffset = _uhdOffsetOverrides[k + ':' + f] || null; e.uhdRot = _uhdRotateOverrides[k + ':' + f] != null ? _uhdRotateOverrides[k + ':' + f] : null; }
+          }
+          return r;
+        };
+        // Follow same-texture frame swaps (editor build/edit/delete tabs, etc.)
+        const _oSFr = go.setFrame.bind(go);
+        go.setFrame = function(f, ...a) {
+          const r = _oSFr(f, ...a);
+          const k = go.texture && go.texture.key;
+          if (_uhdDirs[k] && typeof f === 'string' && _uhdFrameAllowed(k, f)) {
+            const e = _sc._uhdMap.get(go);
+            if (e) { e.src = _uhdDirs[k] + f; if (e.img) e.img.src = e.src; e._sized = false; e.obj = _uhdObjSheet(k); e.uhdScale = _uhdScaleOverrides[k + ':' + f] || 1; e.uhdOffset = _uhdOffsetOverrides[k + ':' + f] || null; e.uhdRot = _uhdRotateOverrides[k + ':' + f] != null ? _uhdRotateOverrides[k + ':' + f] : null; }
+          }
+          return r;
+        };
+      }
+      return go;
+    };
+    _patchedAddImg._uhd_orig = this.add.image; // keep reference to original for unwrap on restart
+    this.add.image = _patchedAddImg;
+
     this._bgSpeedX = 0.1;
     this._bgSpeedY = 0.1;
     this._menuCameraX = -centerX;
@@ -409,9 +529,9 @@ class GameScene extends Phaser.Scene {
     this._player.setCubeVisible(false);
     this._player.setShipVisible(false);
     this._player.setBallVisible(false);
-    this._logo = this.add.image(0, 100, "GJ_WebSheet", "GJ_logo_001.png").setScrollFactor(0).setDepth(30);
-    this._robLogo = this.add.image(110, 595, "GJ_WebSheet", "RobTopLogoBig_001.png").setScrollFactor(0).setDepth(30).setScale(0.525).setInteractive();
-    this._makeBouncyButton(this._robLogo, 0.525, () => {
+    this._logo = this.add.image(0, 140, "GJ_WebSheet", "GJ_logo_001.png").setScrollFactor(0).setDepth(30);
+    this._robLogo = this.add.image(110, 595, "GJ_GameSheet03", "robtoplogo_small.png").setScrollFactor(0).setDepth(30).setScale(0.7).setInteractive();
+    this._makeBouncyButton(this._robLogo, 0.7, () => {
       window.open("https://geometrydash.com", "_blank");
     }, () => this._menuActive);
     const _socialIconDefs = [
@@ -464,7 +584,6 @@ class GameScene extends Phaser.Scene {
       color: "#ffffff",
       fontFamily: "Arial"
     }).setOrigin(1, 1).setScrollFactor(0).setDepth(30).setAlpha(0.3);
-    this._tryMeImg = this.add.image(0, 182.5, "GJ_WebSheet", "tryMe_001.png").setScrollFactor(0).setDepth(30);
     this._downloadBtns = [];
     const _0x4fc67f = [{
       key: "downloadSteam_001",
@@ -481,21 +600,13 @@ class GameScene extends Phaser.Scene {
       this._makeBouncyButton(_0x1d293f, _0x6bf69f, () => window.open(_0x1ce2a6.url, "_blank"), () => this._menuActive);
       this._downloadBtns.push(_0x1d293f);
     }
-    const _0x28fa5b = this.scale.isFullscreen;
-this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setAlpha(0.8).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
-    this._expandHitArea(this._menuFsBtn, 1.5);
-    this._makeBouncyButton(this._menuFsBtn, 0.64, () => {
-      const _0x26b7c = !this.scale.isFullscreen;
-      this._menuFsBtn.setTexture("GJ_WebSheet", _0x26b7c ? "toggleFullscreenOff_001.png" : "toggleFullscreenOn_001.png");
-      this._expandHitArea(this._menuFsBtn, 1.5);
-      this._toggleFullscreen();
-    }, () => this._menuActive);
+    // Fullscreen toggle moved into the Graphics (Video Options) menu — see _buildGraphicsPopup()
     this._menuInfoBtn = this.add.image(screenWidth + 20, 33, "GJ_GameSheet03", "communityCreditsBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
     this._expandHitArea(this._menuInfoBtn, 1.5);
     this._makeBouncyButton(this._menuInfoBtn, 0.64, () => {
       this._buildInfoPopup();
     }, () => this._menuActive && !this._infoPopup);
-this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet", "GJ_infoIcon_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
+this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
     this._expandHitArea(this._menuUpdateLogBtn, 1.5);
     this._makeBouncyButton(this._menuUpdateLogBtn, 0.64, () => {
       this._buildUpdateLogPopup();
@@ -520,6 +631,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._makeBouncyButton(this._menuNewgroundsBtn, 1, () => {
       this._buildNewgroundsPopup();
     }, () => this._menuActive && !this._newgroundsPopup);
+
     this._menuGlitter = this.add.particles(0, 0, "GJ_WebSheet", {
       frame: "square.png",
       speed: 0,
@@ -556,11 +668,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._creatorBtn = this.add.image(0, 0, "GJ_GameSheet04", "GJ_creatorBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive().setScale(1);
     this._creatorOverlay = null;
     this._creatorOverlayObjects = null;
+    this._creatorMenuDomOverlay = null;
 
     this._openCreatorMenu = () => {
       if (this._creatorOverlay) return;
+      this._uhdContext = 'creator';
       this._creatorMenuOpen = true;
-
       const sw = screenWidth;
       const sh = screenHeight;
 
@@ -627,54 +740,28 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const rows = Math.ceil(menuButtons.length / cols);
       const gridH = rows * btnSize + (rows - 1) * gapY;
       const gridStartY = sh / 2 - gridH / 2 + btnSize / 2;
+
+      const _activeFrames = {
+        "GJ_searchBtn_001.png":    () => { this._closeCreatorMenu(true); this._openSearchMenu(); },
+        "GJ_featuredBtn_001.png":  () => { this._closeCreatorMenu(true); this._openOnlineLevelsScene({ type: 6 }); },
+        "GJ_createBtn_001.png":    () => { this._closeCreatorMenu(true); this._openEditorMenu(); },
+        "GJ_savedBtn_001.png":     () => { this._closeCreatorMenu(true); this._openSavedMenu(); },
+        "GJ_highscoreBtn_001.png": () => { window.open("https://webdemonlist.org/leaderboard", "_blank"); },
+        "GJ_challengeBtn_001.png": () => { this._buildQuestPopup(); },
+      };
+
       menuButtons.forEach((frame, idx) => {
         const col = idx % cols;
         const row = Math.floor(idx / cols);
         const bx = gridStartX + col * (btnSize + gapX);
         const by = gridStartY + row * (btnSize + gapY);
+        const cb = _activeFrames[frame];
         const btn = this.add.image(bx, by, "GJ_GameSheet04", frame)
-          .setScrollFactor(0).setDepth(104).setScale(btnScale);
-        const isSearchButton  = frame === "GJ_searchBtn_001.png";
-        const isFeaturedButton = frame === "GJ_featuredBtn_001.png";
-        const isEditorButton = frame === "GJ_createBtn_001.png";
-        const isSavedButton = frame === "GJ_savedBtn_001.png";
-        const isScoresButton = frame === "GJ_highscoreBtn_001.png";
-        if (isSearchButton) {
+          .setScrollFactor(0).setDepth(103).setScale(btnScale);
+        if (!cb) btn.setAlpha(0.4);
+        if (cb) {
           btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._closeCreatorMenu(true);
-            this._openSearchMenu();
-          }, () => true);
-        } else if (isFeaturedButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._closeCreatorMenu(true);
-            this._openOnlineLevelsScene({ type: 6 });
-          }, () => true);
-        } else if (isEditorButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._closeCreatorMenu(true);
-            this._openEditorMenu();
-          }, () => true);
-        } else if (isSavedButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._closeCreatorMenu(true);
-            this._openSavedMenu();
-          }, () => true);
-        } else if (isScoresButton) {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            window.open("https://webdemonlist.org/leaderboard", "_blank");
-          }, () => true);
-        } else if (frame === "GJ_challengeBtn_001.png") {
-          btn.setInteractive();
-          this._makeBouncyButton(btn, btnScale, () => {
-            this._buildQuestPopup();
-          }, () => true);
-        } else {
-          btn.setTint(0x666666);
+          this._makeBouncyButton(btn, btnScale, cb);
         }
         this._creatorOverlayObjects.push(btn);
       });
@@ -682,8 +769,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._savedOverlay = null;
     this._searchOverlay = null;
     this._searchOverlayObjects = [];
+    this._levelViewOverlay = null;
     this._openEditorMenu = () => {
         if (this._editorOverlay) return;
+        this._uhdContext = 'editor';
         const sw = screenWidth;
         const sh = screenHeight;
         const centerX = sw / 2;
@@ -792,12 +881,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (createdLevels.length === 0) {
             container.add(this.add.bitmapText(centerX, tableY + (tableH/2), "bigFont", "No Levels", 30).setOrigin(0.5).setAlpha(0.5));
         }
-        const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+        const sideFrame = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
         const sideScaleY = tableH / sideFrame.height;
-        container.add(this.add.image(tableX - 40, tableY, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScaleY));
-        container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
-        container.add(this.add.image(centerX, tableY - 10, "GJ_WebSheet", "GJ_table_top_001.png"));
-        container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+        container.add(this.add.image(tableX - 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScaleY));
+        container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
+        container.add(this.add.image(centerX, tableY - 10, "GJ_GameSheet03", "GJ_table_top_001.png"));
+        container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
         container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", "My Levels", 42).setOrigin(0.5).setScale(1.1));
 
         let startY = tableY;
@@ -1088,6 +1177,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         return "local_" + (maxId + 1);
     };
     this._openLevelView = (level) => {
+        this._uhdContext = 'levelView';
         const sw = screenWidth;
         const sh = screenHeight;
         const centerX = sw / 2;
@@ -1126,6 +1216,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             overlay.fillStyle(bandColor, 1);
             overlay.fillRect(0, Math.floor(gi * sh / gradientSteps), sw, Math.ceil(sh / gradientSteps) + 1);
         }
+        this._levelViewOverlay = overlay;
 
         const container = this.add.container(0, 0).setDepth(150);
         const boxWidth = sw * 0.6;
@@ -1219,6 +1310,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             container.destroy();
             overlay.destroy();
             blocker.destroy();
+            this._levelViewOverlay = null;
         };
 
         const btnY = sh * 0.58;
@@ -1363,6 +1455,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._savedCurrentFolder = null;
     this._openSavedMenu = (folder = null) => {
       if (this._savedOverlay) return;
+      this._uhdContext = 'saved';
       this._savedCurrentFolder = folder;
       const sw = screenWidth;
       const sh = screenHeight;
@@ -1516,12 +1609,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         container.add(this.add.bitmapText(centerX, tableY + (tableH / 2), "bigFont", folder ? "Empty Folder" : "No Saved Levels", 30).setOrigin(0.5).setAlpha(0.5));
       }
 
-      const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+      const sideFrame = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
       const sideScaleY = tableH / sideFrame.height;
-      container.add(this.add.image(tableX - 40, tableY, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScaleY));
-      container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
-      container.add(this.add.image(centerX, tableY - 10, "GJ_WebSheet", "GJ_table_top_001.png"));
-      container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+      container.add(this.add.image(tableX - 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScaleY));
+      container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
+      container.add(this.add.image(centerX, tableY - 10, "GJ_GameSheet03", "GJ_table_top_001.png"));
+      container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
       container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", folder ? folder : "Saved Levels", 42).setOrigin(0.5).setScale(1.1));
 
       const newFolderBtn = this.add.image(sw - 60, sh - 55, "GJ_GameSheet03", "gj_folderBtn_001.png")
@@ -1640,6 +1733,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._openSearchMenu = () => {
       if (this._searchOverlay) return;
+      this._uhdContext = 'search';
       const sw = screenWidth;
       const sh = screenHeight;
 
@@ -2318,7 +2412,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     this._openIconSelector = (startTab = "icon") => {
       if (this._iconOverlay) return;
-
+      this._uhdContext = 'icon';
       const sw = screenWidth;
       const sh = screenHeight;
 
@@ -2349,6 +2443,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(105);
 
       this._iconOverlayObjects = [overlay, blocker, titleTxt];
+
+      const cornerTL = this.add.image(0, 0, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(100).setOrigin(1, 0).setFlipX(false).setAngle(-90);
+      this._iconOverlayObjects.push(cornerTL);
 
       const starText = this.add.bitmapText(sw - 50, 50.5, "bigFont", String(window._totalStars || 0), 28)
         .setScrollFactor(0).setDepth(105).setOrigin(1, 0.5);
@@ -2410,9 +2507,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       gridBg.fillStyle(0x454444, 1);
       gridBg.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 10);
       this._iconOverlayObjects.push(gridBg);
-
-      const cornerTL = this.add.image(0,  0,  "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(100).setOrigin(1, 0).setFlipX(false).setAngle(-90);
-      this._iconOverlayObjects.push(cornerTL);
 
       const navDotSpacing = 35;
       const navDotY = containerY + containerHeight + 30;
@@ -3017,7 +3111,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     this._updatePracticeHUDBar = () => {};
 
-    this._pauseBtn = this.add.image(screenWidth - 30, 30, "GJ_WebSheet", "GJ_pauseBtn_clean_001.png").setScrollFactor(0).setDepth(30).setAlpha(75 / 255).setVisible(false);
+    this._pauseBtn = this.add.image(screenWidth - 30, 30, "GJ_GameSheet03", "GJ_pauseBtn_clean_001.png").setScrollFactor(0).setDepth(30).setAlpha(75 / 255).setVisible(false);
     this._pauseBtn.setInteractive();
     this._expandHitArea(this._pauseBtn, 2);
     this._pauseBtn.on("pointerdown", () => this._pauseGame());
@@ -3069,8 +3163,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         return;
       }
       if (this._settingsPopup) {
-        this._settingsPopup.destroy();
-        this._settingsPopup = null;
+        this._closeSettingsPopup();
         return;
       }
       if (this._macroPopup) {
@@ -3286,6 +3379,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
   }
   _openLevelSelect() {
     if (this._levelSelectOverlay) return;
+    this._uhdContext = 'levelSelect';
     const sw = screenWidth;
     const sh = screenHeight;
     const cx = sw / 2;
@@ -3775,6 +3869,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             }
             cardContentObjs.length = 0;
             barObjs.length = 0;
+            // update() resets _uhdContext to null every frame; this runs from a "preupdate"
+            // handler on a later frame than _openLevelSelect()'s synchronous build, so it must
+            // re-assert the tag before creating new icons or their UHD overlays get group:null
+            // and stay hidden forever (same bug/fix as the settings-popup page rebuild).
+            this._uhdContext = 'levelSelect';
             drawCardBg(newColors.bgHex, dark);
             buildCardContent();
             buildBar();
@@ -4018,6 +4117,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     return _0x4864cc;
   }
 _buildPauseOverlay() {
+    this._uhdContext = 'pause';
     const textureY = screenWidth / 2;
     const _0xf70e04 = 320;
     const _0x4eb71b = screenWidth - 40;
@@ -4083,26 +4183,26 @@ _buildPauseOverlay() {
 
     const _0x4791ac = [
         { frame: this._practicedMode.practiceMode ? "GJ_normalBtn_001.png" : "GJ_practiceBtn_001.png", atlas: "GJ_GameSheet03", action: null },
-        { frame: "GJ_playBtn2_001.png", atlas: "GJ_WebSheet", action: () => this._resumeGame() },
-        { frame: "GJ_menuBtn_001.png", atlas: "GJ_WebSheet", action: () => {
+        { frame: "GJ_playBtn2_001.png", atlas: "GJ_GameSheet03", action: () => this._resumeGame() },
+        { frame: "GJ_menuBtn_001.png", atlas: "GJ_GameSheet03", action: () => {
             this._audio.playEffect("quitSound_01");
             this._audio.stopMusic();
             this._resumeGame();
             this.scene.restart();
         }},
-        { frame: "GJ_replayBtn_001.png", atlas: "GJ_WebSheet", action: () => {
+        { frame: "GJ_replayBtn_001.png", atlas: "GJ_GameSheet03", action: () => {
             this._resumeGame();
             this._restartLevel();
         }}
     ];
 
     const _0x25aa59 = _0x4791ac.map(btn => this.textures.getFrame(btn.atlas, btn.frame)?.width || 123);
-    let _0x599a9b = textureY - (_0x25aa59.reduce((a, b) => a + b, 0) + (_0x4791ac.length - 1) * 40) / 2;
+    let _0x599a9b = textureY - (_0x25aa59.reduce((a, b) => a + b, 0) + (_0x4791ac.length - 1) * 40) / 2 - 15;
 
     for (let i = 0; i < _0x4791ac.length; i++) {
         const item = _0x4791ac[i];
         const width = _0x25aa59[i];
-        const btn = this.add.image(_0x599a9b + width / 2, 390, item.atlas, item.frame).setInteractive();
+        const btn = this.add.image(_0x599a9b + width / 2, 405, item.atlas, item.frame).setInteractive();
         
         if (item.action === null) {
             this._pausePracticeBtn = btn;
@@ -4157,6 +4257,7 @@ _buildPauseOverlay() {
  }
 _buildSettingsPopup() {
     if (this._settingsPopup) return;
+    this._uhdContext = 'settings';
 
     const centerX = screenWidth / 2,
         centerY = 320,
@@ -4175,12 +4276,9 @@ _buildSettingsPopup() {
     const panel = this._drawScale9(0, 0, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
     innerContainer.add(panel);
 
-    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_GameSheet03', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
     innerContainer.add(closeBtn);
-    this._makeBouncyButton(closeBtn, 0.8, () => {
-        this._settingsPopup.destroy();
-        this._settingsPopup = null;
-    });
+    this._makeBouncyButton(closeBtn, 0.8, () => this._closeSettingsPopup());
 
     const pages = ["Gameplay", "Visual"];
     let currentPage = 0;
@@ -4445,11 +4543,17 @@ _buildSettingsPopup() {
     };
 
     const buildPage = (idx) => {
+        // update() clears _uhdContext to null every frame, so by the time this runs (inside
+        // an async pointerup handler, long after the frame that opened this popup) it's no
+        // longer 'settings' — re-assert it or every add.image() below tags its UHD overlay
+        // with group:null, permanently hiding it (_effectiveCtx is 'settings' while this
+        // popup is open, so group:null never matches and the checkbox overlay disappears).
+        this._uhdContext = 'settings';
         pageContainer.destroy();
         pageContainer = this.add.container(0, 0);
         innerContainer.add(pageContainer);
         pageTitle.setText(pages[idx]);
-        
+
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
     };
@@ -4465,6 +4569,125 @@ _buildSettingsPopup() {
         currentPage = (currentPage + 1) % pages.length;
         buildPage(currentPage);
     });
+    this.tweens.add({
+        targets: innerContainer,
+        scale: 1,
+        duration: 660,
+        ease: "Elastic.Out",
+        easeParams: [1, 0.6]
+    });
+  }
+  _closeSettingsPopup() {
+    if (!this._settingsPopup) return;
+    this._settingsPopup.destroy();
+    this._settingsPopup = null;
+    // Options is opened from the Settings screen with the Settings screen merely hidden
+    // (not destroyed) so it can reappear here, rather than dropping back to the pause/main menu.
+    if (this._settingsLayerInternal) this._settingsLayerInternal.setVisible(true);
+    if (this._settingsLayerOverlay) this._settingsLayerOverlay.setVisible(true);
+  }
+  // Graphics menu (Settings screen > Graphics), styled after GD's Video Options popup.
+  // Reuses this._settingsPopup so close/ESC handling and the UHD context chain behave
+  // exactly like Options.
+  _buildGraphicsPopup() {
+    if (this._settingsPopup) return;
+    this._uhdContext = 'settings';
+
+    const centerX = screenWidth / 2,
+        centerY = 320,
+        panelWidth = 700,
+        panelHeight = 440;
+
+    this._settingsPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
+
+    const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0, 150 / 255).setInteractive();
+    this._settingsPopup.add(dim);
+
+    const innerContainer = this.add.container(centerX, centerY).setScale(0);
+    this._settingsPopup.add(innerContainer);
+
+    const corner = 0.325 * this.textures.get("GJ_square01").source[0].width;
+    const panel = this._drawScale9(0, 0, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
+    innerContainer.add(panel);
+
+    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_GameSheet03', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    innerContainer.add(closeBtn);
+    this._makeBouncyButton(closeBtn, 0.8, () => this._closeSettingsPopup());
+
+    innerContainer.add(this.add.bitmapText(0, -(panelHeight / 2) + 45, "goldFont", "Video Options", 46).setOrigin(0.5));
+
+    // checkX/labelX are the checkbox centre and the label's left edge
+    const makeCheckbox = (checkX, y, label, fontSize, getVal, setVal) => {
+        const getTex = () => getVal() ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
+        const check = this.add.image(checkX, y, "GJ_GameSheet03", getTex()).setScale(0.9).setInteractive();
+        const txt = this.add.bitmapText(checkX + 38, y, "bigFont", label, fontSize).setOrigin(0, 0.5);
+        innerContainer.add(check);
+        innerContainer.add(txt);
+        this._makeBouncyButton(check, 0.9, () => {
+            setVal(!getVal());
+            check.setTexture("GJ_GameSheet03", getTex());
+            if (this._saveSettings) this._saveSettings();
+        });
+        return check;
+    };
+
+    // Texture Quality <-> UHD flag mapping:
+    //   Low    = UHD off entirely
+    //   Medium = UHD on, in-game objects off
+    //   High   = UHD on + in-game objects on
+    const QUALITIES = ["Low", "Medium", "High"];
+    const deriveQuality = () => (window.uhdTextures === false) ? 0 : (!window.uhdInGameTextures ? 1 : 2);
+    let pendingQ = deriveQuality();
+
+    // Row 1: Fullscreen, centered (like GD's Video Options)
+    const fsCheck = makeCheckbox(-110, -110, "Fullscreen", 34,
+        () => this.scale.isFullscreen,
+        () => this._toggleFullscreen()
+    );
+    // Fullscreen changes are async (and ESC can exit it), so sync the box to the
+    // real state whenever it flips; unhook when the popup is destroyed.
+    const _fsRefresh = () => { if (fsCheck.active) fsCheck.setTexture("GJ_GameSheet03", this.scale.isFullscreen ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png"); };
+    this.scale.on("enterfullscreen", _fsRefresh);
+    this.scale.on("leavefullscreen", _fsRefresh);
+    this._settingsPopup.once("destroy", () => {
+        this.scale.off("enterfullscreen", _fsRefresh);
+        this.scale.off("leavefullscreen", _fsRefresh);
+    });
+
+    // Texture Quality switcher — the arrow selection is pending until Apply
+    innerContainer.add(this.add.bitmapText(0, -25, "goldFont", "Texture Quality", 38).setOrigin(0.5));
+    const qualityTxt = this.add.bitmapText(0, 40, "bigFont", QUALITIES[pendingQ], 42).setOrigin(0.5);
+    innerContainer.add(qualityTxt);
+    const _makeQualityArrow = (x, dir) => {
+        const arrow = this.add.image(x, 40, "GJ_GameSheet03", "edit_upBtn_001.png")
+            .setAngle(dir < 0 ? 270 : 90).setScale(1.15).setInteractive();
+        innerContainer.add(arrow);
+        this._makeBouncyButton(arrow, 1.15, () => {
+            pendingQ = (pendingQ + dir + QUALITIES.length) % QUALITIES.length;
+            qualityTxt.setText(QUALITIES[pendingQ]);
+        });
+    };
+    _makeQualityArrow(-170, -1);
+    _makeQualityArrow(170, 1);
+
+    // Bottom: Back / Apply buttons
+    const btnW = 220, btnH = 64, btnY = panelHeight / 2 - 60;
+    const btnBorder = this.textures.get("GJ_button01").source[0].width * 0.3;
+    const _makeBottomBtn = (x, label, action) => {
+        const btn = this.add.nineslice(x, btnY, "GJ_button01", null, btnW, btnH, btnBorder, btnBorder, btnBorder, btnBorder).setOrigin(0.5).setInteractive();
+        const txt = this.add.bitmapText(x, btnY - 5, "goldFont", label, 40).setOrigin(0.5);
+        innerContainer.add(btn);
+        innerContainer.add(txt);
+        this._makeCompositeBouncyButton(btn, [btn, txt], 1, action);
+    };
+    _makeBottomBtn(-125, "Back", () => this._closeSettingsPopup());
+    _makeBottomBtn(125, "Apply", () => {
+        // Commit the pending quality to the two UHD flags
+        window.uhdTextures = pendingQ >= 1;
+        window.uhdInGameTextures = pendingQ >= 2;
+        if (this._saveSettings) this._saveSettings();
+    });
+
     this.tweens.add({
         targets: innerContainer,
         scale: 1,
@@ -4493,7 +4716,9 @@ _buildSettingsPopup() {
         macroBot: window.macroBot,
         showEditorGlow: window.showEditorGlow,
         showObjectGlow: window.showObjectGlow,
-        respawnTime: window.respawnTime
+        respawnTime: window.respawnTime,
+        uhdTextures: window.uhdTextures,
+        uhdInGameTextures: window.uhdInGameTextures
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
   }
@@ -4518,7 +4743,9 @@ _buildSettingsPopup() {
         macroBot: false,
         showEditorGlow: false,
         showObjectGlow: true,
-        respawnTime: 1.0
+        respawnTime: 1.0,
+        uhdTextures: true,
+        uhdInGameTextures: false
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -4541,6 +4768,8 @@ _buildSettingsPopup() {
     window.respawnTime = data.respawnTime ?? 1.0;
     window.createObjectIds = data.createObjectIds;
     window.showObjectIds = data.showObjectIds;
+    window.uhdTextures = data.uhdTextures ?? true;
+    window.uhdInGameTextures = data.uhdInGameTextures ?? false;
   }
   _getActiveQuests() {
     const QUEST_DURATION = 4 * 60 * 60 * 1000;
@@ -4590,7 +4819,7 @@ _buildSettingsPopup() {
   }
   _buildQuestPopup() {
     if (this._questPopup) return;
-
+    this._uhdContext = 'quest';
     const centerX = screenWidth / 2;
     const centerY = 320;
     const panelWidth = 700;
@@ -4608,7 +4837,7 @@ _buildSettingsPopup() {
     const panel = this._drawScale9(0, 0, panelWidth, panelHeight, 'GJ_square01', corner, 16777215, 1);
     innerContainer.add(panel);
 
-    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_GameSheet03', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
     innerContainer.add(closeBtn);
     this._makeBouncyButton(closeBtn, 0.8, () => {
       this._questPopup.destroy();
@@ -4713,6 +4942,7 @@ _buildSettingsPopup() {
       const centerY = 320;
       const panelWidth = 800;
       const panelHeight = 400;
+      this._uhdContext = 'macro';
       this._macroPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
       const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0x000000, 150 / 255).setInteractive();
       this._macroPopup.add(dim);
@@ -4736,7 +4966,7 @@ _buildSettingsPopup() {
       const optionsBtn = this.add.image(centerX, centerY - (panelHeight / 2) + 95, "GJ_GameSheet03", "GJ_optionsBtn02_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.45);
       this._macroPopup.add(optionsBtn);
 
-      const closeBtn = this.add.image(centerX - (panelWidth / 2) + 20, centerY - (panelHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setInteractive().setScale(0.8);
+      const closeBtn = this.add.image(centerX - (panelWidth / 2) + 20, centerY - (panelHeight / 2) + 20, "GJ_GameSheet03", "GJ_closeBtn_001.png").setInteractive().setScale(0.8);
       this._macroPopup.add(closeBtn);
 
       this._makeBouncyButton(closeBtn, 0.8, () => {
@@ -4873,6 +5103,7 @@ _buildSettingsPopup() {
     if (this._infoPopup) {
       return;
     }
+    this._uhdContext = 'info';
     const xPos = screenWidth / 2;
     const popupHeight = 320;
     const popupWidth = 336;
@@ -4886,7 +5117,7 @@ _buildSettingsPopup() {
     const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
     const popupBg = this._drawScale9(0, 0, 480, popupWidth, "GJ_square02", cornerRadius, 16777215, 1);
     bounceContainer.add(popupBg);
-    const closeBtn = this.add.image(-240 + 20, -148, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    const closeBtn = this.add.image(-240 + 20, -148, "GJ_GameSheet03", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
     bounceContainer.add(closeBtn);
     this._expandHitArea(closeBtn, 2);
     this._makeBouncyButton(closeBtn, 0.8, () => this._closeInfoPopup());
@@ -5055,7 +5286,7 @@ _buildSettingsPopup() {
   this._howToPlayPopup.add(panelContainer);
   const _0x2c64c2 = this._drawScale9(0, 0, 830, 530, "GJ_square01", _0x14e46f, 16777215, 1);
   panelContainer.add(_0x2c64c2);
-  const _0x5a0f88 = this.add.image(-240 - 160, 172 - _0x4c3182 - 110, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+  const _0x5a0f88 = this.add.image(-240 - 160, 172 - _0x4c3182 - 110, "GJ_GameSheet03", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
   this._expandHitArea(_0x5a0f88, 2);
   this._makeBouncyButton(_0x5a0f88, 0.8, () => this._closeHowToPlayPopup());
   panelContainer.add(_0x5a0f88);
@@ -5170,6 +5401,7 @@ _buildSettingsPopup() {
     if (this._updateLogPopup || window.levelID) {
       return;
     }
+    this._uhdContext = 'updateLog';
     const xPos = screenWidth / 2;
     const popupHeight = 320;
     const popupWidth = 336;
@@ -5183,7 +5415,7 @@ _buildSettingsPopup() {
     const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
     const popupBg = this._drawScale9(0, 0, 480, popupWidth, "GJ_square02", cornerRadius, 16777215, 1);
     bounceContainer.add(popupBg);
-    const closeBtn = this.add.image(-240 + 20, -148, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
+    const closeBtn = this.add.image(-240 + 20, -148, "GJ_GameSheet03", "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
     bounceContainer.add(closeBtn);
     this._expandHitArea(closeBtn, 2);
     this._makeBouncyButton(closeBtn, 0.8, () => this._closeUpdateLogPopup());
@@ -5297,6 +5529,7 @@ _buildSettingsPopup() {
   }
   _buildNewgroundsPopup() {
     if (this._newgroundsPopup || window.levelID) return;
+    this._uhdContext = 'newgrounds';
     const xPos = screenWidth / 2;
     const centerY = screenHeight / 2;
     this._newgroundsPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
@@ -5784,18 +6017,6 @@ _buildSettingsPopup() {
     }
     this._closeInfoPopup();
     this._closeUpdateLogPopup();
-    if (this._tryMeImg) {
-      this.tweens.add({
-        targets: this._tryMeImg,
-        y: -this._tryMeImg.height,
-        duration: 300,
-        ease: "Quad.In",
-        onComplete: () => {
-          this._tryMeImg.destroy();
-          this._tryMeImg = null;
-        }
-      });
-    }
     if (this._downloadBtns) {
       for (const _0xaa3a95 of this._downloadBtns) {
         this.tweens.killTweensOf(_0xaa3a95);
@@ -6025,9 +6246,6 @@ _buildSettingsPopup() {
     }
     if (this._copyrightText) {
       this._copyrightText.x = screenWidth - 20;
-    }
-    if (this._tryMeImg) {
-      this._tryMeImg.x = _0x1e5db8 + 175;
     }
     if (this._menuGlitter) {
       this._menuGlitter.x = _0x1e5db8;
@@ -6500,7 +6718,176 @@ _buildSettingsPopup() {
     this._deltaBuffer = _0x578d1b - _0xd8019e;
     return _0xd8019e * 60;
   }
+  // Per-frame sync: position every UHD DOM img overlay over its Phaser counterpart.
+  // Runs on the scene's POST_UPDATE event (registered in create) — i.e. AFTER update()
+  // has moved the level containers / camera for this frame. Running it inside update()
+  // (before the camera code) made every overlay trail the canvas by exactly one frame,
+  // which reads as severe motion blur / ghosting while scrolling.
+  _syncUhdOverlays = () => {
+    if (this._uhdCont && this._uhdMap && this._uhdMap.size > 0) {
+      const _cv = this.game.canvas;
+      const _cr = _cv.getBoundingClientRect();
+      // Only re-set container position on resize (avoids layout thrash every frame)
+      const _pos = _cr.left + ',' + _cr.top + ',' + _cr.width + ',' + _cr.height;
+      if (this._uhdContPos !== _pos) {
+        const _css = 'position:fixed;pointer-events:none;overflow:hidden;left:' + _cr.left + 'px;top:' + _cr.top + 'px;width:' + _cr.width + 'px;height:' + _cr.height + 'px;';
+        this._uhdCont.style.cssText = _css + 'z-index:499;';
+        this._uhdFadeDiv.style.cssText = _css + 'z-index:500;background:#000;opacity:' + (this._uhdFadeDiv._op || '0') + ';';
+        if (this._uhdFlashDiv) this._uhdFlashDiv.style.cssText = _css + 'z-index:9000;background:#f00;opacity:' + (this._uhdFlashDiv._op || '0') + ';';
+        this._uhdContPos = _pos;
+      }
+      const _sx = _cr.width / screenWidth;
+      const _sy = _cr.height / screenHeight;
+      // Black fade div sits above UHD imgs and mirrors the Phaser depth-200 fade graphics
+      let _fadeCover = 0;
+      for (const _fc of this.children.list) {
+        if (_fc.depth === 200 && _fc.type === 'Graphics' && _fc.alpha > _fadeCover && _fc.scrollFactorX === 0) {
+          _fadeCover = _fc.alpha;
+          if (_fadeCover >= 1) break;
+        }
+      }
+      const _camA = this.cameras.main.alpha;
+      if (_camA < 1) _fadeCover = Math.max(_fadeCover, 1 - _camA);
+      const _fadeOp = _fadeCover.toFixed(2);
+      if (this._uhdFadeDiv._op !== _fadeOp) { this._uhdFadeDiv.style.opacity = _fadeOp; this._uhdFadeDiv._op = _fadeOp; }
+      // Noclip death flash: mirror the canvas rectangle's alpha above everything
+      if (this._uhdFlashDiv) {
+        const _flashOp = (this.noclipFlash && this.noclipFlash.alpha > 0) ? this.noclipFlash.alpha.toFixed(2) : '0';
+        if (this._uhdFlashDiv._op !== _flashOp) { this._uhdFlashDiv.style.opacity = _flashOp; this._uhdFlashDiv._op = _flashOp; }
+      }
+      // Priority-ordered: most-nested overlay first. Only its group's DOM imgs are shown.
+      const _effectiveCtx =
+        this._editorColorPickerPopup                      ? 'editorColorPicker' :
+        this._editorHorizontalOptionPopup                 ? 'editorHorizontalOption' :
+        this._editorStartOptionsPopup                     ? 'editorStartOptions' :
+        this._editorLevelSettingsPopup                    ? 'editorSettings' :
+        (this._editorMenuContainer && this._editorMenuContainer.visible) ? 'editorPause' :
+        this._levelInfoContainer                          ? 'levelInfo' :
+        this._questPopup                                  ? 'quest' :
+        this._macroPopup                                  ? 'macro' :
+        (this._settingsLayerOverlay || this._settingsPopup) ? 'settings' :
+        this._achLayerOverlay                             ? 'achLayer' :
+        this._statsLayerOverlay                           ? 'stats' :
+        this._iconOverlay                                 ? 'icon' :
+        this._onlineLevelsOverlay                         ? 'online' :
+        this._searchOverlay                               ? 'search' :
+        this._savedOverlay                                ? 'saved' :
+        this._newgroundsPopup                             ? 'newgrounds' :
+        this._infoPopup                                   ? 'info' :
+        this._updateLogPopup                              ? 'updateLog' :
+        this._levelViewOverlay                            ? 'levelView' :
+        this._creatorOverlay                              ? 'creator' :
+        this._editorOverlay                               ? 'editor' :
+        this._levelSelectOverlay                          ? 'levelSelect' :
+        this._pauseContainer                              ? 'pause' :
+        null;
+      // Graphics settings: master UHD switch (default on) and in-game object UHD
+      // (default off). Checked live each frame so the toggles apply instantly.
+      const _uhdOn = window.uhdTextures !== false;
+      const _uhdObjOn = _uhdOn && !!window.uhdInGameTextures;
+      for (const [go, entry] of this._uhdMap) {
+        if (!go.active) { if (entry.img) entry.img.remove(); this._uhdMap.delete(go); continue; }
+        // Fast path for culled level objects — the overwhelmingly common case in a long
+        // level. No DOM img exists and the section container is hidden: two reads, skip.
+        if (entry.obj && !entry.img) {
+          if (!_uhdObjOn) continue;
+          const _pc = go.parentContainer;
+          if (!go.visible || (_pc && !_pc.visible)) continue;
+        }
+        let _parVis = true; { let _chk = go.parentContainer; while (_chk) { if (!_chk.visible) { _parVis = false; break; } _chk = _chk.parentContainer; } }
+        // Object-sheet sprites with a color tint (not white/black) or a non-normal blend
+        // mode can't be replicated by a DOM img — hide the overlay so the canvas sprite
+        // shows through (it isn't covered by anything in-world).
+        const _objUnsupported = entry.obj && ((go.tintTopLeft !== 0xffffff && go.tintTopLeft !== 0) || (go.blendMode && go.blendMode !== 0));
+        const vis = go.visible && _parVis && entry.group === _effectiveCtx && !_objUnsupported && (entry.obj ? _uhdObjOn : _uhdOn);
+        if (!vis) {
+          if (entry.obj) {
+            // Level objects release their DOM node entirely while off screen; the
+            // browser's image cache makes re-creation on approach cheap.
+            if (entry.img) { entry.img.remove(); entry.img = null; entry._vis = false; entry._t = null; entry._al = ''; entry._op = ''; entry._sized = false; }
+            continue;
+          }
+          if (entry._vis !== false) { entry.img.style.display = 'none'; entry._vis = false; }
+          continue;
+        }
+        if (!entry.img) {
+          const _di = document.createElement('img');
+          _di.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;object-fit:' + (entry.fit || 'contain') + ';';
+          _di.onerror = () => { _di.style.display = 'none'; };
+          _di.src = entry.src;
+          this._uhdCont.appendChild(_di);
+          entry.img = _di;
+          entry._vis = null; entry._t = null; entry._al = ''; entry._op = ''; entry._sized = false;
+        }
+        const _isSideArt = go.frame && go.frame.name === 'GJ_sideArt_001.png';
+        const _uhdScale = entry.uhdScale || 1;
+        const dw = go.width * _sx * _uhdScale;
+        const dh = go.height * _sy * _uhdScale;
+        const ox = go.originX != null ? go.originX : 0.5;
+        const oy = go.originY != null ? go.originY : 0.5;
+        if (!entry._sized) {
+          entry.img.style.width = dw.toFixed(1) + 'px';
+          entry.img.style.height = dh.toFixed(1) + 'px';
+          entry.img.style.transformOrigin = _isSideArt ? '0% 0%' : ((ox * 100).toFixed(0) + '% ' + (oy * 100).toFixed(0) + '%');
+          entry._sized = true;
+        }
+        if (entry._vis !== true) { entry.img.style.display = ''; entry._vis = true; }
+        let al = '';
+        if (entry.obj) {
+          // World objects: alpha is a real gameplay fade, not a disabled-button look.
+          const op = go.alpha < 1 ? go.alpha.toFixed(2) : '';
+          if (entry._op !== op) { entry.img.style.opacity = op; entry._op = op; }
+        } else if (go.alpha < 1) {
+          al = 'grayscale(1) brightness(0.55)';
+        }
+        // Black-tinted sprites (sawblades use setTint(0)) — multiply-by-black
+        // is exactly brightness(0) with alpha preserved.
+        if (go.tintTopLeft === 0) al += (al ? ' ' : '') + 'brightness(0)';
+        if (entry._al !== al) { entry.img.style.filter = al; entry._al = al; }
+        let _wx = go.x, _wy = go.y, _ws = go.scaleX, _wsY = go.scaleY;
+        { let _wp = go.parentContainer; while (_wp) { _wx = _wp.x + _wx * (_wp.scaleX || 1); _wy = _wp.y + _wy * (_wp.scaleY || 1); _ws *= (_wp.scaleX || 1); _wsY *= (_wp.scaleY || 1); _wp = _wp.parentContainer; } }
+        let t;
+        if (_isSideArt) {
+          const _sFX = (_wx * _sx < _cr.width * 0.5 ? 1 : -1) * _ws;
+          const _sFY = (_wy * _sy < _cr.height * 0.5 ? -1 : 1) * _ws;
+          const _cX = (_sFX > 0 ? 0 : _wx * _sx).toFixed(1);
+          const _cY = (_sFY > 0 ? _wy * _sy - dh : dh).toFixed(1);
+          t = 'translate(' + _cX + 'px,' + _cY + 'px) scale(' + _sFX.toFixed(3) + ',' + _sFY.toFixed(3) + ')';
+        } else {
+          const _isAtlasComp = go.frame && go.frame.rotated && go.flipX && Math.abs(go.rotation + Math.PI * 0.5) < 0.01;
+          if (_isAtlasComp) {
+            const _fr = go.frame;
+            const _corX = (_fr.realWidth - _fr.realHeight + (_fr.y - _fr.x) * 2 + _fr.height - _fr.width) * 0.5;
+            _wx += _corX; _wy -= _corX;
+          }
+          const _isAtlasRotated = go.frame && go.frame.rotated;
+          // CSS scale(-1) mirrors around the origin point, which relocates an off-center
+          // box's footprint to the other side of that point (it does NOT mirror in place
+          // like Phaser's flip, which just reverses texture sampling within a fixed quad).
+          // Compensate by shifting translate so the footprint stays where Phaser puts it.
+          const _flipCorX = (!_isAtlasRotated && go.flipX) ? dw * _ws * (1 - 2 * ox) : 0;
+          const _flipCorY = (!_isAtlasRotated && go.flipY) ? dh * _wsY * (1 - 2 * oy) : 0;
+          const _uhdOffX = entry.uhdOffset ? entry.uhdOffset.x * _sx : 0;
+          const _uhdOffY = entry.uhdOffset ? entry.uhdOffset.y * _sy : 0;
+          const tx = (_wx * _sx - dw * ox + _flipCorX + _uhdOffX).toFixed(1);
+          const ty = (_wy * _sy - dh * oy + _flipCorY + _uhdOffY).toFixed(1);
+          const _cFX = (!_isAtlasRotated && go.flipX) ? -_ws : _ws;
+          const _cFY = (!_isAtlasRotated && go.flipY) ? -_wsY : _wsY;
+          const _cRot = _isAtlasRotated ? (entry.uhdRot != null ? go.rotation + entry.uhdRot : 0) : go.rotation;
+          if (_cRot === 0 && _cFX === _cFY) {
+            t = 'translate(' + tx + 'px,' + ty + 'px) scale(' + _cFX.toFixed(3) + ')';
+          } else {
+            t = 'translate(' + tx + 'px,' + ty + 'px)'
+              + (_cRot !== 0 ? ' rotate(' + _cRot.toFixed(4) + 'rad)' : '')
+              + ' scale(' + _cFX.toFixed(3) + ',' + _cFY.toFixed(3) + ')';
+          }
+        }
+        if (entry._t !== t) { entry.img.style.transform = t; entry._t = t; }
+      }
+    }
+  };
   update(_0x54fa47, deltaTime) {
+    this._uhdContext = null; // reset between frames so only current overlay's add.image calls get tagged
     if (window.isEditor) {
         if (this._editorPlaytestActive && !this._editorPlaytestPaused) {
             this._updateEditorPlaytest(deltaTime);
@@ -6833,7 +7220,8 @@ _buildSettingsPopup() {
     if (this._level && this._level._sawSprites) {
       const sawRotation = deltaTime * 0.003;
       for (let _saw of this._level._sawSprites) {
-        if (_saw && _saw.active) _saw.rotation += sawRotation;
+        // Culled saws don't need to spin — skips the transform dirty for off-screen sections
+        if (_saw && _saw.active && (!_saw.parentContainer || _saw.parentContainer.visible)) _saw.rotation += sawRotation;
       }
     }
     this._level.updateAudioScale(this._audio.getMeteringValue());
@@ -8054,6 +8442,9 @@ _createEditorObjectButtonPreview = (x, y, objId) => {
 
     if (!frameName) return null;
 
+    // Object-sheet images created below are UI icons, not in-game objects
+    this._uhdPreviewIcons = true;
+
     const previewObj = {
         id: objId,
         x: 0,
@@ -8236,6 +8627,7 @@ _createEditorObjectButtonPreview = (x, y, objId) => {
     }
 
     if (!sprites.length) {
+        this._uhdPreviewIcons = false;
         preview.destroy();
         return null;
     }
@@ -8275,6 +8667,7 @@ _createEditorObjectButtonPreview = (x, y, objId) => {
 
     preview.setScale(Math.min(scaleMultiplier, 0.6));
 
+    this._uhdPreviewIcons = false;
     return preview;
 };
 
@@ -9879,6 +10272,7 @@ _makeEditorAtlasIconButton = (parent, x, y, optionDef, callback, targetHeight = 
 
 _openEditorStartOptionsPopup = () => {
     if (this._editorStartOptionsPopup) return;
+    this._uhdContext = 'editorStartOptions';
 
     const sw = screenWidth;
     const sh = screenHeight;
@@ -9917,7 +10311,7 @@ _openEditorStartOptionsPopup = () => {
     const closeBtn = this.add.image(
         -(panelW / 2) + 10,
         -(panelH / 2) + 10,
-        "GJ_WebSheet",
+        "GJ_GameSheet03",
         "GJ_closeBtn_001.png"
     )
         .setScale(0.8)
@@ -10963,6 +11357,7 @@ _openEditorColorPickerPopup = (channelId, labelText, onColorChanged) => {
 
 _openEditorLevelSettingsPopup = () => {
     if (this._editorLevelSettingsPopup) return;
+    this._uhdContext = 'editorSettings';
 
     const sw = screenWidth;
     const sh = screenHeight;
@@ -11667,6 +12062,7 @@ _openEditorLevelSettingsPopup = () => {
 };
 
 _initEditorPauseMenu = () => {
+    this._uhdContext = 'editorPause';
     this._editorMenuContainer = this.add.container(0, 0).setDepth(2000).setVisible(false);
 
     const bgDim = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.6)
@@ -11736,6 +12132,9 @@ _initEditorPauseMenu = () => {
         this._buildObjectGrid?.();
     }
 );
+    // Init runs mid editor-GUI creation; reset so the toolbox images created after
+    // this call don't get tagged with the pause-menu context.
+    this._uhdContext = null;
 };
 
 _showLoadingBuffer = (statusText) => {
@@ -11999,7 +12398,7 @@ _applyMirrorEffect() {
   }
   _showNewBest() {
     let _0x9f2437 = screenWidth / 2;
-    let _0x12bde3 = this.add.image(0, 0, "GJ_WebSheet", "GJ_newBest_001.png").setOrigin(0.5, 1);
+    let _0x12bde3 = this.add.image(0, 0, "GJ_GameSheet03", "GJ_newBest_001.png").setOrigin(0.5, 1);
     let _0x544c9c = this.add.bitmapText(0, 2, "bigFont", this._lastPercent + "%", 65).setOrigin(0.5, 0).setScale(1.1);
     const containerChildren = [_0x12bde3, _0x544c9c];
     const orbDelta = this._newBestOrbDelta || 0;
@@ -12288,7 +12687,7 @@ _applyMirrorEffect() {
     const _0x56628c = screenWidth / 2;
     const _0x45ab26 = this._practicedMode.practiceMode
       ? this.add.image(_0x56628c, 250, "GJ_GameSheet03", "GJ_practiceComplete_001.png").setScrollFactor(0).setDepth(60).setScale(0.01)
-      : this.add.image(_0x56628c, 250, "GJ_WebSheet", "GJ_levelComplete_001.png").setScrollFactor(0).setDepth(60).setScale(0.01);
+      : this.add.image(_0x56628c, 250, "GJ_GameSheet03", "GJ_levelComplete_001.png").setScrollFactor(0).setDepth(60).setScale(0.01);
     this.tweens.add({
       targets: _0x45ab26,
       scale: 1.1,
@@ -12390,19 +12789,19 @@ _applyMirrorEffect() {
     const _0x950c8d = 460;
     const _0x2a115c = (screenWidth - _0x595215) / 2;
     this._endLayerInternal.add(this.add.rectangle(_0x2a115c + 356, 310, _0x595215, _0x950c8d, 0, 180 / 255));
-    const _0x43f2e3 = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const _0x43f2e3 = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
     const _0x3feccc = _0x43f2e3 ? _0x950c8d / _0x43f2e3.height : 1;
-    this._endLayerInternal.add(this.add.image(_0x2a115c - 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
-    this._endLayerInternal.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
-    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_WebSheet", "GJ_table_top_001.png");
+    this._endLayerInternal.add(this.add.image(_0x2a115c - 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
+    this._endLayerInternal.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
+    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_GameSheet03", "GJ_table_top_001.png");
     this._endLayerInternal.add(_0x33b564);
-    this._endLayerInternal.add(this.add.image(_0x2a115c + 356, 560, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+    this._endLayerInternal.add(this.add.image(_0x2a115c + 356, 560, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
     const _0x3e9c79 = _0x33b564.y - 35;
     this._endLayerInternal.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._endLayerInternal.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     const _completeBanner = this._practicedMode.practiceMode
       ? this.add.image(containerX, 170, "GJ_GameSheet03", "GJ_practiceComplete_001.png").setScale(0.8)
-      : this.add.image(containerX, 170, "GJ_WebSheet", "GJ_levelComplete_001.png").setScale(0.8);
+      : this.add.image(containerX, 170, "GJ_GameSheet03", "GJ_levelComplete_001.png").setScale(0.8);
     this._endLayerInternal.add(_completeBanner);
     const _0x45b6e4 = 0.8;
     let _0xe44f6d = 250;
@@ -12472,12 +12871,13 @@ _applyMirrorEffect() {
       }
     }];
     for (const _0x2d4335 of _0x45fc2b) {
-      const _0xdde774 = this.add.image(containerX + _0x2d4335.dx, 555, "GJ_WebSheet", _0x2d4335.frame).setInteractive();
+      const _0xdde774 = this.add.image(containerX + _0x2d4335.dx, 555, "GJ_GameSheet03", _0x2d4335.frame).setInteractive();
       this._endLayerInternal.add(_0xdde774);
       this._makeBouncyButton(_0xdde774, 1, _0x2d4335.action);
     }
   }
   _showSettingsScreen() {
+    this._uhdContext = 'settings';
     this._settingsScreenClosing = false;
     if (this._pauseBtn) {
       this.tweens.add({
@@ -12515,13 +12915,13 @@ _applyMirrorEffect() {
     const _0x950c8d = 460;
     const _0x2a115c = (screenWidth - _0x595215) / 2;
     this._settingsLayerInternal.add(this.add.rectangle(_0x2a115c + 356, 310, _0x595215, _0x950c8d, 0, 180 / 255));
-    const _0x43f2e3 = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const _0x43f2e3 = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
     const _0x3feccc = _0x43f2e3 ? _0x950c8d / _0x43f2e3.height : 1;
-    this._settingsLayerInternal.add(this.add.image(_0x2a115c - 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
-    this._settingsLayerInternal.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
-    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_WebSheet", "GJ_table_top_001.png");
+    this._settingsLayerInternal.add(this.add.image(_0x2a115c - 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
+    this._settingsLayerInternal.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
+    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_GameSheet03", "GJ_table_top_001.png");
     this._settingsLayerInternal.add(_0x33b564);
-    this._settingsLayerInternal.add(this.add.image(_0x2a115c + 356, 560, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+    this._settingsLayerInternal.add(this.add.image(_0x2a115c + 356, 560, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
     const _0x3e9c79 = _0x33b564.y - 35;
     this._settingsLayerInternal.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._settingsLayerInternal.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
@@ -12580,8 +12980,18 @@ _applyMirrorEffect() {
 
     _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, false, null);
     _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
-    _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
-    _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
+    _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => {
+        // Hide (don't destroy) so it reappears when the Options popup closes, via _closeSettingsPopup().
+        if (this._settingsLayerInternal) this._settingsLayerInternal.setVisible(false);
+        if (this._settingsLayerOverlay) this._settingsLayerOverlay.setVisible(false);
+        this._buildSettingsPopup();
+    });
+    _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, true,  () => {
+        // Same hide/restore dance as Options: _closeSettingsPopup() brings the layer back.
+        if (this._settingsLayerInternal) this._settingsLayerInternal.setVisible(false);
+        if (this._settingsLayerOverlay) this._settingsLayerOverlay.setVisible(false);
+        this._buildGraphicsPopup();
+    });
     _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null);
     _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null);
     _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null);
@@ -12669,7 +13079,7 @@ _applyMirrorEffect() {
     }
     const _0x4edc03 = containerX;
     const _0x5a0e9 = 200;
-    const _0x453043 = this.add.image(_0x4edc03, _0x5a0e9, "GJ_WebSheet", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
+    const _0x453043 = this.add.image(_0x4edc03, _0x5a0e9, "GJ_GameSheet03", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
     this._settingsLayerInternal.add(_0x453043);
     this.tweens.add({
       targets: _0x453043,
@@ -12727,6 +13137,7 @@ _applyMirrorEffect() {
   }
   _showLevelInfoPage(levelData, songKey, onPlay) {
     if (this._levelInfoContainer) this._closeLevelInfoPage();
+    this._uhdContext = 'levelInfo';
     const sw = screenWidth;
     const sh = screenHeight;
     const cx = sw / 2;
@@ -12763,7 +13174,7 @@ _applyMirrorEffect() {
 
     if (levelData.stars > 0) {
       c.add(this.add.bitmapText(leftX - 15, cy - 20, "bigFont", String(levelData.stars), 26).setOrigin(1, 0.5));
-      c.add(this.add.image(leftX + 5, cy - 20, "GJ_WebSheet", "GJ_bigStar_001.png").setScale(0.3));
+      c.add(this.add.image(leftX + 5, cy - 20, "GJ_GameSheet03", "GJ_bigStar_001.png").setScale(0.3));
     }
 
     const playBtn = this.add.image(cx, cy - 70, "GJ_GameSheet03", "GJ_playBtn2_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.0);
@@ -13003,6 +13414,7 @@ _applyMirrorEffect() {
   }
   _showAchievementsScreen() {
     if (this._achLayerInternal) return;
+    this._uhdContext = 'achLayer';
     const cx = screenWidth / 2;
     this._achLayerOverlay = this.add.rectangle(cx, 320, screenWidth, screenHeight, 0, 0).setScrollFactor(0).setDepth(200).setInteractive();
     this._achLayerInternal = this.add.container(0, -640).setScrollFactor(0).setDepth(201);
@@ -13016,12 +13428,12 @@ _applyMirrorEffect() {
     const panelH = 460;
     const panelX = (screenWidth - panelW) / 2;
     this._achLayerInternal.add(this.add.rectangle(panelX + 356, 310, panelW, panelH, 0, 180 / 255));
-    const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const sideFrame = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
     const sideScale = sideFrame ? panelH / sideFrame.height : 1;
-    this._achLayerInternal.add(this.add.image(panelX - 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScale));
-    this._achLayerInternal.add(this.add.image(panelX + panelW + 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScale));
-    this._achLayerInternal.add(this.add.image(panelX + 356, 70, "GJ_WebSheet", "GJ_table_top_001.png"));
-    this._achLayerInternal.add(this.add.image(panelX + 356, 560, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+    this._achLayerInternal.add(this.add.image(panelX - 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScale));
+    this._achLayerInternal.add(this.add.image(panelX + panelW + 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScale));
+    this._achLayerInternal.add(this.add.image(panelX + 356, 70, "GJ_GameSheet03", "GJ_table_top_001.png"));
+    this._achLayerInternal.add(this.add.image(panelX + 356, 560, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
     this._achLayerInternal.add(this.add.image(cx - 312, 35, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._achLayerInternal.add(this.add.image(cx + 312, 35, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._achLayerInternal.add(this.add.bitmapText(cx, 65, "bigFont", "Achievements", 45).setOrigin(0.5, 0.5));
@@ -13099,6 +13511,7 @@ _applyMirrorEffect() {
     });
   }
   _showStatsScreen() {
+    this._uhdContext = 'stats';
     if (this._pauseBtn) {
       this.tweens.add({
         targets: this._pauseBtn,
@@ -13131,13 +13544,13 @@ _applyMirrorEffect() {
     const _0x950c8d = 460;
     const _0x2a115c = (screenWidth - _0x595215) / 2;
     this._statsLayerInternal.add(this.add.rectangle(_0x2a115c + 356, 310, _0x595215, _0x950c8d, 0xac531e));
-    const _0x43f2e3 = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const _0x43f2e3 = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
     const _0x3feccc = _0x43f2e3 ? _0x950c8d / _0x43f2e3.height : 1;
-    this._statsLayerInternal.add(this.add.image(_0x2a115c - 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
-    this._statsLayerInternal.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
-    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_WebSheet", "GJ_table_top_001.png");
+    this._statsLayerInternal.add(this.add.image(_0x2a115c - 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
+    this._statsLayerInternal.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
+    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_GameSheet03", "GJ_table_top_001.png");
     this._statsLayerInternal.add(_0x33b564);
-    this._statsLayerInternal.add(this.add.image(_0x2a115c + 356, 560, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+    this._statsLayerInternal.add(this.add.image(_0x2a115c + 356, 560, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
     const _0x3e9c79 = _0x33b564.y - 35;
     this._statsLayerInternal.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._statsLayerInternal.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
@@ -13236,7 +13649,7 @@ _applyMirrorEffect() {
     const _0x4edc03 = this._endStarX;
     const _0x5a0e9 = this._endStarY;
     const starCount = this._starsAwarded || 0;
-    const _0x453043 = this.add.image(_0x4edc03, _0x5a0e9, "GJ_WebSheet", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
+    const _0x453043 = this.add.image(_0x4edc03, _0x5a0e9, "GJ_GameSheet03", "GJ_bigStar_001.png").setScale(3).setAlpha(0);
     this._endLayerInternal.add(_0x453043);
     this.tweens.add({
       targets: _0x453043,
@@ -13400,22 +13813,22 @@ _applyMirrorEffect() {
 
     const addRow = () => { _rowCount++; _redrawStripes(); };
     const clearRows = () => { _rowCount = 0; _redrawStripes(); };
-    const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const sideFrame = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
     const sideScaleY = sideFrame ? panelH / sideFrame.height : 1;
     const leftBorder = this.add.image(listLeft - 40, 90,
-      "GJ_WebSheet", "GJ_table_side_001.png")
+      "GJ_GameSheet03", "GJ_table_side_001.png")
       .setScrollFactor(0).setDepth(203).setOrigin(0, 0).setScale(1, sideScaleY);
     objects.push(leftBorder);
     const rightBorder = this.add.image(listLeft + panelW + 40, 90,
-      "GJ_WebSheet", "GJ_table_side_001.png")
+      "GJ_GameSheet03", "GJ_table_side_001.png")
       .setScrollFactor(0).setDepth(203).setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY);
     objects.push(rightBorder);
     const topBorder = this.add.image(panelCX, 80,
-      "GJ_WebSheet", "GJ_table_top_001.png")
+      "GJ_GameSheet03", "GJ_table_top_001.png")
       .setScrollFactor(0).setDepth(203).setOrigin(0.5);
     objects.push(topBorder);
     const bottomBorder = this.add.image(panelCX, 570,
-      "GJ_WebSheet", "GJ_table_bottom_001.png")
+      "GJ_GameSheet03", "GJ_table_bottom_001.png")
       .setScrollFactor(0).setDepth(203).setOrigin(0.5);
     objects.push(bottomBorder);
 
@@ -13459,7 +13872,7 @@ _applyMirrorEffect() {
   }
   _openOnlineLevelsScene(params = {}) {
     if (this._onlineLevelsOverlay) return;
-
+    this._uhdContext = 'online';
     const sw = screenWidth;
     const sh = screenHeight;
     const isFeatured = (params.type === 6);
