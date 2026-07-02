@@ -7646,7 +7646,7 @@ _createEditorGui = () => {
 
     // Editor keybinds: Enter = playtest toggle, 1/2/3 = build/edit/delete tab,
     // WASD = move selected object one grid block, Shift+WASD = fine step,
-    // Backspace/Delete = delete selected object.
+    // Q/E = rotate CCW/CW (like GD), Backspace/Delete = delete selected object.
     this.input.keyboard.on('keydown', (event) => {
         if (!window.isEditor) return;
         // Never fire while typing in a text field or while a popup / pause menu is up
@@ -7679,6 +7679,8 @@ _createEditorGui = () => {
         if (code === 'KeyS') { this._moveObject(0, _mv); return; }
         if (code === 'KeyA') { this._moveObject(-_mv, 0); return; }
         if (code === 'KeyD') { this._moveObject(_mv, 0); return; }
+        if (code === 'KeyQ') { if (!event.repeat) this._rotateObject(-90); return; }
+        if (code === 'KeyE') { if (!event.repeat) this._rotateObject(90); return; }
         if (code === 'Backspace' || code === 'Delete') {
             event.preventDefault();
             if (event.repeat) return;
