@@ -3112,22 +3112,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     let { bgHex, groundHex } = this._parseLevelColors(window.currentlevel[2]);
     const drawOverlay = (gfx, colorHex, isEveryEnd = false) => {
       gfx.clear();
-      const rRaw = (colorHex >> 16) & 0xff;
-      const gRaw = (colorHex >> 8)  & 0xff;
-      const bRaw =  colorHex        & 0xff;
-      const topMul = isEveryEnd ? 0.30 : 0.65;
-      const botMul = isEveryEnd ? 0.18 : 0.42;
-      const steps = 60;
-      for (let i = 0; i < steps; i++) {
-        const t = i / (steps - 1);
-        const mul = topMul + (botMul - topMul) * t;
-        const r2 = Math.min(255, Math.round(rRaw * mul));
-        const g2 = Math.min(255, Math.round(gRaw * mul));
-        const b2 = Math.min(255, Math.round(bRaw * mul));
-        gfx.fillStyle((r2 << 16) | (g2 << 8) | b2, 1);
-        const y0 = Math.floor(i * sh / steps);
-        gfx.fillRect(0, y0, sw, Math.ceil(sh / steps) + 1);
-      }
+      const shadeColor = (mul) => {
+        const r = Math.round(((colorHex >> 16) & 0xff) * mul);
+        const g = Math.round(((colorHex >> 8)  & 0xff) * mul);
+        const b = Math.round(( colorHex        & 0xff) * mul);
+        return (r << 16) | (g << 8) | b;
+      };
+      const topColor = isEveryEnd ? shadeColor(0.30) : colorHex;
+      const bottomColor = shadeColor(isEveryEnd ? 0.18 : 0.42);
+      gfx.fillGradientStyle(topColor, topColor, bottomColor, bottomColor, 1);
+      gfx.fillRect(0, 0, sw, sh);
     };
     const isEveryEnd = (levelId) => levelId === "level_99";
     const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
@@ -3143,10 +3137,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const groundFrame = this.textures.getFrame("groundSquare_" + groundId + "_001.png");
     const tileW = groundFrame ? groundFrame.width : 1012;
     const numTiles = Math.ceil(sw / tileW) + 2;
-    const groundTintHex = (colorHex) => {
-      const r = Math.round(((colorHex >> 16) & 0xff) * 0.45);
-      const g = Math.round(((colorHex >> 8)  & 0xff) * 0.45);
-      const b = Math.round(( colorHex        & 0xff) * 0.45);
+    const groundTintHex = (colorHex) => {1
+      const r = Math.round(((colorHex >> 16) & 0xff) * 0.7);
+      const g = Math.round(((colorHex >> 8)  & 0xff) * 0.7);
+      const b = Math.round(( colorHex        & 0xff) * 0.7);
       return (r << 16) | (g << 8) | b;
     };
     const staticGroundTiles = [];
@@ -3215,13 +3209,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     cardSlideContainer.add(cardBounceContainer);
     const cardContainer = cardSlideContainer;
     const cardBg = this.add.graphics();
-    const drawCardBg = (colorHex, dark = false) => {
-      cardBg.clear();
+    const getCardBgColor = (colorHex, dark = false) => {
       const mul = dark ? 0.10 : 0.22;
       const r = Math.round(((colorHex >> 16) & 0xff) * mul);
       const g = Math.round(((colorHex >> 8)  & 0xff) * mul);
       const b = Math.round(( colorHex        & 0xff) * mul);
-      cardBg.fillStyle((r << 16) | (g << 8) | b, 0.92);
+      return (r << 16) | (g << 8) | b;
+    };
+    const drawCardBg = (colorHex, dark = false) => {
+      cardBg.clear();
+      cardBg.fillStyle(getCardBgColor(colorHex, dark), 0.75);
       cardBg.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 14);
     };
     drawCardBg(bgHex, isEveryEnd(window.currentlevel[2]));
@@ -3444,16 +3441,17 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const barH2 = 36;
     const barX0 = cx - barW2 / 2;
     let barObjs = [];
-    const buildBar = () => {
+    const buildBar = (colorHex = bgHex, dark = isEveryEnd(window.currentlevel[2])) => {
       for (const o of barObjs) { this.tweens.killTweensOf(o); o.destroy(); }
       barObjs.length = 0;
       const bestNormal = parseFloat(localStorage.getItem("bestPercent_" + (window.currentlevel[2] || "level_1")) || "0");
+      const barBgColor = getCardBgColor(colorHex, dark);
       const modeLabel = this.add.bitmapText(cx, barAreaY - 40, "bigFont", "Normal Mode", 30)
         .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5);
       barObjs.push(modeLabel);
       cardContainer.add(modeLabel);
       const barBg = this.add.graphics().setScrollFactor(0).setDepth(154);
-      barBg.fillStyle(0x000000, 0.6);
+      barBg.fillStyle(barBgColor, 0.75);
       barBg.fillRoundedRect(barX0, barAreaY - barH2 / 2, barW2, barH2, barH2 / 2);
       barObjs.push(barBg);
       cardContainer.add(barBg);
@@ -3487,7 +3485,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       barObjs.push(practModeLabel);
       cardContainer.add(practModeLabel);
       const practBarBg = this.add.graphics().setScrollFactor(0).setDepth(154);
-      practBarBg.fillStyle(0x000000, 0.6);
+      practBarBg.fillStyle(barBgColor, 0.75);
       practBarBg.fillRoundedRect(barX0, practBarAreaY - barH2 / 2, barW2, barH2, barH2 / 2);
       barObjs.push(practBarBg);
       cardContainer.add(practBarBg);
@@ -3549,7 +3547,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             barObjs.length = 0;
             drawCardBg(newColors.bgHex, dark);
             buildCardContent();
-            buildBar();
+            buildBar(newColors.bgHex, dark);
             drawOverlay(overlay, newColors.bgHex, dark);
             for (const gt of staticGroundTiles) gt.setTint(groundTintHex(newColors.groundHex));
             refreshDots();
