@@ -44,9 +44,12 @@ class PracticeMode {
       robotHold: !!playerState._robotHold,
       robotHoldTimer: playerState._robotHoldTimer || 0,
       cameraX: cameraX,
+      flyFloorY: scene._level._flyFloorY,
       flyCeilingY: scene._level._flyCeilingY,
       flyGroundActive: scene._level._flyGroundActive,
       flyVisualOnly: scene._level._flyVisualOnly,
+      flyVisualFloorInset: scene._level._flyVisualFloorInset,
+      flyVisualCeilingInset: scene._level._flyVisualCeilingInset,
       groundTargetValue: scene._level._groundTargetValue,
       flyCameraTarget: scene._level.flyCameraTarget,
       groundAnimating: scene._level._groundAnimating,
@@ -5744,6 +5747,7 @@ _buildSettingsPopup() {
     this._level.resetRotateTriggers();
     this._level.resetPulseTriggers();
     this._level.resetEnterEffectTriggers();
+    this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
     if (this._orbGfx) { this._orbGfx.clear(); }
@@ -5934,9 +5938,18 @@ _buildSettingsPopup() {
     this._state2.ignorePortals = true;
     this._level.resetGroundTiles(this._cameraX);
     this._level.resetObjects();
+    this._level._flyFloorY = checkpoint.flyFloorY !== undefined
+      ? checkpoint.flyFloorY
+      : (this._level._flyFloorY ?? 0);
     this._level._flyCeilingY = checkpoint.flyCeilingY;
     this._level._flyGroundActive = checkpoint.flyGroundActive;
     this._level._flyVisualOnly = checkpoint.flyVisualOnly;
+    this._level._flyVisualFloorInset = checkpoint.flyVisualFloorInset !== undefined
+      ? checkpoint.flyVisualFloorInset
+      : (this._level._flyVisualFloorInset ?? 0);
+    this._level._flyVisualCeilingInset = checkpoint.flyVisualCeilingInset !== undefined
+      ? checkpoint.flyVisualCeilingInset
+      : (this._level._flyVisualCeilingInset ?? 0);
     this._level._groundTargetValue = checkpoint.groundTargetValue;
     this._level.flyCameraTarget = checkpoint.flyCameraTarget;
     this._level._groundAnimating = checkpoint.groundAnimating;
@@ -5972,6 +5985,7 @@ _buildSettingsPopup() {
     this._level.resetRotateTriggers();
     this._level.resetPulseTriggers();
     this._level.resetEnterEffectTriggers();
+    this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
     this._level.additiveContainer.x = -this._cameraX;
@@ -6642,7 +6656,15 @@ _buildSettingsPopup() {
       }
     }
     this._level.checkMoveTriggers(playerX);
+    this._level.checkSpawnTriggers(playerX);
+    if (this._level.checkTouchSpawnTriggers) {
+        this._level.checkTouchSpawnTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchSpawnTriggers(playerX, this._state2.y);
+        }
+    }
     this._level.stepMoveTriggers(deltaTime / 1000);
+    this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
     this._level.checkAlphaTriggers(playerX);
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);

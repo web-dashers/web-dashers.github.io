@@ -513,6 +513,7 @@ class LevelEditor {
     this._level.resetRotateTriggers();
     this._level.resetPulseTriggers();
     this._level.resetEnterEffectTriggers();
+    this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
 
@@ -1132,7 +1133,15 @@ class LevelEditor {
     }
 
     this._level.checkMoveTriggers(playerX);
+    this._level.checkSpawnTriggers(playerX);
+    if (this._level.checkTouchSpawnTriggers) {
+        this._level.checkTouchSpawnTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchSpawnTriggers(playerX, this._state2.y);
+        }
+    }
     this._level.stepMoveTriggers(deltaTime / 1000);
+    this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
     this._level.checkAlphaTriggers(playerX);
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);
@@ -4486,12 +4495,61 @@ class LevelEditor {
     saveObj._raw = saveObj._raw || {};
     saveObj._raw[11] = enabled ? "1" : "0";
     saveObj._raw["11"] = saveObj._raw[11];
+    if (enabled) {
+        saveObj._raw[62] = "0";
+        saveObj._raw["62"] = "0";
+    }
     const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : -1;
     if (Array.isArray(this._level?._colorTriggers)) {
         for (const trigger of this._level._colorTriggers) {
-            if (trigger && trigger.uid === linkedId) trigger.touchTriggered = !!enabled;
+            if (trigger && trigger.uid === linkedId) {
+                trigger.touchTriggered = !!enabled;
+                if (enabled) trigger.spawnTriggered = false;
+            }
         }
     }
+    if (this._level?.updateTriggerEditorVisuals) this._level.updateTriggerEditorVisuals();
+  }
+
+  _isEditorTriggerSpawnTriggered(saveObj) {
+    return String(saveObj?._raw?.[62] ?? saveObj?._raw?.["62"] ?? "0") === "1";
+  }
+
+
+  _setEditorTriggerSpawnTriggered(saveObj, enabled) {
+    if (!saveObj) return;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[62] = enabled ? "1" : "0";
+    saveObj._raw["62"] = saveObj._raw[62];
+    if (enabled) {
+        saveObj._raw[11] = "0";
+        saveObj._raw["11"] = "0";
+    }
+
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : -1;
+    const groups = this._level?._getLevelObjectGroupIds
+      ? this._level._getLevelObjectGroupIds(saveObj)
+      : String(saveObj.groups || saveObj._raw?.[57] || saveObj._raw?.["57"] || "").split(".").map(n => parseInt(n, 10)).filter(n => n > 0);
+
+    const updateList = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const trigger of list) {
+        if (trigger && trigger.uid === linkedId) {
+          trigger.spawnTriggered = !!enabled;
+          trigger.groups = groups;
+          if (enabled && trigger.touchTriggered !== undefined) trigger.touchTriggered = false;
+        }
+      }
+    };
+
+    updateList(this._level?._colorTriggers);
+    updateList(this._level?._enterEffectTriggers);
+    updateList(this._level?._moveTriggers);
+    updateList(this._level?._alphaTriggers);
+    updateList(this._level?._rotateTriggers);
+    updateList(this._level?._pulseTriggers);
+    updateList(this._level?._spawnTriggers);
+
     if (this._level?.updateTriggerEditorVisuals) this._level.updateTriggerEditorVisuals();
   }
 
@@ -4606,9 +4664,9 @@ class LevelEditor {
                 const sliderThumb = this.add.image(sliderStartX, sliderY, "GJ_WebSheet", "sliderthumb.png").setScale(sliderScale).setInteractive({ draggable: true });
                 inner.add([fadeLabel, fadeInputBg, fadeInputText, fadeInputHit, sliderGroove, sliderHit, sliderThumb]);
 
-                const touchRow = this.add.container((panelW / 2) - 300, fadeY + 120);
+                const touchRow = this.add.container((panelW / 2) - 350, fadeY + 120);
                 const touchCheck = this.add.image(0, 0, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(0.82).setInteractive();
-                const touchText = this.add.bitmapText(42, -4, "bigFont", "Touch\nTrigger", 24).setOrigin(0, 0.5).setInteractive();
+                const touchText = this.add.bitmapText(42, -2, "bigFont", "Touch\nTrigger", 24).setOrigin(0, 0.5).setInteractive();
                 touchRow.add([touchCheck, touchText]);
                 inner.add(touchRow);
 
@@ -4620,10 +4678,31 @@ class LevelEditor {
                     const checked = this._isEditorColorTriggerTouchTriggered(saveObj);
                     this._setEditorColorTriggerTouchTriggered(saveObj, !checked);
                     refreshTouchTrigger();
+                    refreshSpawnTrigger?.();
                 };
                 this._makeBouncyButton(touchCheck, 0.82, toggleTouchTrigger);
                 touchText.on("pointerdown", toggleTouchTrigger);
                 refreshTouchTrigger();
+
+                const spawnRow = this.add.container((panelW / 2) - 165, fadeY + 120);
+                const spawnCheck = this.add.image(0, 0, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(0.82).setInteractive();
+                const spawnText = this.add.bitmapText(42, -2, "bigFont", "Spawn\nTrigger", 24).setOrigin(0, 0.5).setInteractive();
+                spawnRow.add([spawnCheck, spawnText]);
+                inner.add(spawnRow);
+
+                const refreshSpawnTrigger = () => {
+                    const checked = this._isEditorTriggerSpawnTriggered(saveObj);
+                    spawnCheck.setTexture("GJ_GameSheet03", checked ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
+                };
+                const toggleSpawnTrigger = () => {
+                    const checked = this._isEditorTriggerSpawnTriggered(saveObj);
+                    this._setEditorTriggerSpawnTriggered(saveObj, !checked);
+                    refreshSpawnTrigger();
+                    refreshTouchTrigger();
+                };
+                this._makeBouncyButton(spawnCheck, 0.82, toggleSpawnTrigger);
+                spawnText.on("pointerdown", toggleSpawnTrigger);
+                refreshSpawnTrigger();
 
                 let fadeInputFocused = false;
                 let fadeInput = "";
@@ -5196,7 +5275,6 @@ class LevelEditor {
     inner.add(this.add.bitmapText(0, -35, "bigFont", "Coming soon!\n- Lasokar", 34).setOrigin(0.5).setCenterAlign());
     this._makeEditorOkButton(inner, 0, (panelH / 2) - 48, "OK", () => this._closeEditorObjectOptionsPopup());
   }
-
 
   _openEditorLevelSettingsPopup() {
     if (this._editorLevelSettingsPopup) return;
@@ -6291,6 +6369,8 @@ LevelEditor.methodNames = [
   "_openSelectedEditorObjectOptions",
   "_isEditorColorTriggerTouchTriggered",
   "_setEditorColorTriggerTouchTriggered",
+  "_isEditorTriggerSpawnTriggered",
+  "_setEditorTriggerSpawnTriggered",
   "_openEditorColorTriggerOptionsPopup",
   "_closeEditorTriggerChannelPopup",
   "_openEditorColorTriggerChannelPopup",

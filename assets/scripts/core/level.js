@@ -310,6 +310,19 @@ for (const _spId of _speedPortalIds) {
   }
 }
 
+if (!allObjects[1268]) {
+  allObjects[1268] = {
+    can_color: false,
+    default_base_color_channel: 0,
+    frame: "edit_eSpawnBtn_001.png",
+    gridH: 1,
+    gridW: 1,
+    spritesheet: "GJ_GameSheet03",
+    type: triggerType,
+    z: 995
+  };
+}
+
 const GD_SPEED_PIXELS_PER_SECOND = {
   HALF: 502.38,
   ONE_TIMES: 623.16,
@@ -435,6 +448,7 @@ window.LevelObject = class LevelObject {
     this._colorTriggers = [];
     this._colorTriggerIdx = 0;
     this._touchColorTriggerActivated = new Set();
+    this._touchSpawnTriggerActivated = new Set();
     this._audioScaleSprites = [];
     this._editorTriggerVisuals = [];
     this._orbSprites = [];
@@ -457,6 +471,9 @@ window.LevelObject = class LevelObject {
     this._pulseTriggers = [];
     this._pulseTriggerIdx = 0;
     this._activePulses = [];
+    this._spawnTriggers = [];
+    this._spawnTriggerIdx = 0;
+    this._activeSpawnDelays = [];
     this._colorChannelSprites = {};
     this._groupSprites = {};
     this._groupOffsets = {};
@@ -485,6 +502,31 @@ window.LevelObject = class LevelObject {
         : (Array.isArray(window.levelObjects) ? window.levelObjects : (this._sourceLevelObjects || []));
       const startSpeedKey = options.startSpeedKey ?? window.settingsMap?.["kA4"] ?? 0;
       return calculateSongOffsetForX(targetX, startSpeedKey, sourceObjects);
+  }
+
+  _isTriggerSpawnTriggered(levelObj) {
+    return String(levelObj?._raw?.[62] ?? levelObj?._raw?.["62"] ?? "0") === "1";
+  }
+
+  _getLevelObjectGroupIds(levelObj) {
+    const rawGroups = levelObj?.groups ?? levelObj?._raw?.[57] ?? levelObj?._raw?.["57"] ?? "";
+    return String(rawGroups || "")
+      .split(".")
+      .map(value => parseInt(value, 10))
+      .filter(value => Number.isFinite(value) && value > 0);
+  }
+
+  _makeTriggerBase(levelObj, linkedObjectId) {
+    return {
+      uid: linkedObjectId,
+      spawnTriggered: this._isTriggerSpawnTriggered(levelObj),
+      groups: this._getLevelObjectGroupIds(levelObj)
+    };
+  }
+
+  _triggerHasGroup(trigger, groupId) {
+    const target = parseInt(groupId ?? 0, 10);
+    return target > 0 && Array.isArray(trigger?.groups) && trigger.groups.includes(target);
   }
 
   fastForwardTriggers(targetX, colorManager) {
@@ -1065,6 +1107,7 @@ window.LevelObject = class LevelObject {
     triggerContainer._eeObjectId = linkedObjectId;
 
     const isColorTouchTrigger = objectDef?.type === triggerType && [29, 30, 105, 744, 899, 900, 915].includes(parseInt(levelObj.id ?? 0, 10)) && String(levelObj?._raw?.[11] ?? levelObj?._raw?.["11"] ?? "0") === "1";
+    const isSpawnTriggeredTrigger = objectDef?.type === triggerType && this._isTriggerSpawnTriggered(levelObj);
     let lineGfx = null;
     let hitboxGfx = null;
     if (!isStartPositionTrigger) {
@@ -1072,13 +1115,13 @@ window.LevelObject = class LevelObject {
       lineGfx.lineStyle(2, 0x1dffff, 1);
       lineGfx.lineBetween(0, -50000, 0, 50000);
       lineGfx._eeEditorTriggerLine = true;
-      lineGfx.setVisible(!isColorTouchTrigger);
+      lineGfx.setVisible(!isColorTouchTrigger && !isSpawnTriggeredTrigger);
 
       hitboxGfx = scene.add.graphics();
       hitboxGfx.lineStyle(2, 0x1dffff, 1);
       hitboxGfx.strokeRect(-30, baseY - 30, 60, 60);
       hitboxGfx._eeEditorTriggerHitbox = true;
-      hitboxGfx.setVisible(isColorTouchTrigger);
+      hitboxGfx.setVisible(isColorTouchTrigger && !isSpawnTriggeredTrigger);
     }
 
     const frameName = this._getTriggerFrameName(scene, objectDef, levelObj);
@@ -1164,8 +1207,9 @@ window.LevelObject = class LevelObject {
     for (const visual of this._editorTriggerVisuals) {
       const saveObj = visual?.saveObj;
       const isTouchColorTrigger = saveObj && [29, 30, 105, 744, 899, 900, 915].includes(parseInt(saveObj.id ?? 0, 10)) && String(saveObj?._raw?.[11] ?? saveObj?._raw?.["11"] ?? "0") === "1";
-      if (visual?.line?.setVisible) visual.line.setVisible(!isTouchColorTrigger);
-      if (visual?.hitbox?.setVisible) visual.hitbox.setVisible(!!isTouchColorTrigger);
+      const isSpawnTriggeredTrigger = saveObj && this._isTriggerSpawnTriggered(saveObj);
+      if (visual?.line?.setVisible) visual.line.setVisible(!isTouchColorTrigger && !isSpawnTriggeredTrigger);
+      if (visual?.hitbox?.setVisible) visual.hitbox.setVisible(!!isTouchColorTrigger && !isSpawnTriggeredTrigger);
       this._setTriggerEditorVisualVisible(visual, visible);
     }
   }
@@ -1258,9 +1302,11 @@ window.LevelObject = class LevelObject {
     const linkedObjectId = this._nextObjectId++;
     levelObj._eeObjectId = linkedObjectId;
     if (levelObj._raw) delete levelObj._raw._eeObjectId;
+    const triggerBase = this._makeTriggerBase(levelObj, linkedObjectId);
 
     if (levelObj.id === 29 || levelObj.id === 30) {
       this._colorTriggers.push({
+        ...triggerBase,
         x: levelObj.x * 2,
         y: levelObj.y * 2,
         uid: linkedObjectId,
@@ -1278,6 +1324,7 @@ window.LevelObject = class LevelObject {
 
     if (objectDef.enterEffect) {
       this._enterEffectTriggers.push({
+        ...triggerBase,
         x: levelObj.x * 2,
         effect: objectDef.enterEffect
       });
@@ -1286,6 +1333,7 @@ window.LevelObject = class LevelObject {
     if (levelObj.id === 901) {
       const _raw = levelObj._raw;
       this._moveTriggers.push({
+        ...triggerBase,
         x: levelObj.x * 2,
         duration: parseFloat(_raw[10] ?? 0),
         easingType: parseInt(_raw[30] ?? 0, 10),
@@ -1301,6 +1349,7 @@ window.LevelObject = class LevelObject {
     if (levelObj.id === 1007) {
       const _raw = levelObj._raw;
       this._alphaTriggers.push({
+        ...triggerBase,
         x: levelObj.x * 2,
         duration: parseFloat(_raw[10] ?? 0),
         targetGroup: parseInt(_raw[51] ?? 0, 10),
@@ -1313,6 +1362,7 @@ window.LevelObject = class LevelObject {
       const targetChannel = parseInt(_raw[23] ?? 0, 10);
       if (targetChannel > 0) {
         this._colorTriggers.push({
+          ...triggerBase,
           x: levelObj.x * 2,
           y: levelObj.y * 2,
           uid: linkedObjectId,
@@ -1333,6 +1383,7 @@ window.LevelObject = class LevelObject {
     if (levelObj.id === 1346) {
       const _raw = levelObj._raw;
       this._rotateTriggers.push({
+        ...triggerBase,
         x: levelObj.x * 2,
         targetGroup: parseInt(_raw[51] ?? 0, 10),
         degrees: parseFloat(_raw[68] ?? 0),
@@ -1349,6 +1400,7 @@ window.LevelObject = class LevelObject {
       const _raw = levelObj._raw;
       const targetType = parseInt(_raw[52] ?? 0, 10);
       this._pulseTriggers.push({
+        ...triggerBase,
         x: levelObj.x * 2,
         targetGroup: targetType === 1 ? parseInt(_raw[51] ?? 0, 10) : 0,
         targetChannel: targetType === 0 ? parseInt(_raw[51] ?? 0, 10) : 0,
@@ -1361,6 +1413,18 @@ window.LevelObject = class LevelObject {
         fadeIn: parseFloat(_raw[45] ?? 0),
         hold: parseFloat(_raw[46] ?? 0),
         fadeOut: parseFloat(_raw[47] ?? 0)
+      });
+    }
+
+    if (levelObj.id === 1268) {
+      const _raw = levelObj._raw;
+      this._spawnTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        delay: Math.max(0, parseFloat(_raw[63] ?? 0) || 0)
       });
     }
 
@@ -2065,7 +2129,7 @@ window.LevelObject = class LevelObject {
       if (!(_0x39c924.x <= _0x2b00ce)) {
         break;
       }
-      if (this._isTriggerSaveObjectLive(_0x39c924.uid) && !_0x39c924.touchTriggered) {
+      if (this._isTriggerSaveObjectLive(_0x39c924.uid) && !_0x39c924.touchTriggered && !_0x39c924.spawnTriggered) {
         _0x24b030.push(_0x39c924);
       }
       this._colorTriggerIdx++;
@@ -2082,7 +2146,7 @@ window.LevelObject = class LevelObject {
     const halfHitbox = 30 + playerHalfSize;
 
     for (const trig of this._colorTriggers) {
-      if (!trig || !trig.touchTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
       const uid = trig.uid ?? `${trig.x},${trig.y},${trig.index}`;
       if (this._touchColorTriggerActivated.has(uid)) continue;
       if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
@@ -2219,23 +2283,40 @@ window.LevelObject = class LevelObject {
       if (!(_0x937c72.x <= _0x5d0838)) {
         break;
       }
-      this._activeEnterEffect = _0x937c72.effect;
-      this._activeExitEffect = _0x937c72.effect;
+      if (!_0x937c72.spawnTriggered) {
+        this._activeEnterEffect = _0x937c72.effect;
+        this._activeExitEffect = _0x937c72.effect;
+      }
       this._enterEffectTriggerIdx++;
     }
   }
+  _getMoveTriggerPlayerPosition() {
+    const scene = this._scene || {};
+    const playerX = Number(scene._playerWorldX ?? this._cameraXRef?._v ?? 0) || 0;
+    const playerY = Number(scene._state?.y ?? 0) || 0;
+    return { x: playerX, y: playerY };
+  }
+
+  _startMoveTriggerTween(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const playerPos = this._getMoveTriggerPlayerPosition();
+    this._activeMoveTweens.push({
+      trig,
+      elapsed: 0,
+      prevProgress: 0,
+      prevPlayerX: playerPos.x,
+      prevPlayerY: playerPos.y,
+    });
+    if (!this._groupOffsets[trig.targetGroup]) {
+      this._groupOffsets[trig.targetGroup] = { x: 0, y: 0 };
+    }
+  }
+
   checkMoveTriggers(playerX) {
     while (this._moveTriggerIdx < this._moveTriggers.length) {
       const trig = this._moveTriggers[this._moveTriggerIdx];
       if (trig.x > playerX) break;
-      this._activeMoveTweens.push({
-        trig,
-        elapsed: 0,
-        prevProgress: 0,
-      });
-      if (!this._groupOffsets[trig.targetGroup]) {
-        this._groupOffsets[trig.targetGroup] = { x: 0, y: 0 };
-      }
+      if (!trig.spawnTriggered) this._startMoveTriggerTween(trig);
       this._moveTriggerIdx++;
     }
   }
@@ -2257,8 +2338,13 @@ window.LevelObject = class LevelObject {
 
       anim.prevProgress = progress;
 
-      const deltaX = trig.offsetX * amount;
-      const deltaY = -(trig.offsetY * amount);
+      const playerPos = (trig.lockX || trig.lockY) ? this._getMoveTriggerPlayerPosition() : null;
+      const deltaX = trig.lockX ? (playerPos.x - anim.prevPlayerX) : (trig.offsetX * amount);
+      const deltaY = trig.lockY ? -(playerPos.y - anim.prevPlayerY) : -(trig.offsetY * amount);
+      if (playerPos) {
+        anim.prevPlayerX = playerPos.x;
+        anim.prevPlayerY = playerPos.y;
+      }
 
       const sprites = this._groupSprites[trig.targetGroup];
       const colliders = this._groupColliders[trig.targetGroup];
@@ -2322,16 +2408,124 @@ window.LevelObject = class LevelObject {
     }
   }
 
+  _startAlphaTriggerTween(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const currentOpacity = this._groupOpacity[trig.targetGroup] ?? 1;
+    this._activeAlphaTweens.push({
+      trig,
+      elapsed: 0,
+      startOpacity: currentOpacity,
+    });
+  }
+
+  _startRotateTriggerTween(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const totalDeg = trig.degrees + (trig.times360 * 360);
+    this._activeRotateTweens.push({
+      trig,
+      elapsed: 0,
+      prevProgress: 0,
+      totalRad: totalDeg * Math.PI / 180,
+    });
+  }
+
+  _startPulseTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const totalDur = trig.fadeIn + trig.hold + trig.fadeOut;
+    this._activePulses.push({ trig, elapsed: 0, totalDuration: totalDur > 0 ? totalDur : 0.01 });
+  }
+
+  _queueSpawnTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const targetGroup = parseInt(trig.targetGroup ?? 0, 10);
+    if (!Number.isFinite(targetGroup) || targetGroup <= 0) return;
+    this._activeSpawnDelays.push({
+      targetGroup,
+      delay: Math.max(0, Number(trig.delay) || 0),
+      elapsed: 0
+    });
+  }
+
+  checkSpawnTriggers(playerX) {
+    while (this._spawnTriggerIdx < this._spawnTriggers.length) {
+      const trig = this._spawnTriggers[this._spawnTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._queueSpawnTrigger(trig);
+      this._spawnTriggerIdx++;
+    }
+  }
+
+  _activateSpawnedGroup(groupId, colorManager) {
+    const targetGroup = parseInt(groupId ?? 0, 10);
+    if (!Number.isFinite(targetGroup) || targetGroup <= 0) return;
+
+    const spawnMatches = (list) => (Array.isArray(list) ? list : [])
+      .filter(trig => trig && trig.spawnTriggered && this._triggerHasGroup(trig, targetGroup) && this._isTriggerSaveObjectLive(trig.uid));
+
+    for (const trig of spawnMatches(this._colorTriggers)) {
+      if (colorManager && typeof colorManager.triggerColor === "function") {
+        colorManager.triggerColor(trig.index, trig.color, trig.duration);
+      }
+    }
+    for (const trig of spawnMatches(this._enterEffectTriggers)) {
+      this._activeEnterEffect = trig.effect;
+      this._activeExitEffect = trig.effect;
+    }
+    for (const trig of spawnMatches(this._moveTriggers)) this._startMoveTriggerTween(trig);
+    for (const trig of spawnMatches(this._alphaTriggers)) this._startAlphaTriggerTween(trig);
+    for (const trig of spawnMatches(this._rotateTriggers)) this._startRotateTriggerTween(trig);
+    for (const trig of spawnMatches(this._pulseTriggers)) this._startPulseTrigger(trig);
+    for (const trig of spawnMatches(this._spawnTriggers)) this._queueSpawnTrigger(trig);
+  }
+
+  checkTouchSpawnTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchSpawnTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._spawnTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchSpawnTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchSpawnTriggerActivated.add(uid);
+        this._queueSpawnTrigger(trig);
+      }
+    }
+  }
+
+  stepSpawnTriggers(dt, colorManager) {
+    let i = 0;
+    let guard = 0;
+    while (i < this._activeSpawnDelays.length && guard++ < 256) {
+      const item = this._activeSpawnDelays[i];
+      item.elapsed += dt;
+      if (item.elapsed >= item.delay) {
+        this._activeSpawnDelays.splice(i, 1);
+        this._activateSpawnedGroup(item.targetGroup, colorManager);
+      } else {
+        i++;
+      }
+      if (i >= this._activeSpawnDelays.length && this._activeSpawnDelays.some(pending => pending && pending.delay <= pending.elapsed)) {
+        i = 0;
+      }
+    }
+  }
+
+  resetSpawnTriggers() {
+    this._spawnTriggerIdx = 0;
+    this._activeSpawnDelays = [];
+    this._touchSpawnTriggerActivated = new Set();
+  }
+
   checkAlphaTriggers(playerX) {
     while (this._alphaTriggerIdx < this._alphaTriggers.length) {
       const trig = this._alphaTriggers[this._alphaTriggerIdx];
       if (trig.x > playerX) break;
-      const currentOpacity = this._groupOpacity[trig.targetGroup] ?? 1;
-      this._activeAlphaTweens.push({
-        trig,
-        elapsed: 0,
-        startOpacity: currentOpacity,
-      });
+      if (!trig.spawnTriggered) this._startAlphaTriggerTween(trig);
       this._alphaTriggerIdx++;
     }
   }
@@ -2386,13 +2580,7 @@ window.LevelObject = class LevelObject {
     while (this._rotateTriggerIdx < this._rotateTriggers.length) {
       const trig = this._rotateTriggers[this._rotateTriggerIdx];
       if (trig.x > playerX) break;
-      const totalDeg = trig.degrees + (trig.times360 * 360);
-      this._activeRotateTweens.push({
-        trig,
-        elapsed: 0,
-        prevProgress: 0,
-        totalRad: totalDeg * Math.PI / 180,
-      });
+      if (!trig.spawnTriggered) this._startRotateTriggerTween(trig);
       this._rotateTriggerIdx++;
     }
   }
@@ -2464,8 +2652,7 @@ window.LevelObject = class LevelObject {
     while (this._pulseTriggerIdx < this._pulseTriggers.length) {
       const trig = this._pulseTriggers[this._pulseTriggerIdx];
       if (trig.x > playerX) break;
-      const totalDur = trig.fadeIn + trig.hold + trig.fadeOut;
-      this._activePulses.push({ trig, elapsed: 0, totalDuration: totalDur > 0 ? totalDur : 0.01 });
+      if (!trig.spawnTriggered) this._startPulseTrigger(trig);
       this._pulseTriggerIdx++;
     }
   }
