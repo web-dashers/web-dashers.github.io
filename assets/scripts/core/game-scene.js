@@ -7643,6 +7643,50 @@ _createEditorGui = () => {
     this._updateEditorActionButtons();
     this._updateTabVisuals();
     this._buildObjectGrid();
+
+    // Editor keybinds: Enter = playtest toggle, 1/2/3 = build/edit/delete tab,
+    // WASD = move selected object (fine), Shift+WASD = one grid block,
+    // Backspace/Delete = delete selected object.
+    this.input.keyboard.on('keydown', (event) => {
+        if (!window.isEditor) return;
+        // Never fire while typing in a text field or while a popup / pause menu is up
+        if (this._editorTextInputFocused || window._activeCustomInput || this._activeInput) return;
+        if (window.isEditorPause || this._editorLevelSettingsPopup || this._editorStartOptionsPopup ||
+            this._editorColorPickerPopup || this._editorHorizontalOptionPopup || this._settingsPopup) return;
+
+        const code = event.code;
+        if (code === 'Enter' || code === 'NumpadEnter') {
+            if (event.repeat) return;
+            if (this._editorPlaytestActive) this._stopEditorPlaytest();
+            else this._startEditorPlaytest();
+            return;
+        }
+        if (this._editorPlaytestActive) return; // everything below is edit-mode only
+
+        if (code === 'Digit1' || code === 'Digit2' || code === 'Digit3') {
+            if (event.repeat) return;
+            const tab = code === 'Digit1' ? 'build' : code === 'Digit2' ? 'edit' : 'delete';
+            if (this._editorTab !== tab) {
+                this._editorTab = tab;
+                this._editorPage = 0;
+                this._updateTabVisuals();
+                this._buildObjectGrid();
+            }
+            return;
+        }
+        const _mv = event.shiftKey ? 60 : 3; // shift = one grid block
+        if (code === 'KeyW') { this._moveObject(0, -_mv); return; }
+        if (code === 'KeyS') { this._moveObject(0, _mv); return; }
+        if (code === 'KeyA') { this._moveObject(-_mv, 0); return; }
+        if (code === 'KeyD') { this._moveObject(_mv, 0); return; }
+        if (code === 'Backspace' || code === 'Delete') {
+            event.preventDefault();
+            if (event.repeat) return;
+            this._deleteSelectedObject();
+            return;
+        }
+    });
+
     this._initEditorTimeline();
 };
 
