@@ -42,9 +42,12 @@ class PracticeMode {
       isDashing: playerState.isDashing,
       dashYVelocity: playerState.dashYVelocity,
       cameraX: cameraX,
+      flyFloorY: scene._level._flyFloorY,
       flyCeilingY: scene._level._flyCeilingY,
       flyGroundActive: scene._level._flyGroundActive,
       flyVisualOnly: scene._level._flyVisualOnly,
+      flyVisualFloorInset: scene._level._flyVisualFloorInset,
+      flyVisualCeilingInset: scene._level._flyVisualCeilingInset,
       groundTargetValue: scene._level._groundTargetValue,
       flyCameraTarget: scene._level.flyCameraTarget,
       groundAnimating: scene._level._groundAnimating,
@@ -1373,7 +1376,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText]);
     };
     this._startCreatedLevel = async (level, isEditor) => {
-        const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
+        const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
         window._onlineLevelString = level.levelString;
         window._onlineLevelName = level.levelName;
         window._onlineLevelId = level.createdId;
@@ -1424,14 +1427,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
           const songKey = `ng_song_${songId}`;
           window.currentlevel[0] = songKey;
 
-          if (PROXY_BASE && songId > 0) {
+          if (songInfoUrl && songId > 0) {
               try {
-                  const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
+                  const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
                       method: "POST",
                       headers: { "Content-Type": "application/x-www-form-urlencoded" },
                       body: `songID=${songId}&secret=Wmfd2893gb7`
                   });
-                  
+
                   const ngText = ngRes.ok ? await ngRes.text() : "-1";
                   if (ngText && ngText !== "-1") {
                       const ngParts = ngText.split("~|~");
@@ -1445,10 +1448,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
                       if (songUrl) {
                           const audioCtx = this.game.sound.context;
                           if (audioCtx.state === "suspended") await audioCtx.resume();
-                          const fetchUrl = songUrl.includes("b-cdn.net")
-                            ? (window.ApiWrapper ? window.ApiWrapper.getProxy() : "https://proxy.corsfix.com/?") + songUrl
-                            : `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                          const audioRes = await fetch(fetchUrl);
+                          const audioRes = songUrl.includes("b-cdn.net")
+                            ? await fetch((window.ApiWrapper ? window.ApiWrapper.getProxy() : "https://proxy.corsfix.com/?") + songUrl)
+                            : await fetch(typeof window.getGdAudioUrl === "function" ? window.getGdAudioUrl(songUrl) : songUrl);
                           if (!audioRes.ok) throw new Error(`audio fetch returned ${audioRes.status}`);
                           const arrayBuf = await audioRes.arrayBuffer();
                           const decoded = await audioCtx.decodeAudioData(arrayBuf);
@@ -2446,10 +2448,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
       this._searchOverlayObjects.push({ destroy: _closeResults });
       this._closeSearchResults = _closeResults; // for the ESC handler's layer-by-layer back-out
       const _doSearchInner = async (levelId) => {
-        const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
-        if (!PROXY_BASE) return;
+        const apiBase = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/downloadGJLevel22.php") : null);
+        if (!apiBase) return;
         const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
-        const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
+        const res = await window.fetchGdApi("/downloadGJLevel22.php", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formBody
@@ -2544,7 +2546,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         } else if (levelData.isCustomSong) {
           window._onlineSongBuffer = null;
           window._onlineSongKey    = null;
-            const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
+          const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
+          const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: `songID=${levelData.customSongID}&secret=Wmfd2893gb7`
@@ -2628,10 +2631,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
                   if (audioCtx.state === "suspended") await audioCtx.resume();
 
                   try {
-                      const fetchUrl = songUrl.includes("b-cdn.net")
-                        ? (window.ApiWrapper ? window.ApiWrapper.getProxy() : "https://proxy.corsfix.com/?") + songUrl
-                        : `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                      const audioRes = await fetch(fetchUrl);
+                      const audioRes = songUrl.includes("b-cdn.net")
+                        ? await fetch((window.ApiWrapper ? window.ApiWrapper.getProxy() : "https://proxy.corsfix.com/?") + songUrl)
+                        : await window.fetchGdAudio(songUrl);
                       if (!audioRes.ok) throw new Error(`audio fetch returned ${audioRes.status}`);
                       const arrayBuf = await audioRes.arrayBuffer();
                       const decoded  = await audioCtx.decodeAudioData(arrayBuf);
@@ -4785,7 +4787,7 @@ _buildSettingsPopup() {
     innerContainer.add(closeBtn);
     this._makeBouncyButton(closeBtn, 0.8, () => this._closeSettingsPopup());
 
-    const pages = ["Gameplay", "Visual"];
+    const pages = ["Gameplay", "Visual", "Advanced"];
     let currentPage = 0;
     const pageTitle = this.add.bitmapText(0, -(panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
     innerContainer.add(pageTitle);
@@ -5047,6 +5049,14 @@ _buildSettingsPopup() {
         );
     };
 
+    const buildAdvancedPage = (container) => {
+        createToggle(container, column1X, startY, "Use Proxy (for schools)",
+            () => !window.useDirectInternet,
+            (v) => { window.useDirectInternet = !v; },
+            null, 22
+        );
+    };
+
     const buildPage = (idx) => {
         // update() clears _uhdContext to null every frame, so by the time this runs (inside
         // an async pointerup handler, long after the frame that opened this popup) it's no
@@ -5061,6 +5071,7 @@ _buildSettingsPopup() {
 
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
+        else if (idx === 2) buildAdvancedPage(pageContainer);
     };
 
     buildPage(0);
@@ -5219,13 +5230,16 @@ _buildSettingsPopup() {
         showCPS: window.showCPS,
         speedHack: window.speedHack,
         macroBot: window.macroBot,
+        showGlow: window.showGlow,
         showEditorGlow: window.showEditorGlow,
         showObjectGlow: window.showObjectGlow,
         respawnTime: window.respawnTime,
         uhdTextures: window.uhdTextures,
-        uhdInGameTextures: window.uhdInGameTextures
+        uhdInGameTextures: window.uhdInGameTextures,
+        useDirectInternet: !!window.useDirectInternet
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
+    localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
   }
   _loadSettings() {
     const saved = localStorage.getItem("gd_settings");
@@ -5246,11 +5260,13 @@ _buildSettingsPopup() {
         showCPS: false,
         speedHack: 1.0,
         macroBot: false,
+        showGlow: true,
         showEditorGlow: false,
         showObjectGlow: true,
         respawnTime: 1.0,
         uhdTextures: true,
-        uhdInGameTextures: false
+        uhdInGameTextures: false,
+        useDirectInternet: true
     };
 
     const data = saved ? JSON.parse(saved) : defaults;
@@ -5268,6 +5284,7 @@ _buildSettingsPopup() {
     window.showCPS = data.showCPS;
     window.speedHack = data.speedHack;
     window.macroBot = data.macroBot;
+    window.showGlow = data.showGlow;
     window.showEditorGlow = data.showEditorGlow;
     window.showObjectGlow = data.showObjectGlow ?? true;
     window.respawnTime = data.respawnTime ?? 1.0;
@@ -5275,6 +5292,8 @@ _buildSettingsPopup() {
     window.showObjectIds = data.showObjectIds;
     window.uhdTextures = data.uhdTextures ?? true;
     window.uhdInGameTextures = data.uhdInGameTextures ?? false;
+    window.useDirectInternet = !!data.useDirectInternet;
+    localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
   }
   _getActiveQuests() {
     const QUEST_DURATION = 4 * 60 * 60 * 1000;
@@ -5944,11 +5963,22 @@ _buildSettingsPopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 0.85, font: "goldFont" },
+      { text: "- Added Spawn Triggers", scale: 0.7 },
+      { text: "- Added Groups", scale: 0.7 },
+      { text: "- Added Editor Layers", scale: 0.7 },
+      { text: "- Improved Move Triggers", scale: 0.7 },
+      { text: "- Lock player/camera x/y", scale: 0.7 },
+      { text: "- Added multi-object select", scale: 0.7 },
+      { text: "- Fixed copy+paste bug", scale: 0.7 },
+      { text: "- Fixed spider teleport not", scale: 0.7 },
+      { text: "checking for hazards lmao", scale: 0.7 },
+      { text: "There's probably more but I forgot", color: 0x808080, scale: 0.5 },
+      { text: "- Lasokar", scale: 0.7, color: 0x00e676 },
       { text: "Accurate GDWeb+ logo", scale: 0.65 },
       { text: "Credit to Altruist for making it", scale: 0.6 },
       { text: "is this update finally out?", scale: 0.65, color: 0xaaddff },
       { text: "- rohanis0000", scale: 0.65, color: 0xaaddff },
-    ]; 
+    ];
     let yPos = 0;
     const lineItems = [];
     updateEntries.forEach(entry => {
@@ -6888,6 +6918,7 @@ _buildSettingsPopup() {
     this._level.resetRotateTriggers();
     this._level.resetPulseTriggers();
     this._level.resetEnterEffectTriggers();
+    this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
     this._level._updateGlowVisibility();
@@ -7061,9 +7092,18 @@ _buildSettingsPopup() {
     this._state2.ignorePortals = true;
     this._level.resetGroundTiles(this._cameraX);
     this._level.resetObjects();
+    this._level._flyFloorY = checkpoint.flyFloorY !== undefined
+      ? checkpoint.flyFloorY
+      : (this._level._flyFloorY ?? 0);
     this._level._flyCeilingY = checkpoint.flyCeilingY;
     this._level._flyGroundActive = checkpoint.flyGroundActive;
     this._level._flyVisualOnly = checkpoint.flyVisualOnly;
+    this._level._flyVisualFloorInset = checkpoint.flyVisualFloorInset !== undefined
+      ? checkpoint.flyVisualFloorInset
+      : (this._level._flyVisualFloorInset ?? 0);
+    this._level._flyVisualCeilingInset = checkpoint.flyVisualCeilingInset !== undefined
+      ? checkpoint.flyVisualCeilingInset
+      : (this._level._flyVisualCeilingInset ?? 0);
     this._level._groundTargetValue = checkpoint.groundTargetValue;
     this._level.flyCameraTarget = checkpoint.flyCameraTarget;
     this._level._groundAnimating = checkpoint.groundAnimating;
@@ -7099,6 +7139,7 @@ _buildSettingsPopup() {
     this._level.resetRotateTriggers();
     this._level.resetPulseTriggers();
     this._level.resetEnterEffectTriggers();
+    this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
     this._level.additiveContainer.x = -this._cameraX;
@@ -7467,7 +7508,8 @@ _buildSettingsPopup() {
         this._updateEditorGrid(); 
         if (pointer.isDown && !this._isDraggingSlider) {
             if (this._isSwipeEnabled) {
-              if (this._hitObjects.length !== 0) return;
+              if (this._editorTab !== "edit") {
+                if (this._hitObjects.length !== 0) return;
                 const currentGridX = Math.floor((pointer.x + this._cameraX) / 60) * 60;
                 const currentGridY = Math.floor((pointer.y + this._cameraY + 20) / 60) * 60;
 
@@ -7476,6 +7518,7 @@ _buildSettingsPopup() {
                     this._lastSwipeGridX = currentGridX;
                     this._lastSwipeGridY = currentGridY;
                 }
+              }
             } else {
                 if (!this._isDragging && this._hitObjects.length !== 0) return;
                 const dragX = pointer.x - this._clickStartPos.x;
@@ -7753,6 +7796,13 @@ _buildSettingsPopup() {
         }
       }
       this._player.updateExplosionPieces(deltaTime);
+      if (this._player?._hitboxGraphics) {
+        if (window.showHitboxes || window.hitboxesOnDeath) {
+          this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
+        } else {
+          this._player._hitboxGraphics.clear();
+        }
+      }
       this._deathTimer += deltaTime;
       const baseDelay = (window.respawnTime ?? 1.0) * 1000;
       let _0x237728 = this._hadNewBest ? baseDelay + 400 : baseDelay;
@@ -7945,7 +7995,21 @@ _buildSettingsPopup() {
       }
     }
     this._level.checkMoveTriggers(playerX);
+    this._level.checkSpawnTriggers(playerX);
+    if (this._level.checkTouchSpawnTriggers) {
+        this._level.checkTouchSpawnTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchSpawnTriggers(playerX, this._state2.y);
+        }
+    }
+    if (this._level.checkTouchMoveTriggers) {
+        this._level.checkTouchMoveTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchMoveTriggers(playerX, this._state2.y);
+        }
+    }
     this._level.stepMoveTriggers(deltaTime / 1000);
+    this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
     this._level.checkAlphaTriggers(playerX);
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);
@@ -14619,15 +14683,15 @@ _applyMirrorEffect() {
       try {
         let response = cache[page];
         if (!response) {
-          const PROXY = (window._gdProxyUrl || "").replace(/\/$/, "");
-          if (!PROXY) throw new Error("no proxy configured");
+          const apiUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJLevels21.php") : null);
+          if (!apiUrl) throw new Error("no API endpoint configured");
           const body = Object.entries({ secret: "Wmfd2893gb7", page, ...params })
             .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
           let retryCount = 0;
           const maxRetries = 3;
           let res;
           while (retryCount < maxRetries) {
-            res = await fetch(`${PROXY}/getGJLevels21.php`, {
+            res = await window.fetchGdApi("/getGJLevels21.php", {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
               body

@@ -12,6 +12,60 @@ window.currentBall   = localStorage.getItem("iconCurrentBall")   || "player_ball
 window.currentWave   = localStorage.getItem("iconCurrentWave")   || "dart_01";
 window.currentSpider = localStorage.getItem("iconCurrentSpider") || "spider_01";
 window.currentBird   = localStorage.getItem("iconCurrentBird")   || "bird_01";
+const storedUseDirectInternet = localStorage.getItem("gd_useDirectInternet");
+window.useDirectInternet = storedUseDirectInternet === null ? true : storedUseDirectInternet === "true";
+window.getGdApiBase = function () {
+  if (window.useDirectInternet) return "https://www.boomlings.com/database";
+  return (window._gdProxyUrl || "").replace(/\/$/, "");
+};
+window.getGdApiUrl = function (path) {
+  const base = window.getGdApiBase();
+  if (!base) return null;
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+window.fetchGdApi = async function (path, options = {}) {
+  const directUrl = window.useDirectInternet ? window.getGdApiUrl(path) : null;
+  const proxyBase = (window._gdProxyUrl || "").replace(/\/$/, "");
+  const proxyUrl = proxyBase ? `${proxyBase}${path.startsWith("/") ? "" : "/"}${path}` : null;
+  const urls = [];
+  if (directUrl) urls.push(directUrl);
+  if (proxyUrl && proxyUrl !== directUrl) urls.push(proxyUrl);
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("No GD API endpoint available");
+};
+window.getGdAudioUrl = function (songUrl) {
+  if (window.useDirectInternet) return songUrl;
+  const proxyBase = (window._gdProxyUrl || "").replace(/\/$/, "");
+  return proxyBase ? `${proxyBase}/audio-proxy?url=${encodeURIComponent(songUrl)}` : songUrl;
+};
+window.fetchGdAudio = async function (songUrl, options = {}) {
+  const directUrl = window.useDirectInternet ? songUrl : null;
+  const proxyBase = (window._gdProxyUrl || "").replace(/\/$/, "");
+  const proxyUrl = proxyBase ? `${proxyBase}/audio-proxy?url=${encodeURIComponent(songUrl)}` : null;
+  const urls = [];
+  if (directUrl) urls.push(directUrl);
+  if (proxyUrl && proxyUrl !== directUrl) urls.push(proxyUrl);
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("No audio endpoint available");
+};
 window.currentlevel = [
 	"stereo_madness", // internal level name
 	"Stereo Madness", // proper level name

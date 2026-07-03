@@ -93,6 +93,11 @@ class LevelEditor {
     this._clickStartPos = { x: 0, y: 0 };
     this._isDragging = false;
     this._isDraggingSlider = false;
+    this._editorBoxSelectActive = false;
+    this._editorBoxSelectMoved = false;
+    this._editorBoxSelectStart = null;
+    this._editorBoxSelectGraphics = null;
+    this._currentSelectedObjectIds = [];
     this._editorTab = "build";
     window.editorSelectedObject = -1;
     this._editorZoom = 1.0;
@@ -108,6 +113,15 @@ class LevelEditor {
         this._cameraStartX = this._cameraX;
         this._cameraStartY = this._cameraY;
         this._isDragging = false;
+        if (this._editorTab === "edit" && this._isSwipeEnabled) {
+            this._startEditorBoxSelect(pointer);
+        }
+    });
+    this.input.on('pointermove', (pointer) => {
+        if (this._editorPlaytestActive && !this._editorPlaytestPaused) return;
+        if (this._editorBoxSelectActive) {
+            this._updateEditorBoxSelect(pointer);
+        }
     });
     this.input.on('pointerup', (pointer) => {
         if (this._editorPlaytestActive && !this._editorPlaytestPaused) {
@@ -117,7 +131,25 @@ class LevelEditor {
             this._isDraggingSlider = false;
             return;
         }
-        if (!this._isSwipeEnabled && !this._isDragging && !this._isDraggingSlider && this._hitObjects.length === 0) {
+        if (this._editorBoxSelectActive) {
+            const didBoxSelect = this._finishEditorBoxSelect(pointer);
+            if (didBoxSelect) {
+                this._lastSwipeGridX = -1;
+                this._lastSwipeGridY = -1;
+                this._isDragging = false;
+                this._isDraggingSlider = false;
+                return;
+            }
+            if (this._editorTab === "edit" && this._isSwipeEnabled && !this._isDraggingSlider) {
+                this._selectObjectAtPointer(true);
+                this._lastSwipeGridX = -1;
+                this._lastSwipeGridY = -1;
+                this._isDragging = false;
+                this._isDraggingSlider = false;
+                return;
+            }
+        }
+        if (!this._isSwipeEnabled && !this._isDragging && !this._isDraggingSlider && (this._hitObjects?.length || 0) === 0) {
             this._editorAction();
         }
         this._lastSwipeGridX = -1;
@@ -212,9 +244,32 @@ class LevelEditor {
     if (this._editObjectBtn?.setInteractive) this._editObjectBtn.setInteractive();
     if (this._editObjectBtn?.setAngle) this._editObjectBtn.setAngle(90);
     if (this._editObjectBtn?.setFlipY) this._editObjectBtn.setFlipY(true);
+
+    this._editGroupBtn = this._addSafeFrameImage(-75, 75, "GJ_groupIDBtn2_001.png", 1);
+    if (this._editGroupBtn?.setInteractive) this._editGroupBtn.setInteractive();
+    if (this._editGroupBtn?.setAngle) this._editGroupBtn.setAngle(90);
+    if (this._editGroupBtn?.setFlipY) this._editGroupBtn.setFlipY(true);
+    this._editGroupBtnVisual = this._editGroupBtn;
+    this._editGroupBtnHit = this._editGroupBtn;
     this._deselectBtn = this.add.image(0, 150, "GJ_GameSheet03", "GJ_deSelBtn2_001.png").setInteractive().setAngle(90).setFlipY(true).setScale(1);
 
-    this._sideButtons.add([this._copyPasteBtn, this._editObjectBtn, this._deselectBtn]);
+    this._editorLayerSelector = this.add.container(-75, 275);
+    this._editorLayerFirstBtn = this.add.image(-90, 0, "GJ_GameSheet03", "GJ_arrow_02_001.png").setInteractive().setScale(0.45).setAlpha(0.5);
+    this._editorLayerPrevBtn = this.add.image(-55, 0, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive().setScale(0.55);
+    this._editorLayerNextBtn = this.add.image(55, 0, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive().setFlipX(true).setScale(0.55);
+    this._editorLayerLastBtn = this.add.image(90, 0, "GJ_GameSheet03", "GJ_arrow_02_001.png").setInteractive().setFlipX(true).setScale(0.45).setAlpha(0.5);
+    this._editorLayerInputBg = this.add.graphics();
+    this._editorLayerInputText = this.add.bitmapText(0, 0, "bigFont", "All", 25).setOrigin(0.5).setTint(0xffffff);
+    this._editorLayerSelector.add([
+        this._editorLayerInputBg,
+        this._editorLayerInputText,
+        this._editorLayerFirstBtn,
+        this._editorLayerPrevBtn,
+        this._editorLayerNextBtn,
+        this._editorLayerLastBtn
+    ]);
+
+    this._sideButtons.add([this._copyPasteBtn, this._editGroupBtn, this._editObjectBtn, this._deselectBtn, this._editorLayerSelector]);
 
     this._makeBouncyButton(this._copyPasteBtn, 1, () => {
         this._duplicateSelectedObject();
@@ -224,9 +279,28 @@ class LevelEditor {
         this._openSelectedEditorObjectOptions();
     }, () => this._isSelectedEditorObjectTrigger());
 
+    if (this._editGroupBtnHit && this._editGroupBtnHit !== this._editGroupBtnVisual) {
+        this._makeCompositeBouncyButton(this._editGroupBtnHit, [this._editGroupBtnVisual], 1, () => {
+            this._openSelectedEditorGroupPopup();
+        }, () => window.editorSelectedObject !== -1);
+    } else if (this._editGroupBtnHit) {
+        this._makeBouncyButton(this._editGroupBtnHit, 1, () => {
+            this._openSelectedEditorGroupPopup();
+        }, () => window.editorSelectedObject !== -1);
+    }
+
     this._makeBouncyButton(this._deselectBtn, 1, () => {
         this._clearEditorSelection();
     });
+
+    this._editorLayerOptions = this._getEditorLayerOptions ? this._getEditorLayerOptions() : [null, 0];
+    this._editorActiveLayerIndex = 0;
+    this._editorActiveLayer = null;
+    this._makeBouncyButton(this._editorLayerFirstBtn, 0.42, () => this._setEditorActiveLayerIndex(0));
+    this._makeBouncyButton(this._editorLayerPrevBtn, 0.55, () => this._setEditorActiveLayerIndex((this._editorActiveLayerIndex || 0) - 1));
+    this._makeBouncyButton(this._editorLayerNextBtn, 0.55, () => this._setEditorActiveLayerIndex((this._editorActiveLayerIndex || 0) + 1));
+    this._makeBouncyButton(this._editorLayerLastBtn, 0.42, () => this._setEditorActiveLayerIndex((this._getEditorLayerOptions ? this._getEditorLayerOptions() : (this._editorLayerOptions || [null, 0])).length - 1));
+    this._refreshEditorLayerSelectorVisual();
 
     this._zoomButtons = this.add.container(48, screenHeight / 2 - 20).setScrollFactor(0).setDepth(1000);
     
@@ -328,6 +402,7 @@ class LevelEditor {
     }
 
     this._level.resetVisibility?.();
+    if (!this._editorPlaytestActive) this._applyEditorLayerFilter?.();
   }
 
 
@@ -342,18 +417,16 @@ class LevelEditor {
   _refreshEditorPlaytestGlowVisibility() {
     if (!this._level) return;
 
-    if (this._editorPlaytestActive) {
-        const glowVisible = !!window.showEditorGlow;
-        this._level.additiveContainer?.setVisible(glowVisible);
-        if (this._level._glowSprites) {
-            for (const glow of this._level._glowSprites) {
-                glow?.setVisible?.(glowVisible);
-            }
+    const glowVisible = !!window.showEditorGlow;
+    this._level.additiveContainer?.setVisible(true);
+
+    if (this._editorPlaytestActive && this._level._glowSprites) {
+        for (const glow of this._level._glowSprites) {
+            glow?.setVisible?.(glowVisible);
         }
         return;
     }
 
-    this._level.additiveContainer?.setVisible(true);
     this._level._updateGlowVisibility?.();
   }
 
@@ -513,6 +586,7 @@ class LevelEditor {
     this._level.resetRotateTriggers();
     this._level.resetPulseTriggers();
     this._level.resetEnterEffectTriggers();
+    this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
     this._level.resetVisibility();
 
@@ -1132,7 +1206,21 @@ class LevelEditor {
     }
 
     this._level.checkMoveTriggers(playerX);
+    this._level.checkSpawnTriggers(playerX);
+    if (this._level.checkTouchSpawnTriggers) {
+        this._level.checkTouchSpawnTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchSpawnTriggers(playerX, this._state2.y);
+        }
+    }
+    if (this._level.checkTouchMoveTriggers) {
+        this._level.checkTouchMoveTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchMoveTriggers(playerX, this._state2.y);
+        }
+    }
     this._level.stepMoveTriggers(deltaTime / 1000);
+    this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
     this._level.checkAlphaTriggers(playerX);
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);
@@ -1704,72 +1792,119 @@ class LevelEditor {
 
 
   _moveObject(dx, dy) {
-    const selectedObjectId = window.editorSelectedObject;
-    if (selectedObjectId === -1) return;
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds();
+    if (!selectedObjectIds.length) return;
 
-    const sprites = this._level.objectSprites[selectedObjectId];
-    const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
-    const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
+    for (const selectedObjectId of selectedObjectIds) {
+        const sprites = this._level.objectSprites[selectedObjectId];
+        const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
+        const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
 
-    if (!saveObj) return;
+        if (!saveObj) continue;
 
-    for (const collider of colliders) {
-        collider.x += dx;
-        collider.y += dy;
-        collider._baseX = (collider._baseX ?? collider.x - dx) + dx;
-        collider._baseY = (collider._baseY ?? collider.y - dy) + dy;
-        collider._origBaseX = (collider._origBaseX ?? collider.x - dx) + dx;
-        collider._origBaseY = (collider._origBaseY ?? collider.y - dy) + dy;
-    }
-
-    saveObj.x += dx / 2;
-    saveObj.y -= dy / 2;
-    if (saveObj._raw) {
-        saveObj._raw["2"] = String(saveObj.x);
-        saveObj._raw["3"] = String(saveObj.y);
-    }
-
-    if (sprites) {
-        for (const s of sprites) {
-            if (!s) continue;
-            s.x += dx;
-            s.y += dy;
-            if (s._eeWorldX !== undefined) s._eeWorldX += dx;
-            if (s._eeBaseY !== undefined) s._eeBaseY += dy;
-            if (s._origWorldX !== undefined) s._origWorldX += dx;
-            if (s._origBaseY !== undefined) s._origBaseY += dy;
+        for (const collider of colliders) {
+            collider.x += dx;
+            collider.y += dy;
+            collider._baseX = (collider._baseX ?? collider.x - dx) + dx;
+            collider._baseY = (collider._baseY ?? collider.y - dy) + dy;
+            collider._origBaseX = (collider._origBaseX ?? collider.x - dx) + dx;
+            collider._origBaseY = (collider._origBaseY ?? collider.y - dy) + dy;
         }
+
+        saveObj.x += dx / 2;
+        saveObj.y -= dy / 2;
+        if (saveObj._raw) {
+            saveObj._raw["2"] = String(saveObj.x);
+            saveObj._raw["3"] = String(saveObj.y);
+        }
+
+        if (sprites) {
+            for (const s of sprites) {
+                if (!s) continue;
+                s.x += dx;
+                s.y += dy;
+                if (s._eeWorldX !== undefined) s._eeWorldX += dx;
+                if (s._eeBaseY !== undefined) s._eeBaseY += dy;
+                if (s._origWorldX !== undefined) s._origWorldX += dx;
+                if (s._origBaseY !== undefined) s._origBaseY += dy;
+                if (this._level?._refreshSpriteSection) this._level._refreshSpriteSection(s);
+            }
+        }
+
+        const worldX = saveObj.x * 2;
+        const worldY = saveObj.y * 2;
+        const syncTriggerPosition = (list) => {
+            if (!Array.isArray(list)) return;
+            for (const trigger of list) {
+                if (!trigger || trigger.uid !== selectedObjectId) continue;
+                trigger.x = worldX;
+                if (trigger.y !== undefined) trigger.y = worldY;
+            }
+        };
+        syncTriggerPosition(this._level?._colorTriggers);
+        syncTriggerPosition(this._level?._enterEffectTriggers);
+        syncTriggerPosition(this._level?._moveTriggers);
+        syncTriggerPosition(this._level?._alphaTriggers);
+        syncTriggerPosition(this._level?._rotateTriggers);
+        syncTriggerPosition(this._level?._pulseTriggers);
+        syncTriggerPosition(this._level?._spawnTriggers);
     }
+
+    const sortTriggers = (list) => {
+        if (Array.isArray(list)) list.sort((a, b) => (a?.x ?? 0) - (b?.x ?? 0));
+    };
+    sortTriggers(this._level?._colorTriggers);
+    sortTriggers(this._level?._enterEffectTriggers);
+    sortTriggers(this._level?._moveTriggers);
+    sortTriggers(this._level?._alphaTriggers);
+    sortTriggers(this._level?._rotateTriggers);
+    sortTriggers(this._level?._pulseTriggers);
+    sortTriggers(this._level?._spawnTriggers);
 
     this._refreshEditorCollisionCaches();
   }
 
 
   _rotateObject(degrees) {
-    const selectedObjectId = window.editorSelectedObject;
-    if (selectedObjectId === -1) return;
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds();
+    if (!selectedObjectIds.length) return;
 
-    const sprites = this._level.objectSprites[selectedObjectId];
-    const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
-    const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
+    for (const selectedObjectId of selectedObjectIds) {
+        const sprites = this._level.objectSprites[selectedObjectId];
+        const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
+        const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
 
-    if (!saveObj) return;
+        if (!saveObj) continue;
 
-    saveObj.rot = (saveObj.rot || 0) + degrees;
+        saveObj.rot = (saveObj.rot || 0) + degrees;
 
-    if (saveObj._raw) {
-        saveObj._raw["6"] = String(saveObj.rot);
-    }
+        if (saveObj._raw) {
+            saveObj._raw["6"] = String(saveObj.rot);
+        }
 
-    for (const collider of colliders) {
-        collider.rotation = saveObj.rot;
-        collider.rotationDegrees = saveObj.rot;
-    }
+        for (const collider of colliders) {
+            collider.rotation = saveObj.rot;
+            collider.rotationDegrees = saveObj.rot;
+        }
 
-    if (sprites) {
-        for (const s of sprites) {
-            if (!s) continue;
-            s.angle += degrees;
+        if (sprites) {
+            for (const s of sprites) {
+                if (!s) continue;
+                if (s._eeEditorTrigger) {
+                    const triggerTargets = [];
+                    if (s._eeTriggerSprite) triggerTargets.push(s._eeTriggerSprite);
+                    if (!triggerTargets.length && Array.isArray(s.list)) {
+                        for (const child of s.list) {
+                            if (child && child._eeEditorTriggerSprite) triggerTargets.push(child);
+                        }
+                    }
+                    for (const target of triggerTargets) {
+                        if (target) target.angle += degrees;
+                    }
+                    continue;
+                }
+                s.angle += degrees;
+            }
         }
     }
 
@@ -1816,148 +1951,321 @@ class LevelEditor {
   }
 
 
-  _clearEditorSelection() {
-    if (this._currentSelectedSprites) {
-        for (const spr of this._currentSelectedSprites) {
-            if (!spr) continue;
+  _restoreEditorSelectionTint() {
+    if (!this._currentSelectedSprites) return;
 
-            if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
-                spr.setTint(spr._editorPrevTint);
-            } else {
-                spr.clearTint();
-            }
+    for (const spr of this._currentSelectedSprites) {
+        if (!spr) continue;
 
-            delete spr._editorPrevTint;
+        if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
+            spr.setTint(spr._editorPrevTint);
+        } else {
+            spr.clearTint();
         }
+
+        delete spr._editorPrevTint;
     }
+  }
+
+
+  _getCurrentSelectedEditorObjectIds() {
+    const ids = [];
+    const pushId = (id) => {
+        const parsed = parseInt(id, 10);
+        if (Number.isInteger(parsed) && parsed >= 0 && !ids.includes(parsed)) ids.push(parsed);
+    };
+
+    if (Array.isArray(this._currentSelectedObjectIds)) {
+        this._currentSelectedObjectIds.forEach(pushId);
+    }
+
+    if (!ids.length && window.editorSelectedObject !== -1) {
+        pushId(window.editorSelectedObject);
+    }
+
+    return ids;
+  }
+
+
+  _selectEditorObjectsByIds(objectIds, tint = 0x00ff00) {
+    const previousTintByObjectId = this._currentSelectedTintByObjectId || {};
+    this._restoreEditorSelectionTint();
 
     this._currentSelectedSprites = [];
     this._currentSelectedSprite = null;
+    this._currentSelectedObjectIds = [];
+    this._currentSelectedTintByObjectId = {};
+    window.editorSelectedObject = -1;
+
+    const uniqueIds = [];
+    for (const objectId of objectIds || []) {
+        const parsed = parseInt(objectId, 10);
+        if (!Number.isInteger(parsed) || parsed < 0 || uniqueIds.includes(parsed)) continue;
+        const linkedSprites = this._level?.objectSprites?.[parsed];
+        if (!linkedSprites || !linkedSprites.length) continue;
+        uniqueIds.push(parsed);
+    }
+
+    for (const objectId of uniqueIds) {
+        const linkedSprites = this._level.objectSprites[objectId];
+        const objectTint = previousTintByObjectId[objectId] ?? tint;
+        this._currentSelectedTintByObjectId[objectId] = objectTint;
+
+        for (const spr of linkedSprites) {
+            if (!spr) continue;
+
+            if (spr._editorPrevTint === undefined) {
+                spr._editorPrevTint =
+                    spr.tintTopLeft !== undefined
+                        ? spr.tintTopLeft
+                        : null;
+            }
+
+            spr.setTint(objectTint);
+            this._currentSelectedSprites.push(spr);
+        }
+    }
+
+    this._currentSelectedObjectIds = uniqueIds;
+
+    if (uniqueIds.length) {
+        const firstSprites = this._level.objectSprites[uniqueIds[0]];
+        this._currentSelectedSprite = firstSprites?.[0] || null;
+        window.editorSelectedObject = uniqueIds[0];
+    }
+
+    this._updateEditorActionButtons();
+  }
+
+
+  _clearEditorSelection() {
+    this._restoreEditorSelectionTint();
+
+    this._currentSelectedSprites = [];
+    this._currentSelectedSprite = null;
+    this._currentSelectedObjectIds = [];
+    this._currentSelectedTintByObjectId = {};
     window.editorSelectedObject = -1;
     this._updateEditorActionButtons();
   }
 
 
   _selectEditorObjectByIndex(index) {
-    this._clearEditorSelection();
+    this._selectEditorObjectsByIds([index], 0x00ff00);
+  }
 
-    const linkedSprites = this._level.objectSprites[index];
-    if (!linkedSprites || !linkedSprites.length) return;
 
-    for (const spr of linkedSprites) {
-        if (!spr) continue;
+  _startEditorBoxSelect(pointer) {
+    this._editorBoxSelectActive = true;
+    this._editorBoxSelectMoved = false;
+    this._editorBoxSelectStart = { x: pointer.x, y: pointer.y };
 
-        if (spr._editorPrevTint === undefined) {
-            spr._editorPrevTint =
-                spr.tintTopLeft !== undefined
-                    ? spr.tintTopLeft
-                    : null;
-        }
-
-        spr.setTint(0x00ff00);
-        this._currentSelectedSprites.push(spr);
+    if (!this._editorBoxSelectGraphics || !this._editorBoxSelectGraphics.active) {
+        this._editorBoxSelectGraphics = this.add.graphics().setScrollFactor(0).setDepth(1501);
     }
 
-    this._currentSelectedSprite = linkedSprites[0];
-    window.editorSelectedObject = index;
-    this._updateEditorActionButtons();
+    this._editorBoxSelectGraphics.clear();
+  }
+
+
+  _updateEditorBoxSelect(pointer) {
+    if (!this._editorBoxSelectActive || !this._editorBoxSelectStart) return;
+
+    const start = this._editorBoxSelectStart;
+    const dx = pointer.x - start.x;
+    const dy = pointer.y - start.y;
+
+    if (!this._editorBoxSelectMoved && ((dx * dx) + (dy * dy)) < 16) return;
+    this._editorBoxSelectMoved = true;
+
+    const x = Math.min(start.x, pointer.x);
+    const y = Math.min(start.y, pointer.y);
+    const w = Math.abs(dx);
+    const h = Math.abs(dy);
+
+    const g = this._editorBoxSelectGraphics;
+    if (!g) return;
+    g.clear();
+    g.lineStyle(2, 0x00ff00, 1);
+    g.strokeRect(x, y, w, h);
+  }
+
+
+  _finishEditorBoxSelect(pointer) {
+    const wasActive = !!this._editorBoxSelectActive;
+    const didMove = !!this._editorBoxSelectMoved;
+    const start = this._editorBoxSelectStart;
+
+    this._editorBoxSelectActive = false;
+    this._editorBoxSelectMoved = false;
+    this._editorBoxSelectStart = null;
+
+    if (this._editorBoxSelectGraphics) this._editorBoxSelectGraphics.clear();
+    if (!wasActive || !didMove || !start) return false;
+
+    const rect = {
+        x: Math.min(start.x, pointer.x),
+        y: Math.min(start.y, pointer.y),
+        right: Math.max(start.x, pointer.x),
+        bottom: Math.max(start.y, pointer.y)
+    };
+    rect.width = rect.right - rect.x;
+    rect.height = rect.bottom - rect.y;
+
+    const selectedIds = [];
+    const objectSprites = this._level?.objectSprites || [];
+
+    for (let objectId = objectSprites.length - 1; objectId >= 0; objectId--) {
+        const spriteList = objectSprites[objectId];
+        if (!spriteList || !spriteList.length) continue;
+        if (!this._editorObjectMatchesActiveLayerByObjectId(objectId)) continue;
+
+        let overlaps = false;
+        for (const spr of spriteList) {
+            if (!spr || !spr.active || !spr.visible) continue;
+            const bounds = spr.getBounds ? spr.getBounds() : null;
+            if (!bounds) continue;
+            if (
+                bounds.right >= rect.x &&
+                bounds.x <= rect.right &&
+                bounds.bottom >= rect.y &&
+                bounds.y <= rect.bottom
+            ) {
+                overlaps = true;
+                break;
+            }
+        }
+
+        if (overlaps) selectedIds.unshift(objectId);
+    }
+
+    const mergedIds = this._getCurrentSelectedEditorObjectIds();
+    for (const objectId of selectedIds) {
+        if (!mergedIds.includes(objectId)) mergedIds.push(objectId);
+    }
+
+    this._selectEditorObjectsByIds(mergedIds, 0x00ff00);
+    return true;
   }
 
 
   _duplicateSelectedObject() {
-    const selectedObjectId = window.editorSelectedObject;
-    if (selectedObjectId === -1) return;
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds();
+    if (!selectedObjectIds.length) return;
 
-    const src = this._getEditorSaveObjectForObjectId(selectedObjectId);
-    if (!src) {
-        this._clearEditorSelection();
-        return;
-    }
+    const newObjectIds = [];
 
-    const clone = JSON.parse(JSON.stringify(src));
-    delete clone._eeObjectId;
+    for (const selectedObjectId of selectedObjectIds) {
+        const src = this._getEditorSaveObjectForObjectId(selectedObjectId);
+        if (!src) continue;
 
-    window.levelObjects.push(clone);
-    this._level._spawnObject(clone);
+        const clone = JSON.parse(JSON.stringify(src));
+        delete clone._eeObjectId;
 
-    const newObjectId = Number.isInteger(clone._eeObjectId)
-        ? clone._eeObjectId
-        : Math.max(0, (this._level._nextObjectId || 1) - 1);
-    const newestSprites = this._level.objectSprites[newObjectId];
+        window.levelObjects.push(clone);
+        this._level._spawnObject(clone);
 
-    if (newestSprites && newestSprites.length) {
-        const depthBase = {
-            "-3": -6,
-            "-1": -3,
-            0: 0,
-            1: 3,
-            3: 6,
-            5: 9
-        };
+        const newObjectId = Number.isInteger(clone._eeObjectId)
+            ? clone._eeObjectId
+            : Math.max(0, (this._level._nextObjectId || 1) - 1);
+        const newestSprites = this._level.objectSprites[newObjectId];
 
-        const finalDepth =
-            (depthBase[clone.zLayer] || 0) +
-            (clone.zOrder * 0.01);
+        if (newestSprites && newestSprites.length) {
+            const depthBase = {
+                "-5": -12,
+                "-3": -9,
+                "-1": -6,
+                0: 0,
+                1: 3,
+                3: 6,
+                5: 9,
+                7: 10.5,
+                9: 12,
+                11: 13.5
+            };
 
-        for (const spr of newestSprites) {
-            if (!spr) continue;
+            const finalDepth =
+                (depthBase[clone.zLayer] || 0) +
+                (clone.zOrder * 0.01);
 
-            spr.setDepth((spr._eeZDepth || finalDepth) + 10);
+            for (const spr of newestSprites) {
+                if (!spr) continue;
 
-            if (spr._eeLayer === 2) {
-                if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
-                    this._level.topContainer.add(spr);
+                spr.setDepth((spr._eeZDepth || finalDepth) + 10);
+
+                if (spr._eeLayer === 2) {
+                    if (this._level.topContainer && !this._level.topContainer.exists(spr)) {
+                        this._level.topContainer.add(spr);
+                    }
+                } else if (this._level.container && !this._level.container.exists(spr)) {
+                    this._level.container.add(spr);
                 }
-            } else if (this._level.container && !this._level.container.exists(spr)) {
-                this._level.container.add(spr);
             }
         }
+
+        newObjectIds.push(newObjectId);
     }
 
-    this._selectEditorObjectByIndex(newObjectId);
+    if (newObjectIds.length) {
+        this._selectEditorObjectsByIds(newObjectIds, 0x00ffff);
+    } else {
+        this._clearEditorSelection();
+    }
+
+    this._applyEditorLayerFilter?.();
     this._refreshEditorCollisionCaches();
     this._buildObjectGrid();
   }
 
 
   _deleteSelectedObject() {
-    const selectedObjectId = window.editorSelectedObject;
-    if (selectedObjectId === -1) return;
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds();
+    if (!selectedObjectIds.length) return;
 
-    const saveIndex = this._getEditorSaveIndexForObjectId(selectedObjectId);
+    const selectedIdSet = new Set(selectedObjectIds);
+    const saveIndexes = selectedObjectIds
+        .map(objectId => this._getEditorSaveIndexForObjectId(objectId))
+        .filter(saveIndex => saveIndex !== -1);
 
     this._clearEditorSelection();
 
-    const sprites = this._level.objectSprites[selectedObjectId] || [];
-    for (const spr of sprites) {
-        if (spr && spr.destroy) spr.destroy();
-    }
+    for (const selectedObjectId of selectedObjectIds) {
+        const sprites = this._level.objectSprites[selectedObjectId] || [];
+        for (const spr of sprites) {
+            if (spr && spr.destroy) spr.destroy();
+        }
 
-    if (Array.isArray(this._level.objectSprites)) {
-        this._level.objectSprites[selectedObjectId] = null;
+        if (Array.isArray(this._level.objectSprites)) {
+            this._level.objectSprites[selectedObjectId] = null;
+        }
     }
 
     if (Array.isArray(this._level.objects)) {
         this._level.objects = this._level.objects.filter(collider => {
             if (!collider) return false;
             const objectId = Number.isInteger(collider._eeObjectId) ? collider._eeObjectId : -1;
-            return objectId !== selectedObjectId;
+            return !selectedIdSet.has(objectId);
         });
     }
 
-    if (Array.isArray(window.levelObjects) && saveIndex !== -1) {
-        window.levelObjects[saveIndex] = null;
+    if (Array.isArray(window.levelObjects)) {
+        for (const saveIndex of saveIndexes) {
+            window.levelObjects[saveIndex] = null;
+        }
     }
 
     this._refreshEditorCollisionCaches();
+    this._refreshEditorLayerSelectorVisual?.();
+    this._applyEditorLayerFilter?.();
     this._buildObjectGrid();
     this._updateEditorActionButtons();
   }
 
 
   _updateEditorActionButtons() {
-    const hasSelection = window.editorSelectedObject !== -1;
-    const triggerSelection = this._isSelectedEditorObjectTrigger();
+    const selectedCount = this._getCurrentSelectedEditorObjectIds ? this._getCurrentSelectedEditorObjectIds().length : (window.editorSelectedObject !== -1 ? 1 : 0);
+    const hasSelection = selectedCount > 0;
+    const triggerSelection = selectedCount === 1 && this._isSelectedEditorObjectTrigger();
     const alpha = hasSelection ? 1 : 0.5;
     const editAlpha = triggerSelection ? 1 : 0.5;
 
@@ -1978,6 +2286,17 @@ class LevelEditor {
             this._editObjectBtn.setInteractive();
         } else {
             this._editObjectBtn.disableInteractive();
+        }
+    }
+
+    if (this._editGroupBtnVisual) {
+        this._editGroupBtnVisual.setAlpha(alpha);
+    }
+    if (this._editGroupBtnHit) {
+        if (hasSelection) {
+            this._editGroupBtnHit.setInteractive();
+        } else {
+            this._editGroupBtnHit.disableInteractive();
         }
     }
 
@@ -2101,6 +2420,8 @@ class LevelEditor {
         scale: 1,
         zLayer: objectDef.default_z_layer || 0,
         zOrder: objectDef.default_z_order || 0,
+        editorLayer: this._getCurrentEditorPlacementLayer ? this._getCurrentEditorPlacementLayer() : 0,
+        editorLayer2: 0,
         groups: "",
         color1: 0,
         color2: 0,
@@ -2117,10 +2438,12 @@ class LevelEditor {
             "5": "0",
             "6": "0",
             "21": "0",
+            "20": String(this._getCurrentEditorPlacementLayer ? this._getCurrentEditorPlacementLayer() : 0),
             "22": "0",
             "24": String(objectDef.default_z_layer || 0),
             "25": String(objectDef.default_z_order || 0),
             "32": "1",
+            "61": "0",
             "57": "",
             "kA2": "0",
             "kA3": "0",
@@ -2150,12 +2473,16 @@ class LevelEditor {
 
     if (newestSprites && newestSprites.length) {
         const depthBase = {
-            "-3": -6,
-            "-1": -3,
+            "-5": -12,
+            "-3": -9,
+            "-1": -6,
             0: 0,
             1: 3,
             3: 6,
-            5: 9
+            5: 9,
+            7: 10.5,
+            9: 12,
+            11: 13.5
         };
 
         const finalDepth =
@@ -2179,112 +2506,54 @@ class LevelEditor {
         }
     }
 
-    if (this._currentSelectedSprites) {
-        for (const spr of this._currentSelectedSprites) {
-            if (!spr) continue;
-
-            if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
-                spr.setTint(spr._editorPrevTint);
-            } else {
-                spr.clearTint();
-            }
-
-            delete spr._editorPrevTint;
-        }
-    }
-
-    this._currentSelectedSprites = [];
     if (newestSprites && newestSprites.length) {
-        for (const spr of newestSprites) {
-            if (!spr) continue;
-
-            if (spr._editorPrevTint === undefined) {
-                spr._editorPrevTint =
-                    spr.tintTopLeft !== undefined
-                        ? spr.tintTopLeft
-                        : null;
-            }
-
-            spr.setTint(0x00ff00);
-
-            this._currentSelectedSprites.push(spr);
-        }
-
-        this._currentSelectedSprite = newestSprites[0];
-        window.editorSelectedObject = placedIndex;
+        this._selectEditorObjectsByIds([placedIndex], 0x00ff00);
+    } else {
+        this._clearEditorSelection();
     }
-    this._updateEditorActionButtons();
+    this._refreshEditorLayerSelectorVisual?.();
+    this._applyEditorLayerFilter?.();
+    this._refreshEditorPlaytestGlowVisibility?.();
   }
 
 
-  _selectObjectAtPointer() {
+  _selectObjectAtPointer(addToSelection = false) {
     const pointer = this.input.activePointer;
-
-    if (this._currentSelectedSprites) {
-        for (const spr of this._currentSelectedSprites) {
-            if (!spr) continue;
-
-            if (spr._editorPrevTint !== undefined && spr._editorPrevTint !== null) {
-                spr.setTint(spr._editorPrevTint);
-            } else {
-                spr.clearTint();
-            }
-
-            delete spr._editorPrevTint;
-        }
-    }
-
-    this._currentSelectedSprites = [];
-    this._currentSelectedSprite = null;
-    window.editorSelectedObject = -1;
-
     let foundObjectIndex = -1;
 
     for (let i = this._level.objectSprites.length - 1; i >= 0; i--) {
         const spriteList = this._level.objectSprites[i];
-
         if (!spriteList || !spriteList.length) continue;
+        if (!this._editorObjectMatchesActiveLayerByObjectId(i)) continue;
 
         for (let j = spriteList.length - 1; j >= 0; j--) {
             const spr = spriteList[j];
-
             if (!spr || !spr.active || !spr.visible) continue;
 
             const bounds = spr.getBounds();
-
             if (bounds.contains(pointer.x, pointer.y)) {
                 foundObjectIndex = i;
                 break;
             }
         }
 
-        if (foundObjectIndex !== -1) {
-            break;
-        }
+        if (foundObjectIndex !== -1) break;
     }
 
     if (foundObjectIndex === -1) {
-        return;
-    }
-    const linkedSprites = this._level.objectSprites[foundObjectIndex];
-    if (!linkedSprites || !linkedSprites.length) {
-        return;
-    }
-    for (const spr of linkedSprites) {
-        if (!spr) continue;
-        if (spr._editorPrevTint === undefined) {
-            spr._editorPrevTint =
-                spr.tintTopLeft !== undefined
-                    ? spr.tintTopLeft
-                    : null;
+        if (!(addToSelection || (this._editorTab === "edit" && this._isSwipeEnabled))) {
+            this._clearEditorSelection();
         }
-        spr.setTint(0x00ff00);
-        this._currentSelectedSprites.push(spr);
+        return;
     }
 
-    this._currentSelectedSprite = linkedSprites[0];
-    window.editorSelectedObject = foundObjectIndex;
-    this._updateEditorActionButtons();
+    if (addToSelection || (this._editorTab === "edit" && this._isSwipeEnabled)) {
+        const selectedIds = this._getCurrentSelectedEditorObjectIds();
+        if (!selectedIds.includes(foundObjectIndex)) selectedIds.push(foundObjectIndex);
+        this._selectEditorObjectsByIds(selectedIds, 0x00ff00);
+    } else {
+        this._selectEditorObjectsByIds([foundObjectIndex], 0x00ff00);
+    }
   }
 
 
@@ -2296,6 +2565,7 @@ class LevelEditor {
     for (let i = this._level.objectSprites.length - 1; i >= 0; i--) {
         const spriteList = this._level.objectSprites[i];
         if (!spriteList || !spriteList.length) continue;
+        if (!this._editorObjectMatchesActiveLayerByObjectId(i)) continue;
 
         for (let j = spriteList.length - 1; j >= 0; j--) {
             const spr = spriteList[j];
@@ -2406,6 +2676,11 @@ class LevelEditor {
     if (this._editorObjectOptionsKeyHandler) {
         window.removeEventListener("keydown", this._editorObjectOptionsKeyHandler);
         this._editorObjectOptionsKeyHandler = null;
+    }
+
+    if (this._editorGroupInputPointerDownHandler) {
+        this.input.off("pointerdown", this._editorGroupInputPointerDownHandler);
+        this._editorGroupInputPointerDownHandler = null;
     }
 
     this._closeEditorTriggerChannelPopup();
@@ -4347,14 +4622,25 @@ class LevelEditor {
 
 
   _getSelectedEditorSaveObject() {
-    const selectedObjectId = window.editorSelectedObject;
-    if (selectedObjectId === -1) return null;
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds ? this._getCurrentSelectedEditorObjectIds() : [];
+    const selectedObjectId = selectedObjectIds.length ? selectedObjectIds[0] : window.editorSelectedObject;
+    if (selectedObjectId === -1 || selectedObjectId === undefined || selectedObjectId === null) return null;
     return this._getEditorSaveObjectForObjectId(selectedObjectId);
   }
 
 
+  _getSelectedEditorSaveObjects() {
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds ? this._getCurrentSelectedEditorObjectIds() : [];
+    return selectedObjectIds
+      .map(objectId => this._getEditorSaveObjectForObjectId(objectId))
+      .filter(Boolean);
+  }
+
+
   _isSelectedEditorObjectTrigger() {
-    const saveObj = this._getSelectedEditorSaveObject();
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds ? this._getCurrentSelectedEditorObjectIds() : [];
+    if (selectedObjectIds.length !== 1) return false;
+    const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectIds[0]);
     if (!saveObj) return false;
     const objectDef = getObjectFromId(saveObj.id);
     return !!(objectDef && objectDef.type === triggerType);
@@ -4457,6 +4743,818 @@ class LevelEditor {
   }
 
 
+  _getEditorObjectGroupIds(saveObj) {
+    const values = [];
+    const addRawGroups = (rawGroups) => {
+      String(rawGroups ?? "")
+        .split(".")
+        .map(value => parseInt(value, 10))
+        .filter(value => Number.isFinite(value) && value > 0)
+        .forEach(value => values.push(value));
+    };
+
+    addRawGroups(saveObj?._raw?.[33] ?? saveObj?._raw?.["33"]);
+    addRawGroups(saveObj?._raw?.[57] ?? saveObj?._raw?.["57"]);
+    addRawGroups(saveObj?.groups);
+
+    return [...new Set(values)];
+  }
+
+
+  _syncEditorObjectGroupCaches(saveObj, groupIds = null) {
+    if (!saveObj || !this._level) return;
+
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    const groups = Array.isArray(groupIds) ? groupIds : this._getEditorObjectGroupIds(saveObj);
+    const uniqueGroups = [...new Set(groups.map(value => parseInt(value, 10)).filter(value => Number.isFinite(value) && value > 0))];
+    const sprites = (Number.isInteger(linkedId) && Array.isArray(this._level.objectSprites?.[linkedId]))
+      ? this._level.objectSprites[linkedId].filter(Boolean)
+      : [];
+    const spriteSet = new Set(sprites);
+
+    if (this._level._groupSprites) {
+      for (const gid of Object.keys(this._level._groupSprites)) {
+        const filtered = (this._level._groupSprites[gid] || []).filter(sprite => !spriteSet.has(sprite));
+        if (filtered.length) this._level._groupSprites[gid] = filtered;
+        else delete this._level._groupSprites[gid];
+      }
+    } else {
+      this._level._groupSprites = {};
+    }
+
+    for (const sprite of sprites) {
+      sprite._eeGroups = uniqueGroups.slice();
+      if (sprite._origWorldX === undefined && sprite._eeWorldX !== undefined) sprite._origWorldX = sprite._eeWorldX;
+      if (sprite._origBaseY === undefined && sprite._eeBaseY !== undefined) sprite._origBaseY = sprite._eeBaseY;
+      for (const gid of uniqueGroups) {
+        if (!this._level._groupSprites[gid]) this._level._groupSprites[gid] = [];
+        this._level._groupSprites[gid].push(sprite);
+      }
+      if (this._level._getGroupOpacityForSprite && sprite.setAlpha) {
+        const baseAlpha = sprite._eeOrigAlpha ?? 1;
+        sprite.setAlpha(baseAlpha * this._level._getGroupOpacityForSprite(sprite));
+      }
+    }
+
+    const colliders = Number.isInteger(linkedId) ? this._getEditorCollidersForObjectId(linkedId) : [];
+    for (const collider of colliders) collider._eeGroups = uniqueGroups.slice();
+    this._refreshEditorCollisionCaches();
+
+    const updateTriggerList = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const trigger of list) {
+        if (trigger && trigger.uid === linkedId) trigger.groups = uniqueGroups.slice();
+      }
+    };
+
+    updateTriggerList(this._level._colorTriggers);
+    updateTriggerList(this._level._enterEffectTriggers);
+    updateTriggerList(this._level._moveTriggers);
+    updateTriggerList(this._level._alphaTriggers);
+    updateTriggerList(this._level._rotateTriggers);
+    updateTriggerList(this._level._pulseTriggers);
+    updateTriggerList(this._level._spawnTriggers);
+
+    if (this._level.updateTriggerEditorVisuals) this._level.updateTriggerEditorVisuals();
+  }
+
+
+  _setEditorObjectGroupIds(saveObj, groupIds) {
+    if (!saveObj) return [];
+
+    const groups = [...new Set((Array.isArray(groupIds) ? groupIds : [])
+      .map(value => parseInt(value, 10))
+      .filter(value => Number.isFinite(value) && value > 0))];
+    const groupString = groups.join(".");
+
+    saveObj.groups = groupString;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[57] = groupString;
+    saveObj._raw["57"] = groupString;
+    delete saveObj._raw[33];
+    delete saveObj._raw["33"];
+
+    this._syncEditorObjectGroupCaches(saveObj, groups);
+    return groups;
+  }
+
+
+  _getEditorLayerOptions() {
+    let maxLayer = 0;
+    if (Array.isArray(window.levelObjects)) {
+      for (const obj of window.levelObjects) {
+        if (!obj || !obj.id) continue;
+        const layer1 = this._getEditorObjectEditorLayer(obj);
+        const layer2 = this._getEditorObjectEditorLayer2(obj);
+        if (Number.isFinite(layer1) && layer1 > maxLayer) maxLayer = layer1;
+        if (Number.isFinite(layer2) && layer2 > maxLayer) maxLayer = layer2;
+      }
+    }
+    const options = [null];
+    for (let layer = 0; layer <= maxLayer; layer++) options.push(layer);
+    return options;
+  }
+
+
+  _getCurrentEditorPlacementLayer() {
+    const layer = this._editorActiveLayer;
+    return Number.isInteger(layer) ? layer : 0;
+  }
+
+
+  _getEditorObjectEditorLayer(saveObj) {
+    const rawValue = saveObj?._raw?.[20] ?? saveObj?._raw?.["20"] ?? saveObj?.editorLayer ?? 0;
+    const parsed = parseInt(rawValue, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+
+  _getEditorObjectEditorLayer2(saveObj) {
+    const rawValue = saveObj?._raw?.[61] ?? saveObj?._raw?.["61"] ?? saveObj?.editorLayer2 ?? 0;
+    const parsed = parseInt(rawValue, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+
+  _setEditorObjectEditorLayer(saveObj, value) {
+    if (!saveObj) return;
+    const parsed = parseInt(value ?? 0, 10);
+    const layer = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+    saveObj.editorLayer = layer;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[20] = String(layer);
+    saveObj._raw["20"] = String(layer);
+    this._applyEditorLayerMetadataToObject(saveObj);
+    this._refreshEditorLayerSelectorVisual?.();
+    this._applyEditorLayerFilter();
+  }
+
+
+  _setEditorObjectEditorLayer2(saveObj, value) {
+    if (!saveObj) return;
+    const parsed = parseInt(value ?? 0, 10);
+    const layer = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+    saveObj.editorLayer2 = layer;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[61] = String(layer);
+    saveObj._raw["61"] = String(layer);
+    this._applyEditorLayerMetadataToObject(saveObj);
+    this._refreshEditorLayerSelectorVisual?.();
+    this._applyEditorLayerFilter();
+  }
+
+
+  _applyEditorLayerMetadataToObject(saveObj) {
+    if (!saveObj || !this._level?.objectSprites) return;
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    const sprites = Array.isArray(this._level.objectSprites?.[linkedId]) ? this._level.objectSprites[linkedId] : [];
+    const layer1 = this._getEditorObjectEditorLayer(saveObj);
+    const layer2 = this._getEditorObjectEditorLayer2(saveObj);
+    for (const spr of sprites) {
+      if (!spr) continue;
+      spr._eeEditorLayer = layer1;
+      spr._eeEditorLayer2 = layer2;
+    }
+    const colliders = this._getEditorCollidersForObjectId(linkedId);
+    for (const collider of colliders) {
+      collider._eeEditorLayer = layer1;
+      collider._eeEditorLayer2 = layer2;
+    }
+  }
+
+
+  _editorObjectMatchesActiveLayer(saveObj) {
+    const activeLayer = this._editorActiveLayer;
+    if (activeLayer === null || activeLayer === undefined) return true;
+    if (!saveObj) return false;
+    return this._getEditorObjectEditorLayer(saveObj) === activeLayer ||
+      this._getEditorObjectEditorLayer2(saveObj) === activeLayer;
+  }
+
+
+  _editorObjectMatchesActiveLayerByObjectId(objectId) {
+    return this._editorObjectMatchesActiveLayer(this._getEditorSaveObjectForObjectId(objectId));
+  }
+
+
+  _refreshEditorLayerSelectorVisual() {
+    const options = this._getEditorLayerOptions();
+    this._editorLayerOptions = options;
+    const index = Math.max(0, Math.min(options.length - 1, this._editorActiveLayerIndex || 0));
+    this._editorActiveLayerIndex = index;
+    this._editorActiveLayer = options[index];
+    const value = options[index];
+    if (this._editorLayerInputText?.setText) this._editorLayerInputText.setText(value === null ? "All" : String(value));
+    if (this._editorLayerInputBg) {
+      this._editorLayerInputBg.clear();
+      this._editorLayerInputBg.fillStyle(0x000000, 0.4);
+      this._editorLayerInputBg.fillRoundedRect(-30, -22, 60, 43, 10);
+    }
+  }
+
+
+  _setEditorActiveLayerIndex(index) {
+    const options = this._getEditorLayerOptions();
+    const nextIndex = Math.max(0, Math.min(options.length - 1, parseInt(index ?? 0, 10) || 0));
+    this._editorLayerOptions = options;
+    this._editorActiveLayerIndex = nextIndex;
+    this._editorActiveLayer = options[nextIndex];
+    this._refreshEditorLayerSelectorVisual();
+    this._applyEditorLayerFilter();
+  }
+
+
+  _applyEditorLayerFilter() {
+    if (this._editorPlaytestActive || !this._level?.objectSprites) return;
+
+    const glowVisible = this._level?._isGlowVisible ? this._level._isGlowVisible() : !!window.showEditorGlow;
+
+    for (let objectId = 0; objectId < this._level.objectSprites.length; objectId++) {
+      const sprites = this._level.objectSprites[objectId];
+      if (!sprites || !sprites.length) continue;
+      const matches = this._editorObjectMatchesActiveLayerByObjectId(objectId);
+      const targetAlphaMultiplier = matches ? 1 : 0.25;
+      for (const spr of sprites) {
+        if (!spr) continue;
+        if (spr._editorLayerFilterBaseAlpha === undefined) {
+          spr._editorLayerFilterBaseAlpha = spr.alpha ?? 1;
+        }
+        if (spr._eeIsGlowSprite && !glowVisible) {
+          if (spr?.setVisible) spr.setVisible(false);
+          else spr.visible = false;
+          continue;
+        }
+        if (spr?.setVisible) spr.setVisible(true);
+        else spr.visible = true;
+        if (spr?.setAlpha) spr.setAlpha(spr._editorLayerFilterBaseAlpha * targetAlphaMultiplier);
+        else spr.alpha = spr._editorLayerFilterBaseAlpha * targetAlphaMultiplier;
+      }
+    }
+  }
+
+
+  _getEditorZLayerOptions() {
+    return [
+      { label: "B5", value: -5 },
+      { label: "B4", value: -3 },
+      { label: "B3", value: -1 },
+      { label: "B2", value: 1 },
+      { label: "B1", value: 3 },
+      { label: "T1", value: 5 },
+      { label: "T2", value: 7 },
+      { label: "T3", value: 9 },
+      { label: "T4", value: 11 },
+      { label: "Default", value: 0 }
+    ];
+  }
+
+
+  _getEditorObjectZLayer(saveObj) {
+    const rawValue = saveObj?._raw?.[24] ?? saveObj?._raw?.["24"] ?? saveObj?.zLayer ?? 0;
+    const parsed = parseInt(rawValue, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+
+  _getEditorObjectZOrder(saveObj) {
+    const rawValue = saveObj?._raw?.[25] ?? saveObj?._raw?.["25"] ?? saveObj?.zOrder ?? 0;
+    const parsed = parseInt(rawValue, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+
+  _getEditorZDepth(zLayer, zOrder = 0) {
+    const depthBase = {
+      "-5": -12,
+      "-3": -9,
+      "-1": -6,
+      0: 0,
+      1: 3,
+      3: 6,
+      5: 9,
+      7: 10.5,
+      9: 12,
+      11: 13.5
+    };
+    return (depthBase[zLayer] !== undefined ? depthBase[zLayer] : 0) + zOrder * 0.01;
+  }
+
+
+  _setEditorObjectZLayer(saveObj, zLayer) {
+    if (!saveObj) return;
+
+    const previousLayer = this._getEditorObjectZLayer(saveObj);
+    const zOrder = this._getEditorObjectZOrder(saveObj);
+    const oldBaseDepth = this._getEditorZDepth(previousLayer, zOrder);
+    const nextLayer = parseInt(zLayer ?? 0, 10);
+    const normalizedLayer = Number.isFinite(nextLayer) ? nextLayer : 0;
+    const newBaseDepth = this._getEditorZDepth(normalizedLayer, zOrder);
+
+    saveObj.zLayer = normalizedLayer;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[24] = String(normalizedLayer);
+    saveObj._raw["24"] = String(normalizedLayer);
+
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    const sprites = Array.isArray(this._level?.objectSprites?.[linkedId]) ? this._level.objectSprites[linkedId] : [];
+
+    for (const spr of sprites) {
+      if (!spr) continue;
+      const offset = Number.isFinite(spr._eeZDepth) ? spr._eeZDepth - oldBaseDepth : 0;
+      const nextDepth = newBaseDepth + offset;
+      spr._eeZDepth = nextDepth;
+      if (spr.setDepth) spr.setDepth(nextDepth);
+      else spr.depth = nextDepth;
+    }
+  }
+
+
+  _setEditorObjectZOrder(saveObj, zOrder) {
+    if (!saveObj) return;
+
+    const zLayer = this._getEditorObjectZLayer(saveObj);
+    const previousOrder = this._getEditorObjectZOrder(saveObj);
+    const oldBaseDepth = this._getEditorZDepth(zLayer, previousOrder);
+    const parsed = parseInt(zOrder ?? 0, 10);
+    const normalizedOrder = Number.isFinite(parsed) ? parsed : 0;
+    const newBaseDepth = this._getEditorZDepth(zLayer, normalizedOrder);
+
+    saveObj.zOrder = normalizedOrder;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[25] = String(normalizedOrder);
+    saveObj._raw["25"] = String(normalizedOrder);
+
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    const sprites = Array.isArray(this._level?.objectSprites?.[linkedId]) ? this._level.objectSprites[linkedId] : [];
+
+    for (const spr of sprites) {
+      if (!spr) continue;
+      const offset = Number.isFinite(spr._eeZDepth) ? spr._eeZDepth - oldBaseDepth : 0;
+      const nextDepth = newBaseDepth + offset;
+      spr._eeZDepth = nextDepth;
+      if (spr.setDepth) spr.setDepth(nextDepth);
+      else spr.depth = nextDepth;
+    }
+  }
+
+
+  _openSelectedEditorGroupPopup() {
+    const saveObj = this._getSelectedEditorSaveObject();
+    if (!saveObj) return;
+    const selectedSaveObjs = (this._getSelectedEditorSaveObjects ? this._getSelectedEditorSaveObjects() : [saveObj]).filter(Boolean);
+    if (!selectedSaveObjs.length) selectedSaveObjs.push(saveObj);
+
+    this._closeEditorObjectOptionsPopup();
+
+    const sw = screenWidth;
+    const sh = screenHeight;
+    const panelW = Math.min(860, sw - 60);
+    const panelH = Math.max(615, sh - 80);
+    const root = this.add.container(0, 0).setScrollFactor(0).setDepth(2550);
+    this._editorObjectOptionsPopup = root;
+
+    const blocker = this.add.rectangle(0, 0, sw, sh, 0x000000, 0.45).setOrigin(0).setInteractive();
+    root.add(blocker);
+
+    const inner = this.add.container(sw / 2, sh / 2);
+    root.add(inner);
+
+    const corner = this.textures.exists("GJ_square01") ? this.textures.get("GJ_square01").source[0].width * 0.325 : 24;
+    inner.add(this._drawScale9(0, 0, panelW, panelH, "GJ_square01", corner, 0xffffff, 1));
+
+    const stopInputEvent = (event) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      event?.stopImmediatePropagation?.();
+    };
+
+    const buttonTexture = this.textures.exists("GJ_button_04")
+      ? "GJ_button_04"
+      : (this.textures.exists("GJ_button04") ? "GJ_button04" : "GJ_button01");
+    const buttonBorder = this.textures.exists(buttonTexture) ? this.textures.get(buttonTexture).source[0].width * 0.28 : 22;
+
+    const makeGoldButton = (parent, x, y, w, h, text, fontSize, callback, textureOverride = null) => {
+      const grp = this.add.container(x, y);
+      const textureKey = textureOverride || buttonTexture;
+      const textureBorder = this.textures.exists(textureKey) ? this.textures.get(textureKey).source[0].width * 0.28 : buttonBorder;
+      const bg = this.add.nineslice(0, 0, textureKey, null, w, h, textureBorder, textureBorder, textureBorder, textureBorder).setOrigin(0.5);
+      const label = this.add.bitmapText(-3, -4, "goldFont", text, fontSize).setOrigin(0.5);
+      const hit = this.add.zone(0, 0, w, h).setInteractive();
+      grp.add([bg, label, hit]);
+      parent.add(grp);
+      this._makeCompositeBouncyButton(hit, [grp], 1, callback);
+      return { root: grp, hit, label, bg };
+    };
+
+    const numericInputs = [];
+    const inputW = 92;
+    const inputH = 58;
+    const inputRadius = 10;
+
+    const blurAllNumericInputs = (commit = false) => {
+      for (const entry of numericInputs) entry.blur(commit);
+    };
+
+    const makeNumericInput = ({ x, y, label, arrowFrame, initialValue, min = 0, max = 9999, allowNegative = false, onCommit }) => {
+      inner.add(this.add.bitmapText(x, y - 52, "goldFont", label, 28).setOrigin(0.5));
+
+      const bg = this.add.graphics();
+      const text = this.add.bitmapText(x, y, "bigFont", "", 32).setOrigin(0.5).setTint(0xffffff);
+      const hit = this.add.rectangle(x, y, inputW, inputH + 4, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+      const leftArrow = this.add.image(x - 82, y + 1, "GJ_GameSheet03", arrowFrame).setScale(0.7).setInteractive();
+      const rightArrow = this.add.image(x + 82, y + 1, "GJ_GameSheet03", arrowFrame).setScale(0.7).setFlipX(true).setInteractive();
+      inner.add([bg, text, hit, leftArrow, rightArrow]);
+
+      let focused = false;
+      let valueText = String(initialValue ?? 0);
+      let beforeFocus = valueText;
+
+      const normalize = (raw) => {
+        const parsed = parseInt(raw, 10);
+        let next = Number.isFinite(parsed) ? parsed : 0;
+        if (!allowNegative) next = Math.max(min, next);
+        else next = Math.max(min, next);
+        next = Math.min(max, next);
+        return next;
+      };
+
+      const render = () => {
+        bg.clear();
+        bg.fillStyle(0x000000, 0.43);
+        bg.fillRoundedRect(x - inputW / 2, y - inputH / 2, inputW, inputH, inputRadius);
+        text.setText(`${focused ? valueText : String(normalize(valueText))}${focused ? "|" : ""}`);
+      };
+
+      const commit = () => {
+        const next = normalize(valueText);
+        valueText = String(next);
+        onCommit?.(next);
+        render();
+      };
+
+      const setValue = (value, commitValue = true) => {
+        valueText = String(normalize(value));
+        if (commitValue) onCommit?.(normalize(valueText));
+        render();
+      };
+
+      const blur = (commitValue = false) => {
+        if (!focused) return;
+        if (commitValue) commit();
+        focused = false;
+        if (!numericInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+
+      const cancel = () => {
+        if (!focused) return;
+        valueText = beforeFocus;
+        focused = false;
+        if (!numericInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+
+      const focus = (pointer) => {
+        blurAllNumericInputs(true);
+        beforeFocus = valueText;
+        focused = true;
+        this._editorTextInputFocused = true;
+        render();
+        stopInputEvent(pointer?.event);
+      };
+
+      const isInside = (pointer) => {
+        const inputScreenX = (sw / 2) + x;
+        const inputScreenY = (sh / 2) + y;
+        return Math.abs(pointer.x - inputScreenX) <= inputW / 2 &&
+          Math.abs(pointer.y - inputScreenY) <= (inputH + 4) / 2;
+      };
+
+      const stepValue = (delta) => {
+        blur(true);
+        setValue(normalize(valueText) + delta, true);
+      };
+
+      hit.on("pointerdown", focus);
+      this._makeBouncyButton(leftArrow, 0.7, () => stepValue(-1));
+      this._makeBouncyButton(rightArrow, 0.7, () => stepValue(1));
+
+      const entry = {
+        hit,
+        focused: () => focused,
+        blur,
+        cancel,
+        isInside,
+        handleKey: (event) => {
+          if (!focused) return false;
+          if (event.key === "Enter") {
+            blur(true);
+          } else if (event.key === "Backspace") {
+            valueText = valueText.slice(0, -1);
+            render();
+          } else if (allowNegative && event.key === "-" && valueText.length === 0) {
+            valueText = "-";
+            render();
+          } else if (/^[0-9]$/.test(event.key) && valueText.length < 5) {
+            valueText += event.key;
+            render();
+          } else if (event.key.length !== 1) {
+            return false;
+          }
+          return true;
+        },
+        getValue: () => normalize(valueText),
+        setValue
+      };
+
+      numericInputs.push(entry);
+      render();
+      return entry;
+    };
+
+    const topInputY = -(panelH / 2) + 85;
+    const topGap = 230;
+    makeNumericInput({
+      x: -topGap,
+      y: topInputY,
+      label: "Editor L",
+      arrowFrame: "GJ_arrow_02_001.png",
+      initialValue: this._getEditorObjectEditorLayer(saveObj),
+      min: 0,
+      max: 999,
+      onCommit: (value) => this._setEditorObjectEditorLayer(saveObj, value)
+    });
+    makeNumericInput({
+      x: 0,
+      y: topInputY,
+      label: "Editor L2",
+      arrowFrame: "GJ_arrow_03_001.png",
+      initialValue: this._getEditorObjectEditorLayer2(saveObj),
+      min: 0,
+      max: 999,
+      onCommit: (value) => this._setEditorObjectEditorLayer2(saveObj, value)
+    });
+    makeNumericInput({
+      x: topGap,
+      y: topInputY,
+      label: "Z Order",
+      arrowFrame: "GJ_arrow_02_001.png",
+      initialValue: this._getEditorObjectZOrder(saveObj),
+      min: -999,
+      max: 999,
+      allowNegative: true,
+      onCommit: (value) => this._setEditorObjectZOrder(saveObj, value)
+    });
+
+    const controlY = topInputY + 110;
+    const controlX = 0;
+    inner.add(this.add.bitmapText(controlX, controlY - 52, "goldFont", "Add Group ID", 32).setOrigin(0.5));
+
+    let groupInputValue = 1;
+    const groupInput = makeNumericInput({
+      x: controlX,
+      y: controlY,
+      label: "",
+      arrowFrame: "GJ_arrow_01_001.png",
+      initialValue: 1,
+      min: 1,
+      max: 9999,
+      onCommit: (value) => { groupInputValue = value; }
+    });
+
+    const getInputGroup = () => {
+      const parsed = parseInt(groupInput.getValue() || groupInputValue || 1, 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    };
+
+    const setInputGroup = (value) => {
+      groupInput.setValue(value, true);
+      groupInputValue = groupInput.getValue();
+    };
+
+    const getNextFreeGroupId = () => {
+      const usedGroups = new Set();
+
+      const addUsedGroup = (value) => {
+        const groupId = parseInt(value ?? 0, 10);
+        if (Number.isFinite(groupId) && groupId > 0) usedGroups.add(groupId);
+      };
+
+      const addTriggerTargetGroups = (obj) => {
+        if (!obj) return;
+        const id = parseInt(obj.id ?? 0, 10);
+        const raw = obj._raw || {};
+        if ([901, 1007, 1268, 1346].includes(id)) {
+          addUsedGroup(raw[51] ?? raw["51"]);
+        }
+        if (id === 1346) {
+          addUsedGroup(raw[71] ?? raw["71"]);
+        }
+        if (id === 1006) {
+          const targetType = parseInt(raw[52] ?? raw["52"] ?? 0, 10);
+          if (targetType === 1) addUsedGroup(raw[51] ?? raw["51"]);
+        }
+      };
+
+      if (Array.isArray(window.levelObjects)) {
+        for (const obj of window.levelObjects) {
+          if (!obj) continue;
+          for (const groupId of this._getEditorObjectGroupIds(obj)) {
+            addUsedGroup(groupId);
+          }
+          addTriggerTargetGroups(obj);
+        }
+      }
+
+      let candidate = 1;
+      while (usedGroups.has(candidate)) candidate++;
+      return candidate;
+    };
+
+    makeGoldButton(inner, controlX - 240, controlY, 140, 50, "Next Free", 20, () => {
+      blurAllNumericInputs(true);
+      setInputGroup(getNextFreeGroupId());
+    });
+    makeGoldButton(inner, controlX + 205, controlY, 140, 50, "Add", 34, () => addCurrentGroup());
+
+    const listW = panelW - 110;
+    const listH = 145;
+    const listX = 0;
+    const listY = controlY + 60 + listH / 2;
+    const listBg = this.add.graphics();
+    listBg.fillStyle(0x000000, 0.2);
+    listBg.fillRoundedRect(listX - listW / 2, listY - listH / 2, listW, listH, 20);
+    inner.add(listBg);
+
+    const listContainer = this.add.container(listX, listY - listH / 2 + 34);
+    inner.add(listContainer);
+
+    const getSelectedGroupObjects = () => {
+      const objects = (this._getSelectedEditorSaveObjects ? this._getSelectedEditorSaveObjects() : selectedSaveObjs).filter(Boolean);
+      return objects.length ? objects : selectedSaveObjs;
+    };
+
+    const getGroupEntries = () => {
+      const objects = getSelectedGroupObjects();
+      const counts = new Map();
+      for (const obj of objects) {
+        for (const groupId of this._getEditorObjectGroupIds(obj)) {
+          counts.set(groupId, (counts.get(groupId) || 0) + 1);
+        }
+      }
+      return {
+        objects,
+        total: objects.length,
+        entries: [...counts.entries()]
+          .map(([groupId, count]) => ({ groupId, count, partial: count < objects.length }))
+          .sort((a, b) => a.groupId - b.groupId)
+      };
+    };
+
+    const renderGroupList = () => {
+      listContainer.removeAll(true);
+      const { objects, total, entries } = getGroupEntries();
+
+      if (!entries.length || !objects.length || !total) return;
+
+      const columns = 5;
+      const gapX = 16;
+      const gapY = 14;
+      const btnW = 100;
+      const btnH = 40;
+      const startX = -((columns - 1) * (btnW + gapX)) / 2;
+      const startY = 10;
+      const maxButtons = 10;
+      const visibleGroups = entries.slice(0, maxButtons);
+
+      const partialButtonTexture = this.textures.exists("GJ_button_05")
+        ? "GJ_button_05"
+        : (this.textures.exists("GJ_button05") ? "GJ_button05" : buttonTexture);
+
+      visibleGroups.forEach((entry, index) => {
+        const groupId = entry.groupId;
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = startX + col * (btnW + gapX);
+        const y = startY + row * (btnH + gapY);
+        makeGoldButton(listContainer, x, y, btnW, btnH, String(groupId), 28, () => {
+          for (const obj of getSelectedGroupObjects()) {
+            const nextGroups = this._getEditorObjectGroupIds(obj).filter(id => id !== groupId);
+            this._setEditorObjectGroupIds(obj, nextGroups);
+          }
+          this._applyEditorLayerFilter?.();
+          renderGroupList();
+        }, entry.partial ? partialButtonTexture : buttonTexture);
+      });
+    };
+
+    const addCurrentGroup = () => {
+      blurAllNumericInputs(true);
+      const newGroup = getInputGroup();
+      const { objects, entries } = getGroupEntries();
+      if (!objects.length) return;
+      const existingEntry = entries.find(entry => entry.groupId === newGroup);
+      if (existingEntry && existingEntry.count >= objects.length) return;
+
+      for (const obj of objects) {
+        const groups = this._getEditorObjectGroupIds(obj);
+        if (!groups.includes(newGroup)) groups.push(newGroup);
+        groups.sort((a, b) => a - b);
+        this._setEditorObjectGroupIds(obj, groups);
+      }
+
+      this._applyEditorLayerFilter?.();
+      setInputGroup(newGroup);
+      renderGroupList();
+    };
+
+    const selectedLayerTexture = this.textures.exists("GJ_button_02") ? "GJ_button_02" : (this.textures.exists("GJ_button02") ? "GJ_button02" : buttonTexture);
+    const layerDeselectedTexture = buttonTexture;
+    const zLayerTitleY = listY + (listH / 2) + 30;
+    const zLayerButtonY = zLayerTitleY + 55;
+    const zLayerButtons = [];
+
+    inner.add(this.add.bitmapText(0, zLayerTitleY, "goldFont", "Z Layer", 34).setOrigin(0.5));
+
+    const makeZLayerButton = (x, y, w, h, label, value) => {
+      const grp = this.add.container(x, y);
+      const bg = this.add.nineslice(0, 0, layerDeselectedTexture, null, w, h, buttonBorder, buttonBorder, buttonBorder, buttonBorder).setOrigin(0.5);
+      const fontSize = label === "Default" ? 20 : 23;
+      const text = this.add.bitmapText(-2, -2, "bigFont", label, fontSize).setOrigin(0.5).setTint(0xffffff);
+      const hit = this.add.zone(0, 0, w, h).setInteractive();
+      grp.add([bg, text, hit]);
+      inner.add(grp);
+
+      const entry = { root: grp, bg, text, hit, value, w, h };
+      zLayerButtons.push(entry);
+      this._makeCompositeBouncyButton(hit, [grp], 1, () => {
+        blurAllNumericInputs(true);
+        this._setEditorObjectZLayer(saveObj, value);
+        refreshZLayerButtons();
+      });
+      return entry;
+    };
+
+    const refreshZLayerButtons = () => {
+      const currentLayer = this._getEditorObjectZLayer(saveObj);
+      for (const entry of zLayerButtons) {
+        const selected = entry.value === currentLayer;
+        const nextTexture = selected ? selectedLayerTexture : layerDeselectedTexture;
+        if (entry.bg?.setTexture) entry.bg.setTexture(nextTexture);
+        if (entry.text?.setTint) entry.text.setTint(0xffffff);
+      }
+    };
+
+    const squareLayerH = 48;
+    const layerGapX = 10;
+    const layerOptions = this._getEditorZLayerOptions();
+    const defaultLayerW = 132;
+    const layerUsableW = panelW - 92;
+    const squareLayerW = Math.max(54, Math.floor((layerUsableW - defaultLayerW - layerGapX * (layerOptions.length - 1)) / (layerOptions.length - 1)));
+    const layerWidths = layerOptions.map(option => option.label === "Default" ? defaultLayerW : squareLayerW);
+    const layerTotalW = layerWidths.reduce((sum, value) => sum + value, 0) + layerGapX * (layerWidths.length - 1);
+    let layerX = -layerTotalW / 2;
+    layerOptions.forEach((option, index) => {
+      const w = layerWidths[index];
+      makeZLayerButton(layerX + w / 2, zLayerButtonY, w, squareLayerH, option.label, option.value);
+      layerX += w + layerGapX;
+    });
+
+    this._editorGroupInputPointerDownHandler = (pointer) => {
+      if (!this._editorObjectOptionsPopup) return;
+      const focusedInput = numericInputs.find(entry => entry.focused());
+      if (!focusedInput) return;
+      if (focusedInput.isInside(pointer)) return;
+      focusedInput.blur(true);
+    };
+    this.input.on("pointerdown", this._editorGroupInputPointerDownHandler);
+
+    this._editorObjectOptionsKeyHandler = (event) => {
+      if (!this._editorObjectOptionsPopup) return;
+
+      if (event.key === "Escape") {
+        const focusedInput = numericInputs.find(entry => entry.focused());
+        if (focusedInput) focusedInput.cancel();
+        else this._closeEditorObjectOptionsPopup();
+        stopInputEvent(event);
+        return;
+      }
+
+      const focusedInput = numericInputs.find(entry => entry.focused());
+      if (!focusedInput) return;
+
+      if (focusedInput.handleKey(event)) stopInputEvent(event);
+    };
+    window.addEventListener("keydown", this._editorObjectOptionsKeyHandler);
+
+    renderGroupList();
+    refreshZLayerButtons();
+    this._makeEditorOkButton(inner, 0, (panelH / 2) - 46, "OK", () => {
+      blurAllNumericInputs(true);
+      this._closeEditorObjectOptionsPopup();
+    });
+  }
+
   _openSelectedEditorObjectOptions() {
     const saveObj = this._getSelectedEditorSaveObject();
     if (!saveObj) return;
@@ -4466,6 +5564,10 @@ class LevelEditor {
 
     if (this._isEditorColorTriggerId(saveObj.id)) {
         this._openEditorColorTriggerOptionsPopup(saveObj);
+    } else if (this._isEditorMoveTriggerId(saveObj.id)) {
+        this._openEditorMoveTriggerOptionsPopup(saveObj);
+    } else if (this._isEditorSpawnTriggerId(saveObj.id)) {
+        this._openEditorSpawnTriggerOptionsPopup(saveObj);
     } else if (this._isEditorStartPositionId(saveObj.id)) {
         this._openEditorStartPositionOptionsPopup(saveObj);
     } else if (this._isEditorTextObjectId(saveObj.id)) {
@@ -4473,6 +5575,907 @@ class LevelEditor {
     } else {
         this._openEditorComingSoonTriggerPopup(saveObj);
     }
+  }
+
+
+  _isEditorMoveTriggerId(id) {
+    return parseInt(id ?? 0, 10) === 901;
+  }
+
+
+  _isEditorSpawnTriggerId(id) {
+    return parseInt(id ?? 0, 10) === 1268;
+  }
+
+
+  _getEditorTriggerTargetGroup(saveObj) {
+    const raw = saveObj?._raw || {};
+    const parsed = parseInt(raw[51] ?? raw["51"] ?? 0, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+
+  _setEditorTriggerTargetGroup(saveObj, value) {
+    if (!saveObj) return;
+    const parsed = parseInt(value ?? 0, 10);
+    const targetGroup = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[51] = String(targetGroup);
+    saveObj._raw["51"] = String(targetGroup);
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    const updateList = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const trigger of list) {
+        if (trigger && trigger.uid === linkedId) trigger.targetGroup = targetGroup;
+      }
+    };
+    updateList(this._level?._moveTriggers);
+    updateList(this._level?._alphaTriggers);
+    updateList(this._level?._rotateTriggers);
+    updateList(this._level?._pulseTriggers);
+    updateList(this._level?._spawnTriggers);
+    this._refreshSelectedTriggerTargetLabel();
+    this._level?.updateTriggerEditorVisuals?.();
+  }
+
+
+  _getEditorTriggerBool(saveObj, key) {
+    const raw = saveObj?._raw || {};
+    return String(raw[key] ?? raw[String(key)] ?? "0") === "1";
+  }
+
+
+  _setEditorTriggerBool(saveObj, key, enabled) {
+    if (!saveObj) return;
+    const rawKey = String(key);
+    const boolValue = enabled ? "1" : "0";
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[key] = boolValue;
+    saveObj._raw[rawKey] = boolValue;
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    const updateList = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const trigger of list) {
+        if (!trigger || trigger.uid !== linkedId) continue;
+        if (rawKey === "11") trigger.touchTriggered = !!enabled;
+        if (rawKey === "62") trigger.spawnTriggered = !!enabled;
+        if (rawKey === "58") trigger.lockX = !!enabled;
+        if (rawKey === "59") trigger.lockY = !!enabled;
+        if (rawKey === "302") trigger.lockCameraX = !!enabled;
+        if (rawKey === "303") trigger.lockCameraY = !!enabled;
+      }
+    };
+    updateList(this._level?._colorTriggers);
+    updateList(this._level?._enterEffectTriggers);
+    updateList(this._level?._moveTriggers);
+    updateList(this._level?._alphaTriggers);
+    updateList(this._level?._rotateTriggers);
+    updateList(this._level?._pulseTriggers);
+    updateList(this._level?._spawnTriggers);
+    this._level?.updateTriggerEditorVisuals?.();
+  }
+
+
+  _getEditorMoveTriggerOffset(saveObj, key) {
+    const raw = saveObj?._raw || {};
+    const parsed = parseFloat(raw[key] ?? raw[String(key)] ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+
+  _setEditorMoveTriggerOffset(saveObj, key, value) {
+    if (!saveObj) return;
+    const rawKey = String(key);
+    const parsed = parseFloat(value ?? 0);
+    const offset = Number.isFinite(parsed) ? parsed : 0;
+    const formatted = String(Number(offset.toFixed(2))).replace(/\.0$/, "");
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[key] = formatted;
+    saveObj._raw[rawKey] = formatted;
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    if (Array.isArray(this._level?._moveTriggers)) {
+      for (const trigger of this._level._moveTriggers) {
+        if (!trigger || trigger.uid !== linkedId) continue;
+        if (rawKey === "28") trigger.offsetX = offset * 2;
+        if (rawKey === "29") trigger.offsetY = offset * 2;
+      }
+    }
+  }
+
+
+  _getEditorMoveTriggerDuration(saveObj) {
+    const raw = saveObj?._raw || {};
+    const parsed = parseFloat(raw[10] ?? raw["10"] ?? 0);
+    return Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, 0, 10);
+  }
+
+
+  _setEditorMoveTriggerDuration(saveObj, value) {
+    if (!saveObj) return;
+    const parsed = parseFloat(value ?? 0);
+    const duration = Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, 0, 10);
+    const formatted = String(Number(duration.toFixed(2))).replace(/\.0$/, "");
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[10] = formatted;
+    saveObj._raw["10"] = formatted;
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    if (Array.isArray(this._level?._moveTriggers)) {
+      for (const trigger of this._level._moveTriggers) {
+        if (trigger && trigger.uid === linkedId) trigger.duration = duration;
+      }
+    }
+  }
+
+
+  _getEditorSpawnTriggerDelay(saveObj) {
+    const raw = saveObj?._raw || {};
+    const parsed = parseFloat(raw[63] ?? raw["63"] ?? 0);
+    return Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+  }
+
+
+  _setEditorSpawnTriggerDelay(saveObj, value) {
+    if (!saveObj) return;
+    const parsed = parseFloat(value ?? 0);
+    const delay = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+    const formatted = String(Number(delay.toFixed(4))).replace(/\.0$/, "");
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[63] = formatted;
+    saveObj._raw["63"] = formatted;
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    if (Array.isArray(this._level?._spawnTriggers)) {
+      for (const trigger of this._level._spawnTriggers) {
+        if (trigger && trigger.uid === linkedId) trigger.delay = delay;
+      }
+    }
+  }
+
+
+  _getEditorSpawnTriggerRandomDelay(saveObj) {
+    const raw = saveObj?._raw || {};
+    const parsed = parseFloat(raw[556] ?? raw["556"] ?? 0);
+    return Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+  }
+
+
+  _setEditorSpawnTriggerRandomDelay(saveObj, value) {
+    if (!saveObj) return;
+    const parsed = parseFloat(value ?? 0);
+    const randomDelay = Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, 0, 9999);
+    const formatted = String(Number(randomDelay.toFixed(4))).replace(/\.0$/, "");
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[556] = formatted;
+    saveObj._raw["556"] = formatted;
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : window.editorSelectedObject;
+    if (Array.isArray(this._level?._spawnTriggers)) {
+      for (const trigger of this._level._spawnTriggers) {
+        if (trigger && trigger.uid === linkedId) trigger.randomDelay = randomDelay;
+      }
+    }
+  }
+
+
+  _openEditorMoveTriggerOptionsPopup(saveObj) {
+    if (!saveObj) return;
+    this._closeEditorObjectOptionsPopup();
+
+    const sw = screenWidth;
+    const sh = screenHeight;
+    const panelW = 940;
+    const panelH = 620;
+    const root = this.add.container(0, 0).setScrollFactor(0).setDepth(2550);
+    this._editorObjectOptionsPopup = root;
+
+    const blocker = this.add.rectangle(0, 0, sw, sh, 0x000000, 0.45).setOrigin(0).setInteractive();
+    root.add(blocker);
+
+    const inner = this.add.container(sw / 2, sh / 2 + 6);
+    root.add(inner);
+
+    const corner = this.textures.exists("GJ_square01") ? this.textures.get("GJ_square01").source[0].width * 0.325 : 24;
+    inner.add(this._drawScale9(0, 0, panelW, panelH, "GJ_square01", corner, 0xffffff, 1));
+    inner.add(this.add.bitmapText(0, -(panelH / 2) + 50, "bigFont", "Setup Move Command", 42).setOrigin(0.5));
+
+    const focusedInputs = [];
+    const stopInputEvent = (event) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      event?.stopImmediatePropagation?.();
+    };
+    const blurAll = (commit = false) => focusedInputs.forEach(input => input.blur(commit));
+    const formatValue = (value, decimals = 2) => String(Number((Number(value) || 0).toFixed(decimals))).replace(/\.0$/, "");
+
+    const makeStepperInput = ({ x, y, label, getValue, setValue, min = 0, max = 9999, allowNegative = false }) => {
+      inner.add(this.add.bitmapText(x, y - 56, "goldFont", label, 27).setOrigin(0.5));
+      const inputW = 102;
+      const inputH = 58;
+      const bg = this.add.graphics();
+      const text = this.add.bitmapText(x, y, "bigFont", "", 32).setOrigin(0.5).setTint(0xffffff);
+      const hit = this.add.rectangle(x, y, inputW, inputH + 4, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+      const leftArrow = this.add.image(x - 88, y + 1, "GJ_GameSheet03", "edit_leftBtn_001.png").setScale(0.9).setInteractive();
+      const rightArrow = this.add.image(x + 88, y + 1, "GJ_GameSheet03", "edit_leftBtn_001.png").setScale(0.9).setFlipX(true).setInteractive();
+      inner.add([bg, text, hit, leftArrow, rightArrow]);
+      let focused = false;
+      let valueText = String(getValue());
+      let beforeFocus = valueText;
+      const normalize = (raw) => {
+        const parsed = parseInt(raw, 10);
+        let next = Number.isFinite(parsed) ? parsed : 0;
+        next = Math.max(min, next);
+        return Math.min(max, next);
+      };
+      const render = () => {
+        bg.clear();
+        bg.fillStyle(0x000000, 0.43);
+        bg.fillRoundedRect(x - inputW / 2, y - inputH / 2, inputW, inputH, 10);
+        if (!focused) valueText = String(normalize(getValue()));
+        text.setText(`${focused ? valueText : String(normalize(getValue()))}${focused ? "|" : ""}`);
+      };
+      const commit = () => { setValue(normalize(valueText)); render(); };
+      const blur = (commitValue = false) => {
+        if (!focused) return;
+        if (commitValue) commit();
+        focused = false;
+        if (!focusedInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+      const cancel = () => {
+        if (!focused) return;
+        valueText = beforeFocus;
+        focused = false;
+        if (!focusedInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+      const focus = (pointer) => {
+        blurAll(true);
+        valueText = String(normalize(getValue()));
+        beforeFocus = valueText;
+        focused = true;
+        this._editorTextInputFocused = true;
+        render();
+        stopInputEvent(pointer?.event);
+      };
+      const isInside = (pointer) => Math.abs(pointer.x - (sw / 2 + x)) <= inputW / 2 && Math.abs(pointer.y - (sh / 2 + 6 + y)) <= (inputH + 4) / 2;
+      const stepValue = (delta) => { blur(true); setValue(normalize(getValue()) + delta); render(); };
+      hit.on("pointerdown", focus);
+      this._makeBouncyButton(leftArrow, 0.9, () => stepValue(-1));
+      this._makeBouncyButton(rightArrow, 0.9, () => stepValue(1));
+      const entry = {
+        focused: () => focused,
+        blur,
+        cancel,
+        isInside,
+        handleKey: (event) => {
+          if (!focused) return false;
+          if (event.key === "Enter") blur(true);
+          else if (event.key === "Backspace") { valueText = valueText.slice(0, -1); render(); }
+          else if (allowNegative && event.key === "-" && valueText.length === 0) { valueText = "-"; render(); }
+          else if (/^[0-9]$/.test(event.key) && valueText.length < 5) { valueText += event.key; render(); }
+          else if (event.key.length !== 1) return false;
+          return true;
+        },
+        render
+      };
+      focusedInputs.push(entry);
+      render();
+      return entry;
+    };
+
+    const makeSliderInput = ({ x, y, label, min, max, getValue, setValue, labelStyle = "gold", layout = "vertical", width = 300 }) => {
+      const inputW = 118;
+      const inputH = 50;
+      const isHorizontal = layout === "horizontal";
+      const isTime = layout === "time";
+      const inputX = isHorizontal ? x - 250 : x + 90;
+      const inputY = y;
+      const sliderX = isHorizontal ? x - 100 : x;
+      const sliderY = isHorizontal ? y : y + 50;
+      const labelX = isHorizontal ? x - 420 : (isTime ? x - 165 : x);
+      const labelY = (isHorizontal || isTime) ? inputY : y - 55;
+      
+      const labelObj = labelStyle === "helvetica"
+        ? this.add.text(labelX, labelY, label, { fontFamily: "Helvetica, Arial, sans-serif", fontSize: "24px", color: "#ffffff" }).setOrigin((isHorizontal || isTime) ? 0 : 0.5, 0.5)
+        : this.add.bitmapText(labelX, labelY, "goldFont", label, 32).setOrigin((isHorizontal || isTime) ? 0 : 0.5, 0.5);
+      
+      inner.add(labelObj);
+      
+      const inputBg = this.add.graphics();
+      const inputText = this.add.bitmapText(inputX, inputY, "bigFont", "", 28).setOrigin(0.5).setTint(0xffffff);
+      const inputHit = this.add.rectangle(inputX, inputY, inputW + 8, inputH + 8, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+      
+      const grooveFrame = this.textures.getFrame("GJ_WebSheet", "slidergroove.png");
+      const grooveH = grooveFrame ? grooveFrame.height : 34;
+      
+      const sliderScale = 0.7;
+      const sliderW = (width - 8) * sliderScale; 
+      const sliderStartX = sliderX - sliderW / 2 + 2;
+      const sliceEdge = 16; 
+      
+      const sliderGroove = this.add.nineslice(
+          sliderX, sliderY, 
+          "GJ_WebSheet", "slidergroove.png", 
+          width, grooveH, 
+          sliceEdge, sliceEdge, 0, 0
+      ).setScale(sliderScale);
+      
+      const sliderHit = this.add.rectangle(sliderX, sliderY, sliderW + 24, 34, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+      const sliderThumb = this.add.image(sliderStartX, sliderY, "GJ_WebSheet", "sliderthumb.png").setScale(sliderScale).setInteractive({ draggable: true });
+      
+      inner.add([inputBg, inputText, inputHit, sliderGroove, sliderHit, sliderThumb]);
+      
+      let focused = false;
+      let textValue = "";
+      let beforeFocus = "";
+      
+      const pctForValue = (value) => Phaser.Math.Clamp((Number(value) - min) / (max - min), 0, 1);
+      const valueForPct = (pct) => min + Phaser.Math.Clamp(pct, 0, 1) * (max - min);
+      
+      const render = () => {
+        inputBg.clear();
+        inputBg.fillStyle(0x000000, 0.43);
+        inputBg.fillRoundedRect(inputX - inputW / 2, inputY - inputH / 2, inputW, inputH, 10);
+        const value = getValue();
+        if (!focused) textValue = formatValue(value);
+        inputText.setText(`${focused ? textValue : formatValue(value)}${focused ? "|" : ""}`);
+        sliderThumb.x = sliderStartX + pctForValue(value) * sliderW;
+      };
+      
+      const commit = () => {
+        const parsed = parseFloat(textValue || "0");
+        setValue(Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, min, max));
+        render();
+      };
+      
+      const blur = (commitValue = false) => {
+        if (!focused) return;
+        if (commitValue) commit();
+        focused = false;
+        if (!focusedInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+      
+      const cancel = () => {
+        if (!focused) return;
+        textValue = beforeFocus;
+        focused = false;
+        if (!focusedInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+      
+      const focus = (pointer) => {
+        blurAll(true);
+        textValue = formatValue(getValue());
+        beforeFocus = textValue;
+        focused = true;
+        this._editorTextInputFocused = true;
+        render();
+        stopInputEvent(pointer?.event);
+      };
+      
+      const isInside = (pointer) => Math.abs(pointer.x - (sw / 2 + inputX)) <= inputW / 2 && Math.abs(pointer.y - (sh / 2 + 6 + inputY)) <= (inputH + 8) / 2;
+      
+      const setFromPointerX = (localX) => {
+        blur(true);
+        const clampedX = Phaser.Math.Clamp(localX, sliderStartX, sliderStartX + sliderW);
+        setValue(valueForPct((clampedX - sliderStartX) / sliderW));
+        render();
+      };
+      
+      inputHit.on("pointerdown", focus);
+      sliderHit.on("pointerdown", (pointer) => { setFromPointerX(pointer.x - (sw / 2)); stopInputEvent(pointer?.event); });
+      sliderThumb.on("dragstart", () => { this._isDraggingSlider = true; });
+      sliderThumb.on("drag", (pointer, dragX) => setFromPointerX(dragX));
+      sliderThumb.on("dragend", () => { this._isDraggingSlider = false; });
+      
+      const entry = {
+        focused: () => focused,
+        blur,
+        cancel,
+        isInside,
+        handleKey: (event) => {
+          if (!focused) return false;
+          if (event.key === "Enter") blur(true);
+          else if (event.key === "Backspace") { textValue = textValue.slice(0, -1); render(); }
+          else if (event.key === "-" && textValue.length === 0 && min < 0) { textValue = "-"; render(); }
+          else if ((/^[0-9]$/.test(event.key) || event.key === ".") && textValue.length < 7) {
+            if (event.key !== "." || !textValue.includes(".")) { textValue += event.key; render(); }
+          } else if (event.key.length !== 1) return false;
+          return true;
+        },
+        render
+      };
+      
+      focusedInputs.push(entry);
+      render();
+      return entry;
+    };
+
+    const targetInput = makeStepperInput({
+      x: 280,
+      y: 230,
+      label: "Target Group ID",
+      getValue: () => this._getEditorTriggerTargetGroup(saveObj),
+      setValue: (value) => this._setEditorTriggerTargetGroup(saveObj, value),
+      min: 0,
+      max: 9999
+    });
+
+    const sliderEntries = [];
+    sliderEntries.push(makeSliderInput({
+      x: 0,
+      y: -180,
+      label: "Move X:",
+      min: -100,
+      max: 100,
+      labelStyle: "helvetica",
+      layout: "horizontal",
+      width: 200,
+      getValue: () => this._getEditorMoveTriggerOffset(saveObj, 28),
+      setValue: (value) => this._setEditorMoveTriggerOffset(saveObj, 28, value)
+    }));
+    sliderEntries.push(makeSliderInput({
+      x: 450,
+      y: -180,
+      label: "Move Y:",
+      min: -100,
+      max: 100,
+      labelStyle: "helvetica",
+      layout: "horizontal",
+      width: 200,
+      getValue: () => this._getEditorMoveTriggerOffset(saveObj, 29),
+      setValue: (value) => this._setEditorMoveTriggerOffset(saveObj, 29, value)
+    }));
+    sliderEntries.push(makeSliderInput({
+      x: -225,
+      y: 60,
+      label: "Move Time:",
+      min: 0,
+      max: 10,
+      layout: "time",
+      width: 400,
+      getValue: () => this._getEditorMoveTriggerDuration(saveObj),
+      setValue: (value) => this._setEditorMoveTriggerDuration(saveObj, value)
+    }));
+
+    const toggleRefreshers = [];
+    const makeToggle = (x, y, label, key, peerKey = null, scale = 0.78) => {
+      const row = this.add.container(x, y);
+      const check = this.add.image(0, 0, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(scale).setInteractive();
+      const text = this.add.bitmapText(40, -2, "bigFont", label, 22).setOrigin(0, 0.5).setInteractive();
+      row.add([check, text]);
+      inner.add(row);
+      const refresh = () => {
+        const checked = this._getEditorTriggerBool(saveObj, key);
+        check.setTexture("GJ_GameSheet03", checked ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
+      };
+      const toggle = () => {
+        blurAll(true);
+        const next = !this._getEditorTriggerBool(saveObj, key);
+        if (next && peerKey !== null && peerKey !== undefined) this._setEditorTriggerBool(saveObj, peerKey, false);
+        this._setEditorTriggerBool(saveObj, key, next);
+        for (const fn of toggleRefreshers) fn();
+      };
+      this._makeBouncyButton(check, scale, toggle);
+      text.on("pointerdown", toggle);
+      toggleRefreshers.push(refresh);
+      refresh();
+      return { refresh };
+    };
+
+    makeToggle(-410, 200, "Touch\nTrigger", 11);
+    makeToggle(-410, 260, "Spawn\nTrigger", 62);
+
+    inner.add(this.add.bitmapText(-250, -130, "goldFont", "Lock X:", 26).setOrigin(0.5));
+    makeToggle(-380, -80, "Player", 58, 302);
+    makeToggle(-180, -80, "Camera", 302, 58);
+
+    inner.add(this.add.bitmapText(200, -130, "goldFont", "Lock Y:", 26).setOrigin(0.5));
+    makeToggle(80, -80, "Player", 59, 303);
+    makeToggle(260, -80, "Camera", 303, 59);
+
+    this._editorGroupInputPointerDownHandler = (pointer) => {
+      if (!this._editorObjectOptionsPopup) return;
+      const focusedInput = focusedInputs.find(entry => entry.focused());
+      if (!focusedInput) return;
+      if (focusedInput.isInside(pointer)) return;
+      focusedInput.blur(true);
+    };
+    this.input.on("pointerdown", this._editorGroupInputPointerDownHandler);
+
+    this._editorObjectOptionsKeyHandler = (event) => {
+      if (!this._editorObjectOptionsPopup) return;
+      if (event.key === "Escape") {
+        const focusedInput = focusedInputs.find(entry => entry.focused());
+        if (focusedInput) focusedInput.cancel();
+        else this._closeEditorObjectOptionsPopup();
+        stopInputEvent(event);
+        return;
+      }
+      const focusedInput = focusedInputs.find(entry => entry.focused());
+      if (!focusedInput) return;
+      if (focusedInput.handleKey(event)) stopInputEvent(event);
+    };
+    window.addEventListener("keydown", this._editorObjectOptionsKeyHandler);
+
+    targetInput.render?.();
+    sliderEntries.forEach(entry => entry.render?.());
+    this._makeEditorOkButton(inner, 0, (panelH / 2) - 48, "OK", () => {
+      blurAll(true);
+      this._closeEditorObjectOptionsPopup();
+    });
+  }
+
+
+  _openEditorSpawnTriggerOptionsPopup(saveObj) {
+    if (!saveObj) return;
+    this._closeEditorObjectOptionsPopup();
+
+    const sw = screenWidth;
+    const sh = screenHeight;
+    const panelW = 840;
+    const panelH = 580;
+    const root = this.add.container(0, 0).setScrollFactor(0).setDepth(2550);
+    this._editorObjectOptionsPopup = root;
+
+    const blocker = this.add.rectangle(0, 0, sw, sh, 0x000000, 0.45).setOrigin(0).setInteractive();
+    root.add(blocker);
+
+    const inner = this.add.container(sw / 2, sh / 2 + 6);
+    root.add(inner);
+
+    const corner = this.textures.exists("GJ_square01") ? this.textures.get("GJ_square01").source[0].width * 0.325 : 24;
+    inner.add(this._drawScale9(0, 0, panelW, panelH, "GJ_square01", corner, 0xffffff, 1));
+    inner.add(this.add.bitmapText(0, -(panelH / 2) + 40, "bigFont", "Spawn Group", 35).setOrigin(0.5));
+
+    const focusedInputs = [];
+    const stopInputEvent = (event) => {
+      event?.preventDefault?.(); 
+      event?.stopPropagation?.();
+      event?.stopImmediatePropagation?.();
+    };
+    const blurAll = (commit = false) => focusedInputs.forEach(input => input.blur(commit));
+    const formatValue = (value, decimals = 4) => String(Number((Number(value) || 0).toFixed(decimals))).replace(/\.0$/, "");
+
+    const makeStepperInput = ({ x, y, label, getValue, setValue }) => {
+      inner.add(this.add.bitmapText(x, y - 56, "goldFont", label, 27).setOrigin(0.5));
+      const inputW = 102;
+      const inputH = 58;
+      const bg = this.add.graphics();
+      const text = this.add.bitmapText(x, y, "bigFont", "", 32).setOrigin(0.5).setTint(0xffffff);
+      const hit = this.add.rectangle(x, y, inputW, inputH + 4, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+      const leftArrow = this.add.image(x - 88, y + 1, "GJ_GameSheet03", "edit_leftBtn_001.png").setScale(0.9).setInteractive();
+      const rightArrow = this.add.image(x + 88, y + 1, "GJ_GameSheet03", "edit_leftBtn_001.png").setScale(0.9).setFlipX(true).setInteractive();
+      inner.add([bg, text, hit, leftArrow, rightArrow]);
+      let focused = false;
+      let valueText = String(getValue());
+      let beforeFocus = valueText;
+      const normalize = (raw) => Math.max(0, Math.min(9999, parseInt(raw, 10) || 0));
+      const render = () => {
+        bg.clear();
+        bg.fillStyle(0x000000, 0.43);
+        bg.fillRoundedRect(x - inputW / 2, y - inputH / 2, inputW, inputH, 10);
+        if (!focused) valueText = String(normalize(getValue()));
+        text.setText(`${focused ? valueText : String(normalize(getValue()))}${focused ? "|" : ""}`);
+      };
+      const commit = () => { setValue(normalize(valueText)); render(); };
+      const blur = (commitValue = false) => {
+        if (!focused) return;
+        if (commitValue) commit();
+        focused = false;
+        if (!focusedInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+      const cancel = () => {
+        if (!focused) return;
+        valueText = beforeFocus;
+        focused = false;
+        if (!focusedInputs.some(input => input !== entry && input.focused())) this._editorTextInputFocused = false;
+        render();
+      };
+      const focus = (pointer) => {
+        blurAll(true);
+        valueText = String(normalize(getValue()));
+        beforeFocus = valueText;
+        focused = true;
+        this._editorTextInputFocused = true;
+        render();
+        stopInputEvent(pointer?.event);
+      };
+      const isInside = (pointer) => Math.abs(pointer.x - (sw / 2 + x)) <= inputW / 2 && Math.abs(pointer.y - (sh / 2 + 6 + y)) <= (inputH + 4) / 2;
+      const stepValue = (delta) => { blur(true); setValue(normalize(getValue()) + delta); render(); };
+      hit.on("pointerdown", focus);
+      this._makeBouncyButton(leftArrow, 0.9, () => stepValue(-1));
+      this._makeBouncyButton(rightArrow, 0.9, () => stepValue(1));
+      const entry = {
+        focused: () => focused,
+        blur,
+        cancel,
+        isInside,
+        handleKey: (event) => {
+          if (!focused) return false;
+          if (event.key === "Enter") blur(true);
+          else if (event.key === "Backspace") { valueText = valueText.slice(0, -1); render(); }
+          else if (/^[0-9]$/.test(event.key) && valueText.length < 5) { valueText += event.key; render(); }
+          else if (event.key.length !== 1) return false;
+          return true;
+        },
+        render
+      };
+      focusedInputs.push(entry);
+      render();
+      return entry;
+    };
+
+    const makeDelaySlider = ({ x, y, width, label, labelOffset = 400, min = 0, max = 10, inputMax = max, getValue, setValue, sliderMax = max }) => {
+        const inputW = 118;
+        const inputH = 50;
+
+        const labelX = x - labelOffset;
+        const inputX = x - 250;
+        const inputY = y;
+        const sliderX = x - 100;
+        const sliderY = y;
+
+        const labelObj = this.add.text(labelX, inputY, label, {
+            fontFamily: "Helvetica, Arial, sans-serif",
+            fontSize: "24px",
+            color: "#ffffff"
+        }).setOrigin(0, 0.5);
+
+        inner.add(labelObj);
+
+        const inputBg = this.add.graphics();
+        const inputText = this.add.bitmapText(inputX, inputY, "bigFont", "", 28).setOrigin(0.5).setTint(0xffffff);
+        const inputHit = this.add.rectangle(inputX, inputY, inputW + 8, inputH + 8, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+
+        const grooveFrame = this.textures.getFrame("GJ_WebSheet", "slidergroove.png");
+        const grooveH = grooveFrame ? grooveFrame.height : 34;
+
+        const sliderScale = 0.7;
+        const sliderW = (width - 8) * sliderScale;
+        const sliderStartX = sliderX - sliderW / 2 + 2;
+        const sliceEdge = 16;
+
+        const sliderGroove = this.add.nineslice(
+            sliderX,
+            sliderY,
+            "GJ_WebSheet",
+            "slidergroove.png",
+            width,
+            grooveH,
+            sliceEdge,
+            sliceEdge,
+            0,
+            0
+        ).setScale(sliderScale);
+
+        const sliderHit = this.add.rectangle(sliderX, sliderY, sliderW + 24, 34, 0xffffff, 0.001).setOrigin(0.5).setInteractive();
+        const sliderThumb = this.add.image(sliderStartX, sliderY, "GJ_WebSheet", "sliderthumb.png").setScale(sliderScale).setInteractive({ draggable: true });
+
+        inner.add([inputBg, inputText, inputHit, sliderGroove, sliderHit, sliderThumb]);
+
+        let focused = false;
+        let textValue = "";
+        let beforeFocus = "";
+
+        const pctForValue = (value) => Phaser.Math.Clamp((Number(value) - min) / (sliderMax - min), 0, 1);
+        const valueForPct = (pct) => min + Phaser.Math.Clamp(pct, 0, 1) * (sliderMax - min);
+
+        const render = () => {
+            inputBg.clear();
+            inputBg.fillStyle(0x000000, 0.43);
+            inputBg.fillRoundedRect(inputX - inputW / 2, inputY - inputH / 2, inputW, inputH, 10);
+
+            const value = getValue();
+
+            if (!focused) textValue = formatValue(value, 4);
+
+            inputText.setText(`${focused ? textValue : formatValue(value, 4)}${focused ? "|" : ""}`);
+            sliderThumb.x = sliderStartX + pctForValue(value) * sliderW;
+        };
+
+        const commit = () => {
+            const parsed = parseFloat(textValue || "0");
+            setValue(Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, min, inputMax));
+            render();
+        };
+
+        const blur = (commitValue = false) => {
+            if (!focused) return;
+
+            if (commitValue) commit();
+
+            focused = false;
+
+            if (!focusedInputs.some(input => input !== entry && input.focused())) {
+            this._editorTextInputFocused = false;
+            }
+
+            render();
+        };
+
+        const cancel = () => {
+            if (!focused) return;
+
+            textValue = beforeFocus;
+            focused = false;
+
+            if (!focusedInputs.some(input => input !== entry && input.focused())) {
+            this._editorTextInputFocused = false;
+            }
+
+            render();
+        };
+
+        const focus = (pointer) => {
+            blurAll(true);
+
+            textValue = formatValue(getValue(), 4);
+            beforeFocus = textValue;
+            focused = true;
+            this._editorTextInputFocused = true;
+
+            render();
+            stopInputEvent(pointer?.event);
+        };
+
+        const isInside = (pointer) =>
+            Math.abs(pointer.x - (sw / 2 + inputX)) <= inputW / 2 &&
+            Math.abs(pointer.y - (sh / 2 + 6 + inputY)) <= (inputH + 8) / 2;
+
+        const setFromPointerX = (localX) => {
+            blur(true);
+
+            const clampedX = Phaser.Math.Clamp(localX, sliderStartX, sliderStartX + sliderW);
+            setValue(valueForPct((clampedX - sliderStartX) / sliderW));
+
+            render();
+        };
+
+        inputHit.on("pointerdown", focus);
+
+        sliderHit.on("pointerdown", (pointer) => {
+            setFromPointerX(pointer.x - (sw / 2));
+            stopInputEvent(pointer?.event);
+        });
+
+        sliderThumb.on("dragstart", () => {
+            this._isDraggingSlider = true;
+        });
+
+        sliderThumb.on("drag", (pointer, dragX) => {
+            setFromPointerX(dragX);
+        });
+
+        sliderThumb.on("dragend", () => {
+            this._isDraggingSlider = false;
+        });
+
+        const entry = {
+            focused: () => focused,
+            blur,
+            cancel,
+            isInside,
+            handleKey: (event) => {
+            if (!focused) return false;
+
+            if (event.key === "Enter") {
+                blur(true);
+            } else if (event.key === "Backspace") {
+                textValue = textValue.slice(0, -1);
+                render();
+            } else if (event.key === "-" && textValue.length === 0 && min < 0) {
+                textValue = "-";
+                render();
+            } else if ((/^[0-9]$/.test(event.key) || event.key === ".") && textValue.length < 9) {
+                if (event.key !== "." || !textValue.includes(".")) {
+                textValue += event.key;
+                render();
+                }
+            } else if (event.key.length !== 1) {
+                return false;
+            }
+
+            return true;
+            },
+            render
+        };
+
+        focusedInputs.push(entry);
+        render();
+
+        return entry;
+    };
+
+    const targetInput = makeStepperInput({
+      x: 0,
+      y: -100,
+      label: "Group ID",
+      getValue: () => this._getEditorTriggerTargetGroup(saveObj),
+      setValue: (value) => this._setEditorTriggerTargetGroup(saveObj, value)
+    });
+    const delayInput = makeDelaySlider({
+      x: 30,
+      y: 70,
+      width: 200,
+      label: "Delay:",
+      labelOffset: 400,
+      min: 0,
+      max: 10,
+      inputMax: 10,
+      sliderMax: 10,
+      getValue: () => this._getEditorSpawnTriggerDelay(saveObj),
+      setValue: (value) => this._setEditorSpawnTriggerDelay(saveObj, value)
+    });
+    const randomDelayInput = makeDelaySlider({
+      x: 400,
+      y: 70,
+      width: 200,
+      label: "+-",
+      labelOffset: 350,
+      min: 0,
+      max: 9999,
+      inputMax: 9999,
+      sliderMax: 1,
+      getValue: () => this._getEditorSpawnTriggerRandomDelay(saveObj),
+      setValue: (value) => this._setEditorSpawnTriggerRandomDelay(saveObj, value)
+    });
+
+    const makeToggle = (x, y, label, key) => {
+      const row = this.add.container(x, y);
+      const check = this.add.image(0, 0, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(0.82).setInteractive();
+      const text = this.add.bitmapText(42, -2, "bigFont", label, 23).setOrigin(0, 0.5).setInteractive();
+      row.add([check, text]);
+      inner.add(row);
+      const refresh = () => {
+        const checked = this._getEditorTriggerBool(saveObj, key);
+        check.setTexture("GJ_GameSheet03", checked ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
+      };
+      const toggle = () => {
+        blurAll(true);
+        this._setEditorTriggerBool(saveObj, key, !this._getEditorTriggerBool(saveObj, key));
+        refresh();
+      };
+      this._makeBouncyButton(check, 0.82, toggle);
+      text.on("pointerdown", toggle);
+      refresh();
+      return { refresh };
+    };
+
+    makeToggle(-370, 180, "Touch\nTrigger", 11);
+    makeToggle(-370, 245, "Spawn\nTrigger", 62);
+
+    this._editorGroupInputPointerDownHandler = (pointer) => {
+      if (!this._editorObjectOptionsPopup) return;
+      const focusedInput = focusedInputs.find(entry => entry.focused());
+      if (!focusedInput) return;
+      if (focusedInput.isInside(pointer)) return;
+      focusedInput.blur(true);
+    };
+    this.input.on("pointerdown", this._editorGroupInputPointerDownHandler);
+
+    this._editorObjectOptionsKeyHandler = (event) => {
+      if (!this._editorObjectOptionsPopup) return;
+      if (event.key === "Escape") {
+        const focusedInput = focusedInputs.find(entry => entry.focused());
+        if (focusedInput) focusedInput.cancel();
+        else this._closeEditorObjectOptionsPopup();
+        stopInputEvent(event);
+        return;
+      }
+      const focusedInput = focusedInputs.find(entry => entry.focused());
+      if (!focusedInput) return;
+      if (focusedInput.handleKey(event)) stopInputEvent(event);
+    };
+    window.addEventListener("keydown", this._editorObjectOptionsKeyHandler);
+
+    targetInput.render?.();
+    delayInput.render?.();
+    randomDelayInput.render?.();
+    this._makeEditorOkButton(inner, 0, (panelH / 2) - 48, "OK", () => {
+      blurAll(true);
+      this._closeEditorObjectOptionsPopup();
+    });
   }
 
 
@@ -4486,12 +6489,61 @@ class LevelEditor {
     saveObj._raw = saveObj._raw || {};
     saveObj._raw[11] = enabled ? "1" : "0";
     saveObj._raw["11"] = saveObj._raw[11];
+    if (enabled) {
+        saveObj._raw[62] = "0";
+        saveObj._raw["62"] = "0";
+    }
     const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : -1;
     if (Array.isArray(this._level?._colorTriggers)) {
         for (const trigger of this._level._colorTriggers) {
-            if (trigger && trigger.uid === linkedId) trigger.touchTriggered = !!enabled;
+            if (trigger && trigger.uid === linkedId) {
+                trigger.touchTriggered = !!enabled;
+                if (enabled) trigger.spawnTriggered = false;
+            }
         }
     }
+    if (this._level?.updateTriggerEditorVisuals) this._level.updateTriggerEditorVisuals();
+  }
+
+  _isEditorTriggerSpawnTriggered(saveObj) {
+    return String(saveObj?._raw?.[62] ?? saveObj?._raw?.["62"] ?? "0") === "1";
+  }
+
+
+  _setEditorTriggerSpawnTriggered(saveObj, enabled) {
+    if (!saveObj) return;
+    saveObj._raw = saveObj._raw || {};
+    saveObj._raw[62] = enabled ? "1" : "0";
+    saveObj._raw["62"] = saveObj._raw[62];
+    if (enabled) {
+        saveObj._raw[11] = "0";
+        saveObj._raw["11"] = "0";
+    }
+
+    const linkedId = Number.isInteger(saveObj._eeObjectId) ? saveObj._eeObjectId : -1;
+    const groups = this._level?._getLevelObjectGroupIds
+      ? this._level._getLevelObjectGroupIds(saveObj)
+      : String(saveObj.groups || saveObj._raw?.[57] || saveObj._raw?.["57"] || "").split(".").map(n => parseInt(n, 10)).filter(n => n > 0);
+
+    const updateList = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const trigger of list) {
+        if (trigger && trigger.uid === linkedId) {
+          trigger.spawnTriggered = !!enabled;
+          trigger.groups = groups;
+          if (enabled && trigger.touchTriggered !== undefined) trigger.touchTriggered = false;
+        }
+      }
+    };
+
+    updateList(this._level?._colorTriggers);
+    updateList(this._level?._enterEffectTriggers);
+    updateList(this._level?._moveTriggers);
+    updateList(this._level?._alphaTriggers);
+    updateList(this._level?._rotateTriggers);
+    updateList(this._level?._pulseTriggers);
+    updateList(this._level?._spawnTriggers);
+
     if (this._level?.updateTriggerEditorVisuals) this._level.updateTriggerEditorVisuals();
   }
 
@@ -4606,9 +6658,9 @@ class LevelEditor {
                 const sliderThumb = this.add.image(sliderStartX, sliderY, "GJ_WebSheet", "sliderthumb.png").setScale(sliderScale).setInteractive({ draggable: true });
                 inner.add([fadeLabel, fadeInputBg, fadeInputText, fadeInputHit, sliderGroove, sliderHit, sliderThumb]);
 
-                const touchRow = this.add.container((panelW / 2) - 300, fadeY + 120);
+                const touchRow = this.add.container((panelW / 2) - 350, fadeY + 120);
                 const touchCheck = this.add.image(0, 0, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(0.82).setInteractive();
-                const touchText = this.add.bitmapText(42, -4, "bigFont", "Touch\nTrigger", 24).setOrigin(0, 0.5).setInteractive();
+                const touchText = this.add.bitmapText(42, -2, "bigFont", "Touch\nTrigger", 24).setOrigin(0, 0.5).setInteractive();
                 touchRow.add([touchCheck, touchText]);
                 inner.add(touchRow);
 
@@ -4620,10 +6672,31 @@ class LevelEditor {
                     const checked = this._isEditorColorTriggerTouchTriggered(saveObj);
                     this._setEditorColorTriggerTouchTriggered(saveObj, !checked);
                     refreshTouchTrigger();
+                    refreshSpawnTrigger?.();
                 };
                 this._makeBouncyButton(touchCheck, 0.82, toggleTouchTrigger);
                 touchText.on("pointerdown", toggleTouchTrigger);
                 refreshTouchTrigger();
+
+                const spawnRow = this.add.container((panelW / 2) - 165, fadeY + 120);
+                const spawnCheck = this.add.image(0, 0, "GJ_GameSheet03", "GJ_checkOff_001.png").setScale(0.82).setInteractive();
+                const spawnText = this.add.bitmapText(42, -2, "bigFont", "Spawn\nTrigger", 24).setOrigin(0, 0.5).setInteractive();
+                spawnRow.add([spawnCheck, spawnText]);
+                inner.add(spawnRow);
+
+                const refreshSpawnTrigger = () => {
+                    const checked = this._isEditorTriggerSpawnTriggered(saveObj);
+                    spawnCheck.setTexture("GJ_GameSheet03", checked ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
+                };
+                const toggleSpawnTrigger = () => {
+                    const checked = this._isEditorTriggerSpawnTriggered(saveObj);
+                    this._setEditorTriggerSpawnTriggered(saveObj, !checked);
+                    refreshSpawnTrigger();
+                    refreshTouchTrigger();
+                };
+                this._makeBouncyButton(spawnCheck, 0.82, toggleSpawnTrigger);
+                spawnText.on("pointerdown", toggleSpawnTrigger);
+                refreshSpawnTrigger();
 
                 let fadeInputFocused = false;
                 let fadeInput = "";
@@ -5196,7 +7269,6 @@ class LevelEditor {
     inner.add(this.add.bitmapText(0, -35, "bigFont", "Coming soon!\n- Lasokar", 34).setOrigin(0.5).setCenterAlign());
     this._makeEditorOkButton(inner, 0, (panelH / 2) - 48, "OK", () => this._closeEditorObjectOptionsPopup());
   }
-
 
   _openEditorLevelSettingsPopup() {
     if (this._editorLevelSettingsPopup) return;
@@ -6045,10 +8117,15 @@ _serializeObject(object) {
 
   objectData[32] = String(object.scale ?? 1);
 
+  objectData[20] = String(object.editorLayer ?? object._raw?.[20] ?? object._raw?.["20"] ?? 0);
   objectData[24] = String(object.zLayer ?? 0);
   objectData[25] = String(object.zOrder ?? 0);
+  objectData[61] = String(object.editorLayer2 ?? object._raw?.[61] ?? object._raw?.["61"] ?? 0);
 
-  objectData[57] = object.groups ?? "";
+  const serializedGroups = this._getEditorObjectGroupIds ? this._getEditorObjectGroupIds(object).join(".") : (object.groups ?? "");
+  objectData[57] = serializedGroups;
+  delete objectData[33];
+  delete objectData["33"];
 
   objectData[21] = String(object.color1 ?? 0);
   objectData[22] = String(object.color2 ?? 0);
@@ -6229,8 +8306,14 @@ LevelEditor.methodNames = [
   "_moveObject",
   "_rotateObject",
   "_flipObject",
+  "_restoreEditorSelectionTint",
+  "_getCurrentSelectedEditorObjectIds",
+  "_selectEditorObjectsByIds",
   "_clearEditorSelection",
   "_selectEditorObjectByIndex",
+  "_startEditorBoxSelect",
+  "_updateEditorBoxSelect",
+  "_finishEditorBoxSelect",
   "_duplicateSelectedObject",
   "_deleteSelectedObject",
   "_updateEditorActionButtons",
@@ -6280,6 +8363,7 @@ LevelEditor.methodNames = [
   "_setEditorTextObjectText",
   "_refreshSelectedTextObjectVisual",
   "_getSelectedEditorSaveObject",
+  "_getSelectedEditorSaveObjects",
   "_isSelectedEditorObjectTrigger",
   "_getEditorObjectColor",
   "_setEditorObjectColor",
@@ -6288,9 +8372,49 @@ LevelEditor.methodNames = [
   "_setEditorStartPositionValue",
   "_getEditorStartPositionValue",
   "_refreshSelectedTriggerTargetLabel",
+  "_getEditorObjectGroupIds",
+  "_syncEditorObjectGroupCaches",
+  "_setEditorObjectGroupIds",
+  "_getEditorZLayerOptions",
+  "_getEditorObjectZLayer",
+  "_getEditorObjectZOrder",
+  "_getEditorZDepth",
+  "_setEditorObjectZLayer",
+  "_getEditorLayerOptions",
+  "_getCurrentEditorPlacementLayer",
+  "_getEditorObjectEditorLayer",
+  "_getEditorObjectEditorLayer2",
+  "_setEditorObjectEditorLayer",
+  "_setEditorObjectEditorLayer2",
+  "_applyEditorLayerMetadataToObject",
+  "_editorObjectMatchesActiveLayer",
+  "_editorObjectMatchesActiveLayerByObjectId",
+  "_refreshEditorLayerSelectorVisual",
+  "_setEditorActiveLayerIndex",
+  "_applyEditorLayerFilter",
+  "_setEditorObjectZOrder",
+  "_openSelectedEditorGroupPopup",
   "_openSelectedEditorObjectOptions",
+  "_isEditorMoveTriggerId",
+  "_isEditorSpawnTriggerId",
+  "_getEditorTriggerTargetGroup",
+  "_setEditorTriggerTargetGroup",
+  "_getEditorTriggerBool",
+  "_setEditorTriggerBool",
+  "_getEditorMoveTriggerOffset",
+  "_setEditorMoveTriggerOffset",
+  "_getEditorMoveTriggerDuration",
+  "_setEditorMoveTriggerDuration",
+  "_getEditorSpawnTriggerDelay",
+  "_setEditorSpawnTriggerDelay",
+  "_getEditorSpawnTriggerRandomDelay",
+  "_setEditorSpawnTriggerRandomDelay",
+  "_openEditorMoveTriggerOptionsPopup",
+  "_openEditorSpawnTriggerOptionsPopup",
   "_isEditorColorTriggerTouchTriggered",
   "_setEditorColorTriggerTouchTriggered",
+  "_isEditorTriggerSpawnTriggered",
+  "_setEditorTriggerSpawnTriggered",
   "_openEditorColorTriggerOptionsPopup",
   "_closeEditorTriggerChannelPopup",
   "_openEditorColorTriggerChannelPopup",

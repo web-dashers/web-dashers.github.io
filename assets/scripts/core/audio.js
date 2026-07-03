@@ -110,11 +110,11 @@ class AudioManager {
   _loadMissingOnlineSong(songKey, startPosOffset = 0, fadeDuration = null) {
     const match = String(songKey || "").match(/^ng_song_(\d+)$/);
     const songId = match ? match[1] : null;
-    const proxyBase = (window._gdProxyUrl || "").replace(/\/$/, "");
     const soundMgr = this._scene?.game?.sound;
     const ctx = soundMgr?.context;
+    const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
 
-    if (!songId || !proxyBase || !ctx) {
+    if (!songId || !ctx || !songInfoUrl) {
       return false;
     }
 
@@ -132,7 +132,7 @@ class AudioManager {
       try {
         if (ctx.state === "suspended") await ctx.resume();
 
-        const ngRes = await fetch(`${proxyBase}/getGJSongInfo.php`, {
+        const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: `songID=${encodeURIComponent(songId)}&secret=Wmfd2893gb7`
@@ -150,8 +150,8 @@ class AudioManager {
 
         const songTitle = (ngMap["2"] || `Song #${songId}`).replace(/:$/, "").trim();
         const songArtist = (ngMap["4"] || "Unknown").replace(/:$/, "").trim();
-        const proxiedUrl = `${proxyBase}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-        const audioRes = await fetch(proxiedUrl);
+        const proxiedUrl = (typeof window.getGdAudioUrl === "function" ? window.getGdAudioUrl(songUrl) : songUrl);
+        const audioRes = await window.fetchGdAudio(songUrl);
         if (!audioRes.ok) throw new Error(`Audio proxy failed: ${audioRes.status}`);
 
         const arrayBuf = await audioRes.arrayBuffer();

@@ -48,6 +48,7 @@ class PlayerState {
     this.robotFallStartTimer = 0;
     this.robotSpeedMultiplier = 1.0;
     this._robotGroundJump = false;
+    this._spiderTeleportNoclipDeathPending = false;
   }
 }
 
@@ -2886,6 +2887,49 @@ if (this.p.isFlying || this.p.isUfo) {
       return this.p.yVelocity < -0.25;
     }
   }
+  _shouldPrioritizeGroundOrbInput() {
+    if (!(this.p.isBall || this.p.isSpider)) return false;
+    if (!this.p.upKeyPressed) return false;
+    if (!(this.p.canJump || this.p.onGround || this.p.onCeiling)) return false;
+
+    const playerWorldX = this._scene?._playerWorldX ?? centerX;
+    const playerSize = this.p.isMini ? 18 : 30;
+    const nearbyObjects = this._gameLayer?.getNearbySectionObjects?.(playerWorldX) || [];
+
+    for (const gameObj of nearbyObjects) {
+      if (!gameObj || gameObj.type !== jumpRingType || gameObj.activated) continue;
+
+      const hasCircleHitbox = gameObj.hitbox_radius !== undefined && gameObj.hitbox_radius !== null;
+      if (hasCircleHitbox) {
+        const dx = playerWorldX - gameObj.x;
+        const dy = this.p.y - gameObj.y;
+        const hitRadius = gameObj.hitbox_radius + playerSize;
+        if ((dx * dx + dy * dy) <= hitRadius * hitRadius) {
+          return true;
+        }
+        continue;
+      }
+
+      const rad = (gameObj.rotationDegrees || 0) * Math.PI / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const halfW = gameObj.w / 2;
+      const halfH = gameObj.h / 2;
+      const rotatedHalfWidth = Math.abs(halfW * cos) + Math.abs(halfH * sin);
+      const rotatedHalfHeight = Math.abs(halfW * sin) + Math.abs(halfH * cos);
+      const left = gameObj.x - rotatedHalfWidth;
+      const right = gameObj.x + rotatedHalfWidth;
+      const top = gameObj.y - rotatedHalfHeight;
+      const bottom = gameObj.y + rotatedHalfHeight;
+
+      if (!(playerWorldX + playerSize <= left) && !(playerWorldX - playerSize >= right) &&
+          !(this.p.y + playerSize <= top) && !(this.p.y - playerSize >= bottom)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
   flipMod() {
     if (this.p.gravityFlipped) {
       return -1;
@@ -3109,6 +3153,9 @@ if (this.p.isFlying || this.p.isUfo) {
   }
 _updateBallJump(_0x2fe319) {
   const _0x144266 = p * 0.6;
+  if (this._shouldPrioritizeGroundOrbInput()) {
+    return;
+  }
   if (this.p.upKeyPressed && this.p.canJump) {
     const _0x47d739 = this.flipMod();
     this.p.upKeyPressed = false;
@@ -3197,135 +3244,195 @@ _updateWaveJump() {
       this.p.isJumping = false;
     }
   }
-  // fix spider
-  _updateSpiderJump(dt) {
-    const size = this.p.isMini ? 18 : 30;
-    const grav = p * 0.6;
+  _getSpiderSearchBounds(obj) {
+    const radius = Number(obj?.hitbox_radius);
+    if (Number.isFinite(radius) && radius > 0) {
+      return {
+        left: obj.x - radius,
+        right: obj.x + radius,
+        lower: obj.y - radius,
+        upper: obj.y + radius
+      };
+    }
 
-    if (this.p.upKeyPressed && this.p.canJump) {
-      this.p.upKeyPressed = false;
-      this.p.queuedHold = false;
-      const _oldSpiderY = this.p.y;
+    const rad = (obj.rotationDegrees || 0) * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const halfW = obj.w / 2;
+    const halfH = obj.h / 2;
+    const rotatedHalfWidth = Math.abs(halfW * cos) + Math.abs(halfH * sin);
+    const rotatedHalfHeight = Math.abs(halfW * sin) + Math.abs(halfH * cos);
+    return {
+      left: obj.x - rotatedHalfWidth,
+      right: obj.x + rotatedHalfWidth,
+      lower: obj.y - rotatedHalfHeight,
+      upper: obj.y + rotatedHalfHeight
+    };
+  }
 
-      const floorY = this._gameLayer.getFloorY();
-      const ceilY = this._gameLayer.getCeilingY();
-      
-      const px = this._scene._playerWorldX;
-      const nearby = this._gameLayer.getNearbySectionObjects(px);
-      
-      let candidateList = [];
-      let _xx_targetY_xx_ = null;
-      let n = nearby.length;
+  _findSpiderTeleportHazard(goingUp, playerWorldX, playerSize, targetCenterY) {
+    if (!Number.isFinite(targetCenterY)) return null;
 
-      let solidObjs = [];
-      for (let q = 0; q < n; q++) {
-        const _o = nearby[q];
-        if (_o.type !== solidType) continue;
-        const oLeft = _o.x - _o.w / 2;
-        const oRight = _o.x + _o.w / 2;
-        if (px + size - 5 <= oLeft || px - size + 5 >= oRight) continue;
-        solidObjs.push(_o);
+    const xPad = Math.max(9, playerSize - 5);
+    const yPad = xPad;
+    const startY = this.p.y;
+    const fromY = Math.min(startY, targetCenterY);
+    const toY = Math.max(startY, targetCenterY);
+    const nearbyObjects = this._gameLayer.getNearbySectionObjects(playerWorldX);
+    let nearestHazard = null;
+    let nearestDistance = Infinity;
+
+    for (const obj of nearbyObjects) {
+      if (!obj || (obj.type !== hazardType && obj.type !== "hazard")) continue;
+      const bounds = this._getSpiderSearchBounds(obj);
+      if (playerWorldX + xPad <= bounds.left || playerWorldX - xPad >= bounds.right) continue;
+      if (bounds.upper < fromY - yPad || bounds.lower > toY + yPad) continue;
+
+      const entryY = goingUp
+        ? Math.max(startY, bounds.lower)
+        : Math.min(startY, bounds.upper);
+      const distance = Math.abs(entryY - startY);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestHazard = { obj, bounds };
       }
+    }
 
-      if (!this.p.gravityFlipped) {
-        let bestCandidate = null;
-        let bestDist = Infinity;
-        
-        for (let i = 0; i < solidObjs.length; i++) {
-          const obj = solidObjs[i];
-          const objYPos = obj.y;
-          
-          if (objYPos <= this.p.y) continue;
-          
-          const topPos = obj.y - obj.h / 2;
-          
-          const _dist_calc = Math.abs(topPos - this.p.y);
+    return nearestHazard;
+  }
 
-          if (_dist_calc < bestDist) {
-            bestDist = _dist_calc;
-            bestCandidate = topPos;
-          }
-        }
+  _findSpiderTeleportSurface(goingUp, playerWorldX, playerSize) {
+    const xPad = Math.max(9, playerSize - 5);
+    let bestSurface = null;
 
-        if (bestCandidate !== null) {
-          this.p.y = bestCandidate - size;
-          this.flipGravity(true, 1.0);
-          this.p.yVelocity = 0;
-        } else if (ceilY !== null) {
-          this.p.y = ceilY - size;
-          this.flipGravity(true, 1.0);
-          this.p.yVelocity = 0;
-        } else {
-          this.p.yVelocity = playerSpeed;
+    if (goingUp) {
+      const ceilingY = this._gameLayer.getCeilingY();
+      if (ceilingY !== null && ceilingY > this.p.y) {
+        bestSurface = ceilingY;
+      }
+    } else {
+      const floorY = this._gameLayer.getFloorY();
+      if (floorY !== null && floorY < this.p.y) {
+        bestSurface = floorY;
+      }
+    }
+
+    const nearbyObjects = this._gameLayer.getNearbySectionObjects(playerWorldX);
+    for (const obj of nearbyObjects) {
+      if (obj.type !== solidType && obj.type !== "solid") continue;
+      const bounds = this._getSpiderSearchBounds(obj);
+      if (playerWorldX + xPad <= bounds.left || playerWorldX - xPad >= bounds.right) continue;
+
+      if (goingUp) {
+        const undersideSurface = bounds.lower;
+        if (undersideSurface <= this.p.y + 0.5) continue;
+        if (bestSurface === null || undersideSurface < bestSurface) {
+          bestSurface = undersideSurface;
         }
       } else {
-        let bestCandidate2 = null;
-        let bestDist2 = Infinity;
-        
-        for (let j = 0; j < solidObjs.length; j++) {
-          const _obj_ = solidObjs[j];
-          const yy = _obj_.y;
-          
-          if (yy >= this.p.y) continue;
-          
-          const bottomVal = yy + _obj_.h / 2;
-          
-          const dist_to_this = Math.abs(bottomVal - this.p.y);
-          
-          if (dist_to_this < bestDist2) {
-            bestDist2 = dist_to_this;
-            bestCandidate2 = bottomVal;
-          }
+        const topSurface = bounds.upper;
+        if (topSurface >= this.p.y - 0.5) continue;
+        if (bestSurface === null || topSurface > bestSurface) {
+          bestSurface = topSurface;
         }
-        
-        if (bestCandidate2 !== null) {
-          this.p.y = bestCandidate2 + size;
-          this.flipGravity(false, 1.0);
+      }
+    }
+
+    return bestSurface;
+  }
+
+  _updateSpiderJump(dt) {
+    const playerSize = this.p.isMini ? 18 : 30;
+    const _miniGrav = this.p.isMini ? 1.4 : 1;
+    const _gravAmt = p * 0.6 * _miniGrav;
+    const canSpiderTeleport = this.p.canJump || this.p.onGround || this.p.onCeiling;
+
+    if (this._shouldPrioritizeGroundOrbInput()) {
+      return;
+    }
+
+    if (this.p.upKeyPressed && canSpiderTeleport) {
+      this.p.upKeyPressed = false;
+      this.p.queuedHold = false;
+
+      const playerWorldX = this._scene?._playerWorldX ?? centerX;
+      const goingUp = !this.p.gravityFlipped;
+      const nearestSurfaceY = this._findSpiderTeleportSurface(goingUp, playerWorldX, playerSize);
+
+      if (nearestSurfaceY !== null && Number.isFinite(nearestSurfaceY)) {
+        const oldSpiderTeleportY = this.p.y;
+        const normalLandingY = goingUp ? nearestSurfaceY - playerSize : nearestSurfaceY + playerSize;
+        const blockingHazard = this._findSpiderTeleportHazard(goingUp, playerWorldX, playerSize, normalLandingY);
+
+        if (blockingHazard && !window.noClip) {
+          const hazardCenterY = (blockingHazard.bounds.lower + blockingHazard.bounds.upper) / 2;
+          this.p.y = Number.isFinite(hazardCenterY) ? hazardCenterY : normalLandingY;
+          // prevent huge position jumps from breaking collision system
+          this.p.lastY = this.p.y;
+          this.p.lastGroundPosY = this.p.y;
+          this._spawnSpiderTeleportEffects(oldSpiderTeleportY, this.p.y);
           this.p.yVelocity = 0;
+          this.p.onGround = false;
+          this.p.canJump = false;
+          this.p.isJumping = false;
+          this.killPlayer();
+          return;
+        }
+
+        this.p.y = normalLandingY;
+        if (goingUp) {
+          this.flipGravity(true, 1.0);
+          this.p.onCeiling = true;
         } else {
-          this.p.y = floorY + size;
           this.flipGravity(false, 1.0);
-          this.p.yVelocity = 0;
+          this.p.onCeiling = false;
         }
+        if (blockingHazard && window.noClip) {
+          this.p._spiderTeleportNoclipDeathPending = true;
+          this.p.diedThisFrame = true;
+        }
+        // prevent huge position jumps from breaking collision system
+        this.p.lastY = this.p.y;
+        this.p.lastGroundPosY = this.p.y;
+        this._spawnSpiderTeleportEffects(oldSpiderTeleportY, this.p.y);
+        this.p.yVelocity = 0;
+        this.p.onGround = true;
+        this.p.canJump = true;
+        this.p.isJumping = false;
+      } else {
+        this.flipGravity(goingUp, 1.0);
+        this.p.yVelocity = 0;
+        this.p.onGround = false;
+        this.p.canJump = false;
+        this.p.isJumping = false;
       }
 
-      // teleport visuals (upstream automatons): circles at both ends + dash streak + white flash
-      if (this.p.y !== _oldSpiderY) {
-        this._spawnSpiderTeleportEffects(_oldSpiderY, this.p.y);
-        if (!this._scene?._editorPlaytestActive) {
-          this.p._spiderFlashDuration = 0.5;
-          this.p._spiderFlashTimer = 0.5;
-        }
-      }
       this.p._spiderTeleportAnimTimer = 0;
       this._spiderAnimTimer = (this._spiderAnimTimer || 0) + 0.12;
-
-      // prevent huge position jumps from breaking collision system
-      this.p.lastY = this.p.y;
-      this.p.lastGroundPosY = this.p.y;
-
-      this.p.onGround = false;
-      this.p.canJump = false;
-      this.p.isJumping = false;
+      if (!this._scene?._editorPlaytestActive) {
+        this.p._spiderFlashDuration = 0.5;
+        this.p._spiderFlashTimer = 0.5;
+      }
       this.runRotateAction();
       return;
     }
 
-    if (this.playerIsFalling()) this.p.canJump = false;
-
-    this.p.yVelocity -= grav * dt * this.flipMod();
-
+    if (this.playerIsFalling()) {
+      this.p.canJump = false;
+    }
+    this.p.yVelocity -= _gravAmt * dt * this.flipMod();
     if (this.p.gravityFlipped) {
       this.p.yVelocity = Math.min(this.p.yVelocity, 30);
     } else {
       this.p.yVelocity = Math.max(this.p.yVelocity, -30);
     }
-
     if (this.playerIsFalling()) {
-      const fallingHard = this.p.gravityFlipped
+      const _pastThreshold = this.p.gravityFlipped
         ? this.p.yVelocity > p * 2
         : this.p.yVelocity < -(p * 2);
-      if (fallingHard) this.p.onGround = false;
+      if (_pastThreshold) {
+        this.p.onGround = false;
+      }
     }
   }
 _updateRobotJump(dt) {
@@ -3449,6 +3556,10 @@ _updateRobotJump(dt) {
   checkCollisions(_0x2f5078) {
     this.noclipStats.totalFrames++;
     this.p.diedThisFrame = false;
+    if (this.p._spiderTeleportNoclipDeathPending) {
+      this.p.diedThisFrame = true;
+      this.p._spiderTeleportNoclipDeathPending = false;
+    }
     const playerSize = this.p.isMini ? 18 : 30;
     const waveHitSize = this.p.isMini ? 6 : 9;
     const pieceWidth = _0x2f5078 + centerX;
@@ -4477,7 +4588,16 @@ _updateRobotJump(dt) {
     const _0x47ae60 = _0x501b73;
     const _0x1f2e19 = _0x4a45d7 + 80;
     const _0x8bc9f4 = _0x568b25 + 300;
-    const _0x11b580 = [this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer, this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer, this._waveSpriteLayer, this._waveOverlayLayer, this._waveExtraLayer, this._waveGlowLayer, this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer, this._birdSpriteLayer, this._birdGlowLayer, this._birdOverlayLayer, this._birdExtraLayer, this._robotHeadLayer, this._robotHeadOuterLayer, this._robotLegStemBackLayer, this._robotLegStemBackOuterLayer, this._robotThighBackLayer, this._robotFootBackLayer, this._robotLegStemFrontLayer, this._robotLegStemFrontOuterLayer, this._robotThighFrontLayer, this._robotFootFrontLayer, this._swingSpriteLayer, this._swingOverlayLayer, this._swingExtraLayer, ...(this._birdLayers || []), ...(this._playerLayers || [])].filter(_0x3e9c62 => _0x3e9c62 && _0x3e9c62.sprite.visible).map(_0x5cedeb => _0x5cedeb.sprite);
+    const _0x11b580 = [
+      this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer,
+      this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer,
+      this._waveSpriteLayer, this._waveOverlayLayer, this._waveExtraLayer, this._waveGlowLayer,
+      this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer,
+      this._swingSpriteLayer, this._swingOverlayLayer, this._swingExtraLayer,
+      ...(this._birdLayers || []),
+      ...(this._spiderLayers || []),
+      ...(this._robotLayers || [])
+    ].filter(_0x3e9c62 => _0x3e9c62 && _0x3e9c62.sprite && _0x3e9c62.sprite.visible).map(_0x5cedeb => _0x5cedeb.sprite);
     this._startPercent = (this._scene._playerWorldX / this._scene._level.endXPos) * 100;
     this._particleEmitter.stop();
     this._flyParticleEmitter.stop();

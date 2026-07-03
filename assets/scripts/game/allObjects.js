@@ -1514,7 +1514,9 @@ window.allobjects = function() {
     "z": 10,
     "default_detail_color_channel": -1,
     "default_z_layer": 5,
-    "default_z_order": 10
+    "default_z_order": 10,
+    "portalParticle": true,
+    "portalParticleColor": 16753920,
   },
   "113": {
     "can_color": true,

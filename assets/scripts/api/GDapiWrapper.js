@@ -8,24 +8,24 @@ window.ApiWrapper = class ApiWrapper {
 	}
 	static async downloadSong(id) {
 		let data = `songID=${id}&secret=Wmfd2893gb7`
-		let response = await fetch(window._gdProxyUrl + "/getGJSongInfo.php", {
+		let response = await window.fetchGdApi("/getGJSongInfo.php", {
 			method: "POST",
 			body: data
 		});
 		let text = await response.text();
 		let url = decodeURIComponent(text?.split("~|~10~|~")[1]?.split("~|~")[0]);
-		let audioresponse = await fetch(this.proxyurl + url);
+		let audioresponse = await window.fetchGdAudio(url);
 		let blob = await audioresponse.blob();
 		return window.URL.createObjectURL(blob);
 	}
     static async downloadSfx(id){
-		let audioresponse = await fetch(this.proxyurl + "https://geometrydashfiles.b-cdn.net/sfx/s"+id+".ogg");
+		let audioresponse = await window.fetchGdAudio("https://geometrydashfiles.b-cdn.net/sfx/s"+id+".ogg");
 		let blob = await audioresponse.blob();
 		return window.URL.createObjectURL(blob);
     }
 	static async downloadLevel(id) {
 		let data = `levelID=${id}&secret=Wmfd2893gb7`
-		let response = await fetch(window._gdProxyUrl + "/downloadGJLevel22.php", {
+		let response = await window.fetchGdApi("/downloadGJLevel22.php", {
 			method: "POST",
 			body: data
 		});
