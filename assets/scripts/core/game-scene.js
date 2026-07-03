@@ -401,6 +401,45 @@ class GameScene extends Phaser.Scene {
           }
           return r;
         };
+        // On by default; opt out via localStorage.setItem('uhdHideOldTextures', '0')
+        // (a plain window flag would reset on every refresh):
+        // give interactive UI icons a companion invisible Zone as their real input
+        // target. Phaser (3.52+) drops non-rendering objects from hit testing and
+        // the old alwaysEnabled escape hatch for that was removed, so a Zone is the
+        // only supported way to let the sync loop hide this sprite's own canvas
+        // rendering (behind its UHD overlay) without also killing its clicks. Once
+        // the zone takes over, the original sprite's own interactive state stops
+        // mattering for input at all, which is what makes that hiding safe.
+        if (!_isObj) {
+          const _oSetInteractive = go.setInteractive.bind(go);
+          const _oDisableInteractive = go.disableInteractive.bind(go);
+          go.setInteractive = function(...args) {
+            const r = _oSetInteractive(...args);
+            go._uhdWantsInteractive = true;
+            if (localStorage.getItem('uhdHideOldTextures') !== '0' && go.input) {
+              if (!go._uhdHitZone) {
+                const _cursor = go.input.cursor;
+                const zone = _sc.add.zone(go.x, go.y, go.width || 1, go.height || 1)
+                  .setOrigin(go.originX, go.originY)
+                  .setInteractive(_cursor ? { cursor: _cursor } : undefined);
+                go._uhdHitZone = zone;
+                ['pointerdown', 'pointerup', 'pointerover', 'pointerout', 'pointerupoutside', 'pointermove']
+                  .forEach(evt => zone.on(evt, (...a) => go.emit(evt, ...a)));
+                const e = _sc._uhdMap.get(go);
+                if (e) e.hitZone = zone;
+              }
+              // go's own hit-testing is never used again once its zone exists — the
+              // sync loop drives the zone's enabled state from _uhdWantsInteractive.
+              _oDisableInteractive();
+            }
+            return r;
+          };
+          go.disableInteractive = function(...args) {
+            const r = _oDisableInteractive(...args);
+            go._uhdWantsInteractive = false;
+            return r;
+          };
+        }
       }
       return go;
     };
@@ -542,14 +581,14 @@ class GameScene extends Phaser.Scene {
       {frame:  "",                       url: "",                                                     angle: 0,                row: 0, col: 3 },
 
       { frame: "gj_twIcon_001.png",      url: "https://x.com/rohanis0000gd",                          angle: -90, flipX: true, row: 1, col: 0 },
-      { frame: "gj_ytIcon_001.png",      url: "https://www.youtube.com/@rohanis0000gd",               angle: 0,                row: 1, col: 1 },
-      { frame: "gj_tiktokIcon_001.png",  url: "https://www.tiktok.com/@rohanis00000",                 angle: -90, flipX: true, row: 1, col: 2 },
-      { frame: "gj_githubIcon_001.png",  url: "https://github.com/TheBlehLollipop/Lollipop-Mod", angle: 0,                row: 1, col: 3 },
+      { frame: "gj_ytIcon_001.png",      url: "https://www.youtube.com/@TheBlehLollipop",             angle: 0,                row: 1, col: 1 },
+      { frame: "gj_discordIcon_001.png", url: "https://discord.gg/9ZJyuJARK6",                        angle: 90,               row: 1, col: 2 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 1, col: 3 },
 
       {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 0 },
       {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 1 },
       {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 2 },
-      { frame: "gj_discordIcon_001.png", url: "https://discord.gg/TfEzAVWPSJ",                        angle: 90,               row: 2, col: 3 },
+      {frame:  "",                       url: "",                                                     angle: 0,                row: 2, col: 3 },
 
 
       //{ frame: "gj_instaIcon_001.png",   url: "https://www.instagram.com/",                           angle: -90, flipX: true, row: 1, col: 3 },
@@ -586,21 +625,6 @@ class GameScene extends Phaser.Scene {
       fontFamily: "Arial"
     }).setOrigin(1, 1).setScrollFactor(0).setDepth(30).setAlpha(0.3);
     this._downloadBtns = [];
-    const _0x4fc67f = [{
-      key: "downloadSteam_001",
-      url: "https://github.com/web-dashers/web-dashers.github.io"
-    },
-    {
-      key: "downloadApple_001",
-      url: "https://discord.gg/TfEzAVWPSJ"
-    }];
-    for (let _0xfeaf5c = 0; _0xfeaf5c < _0x4fc67f.length; _0xfeaf5c++) {
-      const _0x1ce2a6 = _0x4fc67f[_0xfeaf5c];
-      const _0x6bf69f = 1 / 1.5;
-      const _0x1d293f = this.add.image(0, 0, "GJ_WebSheet", _0x1ce2a6.key + ".png").setScrollFactor(0).setDepth(30).setScale(_0x6bf69f).setInteractive();
-      this._makeBouncyButton(_0x1d293f, _0x6bf69f, () => window.open(_0x1ce2a6.url, "_blank"), () => this._menuActive);
-      this._downloadBtns.push(_0x1d293f);
-    }
     // Fullscreen toggle moved into the Graphics (Video Options) menu — see _buildGraphicsPopup()
     this._menuInfoBtn = this.add.image(screenWidth + 20, 33, "GJ_GameSheet03", "communityCreditsBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
     this._expandHitArea(this._menuInfoBtn, 1.5);
@@ -1914,6 +1938,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         get value() { return inputText; },
       };
       const _repositionInput = () => {};
+      let _activeDiff = [];
+      let _activeDemonFilter = null;
+      let _activeLen = [];
+      let _activeStar = false;
+
       const qsLabelY  = sh * 0.195;
       const qsPanelY  = qsLabelY + 25;
       const qsPanelH  = sh * 0.36;
@@ -1922,9 +1951,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
 
       gfx.fillStyle(panelColor, panelAlpha);
       gfx.fillRoundedRect(panelLeft, qsPanelY, panelW, qsPanelH, panelRadius);
-      const comingSoonLabel = this.add.bitmapText(sw / 2, qsPanelY + qsPanelH / 2, "bigFont", "Coming Soon!", 42)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
-      this._searchOverlayObjects.push(comingSoonLabel);
       const filtersLabelY  = qsPanelY + qsPanelH + 24;
       const filtersPanelY  = filtersLabelY + 20;
       const filtersPanelH  = sh * 0.16;
@@ -1934,20 +1960,182 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
       gfx.fillStyle(filtersPanelColor, panelAlpha);
       gfx.fillRoundedRect(panelLeft, filtersPanelY, panelW, filtersPanelH, panelRadius);
 
-      const filtersComingSoon = this.add.bitmapText(sw / 2, filtersPanelY + filtersPanelH / 2, "bigFont", "Coming Soon!", 42)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
-
       const extraPanelY  = filtersPanelY + filtersPanelH + 18;
       const extraPanelH  = sh * 0.11;
       gfx.fillStyle(extraPanelColor, panelAlpha);
       gfx.fillRoundedRect(panelLeft, extraPanelY, panelW, extraPanelH, panelRadius);
 
-      const extraComingSoon = this.add.bitmapText(sw / 2, extraPanelY + extraPanelH / 2, "bigFont", "Coming Soon!", 42)
-        .setScrollFactor(0).setDepth(105).setOrigin(0.5, 0.5).setTint(0xadd8e6).setAlpha(0.75);
+      // Quick Search 3x3 grid — sort types are well-documented boomlings API values;
+      // Sent/Followed/Friends need a real logged-in GD account (accountID + friend
+      // graph), which this client doesn't have, so they're shown but disabled.
+      const qsDefs = [
+        { label: "Downloads", frame: "GJ_sDownloadIcon_001.png", rotated: false, type: 1  },
+        { label: "Likes",     frame: "GJ_sLikeIcon_001.png",     rotated: true,  type: 2  },
+        // No confirmed boomlings API type for the mod-rating "Sent" queue — even
+        // GDBrowser's own search wrapper has no mapping for it (type 17 is actually
+        // "gdworld", a different thing entirely). Disabled until a real value turns up.
+        { label: "Sent",      frame: "GJ_sModIcon_001.png",      rotated: false, type: null, disabledReason: "Sent is coming soon" },
+        { label: "Trending",  frame: "GJ_sTrendingIcon_001.png", rotated: false, type: 3  },
+        { label: "Recent",    frame: "GJ_sRecentIcon_001.png",   rotated: true,  type: 4  },
+        { label: "Magic",     frame: "GJ_sMagicIcon_001.png",    rotated: true,  type: 7  },
+        { label: "Awarded",   frame: "GJ_starsIcon_001.png",     rotated: false, type: 11, iconScale: 0.68 },
+        { label: "Followed",  frame: "GJ_sFollowedIcon_001.png", rotated: true,  type: null },
+        { label: "Friends",   frame: "GJ_sFriendsIcon_001.png",  rotated: false, type: null },
+      ];
+      const qsCols = 3;
+      const qsCellW = panelW / qsCols;
+      const qsCellH = qsPanelH / 3;
+      const qsObjs = [];
+      qsDefs.forEach((def, i) => {
+        const col = i % qsCols, row = Math.floor(i / qsCols);
+        const cx = panelLeft + col * qsCellW + qsCellW / 2;
+        const cy = qsPanelY + row * qsCellH + qsCellH / 2;
+        const btnW = qsCellW - 24;
+        const btnH = Math.min(56, qsCellH - 16);
+        const enabled = def.type !== null;
+        const btnBg = this.add.nineslice(cx, cy, "GJ_button01", null, btnW, btnH, 24, 24, 24, 24)
+          .setScrollFactor(0).setDepth(105).setInteractive();
+        const label = this.add.bitmapText(cx - 16, cy, "bigFont", def.label.toUpperCase(), 20)
+          .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setScale(1.2);
+        const icon = this.add.image(cx + btnW / 2 - 30, cy, "GJ_GameSheet03", def.frame)
+          .setScrollFactor(0).setDepth(106).setScale((def.iconScale || 1) * 1.05);
+        if (def.rotated) icon.setFlipY(true).setAngle(90);
+        if (!enabled) {
+          btnBg.setTint(0x777777).setAlpha(0.55);
+          label.setTint(0xbbbbbb);
+          icon.setAlpha(0.55);
+        }
+        qsObjs.push(btnBg, label, icon);
+        this._makeBouncyButton(btnBg, 1, () => {
+          if (!enabled) { _showStatus(def.disabledReason || (def.label + " requires a linked GD account"), "#ff6666"); return; }
+          _runQuickSearch(def.type, def.label);
+        });
+      });
+
+      // Difficulty filter row
+      const diffDefs = [
+        { label: "N/A",    frame: "difficulty_00_btn_001.png",    rotated: false, diff: -1 },
+        { label: "Easy",   frame: "difficulty_01_btn_001.png",    rotated: true,  diff: 1  },
+        { label: "Normal", frame: "difficulty_02_btn_001.png",    rotated: false, diff: 2  },
+        { label: "Hard",   frame: "difficulty_03_btn_001.png",    rotated: true,  diff: 3  },
+        { label: "Harder", frame: "difficulty_04_btn_001.png",    rotated: false, diff: 4  },
+        { label: "Insane", frame: "difficulty_05_btn_001.png",    rotated: true,  diff: 5  },
+        { label: "Easy Demon", frame: "difficulty_06_btn_001.png", rotated: true, diff: -2, demonFilter: 1 },
+        { label: "Auto",   frame: "difficulty_auto_btn_001.png",  rotated: true,  diff: -3 },
+      ];
+      const diffCellW = panelW / diffDefs.length;
+      const diffIconY = filtersPanelY + filtersPanelH * 0.5;
+      const diffButtons = [];
+      const diffObjs = [];
+      const DIFF_DIM_TINT = 0x999999;
+      const DIFF_TARGET_SIZE = 68;
+      diffDefs.forEach((def) => {
+        const idx = diffButtons.length;
+        const cx = panelLeft + idx * diffCellW + diffCellW / 2;
+        // The difficulty_XX_btn frames already have their name baked into the art —
+        // no separate caption needed (that's what was causing the doubled text).
+        const icon = this.add.image(cx, diffIconY, "GJ_GameSheet03", def.frame)
+          .setScrollFactor(0).setDepth(106).setTint(DIFF_DIM_TINT).setInteractive();
+        // Scale to a consistent bounding box instead of one flat factor — the frames
+        // have different native pixel sizes, so a flat scale made some look wider/
+        // bigger than others.
+        icon.setScale(DIFF_TARGET_SIZE / Math.max(icon.width, icon.height));
+        if (def.rotated) icon.setFlipY(true).setAngle(90);
+        diffButtons.push({ def, icon });
+        diffObjs.push(icon);
+      });
+      const _refreshDiffVisuals = () => {
+        diffButtons.forEach(({ def, icon }) => {
+          const isSelected = def.diff < 0
+            ? (_activeDiff.length === 1 && _activeDiff[0] === def.diff &&
+               (def.diff !== -2 || _activeDemonFilter === def.demonFilter))
+            : _activeDiff.includes(def.diff);
+          if (isSelected) icon.clearTint(); else icon.setTint(DIFF_DIM_TINT);
+        });
+      };
+      diffButtons.forEach(({ def, icon }) => {
+        this._makeBouncyButton(icon, icon.scale, () => {
+          if (def.diff < 0) {
+            const alreadyExclusive = _activeDiff.length === 1 && _activeDiff[0] === def.diff &&
+              (def.diff !== -2 || _activeDemonFilter === def.demonFilter);
+            if (alreadyExclusive) { _activeDiff = []; _activeDemonFilter = null; }
+            else { _activeDiff = [def.diff]; _activeDemonFilter = def.demonFilter || null; }
+          } else {
+            _activeDemonFilter = null;
+            _activeDiff = _activeDiff.filter(d => d >= 0);
+            _activeDiff = _activeDiff.includes(def.diff)
+              ? _activeDiff.filter(d => d !== def.diff)
+              : [..._activeDiff, def.diff];
+          }
+          _refreshDiffVisuals();
+        });
+      });
+      _refreshDiffVisuals();
+
+      // Length + star filter row
+      const lenDefs = [
+        { label: "Tiny", len: 0 }, { label: "Short", len: 1 }, { label: "Medium", len: 2 },
+        { label: "Long", len: 3 }, { label: "XL", len: 4 }, { label: "Plat.", len: 5 },
+      ];
+      const lenCols = lenDefs.length + 2;
+      const lenCellW = panelW / lenCols;
+      const lenY = extraPanelY + extraPanelH / 2;
+      const lenButtons = [];
+      const lenObjs = [];
+      const clockCX = panelLeft + lenCellW / 2;
+      const clockIcon = this.add.image(clockCX, lenY, "GJ_GameSheet03", "GJ_timeIcon_001.png")
+        .setScrollFactor(0).setDepth(106).setScale(0.95);
+      lenObjs.push(clockIcon);
+      lenDefs.forEach((def, i) => {
+        const cx = panelLeft + (i + 1) * lenCellW + lenCellW / 2;
+        const label = this.add.bitmapText(cx - 10, lenY, "bigFont", def.label, 24)
+          .setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setTint(DIFF_DIM_TINT).setInteractive();
+        lenButtons.push({ def, label });
+        lenObjs.push(label);
+      });
+      const starCX = panelLeft + (lenDefs.length + 1) * lenCellW + lenCellW / 2;
+      const starIcon = this.add.image(starCX, lenY, "GJ_GameSheet03", "GJ_starsIcon_001.png")
+        .setScrollFactor(0).setDepth(106).setScale(0.95).setTint(DIFF_DIM_TINT).setInteractive();
+      lenObjs.push(starIcon);
+      const _refreshLenVisuals = () => {
+        lenButtons.forEach(({ def, label }) => {
+          label.setTint(_activeLen.includes(def.len) ? 0xffffff : DIFF_DIM_TINT);
+        });
+        if (_activeStar) starIcon.clearTint(); else starIcon.setTint(DIFF_DIM_TINT);
+      };
+      lenButtons.forEach(({ def, label }) => {
+        this._makeBouncyButton(label, 1, () => {
+          _activeLen = _activeLen.includes(def.len)
+            ? _activeLen.filter(l => l !== def.len)
+            : [..._activeLen, def.len];
+          _refreshLenVisuals();
+        });
+      });
+      this._makeBouncyButton(starIcon, 0.95, () => { _activeStar = !_activeStar; _refreshLenVisuals(); });
+      _refreshLenVisuals();
+
+      // Right-edge icon stack: clear filters / advanced options
+      const rightIconX = sw - 55;
+      const clearBtn = this.add.image(rightIconX, topPanelY + topPanelH / 2, "GJ_GameSheet03", "GJ_closeBtn_001.png")
+        .setScrollFactor(0).setDepth(105).setScale(0.8).setInteractive().setFlipY(true).setAngle(90);
+      this._makeBouncyButton(clearBtn, 0.8, () => {
+        inputText = "";
+        _updateInputDisplay();
+        _activeDiff = [];
+        _activeDemonFilter = null;
+        _activeLen = [];
+        _activeStar = false;
+        _refreshDiffVisuals();
+        _refreshLenVisuals();
+        _hideStatus();
+      });
+      const advBtn = this.add.image(rightIconX, topPanelY + topPanelH / 2 + 100, "GJ_GameSheet03", "GJ_plusBtn_001.png")
+        .setScrollFactor(0).setDepth(105).setScale(0.8).setInteractive().setFlipY(true).setAngle(90);
+      this._makeBouncyButton(advBtn, 0.8, () => { _showStatus("Advanced filters coming soon"); });
 
       this._searchOverlayObjects.push(gfx, qsLabel, filtersLabel, cornerBR, cornerBL,
         placeholderLabel, typedLabel, inputCursor, inputHitZone, innerBtn1, innerBtn2, innerBtn3,
-        filtersComingSoon, extraComingSoon);
+        clearBtn, advBtn, ...qsObjs, ...diffObjs, ...lenObjs);
 
       let _loading = false;
       let _statusLabel = null;
@@ -1968,6 +2156,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         if (_statusLabel) _statusLabel.setVisible(false);
       };
 
+      const _currentFilterOpts = () => ({
+        diff: _activeDiff, demonFilter: _activeDemonFilter, len: _activeLen, star: _activeStar
+      });
+
       const _doSearch = async () => {
         if (_loading) return;
         const raw = htmlInput.value.trim();
@@ -1977,7 +2169,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
           if (/^\d+$/.test(raw)) {
             await _doSearchInner(raw);
           } else {
-            await _doNameSearch(raw, 0);
+            await _doNameSearch(raw, 0, _currentFilterOpts());
           }
         } catch (err) {
         } finally {
@@ -1985,7 +2177,28 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         }
       };
 
-      const _doNameSearch = async (query, page) => {
+      const _runQuickSearch = async (type, title) => {
+        if (_loading) return;
+        _loading = true;
+        try {
+          await _doNameSearch(htmlInput.value.trim(), 0, { type, title, ..._currentFilterOpts() });
+        } catch (err) {
+        } finally {
+          _loading = false;
+        }
+      };
+
+      const _buildSearchBody = (query, page, opts) => {
+        const parts = [`type=${opts.type ?? 0}`, `page=${page}`, `secret=Wmfd2893gb7`];
+        if (query) parts.push(`str=${encodeURIComponent(query)}`);
+        if (opts.diff && opts.diff.length) parts.push(`diff=${opts.diff.join(",")}`);
+        if (opts.demonFilter) parts.push(`demonFilter=${opts.demonFilter}`);
+        if (opts.len && opts.len.length) parts.push(`len=${opts.len.join(",")}`);
+        if (opts.star) parts.push(`star=1`);
+        return parts.join("&");
+      };
+
+      const _doNameSearch = async (query, page, opts = {}) => {
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
         if (!PROXY_BASE) return;
         _showStatus("Searching...");
@@ -1994,7 +2207,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
           const res = await fetch(`${PROXY_BASE}/getGJLevels21.php`, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `str=${encodeURIComponent(query)}&type=0&page=${page}&secret=Wmfd2893gb7`
+            body: _buildSearchBody(query, page, opts)
           });
           if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
           raw = await res.text();
@@ -2048,9 +2261,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
           _showStatus("No levels found", "#ff6666");
           return;
         }
-        levels.sort((a, b) => b.likes - a.likes);
+        if ((opts.type ?? 0) === 0) levels.sort((a, b) => b.likes - a.likes);
         _hideStatus();
-        _showSearchResults(query, page, levels);
+        _showSearchResults(opts.title || query, page, levels, { query, opts });
       };
 
       let _resultsObjects = [];
@@ -2070,7 +2283,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         return ({ 10: "diffIcon_01_btn_001.png", 20: "diffIcon_02_btn_001.png", 30: "diffIcon_03_btn_001.png", 40: "diffIcon_04_btn_001.png", 50: "diffIcon_05_btn_001.png" })[lvl.diffNum] || "diffIcon_00_btn_001.png";
       };
       const _fmtCount = (n) => n >= 1000000 ? (n / 1000000).toFixed(1) + "M" : n >= 10000 ? (n / 1000).toFixed(1) + "K" : String(n);
-      const _showSearchResults = (query, page, levels) => {
+      const _showSearchResults = (title, page, levels, searchCtx = { query: title, opts: {} }) => {
         _closeResults();
         _blurInput();
         _resultsOpen = true;
@@ -2169,7 +2382,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
         container.add(this.add.image(centerX, tableY - 10, "GJ_GameSheet03", "GJ_table_top_001.png"));
         container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
-        container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", query.slice(0, 20), 42).setOrigin(0.5).setScale(1.1));
+        container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", title.slice(0, 20), 42).setOrigin(0.5).setScale(1.1));
         container.add(this.add.bitmapText(sw - 20, 20, "bigFont", "Page " + (page + 1), 22).setOrigin(1, 0.5));
 
         let startY = tableY;
@@ -2215,7 +2428,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         const goPage = async (p) => {
           if (_loading) return;
           _loading = true;
-          try { await _doNameSearch(query, p); } catch (err) {} finally { _loading = false; }
+          try { await _doNameSearch(searchCtx.query, p, searchCtx.opts); } catch (err) {} finally { _loading = false; }
         };
         if (page > 0) {
           const prevArrow = this.add.image(45, sh / 2, "GJ_GameSheet03", "GJ_arrow_02_001.png")
@@ -5938,6 +6151,13 @@ _buildSettingsPopup() {
     const _0x960250 = _0x46ea45 * (_0x37180a - 1) / 2;
     const _0x3f88a1 = _0x43b461 * (_0x37180a - 1) / 2;
     _0x122213.input.hitArea.setTo(-_0x960250, -_0x3f88a1, _0x46ea45 + _0x960250 * 2, _0x43b461 + _0x3f88a1 * 2);
+    // The UHD hit-zone experiment (localStorage.uhdHideOldTextures) redirects input
+    // to a same-sized companion Zone once setInteractive() has been called — mirror
+    // the same expansion onto it, or every _expandHitArea call site (there are 15+)
+    // silently stops doing anything once that zone takes over.
+    if (_0x122213._uhdHitZone && _0x122213._uhdHitZone.input) {
+      _0x122213._uhdHitZone.input.hitArea.setTo(-_0x960250, -_0x3f88a1, _0x46ea45 + _0x960250 * 2, _0x43b461 + _0x3f88a1 * 2);
+    }
   }
   _makeBouncyButton(textureX, _0x57b645, _0x2f13d0, _0xda0c21) {
     textureX._bouncyBaseScale = _0x57b645;
@@ -7054,6 +7274,7 @@ _buildSettingsPopup() {
         this._editorStartOptionsPopup                     ? 'editorStartOptions' :
         this._editorLevelSettingsPopup                    ? 'editorSettings' :
         (this._editorMenuContainer && this._editorMenuContainer.visible) ? 'editorPause' :
+        this._nongPopupObjs                               ? 'nong' :
         this._levelInfoContainer                          ? 'levelInfo' :
         this._questPopup                                  ? 'quest' :
         this._macroPopup                                  ? 'macro' :
@@ -7078,8 +7299,14 @@ _buildSettingsPopup() {
       // (default off). Checked live each frame so the toggles apply instantly.
       const _uhdOn = window.uhdTextures !== false;
       const _uhdObjOn = _uhdOn && !!window.uhdInGameTextures;
+      const _uhdHideOld = localStorage.getItem('uhdHideOldTextures') !== '0';
       for (const [go, entry] of this._uhdMap) {
-        if (!go.active) { if (entry.img) entry.img.remove(); this._uhdMap.delete(go); continue; }
+        if (!go.active) {
+          if (entry.img) entry.img.remove();
+          if (entry.hitZone) entry.hitZone.destroy();
+          this._uhdMap.delete(go);
+          continue;
+        }
         // Fast path for culled level objects — the overwhelmingly common case in a long
         // level. No DOM img exists and the section container is hidden: two reads, skip.
         if (entry.obj && !entry.img) {
@@ -7088,6 +7315,31 @@ _buildSettingsPopup() {
           if (!go.visible || (_pc && !_pc.visible)) continue;
         }
         let _parVis = true; { let _chk = go.parentContainer; while (_chk) { if (!_chk.visible) { _parVis = false; break; } _chk = _chk.parentContainer; } }
+        // Keep the companion hit-zone (see the setInteractive patch above) tracking
+        // this sprite's current world transform and depth every frame, and mirror
+        // the game's own intended visibility (not the UHD-hiding state below, which
+        // is purely cosmetic) into whether it's actually clickable.
+        if (entry.hitZone) {
+          const _hz = entry.hitZone;
+          // Keep it in the same container as its sprite (image.setInteractive() often
+          // runs before container.add(image) — e.g. chained on the same line — so the
+          // zone can easily be created before that reparenting happens). Once actually
+          // parented alongside it, position/scale/rotation are plain local coordinates
+          // and Phaser's own container transform/depth handling does the rest, instead
+          // of hand-rolling a world-space walk that only covered position/scale.
+          if (_hz.parentContainer !== go.parentContainer) {
+            if (_hz.parentContainer) _hz.parentContainer.remove(_hz);
+            if (go.parentContainer) go.parentContainer.add(_hz);
+            else this.sys.displayList.add(_hz);
+          }
+          _hz.setPosition(go.x, go.y).setScale(go.scaleX, go.scaleY).setRotation(go.rotation);
+          _hz.setScrollFactor(go.scrollFactorX, go.scrollFactorY);
+          if (_hz.depth !== go.depth) _hz.setDepth(go.depth);
+          const _hzActive = go._uhdWantsInteractive && go.visible && _parVis;
+          if (_hz.input && _hz.input.enabled !== _hzActive) {
+            if (_hzActive) _hz.setInteractive(); else _hz.disableInteractive();
+          }
+        }
         // Object-sheet sprites with a color tint (not white/black) can't be replicated
         // by a DOM img; nor can any sprite with a non-normal blend mode (e.g. the
         // additive spider dash streak from GJ_GameSheet04) — hide the overlay so the
@@ -7101,8 +7353,20 @@ _buildSettingsPopup() {
             if (entry.img) { entry.img.remove(); entry.img = null; entry._vis = false; entry._t = null; entry._al = ''; entry._op = ''; entry._sized = false; }
             continue;
           }
+          // Un-hide the canvas sprite (see below) now that its overlay isn't showing.
+          if (entry._forceHidden) { go.alpha = entry._authoredAlpha != null ? entry._authoredAlpha : 1; entry._forceHidden = false; }
           if (entry._vis !== false) { entry.img.style.display = 'none'; entry._vis = false; }
           continue;
+        }
+        if (_uhdHideOld && !entry.obj && (entry.hitZone || !go.input)) {
+          // Purely decorative sprites (corner art, backgrounds, etc.) were never made
+          // interactive at all, so there's no hitbox to protect — safe to hide
+          // outright. Interactive ones only get hidden once their own zone (see the
+          // setInteractive patch above) exists to keep handling clicks for them.
+          // The real alpha is stashed so the dim/disabled-look filter below still
+          // reflects what the game actually intended, not our forced 0.
+          if (!entry._forceHidden) { entry._authoredAlpha = go.alpha; entry._forceHidden = true; }
+          if (go.alpha !== 0) go.alpha = 0;
         }
         if (!entry.img) {
           const _di = document.createElement('img');
@@ -7131,12 +7395,18 @@ _buildSettingsPopup() {
           // World objects: alpha is a real gameplay fade, not a disabled-button look.
           const op = go.alpha < 1 ? go.alpha.toFixed(2) : '';
           if (entry._op !== op) { entry.img.style.opacity = op; entry._op = op; }
-        } else if (go.alpha < 1) {
+        } else if ((entry._forceHidden ? entry._authoredAlpha : go.alpha) < 1) {
           al = 'grayscale(1) brightness(0.55)';
         }
-        // Black-tinted sprites (sawblades use setTint(0)) — multiply-by-black
-        // is exactly brightness(0) with alpha preserved.
-        if (go.tintTopLeft === 0) al += (al ? ' ' : '') + 'brightness(0)';
+        // Grey-tinted sprites (sawblades use setTint(0); dimmed/unselected UI icons
+        // use a mid-grey tint) — a neutral multiply tint is equivalent to a CSS
+        // brightness() scale by the tint's channel value, with hue/saturation
+        // untouched (unlike grayscale()). Only exact/near-neutral tints are
+        // approximated this way; colored tints aren't used on non-obj UHD sprites.
+        if (go.tintTopLeft !== 0xffffff) {
+          const _tintR = (go.tintTopLeft >> 16) & 0xff;
+          al += (al ? ' ' : '') + 'brightness(' + (_tintR / 255).toFixed(2) + ')';
+        }
         if (entry._al !== al) { entry.img.style.filter = al; entry._al = al; }
         let _wx = go.x, _wy = go.y, _ws = go.scaleX, _wsY = go.scaleY;
         { let _wp = go.parentContainer; while (_wp) { _wx = _wp.x + _wx * (_wp.scaleX || 1); _wy = _wp.y + _wy * (_wp.scaleY || 1); _ws *= (_wp.scaleX || 1); _wsY *= (_wp.scaleY || 1); _wp = _wp.parentContainer; } }
@@ -13198,21 +13468,6 @@ _applyMirrorEffect() {
     const _0x8e2b = ["\x5f\x6d\x61\x63\x72\x6f\x42\x6f\x74", "\x70\x6c\x61\x79\x69\x6e\x67"];let _0x3bc14 = 0xffffff; try {if (this[_0x8e2b[0]] && this[_0x8e2b[0]][_0x8e2b[1]]) {_0x3bc14 = (_0x3bc14 & 0xffff00) | 0xfa;}} catch (_0xe31) {}const _0x17fa2b = this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign();if (_0x3bc14 !== 0xffffff) _0x17fa2b.setTint(_0x3bc14);
     this._endLayerInternal.add(_0x17fa2b);
     this._endLayerInternal.add(this.add.image(containerX - _0x45540f, 352.5, "GJ_WebSheet", "getIt_001.png").setScale(1 / 1.5));
-    const _0x34b1bd = [{
-      key: "downloadApple_001",
-      url: "https://discord.gg/TfEzAVWPSJ"
-    }, {
-      key: "downloadSteam_001",
-      url: "https://github.com/web-dashers/web-dashers.github.io"
-    }];
-    for (let _0x10f8cc = 0; _0x10f8cc < _0x34b1bd.length; _0x10f8cc++) {
-      const _0xd7310b = _0x34b1bd[_0x10f8cc];
-      const _0x1e3f82 = (_0x10f8cc - 1) * _0x45540f;
-      const _0x55a82e = 1 / 1.5;
-      const _0x4c7fb8 = this.add.image(containerX + _0x1e3f82, 437.5, "GJ_WebSheet", _0xd7310b.key + ".png").setScale(_0x55a82e).setInteractive();
-      this._endLayerInternal.add(_0x4c7fb8);
-      this._makeBouncyButton(_0x4c7fb8, _0x55a82e, () => window.open(_0xd7310b.url, "_blank"));
-    }
     _0x2de55e.width;
     this._endStarX = containerX + _0x45540f;
     this._endStarY = _0x241209 - 77.5;
@@ -13655,6 +13910,7 @@ _applyMirrorEffect() {
   }
   async _showNongPopup(songId, songKey) {
     if (this._nongPopupObjs) { this._nongPopupObjs.forEach(o => o.destroy()); this._nongPopupObjs = null; return; }
+    this._uhdContext = 'nong';
     const cx = screenWidth / 2;
     const cy = screenHeight / 2;
     const popW = 620;
@@ -13684,6 +13940,7 @@ _applyMirrorEffect() {
       const res = await fetch(`https://api.songfilehub.com/songs?songID=${songId}`);
       if (!res.ok) throw new Error("API returned " + res.status);
       const songs = await res.json();
+      this._uhdContext = 'nong'; // update() zeroes this every frame while we were awaiting the fetch
       loadingText.destroy();
 
       if (!songs || songs.length === 0) {
