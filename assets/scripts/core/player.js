@@ -2893,6 +2893,17 @@ if (this.p.isFlying || this.p.isUfo) {
       return 1;
     }
   }
+  _padMatchesGravity(gameObj) {
+    const rad = (gameObj.rotationDegrees || 0) * Math.PI / 180;
+    const baseUpY = gameObj.flipY ? 1 : -1;
+    const rotatedUpY = baseUpY * Math.cos(rad);
+    if (rotatedUpY > 0.01) {
+      return this.p.gravityFlipped;
+    } else if (rotatedUpY < -0.01) {
+      return !this.p.gravityFlipped;
+    }
+    return true;
+  }
   flipGravity(flipped, _0x11bbde = 0.5) {
       if (this.p.gravityFlipped === flipped) {
         return;
@@ -3663,8 +3674,11 @@ _updateRobotJump(dt) {
           }
         } else if (_colType === jumpPadType) {
           if (!gameObj.activated) {
-            gameObj.activated = true;
             const _padId = gameObj.padId;
+            if (_padId === 67 && !this._padMatchesGravity(gameObj)) {
+              continue;
+            }
+            gameObj.activated = true;
             if (_padId === 67) {
               const now = Date.now();
               if (!window.lastbluepad) {

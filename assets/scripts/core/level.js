@@ -1575,6 +1575,7 @@ window.LevelObject = class LevelObject {
       const padH = objectDef.gridH * a;
       const padObj = new Collider(jumpPadType, worldX, worldY, padW, padH, levelObj.rot || 0);
       padObj.padId = levelObj.id;
+      padObj.flipY = !!levelObj.flipY;
       registerCollider(padObj);
       this.objects.push(padObj);
       hasCollisionEntry = true;

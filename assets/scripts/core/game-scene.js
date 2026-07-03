@@ -312,6 +312,7 @@ class GameScene extends Phaser.Scene {
     this._uhdContPos = null; // reset cache so update() resizes the new container immediately
     this._uhdMap = new Map();
     this._uhdContext = null; // null = main menu; must be set before any add.image calls
+    this._searchResultsOpen = false; // scene restarts reuse the instance; don't let a stale flag win the ctx priority chain
     // Sync overlay positions after update() has moved containers/cameras for the frame
     // (off-before-on: scene restarts reuse the same instance, avoid double registration)
     this.events.off('postupdate', this._syncUhdOverlays);
@@ -1949,18 +1950,288 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         filtersComingSoon, extraComingSoon);
 
       let _loading = false;
+      let _statusLabel = null;
+      let _statusTimer = null;
+      const _showStatus = (msg, color = "#ffffff") => {
+        const tint = typeof color === "string" ? parseInt(color.replace("#", "0x")) : color;
+        if (!_statusLabel) {
+          _statusLabel = this.add.bitmapText(sw / 2, topPanelY + topPanelH + 16, "bigFont", "", 22)
+            .setScrollFactor(0).setDepth(170).setOrigin(0.5, 0.5);
+          this._searchOverlayObjects.push(_statusLabel);
+        }
+        if (_statusTimer) { _statusTimer.remove(); _statusTimer = null; }
+        _statusLabel.setText(msg).setTint(tint).setVisible(true);
+        _statusTimer = this.time.delayedCall(2500, () => { if (_statusLabel) _statusLabel.setVisible(false); });
+      };
+      const _hideStatus = () => {
+        if (_statusTimer) { _statusTimer.remove(); _statusTimer = null; }
+        if (_statusLabel) _statusLabel.setVisible(false);
+      };
+
       const _doSearch = async () => {
         if (_loading) return;
-        const levelId = htmlInput.value.trim().replace(/\D/g, "");
-        if (!levelId) return;
+        const raw = htmlInput.value.trim();
+        if (!raw) return;
         _loading = true;
         try {
-          await _doSearchInner(levelId);
+          if (/^\d+$/.test(raw)) {
+            await _doSearchInner(raw);
+          } else {
+            await _doNameSearch(raw, 0);
+          }
         } catch (err) {
         } finally {
           _loading = false;
         }
       };
+
+      const _doNameSearch = async (query, page) => {
+        const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
+        if (!PROXY_BASE) return;
+        _showStatus("Searching...");
+        let raw;
+        try {
+          const res = await fetch(`${PROXY_BASE}/getGJLevels21.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `str=${encodeURIComponent(query)}&type=0&page=${page}&secret=Wmfd2893gb7`
+          });
+          if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+          raw = await res.text();
+        } catch (err) {
+          _showStatus("Search failed", "#ff6666");
+          return;
+        }
+        if (!raw || raw === "-1" || !raw.includes(":")) {
+          _showStatus("No levels found", "#ff6666");
+          return;
+        }
+
+        const segments = raw.split("#");
+        const authors = {};
+        (segments[1] || "").split("|").forEach(c => {
+          const p = c.split(":");
+          if (p.length >= 2) authors[p[0]] = p[1];
+        });
+        const songs = {};
+        (segments[2] || "").split("~:~").forEach(s => {
+          const parts = s.split("~|~");
+          const m = {};
+          for (let i = 0; i + 1 < parts.length; i += 2) m[parts[i].trim()] = parts[i + 1];
+          if (m["1"]) songs[m["1"].trim()] = (m["2"] || "").trim();
+        });
+
+        const levels = (segments[0] || "").split("|").filter(Boolean).map(str => {
+          const parts = str.split(":");
+          const m = {};
+          for (let i = 0; i + 1 < parts.length; i += 2) m[parts[i]] = parts[i + 1];
+          const customSongID = (m["35"] || "").trim();
+          return {
+            id:        m["1"] || "",
+            name:      (m["2"] || "Unnamed").trim(),
+            author:    authors[m["6"]] || "-",
+            diffNum:   parseInt(m["9"]) || 0,
+            downloads: parseInt(m["10"]) || 0,
+            likes:     parseInt(m["14"]) || 0,
+            length:    parseInt(m["15"]) || 0,
+            demon:     m["17"] == "1",
+            stars:     parseInt(m["18"]) || 0,
+            featured:  (parseInt(m["19"]) || 0) > 0,
+            auto:      m["25"] == "1",
+            epic:      (parseInt(m["42"]) || 0) > 0,
+            demonDiff: parseInt(m["43"]) || 0,
+            song:      customSongID && customSongID !== "0" ? (songs[customSongID] || "") : ""
+          };
+        }).filter(l => l.id);
+
+        if (!levels.length) {
+          _showStatus("No levels found", "#ff6666");
+          return;
+        }
+        levels.sort((a, b) => b.likes - a.likes);
+        _hideStatus();
+        _showSearchResults(query, page, levels);
+      };
+
+      let _resultsObjects = [];
+      let _resultsOpen = false;
+      let _resultsWheel = null;
+      const _closeResults = () => {
+        if (!_resultsOpen) return;
+        _resultsOpen = false;
+        this._searchResultsOpen = false;
+        if (_resultsWheel) { this.input.off('wheel', _resultsWheel); _resultsWheel = null; }
+        for (const obj of _resultsObjects) { if (obj && obj.destroy) obj.destroy(); }
+        _resultsObjects = [];
+      };
+      const _diffFaceFrame = (lvl) => {
+        if (lvl.auto) return "diffIcon_auto_btn_001.png";
+        if (lvl.demon) return ({ 3: "diffIcon_07_btn_001.png", 4: "diffIcon_08_btn_001.png", 5: "diffIcon_09_btn_001.png", 6: "diffIcon_10_btn_001.png" })[lvl.demonDiff] || "diffIcon_06_btn_001.png";
+        return ({ 10: "diffIcon_01_btn_001.png", 20: "diffIcon_02_btn_001.png", 30: "diffIcon_03_btn_001.png", 40: "diffIcon_04_btn_001.png", 50: "diffIcon_05_btn_001.png" })[lvl.diffNum] || "diffIcon_00_btn_001.png";
+      };
+      const _fmtCount = (n) => n >= 1000000 ? (n / 1000000).toFixed(1) + "M" : n >= 10000 ? (n / 1000).toFixed(1) + "K" : String(n);
+      const _showSearchResults = (query, page, levels) => {
+        _closeResults();
+        _blurInput();
+        _resultsOpen = true;
+        // Own UHD group, distinct from the search menu underneath: overlays render
+        // above the canvas, so sharing 'search' would leave the menu's UHD buttons
+        // floating over this list (and these icons over the menu after closing).
+        // update() nulls _uhdContext each frame and this runs from an async fetch
+        // callback, so it must be (re-)tagged here.
+        this._uhdContext = 'searchResults';
+        this._searchResultsOpen = true;
+        const centerX = sw / 2;
+
+        const bg = this.add.graphics().setScrollFactor(0).setDepth(160);
+        const gradSteps = 80;
+        for (let gi = 0; gi < gradSteps; gi++) {
+          const t = gi / (gradSteps - 1);
+          const r1 = Math.round(0x01 * t);
+          const g1 = Math.round(0x65 + (0x2c - 0x65) * t);
+          const b1 = Math.round(0xff + (0x71 - 0xff) * t);
+          bg.fillStyle((r1 << 16) | (g1 << 8) | b1, 1);
+          bg.fillRect(0, Math.floor(gi * sh / gradSteps), sw, Math.ceil(sh / gradSteps) + 1);
+        }
+        const blocker2 = this.add.zone(centerX, sh / 2, sw, sh).setScrollFactor(0).setDepth(161).setInteractive();
+        const container = this.add.container(0, 0).setScrollFactor(0).setDepth(162);
+        _resultsObjects.push(bg, blocker2, container);
+
+        const tableW = 712;
+        const tableH = 460;
+        const tableX = (sw - tableW) / 2;
+        const tableY = 85;
+        const lengthNames = ["Tiny", "Short", "Medium", "Long", "XL", "Plat."];
+
+        const listContainer = this.add.container(0, 0);
+        const maskShape = this.add.graphics().fillStyle(0xffffff).fillRect(tableX, tableY, tableW, tableH).setVisible(false);
+        listContainer.setMask(maskShape.createGeometryMask());
+        _resultsObjects.push(maskShape);
+        container.add(this.add.graphics().fillStyle(0xc2723e, 1).fillRect(tableX, tableY, tableW, tableH));
+        container.add(listContainer);
+
+        const spacing = 100;
+        const rowUhdImgs = [];
+        levels.forEach((lvl, rowIndex) => {
+          const slotY = (rowIndex * spacing) + (spacing / 2);
+          const stripeColor = rowIndex % 2 !== 0 ? 0xc2723e : 0xa1582c;
+
+          const bgStripe = this.add.rectangle(centerX, slotY, tableW - 10, spacing, stripeColor, 1);
+          const separator = this.add.rectangle(centerX, slotY + (spacing / 2), tableW - 10, 1, 0x502c16, 1);
+          const diffFrame = _diffFaceFrame(lvl);
+          const diffFace = this.add.image(tableX + 50, slotY - (lvl.stars > 0 ? 12 : 0), "GJ_GameSheet03", diffFrame).setScale(0.85);
+          // frames stored rotated in the atlas need the same compensation as GJ_playBtn2 elsewhere
+          if (diffFrame === "diffIcon_06_btn_001.png" || diffFrame === "diffIcon_09_btn_001.png") diffFace.setFlipY(true).setAngle(90);
+          listContainer.add([bgStripe, separator, diffFace]);
+          rowUhdImgs.push(diffFace);
+          if (lvl.stars > 0) {
+            const starTxt = this.add.bitmapText(tableX + 44, slotY + 30, "bigFont", String(lvl.stars), 20).setOrigin(1, 0.5);
+            const starIcon = this.add.image(tableX + 55, slotY + 30, "GJ_GameSheet03", "GJ_starsIcon_001.png").setScale(0.6);
+            listContainer.add([starTxt, starIcon]);
+            rowUhdImgs.push(starIcon);
+          }
+
+          const nameTxt = this.add.bitmapText(tableX + 105, slotY - 26, "bigFont", lvl.name, 30).setOrigin(0, 0.5);
+          const authorTxt = this.add.bitmapText(tableX + 105, slotY + 2, "goldFont", "By " + lvl.author, 20).setOrigin(0, 0.5);
+          const statsY = slotY + 30;
+          const dlIcon = this.add.image(tableX + 115, statsY, "GJ_GameSheet03", "GJ_downloadsIcon_001.png").setScale(0.55);
+          const dlTxt = this.add.bitmapText(dlIcon.x + 16, statsY, "bigFont", _fmtCount(lvl.downloads), 18).setOrigin(0, 0.5);
+          const likeIcon = this.add.image(tableX + 235, statsY, "GJ_GameSheet03", "GJ_likesIcon_001.png").setScale(0.55);
+          const likeTxt = this.add.bitmapText(likeIcon.x + 16, statsY, "bigFont", _fmtCount(lvl.likes), 18).setOrigin(0, 0.5);
+          const lenIcon = this.add.image(tableX + 355, statsY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(0.55);
+          const lenTxt = this.add.bitmapText(lenIcon.x + 16, statsY, "bigFont", lengthNames[lvl.length] || "?", 18).setOrigin(0, 0.5);
+          listContainer.add([nameTxt, authorTxt, dlIcon, dlTxt, likeIcon, likeTxt, lenIcon, lenTxt]);
+          rowUhdImgs.push(dlIcon, likeIcon, lenIcon);
+
+          const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY, "GJ_button01", null, 120, 60, 24, 24, 24, 24).setScale(0.75).setInteractive();
+          const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 28).setOrigin(0.5).setScale(0.8);
+          listContainer.add([viewBtn, viewTxt]);
+          this._makeBouncyButton(viewBtn, 0.75, async () => {
+            if (_loading) return;
+            _loading = true;
+            const loadTxt = this.add.bitmapText(centerX, sh / 2, "bigFont", "Loading level...", 30)
+              .setScrollFactor(0).setDepth(170).setOrigin(0.5);
+            _resultsObjects.push(loadTxt);
+            try {
+              await _doSearchInner(lvl.id);
+            } catch (err) {
+              _showStatus("Level failed to load", "#ff6666");
+            } finally {
+              _loading = false;
+              loadTxt.destroy();
+            }
+          });
+        });
+
+        const sideFrame = this.textures.getFrame("GJ_GameSheet03", "GJ_table_side_001.png");
+        const sideScaleY = tableH / sideFrame.height;
+        container.add(this.add.image(tableX - 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, sideScaleY));
+        container.add(this.add.image(tableX + tableW + 40, tableY, "GJ_GameSheet03", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, sideScaleY));
+        container.add(this.add.image(centerX, tableY - 10, "GJ_GameSheet03", "GJ_table_top_001.png"));
+        container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_GameSheet03", "GJ_table_bottom_001.png"));
+        container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", query.slice(0, 20), 42).setOrigin(0.5).setScale(1.1));
+        container.add(this.add.bitmapText(sw - 20, 20, "bigFont", "Page " + (page + 1), 22).setOrigin(1, 0.5));
+
+        let startY = tableY;
+        const listHeight = levels.length * spacing;
+        const minY = tableY - Math.max(0, listHeight - tableH) - 10;
+        const maxY = tableY + 22;
+        listContainer.y = maxY;
+        let scrollTargetY = maxY;
+        // The DOM UHD overlays aren't clipped by the table's geometry mask, so hide
+        // an icon's overlay while it straddles the table edge (the masked canvas
+        // sprite shows through instead) by re-grouping its entry out of 'search'.
+        const _syncRowOverlays = () => {
+          if (!this._uhdMap) return;
+          for (const img of rowUhdImgs) {
+            const e = this._uhdMap.get(img);
+            if (!e) continue;
+            const half = (img.displayHeight || img.height) / 2;
+            const wy = listContainer.y + img.y;
+            e.group = (wy - half >= tableY && wy + half <= tableY + tableH) ? 'searchResults' : '_maskedOut';
+          }
+        };
+        _syncRowOverlays();
+        _resultsWheel = (pointer, gameObjects, deltaX, deltaY) => {
+          if (!_resultsOpen) return;
+          scrollTargetY = Phaser.Math.Clamp(scrollTargetY - deltaY, minY, maxY);
+          this.tweens.add({ targets: listContainer, y: scrollTargetY, duration: 250, ease: 'Power2', overwrite: true, onUpdate: _syncRowOverlays });
+        };
+        this.input.on('wheel', _resultsWheel);
+        blocker2.on('pointerdown', (pointer) => { startY = pointer.y - listContainer.y; });
+        blocker2.on('pointermove', (pointer) => {
+          if (pointer.isDown) {
+            listContainer.y = Phaser.Math.Clamp(pointer.y - startY, minY, maxY);
+            scrollTargetY = listContainer.y;
+            _syncRowOverlays();
+          }
+        });
+
+        const resultsBack = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+          .setScrollFactor(0).setDepth(164).setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
+        this._makeBouncyButton(resultsBack, 1, () => _closeResults());
+        _resultsObjects.push(resultsBack);
+
+        const goPage = async (p) => {
+          if (_loading) return;
+          _loading = true;
+          try { await _doNameSearch(query, p); } catch (err) {} finally { _loading = false; }
+        };
+        if (page > 0) {
+          const prevArrow = this.add.image(45, sh / 2, "GJ_GameSheet03", "GJ_arrow_02_001.png")
+            .setScrollFactor(0).setDepth(164).setInteractive();
+          this._makeBouncyButton(prevArrow, 1, () => goPage(page - 1));
+          _resultsObjects.push(prevArrow);
+        }
+        if (levels.length >= 10) {
+          const nextArrow = this.add.image(sw - 45, sh / 2, "GJ_GameSheet03", "GJ_arrow_02_001.png")
+            .setScrollFactor(0).setDepth(164).setFlipX(true).setInteractive();
+          this._makeBouncyButton(nextArrow, 1, () => goPage(page + 1));
+          _resultsObjects.push(nextArrow);
+        }
+      };
+      this._searchOverlayObjects.push({ destroy: _closeResults });
+      this._closeSearchResults = _closeResults; // for the ESC handler's layer-by-layer back-out
       const _doSearchInner = async (levelId) => {
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
         if (!PROXY_BASE) return;
@@ -2260,6 +2531,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         }
         this._searchOverlayObjects = [];
         this._searchOverlay = null;
+        this._closeSearchResults = null;
       };
       if (silent) { destroy(); if (onComplete) onComplete(); return; }
       const sw = screenWidth, sh = screenHeight;
@@ -3127,6 +3399,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
     this._pauseBtn.on("pointerdown", () => this._pauseGame());
     this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this._escKey.on("down", () => {
+      // Level info page sits on top of search results / saved menu — close just it
+      if (this._levelInfoContainer) {
+        this._closeLevelInfoPage();
+        return;
+      }
       if (this._levelSelectOverlay) {
         this._closeLevelSelect();
         return;
@@ -3140,6 +3417,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_GameSheet
         return;
       } 
       if (this._searchOverlay) {
+        // Results list open: step back to the search menu, not all the way out
+        if (this._searchResultsOpen && this._closeSearchResults) {
+          this._closeSearchResults();
+          return;
+        }
         this._closeSearchMenu(true);
         this._openCreatorMenu();
         return;
@@ -6780,6 +7062,7 @@ _buildSettingsPopup() {
         this._statsLayerOverlay                           ? 'stats' :
         this._iconOverlay                                 ? 'icon' :
         this._onlineLevelsOverlay                         ? 'online' :
+        this._searchResultsOpen                           ? 'searchResults' :
         this._searchOverlay                               ? 'search' :
         this._savedOverlay                                ? 'saved' :
         this._newgroundsPopup                             ? 'newgrounds' :
@@ -9052,6 +9335,7 @@ _flipObject = (axis) => {
 
     const sprites = this._level.objectSprites[selectedObjectId];
     const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
+    const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
 
     if (!saveObj) return;
 
@@ -9077,10 +9361,18 @@ _flipObject = (axis) => {
                 s.angle = -s.angle;
             }
         }
+
+        for (const collider of colliders) {
+            collider.flipY = saveObj.flipY;
+        }
     }
 
     saveObj.rot = -saveObj.rot;
     if (saveObj._raw) saveObj._raw["6"] = String(saveObj.rot || 0);
+    for (const collider of colliders) {
+        collider.rotation = saveObj.rot;
+        collider.rotationDegrees = saveObj.rot;
+    }
     this._refreshEditorCollisionCaches();
 };
 
