@@ -1237,7 +1237,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText]);
     };
     this._startCreatedLevel = async (level, isEditor) => {
-        const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
+        const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
         window._onlineLevelString = level.levelString;
         window._onlineLevelName = level.levelName;
         window._onlineLevelId = level.createdId;
@@ -1262,9 +1262,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           const songKey = `ng_song_${songId}`;
           window.currentlevel[0] = songKey;
           
-          if (PROXY_BASE && songId > 0) {
+          if (songInfoUrl && songId > 0) {
               try {                  
-                  const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
+                  const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
                       method: "POST",
                       headers: { "Content-Type": "application/x-www-form-urlencoded" },
                       body: `songID=${songId}&secret=Wmfd2893gb7`
@@ -1283,7 +1283,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                       if (songUrl) {
                           const audioCtx = this.game.sound.context;
                           if (audioCtx.state === "suspended") await audioCtx.resume();
-                          const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                          const proxiedUrl = (typeof window.getGdAudioUrl === "function" ? window.getGdAudioUrl(songUrl) : songUrl);
                           const audioRes = await fetch(proxiedUrl);
                           const arrayBuf = await audioRes.arrayBuffer();
                           const decoded = await audioCtx.decodeAudioData(arrayBuf);
@@ -1539,10 +1539,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         }
       };
       const _doSearchInner = async (levelId) => {
-        const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
-        if (!PROXY_BASE) return;
+        const apiBase = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/downloadGJLevel22.php") : null);
+        if (!apiBase) return;
         const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
-        const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
+        const res = await window.fetchGdApi("/downloadGJLevel22.php", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formBody
@@ -1613,7 +1613,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (levelData.isCustomSong) {
           window._onlineSongBuffer = null; 
           window._onlineSongKey    = null;
-            const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
+          const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
+          const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: `songID=${levelData.customSongID}&secret=Wmfd2893gb7`
@@ -1752,8 +1753,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                   window._onlineSongArtist = songData.artistName;
 
                   try {
-                      const proxiedUrl = `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                      const audioRes = await fetch(proxiedUrl);
+                      const audioRes = await window.fetchGdAudio(songUrl);
                       
                       if (!audioRes.ok) throw new Error(`audio proxy returned ${audioRes.status}`);
 
@@ -3944,7 +3944,7 @@ _buildSettingsPopup() {
         this._settingsPopup = null;
     });
 
-    const pages = ["Gameplay", "Visual"];
+    const pages = ["Gameplay", "Visual", "Advanced"];
     let currentPage = 0;
     const pageTitle = this.add.bitmapText(0, -(panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
     innerContainer.add(pageTitle);
@@ -4200,6 +4200,14 @@ _buildSettingsPopup() {
         );
     };
 
+    const buildAdvancedPage = (container) => {
+        createToggle(container, column1X, startY, "Use Proxy (for schools)",
+            () => !window.useDirectInternet,
+            (v) => { window.useDirectInternet = !v; },
+            null, 22
+        );
+    };
+
     const buildPage = (idx) => {
         pageContainer.destroy();
         pageContainer = this.add.container(0, 0);
@@ -4208,6 +4216,7 @@ _buildSettingsPopup() {
         
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
+        else if (idx === 2) buildAdvancedPage(pageContainer);
     };
 
     buildPage(0);
@@ -4247,9 +4256,11 @@ _buildSettingsPopup() {
         speedHack: window.speedHack,
         macroBot: window.macroBot,
         showGlow: window.showGlow,
-        showEditorGlow: window.showEditorGlow
+        showEditorGlow: window.showEditorGlow,
+        useDirectInternet: !!window.useDirectInternet
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
+    localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
   }
   _loadSettings() {
     const saved = localStorage.getItem("gd_settings");
@@ -4270,7 +4281,8 @@ _buildSettingsPopup() {
         speedHack: 1.0,
         macroBot: false,
         showGlow: true,
-        showEditorGlow: false
+        showEditorGlow: false,
+        useDirectInternet: true
     };
 
     const data = { ...defaults, ...(saved ? JSON.parse(saved) : {}) };
@@ -4292,6 +4304,8 @@ _buildSettingsPopup() {
     window.showEditorGlow = data.showEditorGlow;
     window.createObjectIds = data.createObjectIds;
     window.showObjectIds = data.showObjectIds;
+    window.useDirectInternet = !!data.useDirectInternet;
+    localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
   }
   _buildMacroPopup() {
       if (this._macroPopup) return;
@@ -7824,15 +7838,15 @@ _applyMirrorEffect() {
       try {
         let response = cache[page];
         if (!response) {
-          const PROXY = (window._gdProxyUrl || "").replace(/\/$/, "");
-          if (!PROXY) throw new Error("no proxy configured");
+          const apiUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJLevels21.php") : null);
+          if (!apiUrl) throw new Error("no API endpoint configured");
           const body = Object.entries({ secret: "Wmfd2893gb7", page, ...params })
             .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
           let retryCount = 0;
           const maxRetries = 3;
           let res;
           while (retryCount < maxRetries) {
-            res = await fetch(`${PROXY}/getGJLevels21.php`, {
+            res = await window.fetchGdApi("/getGJLevels21.php", {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
               body
