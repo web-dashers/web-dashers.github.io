@@ -2893,7 +2893,6 @@ window.LevelObject = class LevelObject {
       }
     }
   }
-
   resetEnterEffectTriggers() {
     this._enterEffectTriggerIdx = 0;
     this._activeEnterEffect = 0;
@@ -2905,7 +2904,9 @@ window.LevelObject = class LevelObject {
         for (let _0x13e116 = 0; _0x13e116 < _0x14a035.length; _0x13e116++) {
           const visMinSection = _0x14a035[_0x13e116];
           visMinSection._eeActive = false;
-          visMinSection.visible = visMinSection._eeIsGlowSprite ? this._isGlowVisible() : true;
+          const showtheportalthing = !visMinSection._eePortalGuide || (window.enablePortalGuide !== false);
+          const showtheorbthing = !visMinSection._eeOrbGuide || (window.enableOrbGuide !== false);
+          visMinSection.visible = showtheportalthing && showtheorbthing;
           visMinSection.x = visMinSection._eeWorldX;
           visMinSection.y = visMinSection._eeBaseY;
           if (!visMinSection._eeAudioScale) {
