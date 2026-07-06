@@ -5768,17 +5768,24 @@ class LevelEditor {
   }
 
 
+  _parseEditorSingleGroupId(value, fallback = 0) {
+    const parts = String(value ?? "")
+      .split(/[,.]/)
+      .map(part => parseInt(part.trim(), 10))
+      .filter(groupId => Number.isFinite(groupId) && groupId > 0);
+    return parts.length ? parts[0] : fallback;
+  }
+
+
   _getEditorTriggerTargetGroup(saveObj) {
     const raw = saveObj?._raw || {};
-    const parsed = parseInt(raw[51] ?? raw["51"] ?? 0, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    return this._parseEditorSingleGroupId(raw[51] ?? raw["51"], 0);
   }
 
 
   _setEditorTriggerTargetGroup(saveObj, value) {
     if (!saveObj) return;
-    const parsed = parseInt(value ?? 0, 10);
-    const targetGroup = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+    const targetGroup = Math.max(0, this._parseEditorSingleGroupId(value, 0));
     saveObj._raw = saveObj._raw || {};
     saveObj._raw[51] = String(targetGroup);
     saveObj._raw["51"] = String(targetGroup);
@@ -6041,7 +6048,7 @@ class LevelEditor {
       return entry;
     };
 
-    const makeSliderInput = ({ x, y, label, min, max, getValue, setValue, labelStyle = "gold", layout = "vertical", width = 300 }) => {
+    const makeSliderInput = ({ x, y, label, min, max, inputMin = min, inputMax = max, getValue, setValue, labelStyle = "gold", layout = "vertical", width = 300 }) => {
       const inputW = 118;
       const inputH = 50;
       const isHorizontal = layout === "horizontal";
@@ -6087,8 +6094,12 @@ class LevelEditor {
       let textValue = "";
       let beforeFocus = "";
       
-      const pctForValue = (value) => Phaser.Math.Clamp((Number(value) - min) / (max - min), 0, 1);
-      const valueForPct = (pct) => min + Phaser.Math.Clamp(pct, 0, 1) * (max - min);
+      const sliderMin = Number.isFinite(Number(min)) ? Number(min) : 0;
+      const sliderMax = Number.isFinite(Number(max)) ? Number(max) : sliderMin + 1;
+      const textMin = Number.isFinite(Number(inputMin)) ? Number(inputMin) : sliderMin;
+      const textMax = Number.isFinite(Number(inputMax)) ? Number(inputMax) : sliderMax;
+      const pctForValue = (value) => Phaser.Math.Clamp((Number(value) - sliderMin) / (sliderMax - sliderMin), 0, 1);
+      const valueForPct = (pct) => sliderMin + Phaser.Math.Clamp(pct, 0, 1) * (sliderMax - sliderMin);
       
       const render = () => {
         inputBg.clear();
@@ -6102,7 +6113,7 @@ class LevelEditor {
       
       const commit = () => {
         const parsed = parseFloat(textValue || "0");
-        setValue(Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, min, max));
+        setValue(Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, textMin, textMax));
         render();
       };
       
@@ -6187,6 +6198,8 @@ class LevelEditor {
       label: "Move X:",
       min: -100,
       max: 100,
+      inputMin: -99999,
+      inputMax: 99999,
       labelStyle: "helvetica",
       layout: "horizontal",
       width: 200,
@@ -6199,6 +6212,8 @@ class LevelEditor {
       label: "Move Y:",
       min: -100,
       max: 100,
+      inputMin: -99999,
+      inputMax: 99999,
       labelStyle: "helvetica",
       layout: "horizontal",
       width: 200,
@@ -8329,6 +8344,26 @@ _serializeObject(object) {
   objectData["kA28"] = String(object.mirrored ?? 0);
   objectData["kA11"] = object.flipGravity ? "1" : "0";
 
+  if (parseInt(object.id ?? 0, 10) === 1346) {
+    const parseGroupParts = (value) => String(value ?? "")
+      .split(/[,.]/)
+      .map(part => parseInt(part.trim(), 10))
+      .filter(groupId => Number.isFinite(groupId) && groupId > 0);
+    const targetParts = parseGroupParts(objectData[51] ?? objectData["51"]);
+    const centerParts = parseGroupParts(objectData[71] ?? objectData["71"]);
+    const targetGroup = targetParts[0] || 0;
+    const centerGroup = centerParts[0] || 0;
+    objectData[51] = String(targetGroup);
+    objectData["51"] = String(targetGroup);
+    if (centerGroup > 0) {
+      objectData[71] = String(centerGroup);
+      objectData["71"] = String(centerGroup);
+    } else {
+      delete objectData[71];
+      delete objectData["71"];
+    }
+  }
+
   const parts = [];
 
   for (const key in objectData) {
@@ -8584,6 +8619,7 @@ LevelEditor.methodNames = [
   "_openSelectedEditorObjectOptions",
   "_isEditorMoveTriggerId",
   "_isEditorSpawnTriggerId",
+  "_parseEditorSingleGroupId",
   "_getEditorTriggerTargetGroup",
   "_setEditorTriggerTargetGroup",
   "_getEditorTriggerBool",

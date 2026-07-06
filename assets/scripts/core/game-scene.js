@@ -390,6 +390,7 @@ class GameScene extends Phaser.Scene {
     this._level.additiveContainer.add(this._glitterEmitter);
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
+    this._level.setGround2Color?.(this._colorManager.getHex(1009));
     this._level.additiveContainer.setVisible(false);
     this._level.container.setVisible(false);
     this._level.topContainer.setVisible(false);
@@ -3144,6 +3145,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const groundY = sh + 175;
     const groundId = (window._groundId || "00");
     const groundFrame = this.textures.getFrame("groundSquare_" + groundId + "_001.png");
+    const referenceGroundFrame = this.textures.getFrame("groundSquare_00_001.png") || groundFrame;
+    const referenceGroundH = referenceGroundFrame ? referenceGroundFrame.height : 270;
+    const groundTopY = groundY - referenceGroundH;
     const tileW = groundFrame ? groundFrame.width : 1012;
     const numTiles = Math.ceil(sw / tileW) + 2;
     const groundTintHex = (colorHex) => {
@@ -3153,16 +3157,24 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       return (r << 16) | (g << 8) | b;
     };
     const staticGroundTiles = [];
+    const staticGround2Tiles = [];
+    const ground2Key = "groundSquare_" + groundId + "_2_001.png";
+    const hasGround2 = this.textures.exists(ground2Key);
     for (let gi = 0; gi < numTiles; gi++) {
-      const gt = this.add.image(gi * tileW, groundY, "groundSquare_" + groundId + "_001.png")
-        .setScrollFactor(0).setDepth(151).setOrigin(0, 1).setTint(groundTintHex(groundHex));
+      const tileX = gi * tileW;
+      const gt = this.add.image(tileX, groundTopY, "groundSquare_" + groundId + "_001.png")
+        .setScrollFactor(0).setDepth(151).setOrigin(0, 0).setTint(groundTintHex(groundHex));
       staticGroundTiles.push(gt);
+      if (hasGround2) {
+        const gt2 = this.add.image(tileX, groundTopY, ground2Key)
+          .setScrollFactor(0).setDepth(151.5).setOrigin(0, 0).setTint(groundTintHex(groundHex));
+        staticGround2Tiles.push(gt2);
+      }
     }
     const floorLineFrame = this.textures.getFrame("GJ_WebSheet", "floorLine_01_001.png");
     const floorLineW = floorLineFrame ? floorLineFrame.width : 888;
     const floorLineScale = sw / floorLineW;
-    const groundTileH = groundFrame ? groundFrame.height : 80;
-    const staticFloorLine = this.add.image(cx, groundY - groundTileH, "GJ_WebSheet", "floorLine_01_001.png")
+    const staticFloorLine = this.add.image(cx, groundTopY, "GJ_WebSheet", "floorLine_01_001.png")
       .setScrollFactor(0).setDepth(152).setOrigin(0.5, 0.5).setScale(floorLineScale, 1).setBlendMode(S);
     const cornerBL = this.add.image(0,  sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 1).setFlipY(true).setAngle(90);
     const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 0).setFlipY(false).setAngle(90);
@@ -3555,6 +3567,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             buildBar();
             drawOverlay(overlay, newColors.bgHex, dark);
             for (const gt of staticGroundTiles) gt.setTint(groundTintHex(newColors.groundHex));
+            for (const gt of staticGround2Tiles) gt.setTint(groundTintHex(newColors.groundHex));
             refreshDots();
             state = "in";
             currentX = slideInStart;
@@ -3583,7 +3596,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const inputBlocker = this.add.zone(cx, cy, sw, sh)
       .setScrollFactor(0).setDepth(151).setInteractive();
     inputBlocker.on("pointerdown", onDragStart);
-    this._levelSelectStaticObjs = [overlay, inputBlocker, tableBottom, ...staticGroundTiles, staticFloorLine, cornerBL, cornerBR, backBtn, infoBtn, arrowL, arrowR, cardSlideContainer, cardHit];
+    this._levelSelectStaticObjs = [overlay, inputBlocker, tableBottom, ...staticGroundTiles, ...staticGround2Tiles, staticFloorLine, cornerBL, cornerBR, backBtn, infoBtn, arrowL, arrowR, cardSlideContainer, cardHit];
     this._levelSelectSwitchLevel = switchLevel;
     this._levelSelectDotObjs = dotObjs;
     this._levelSelectCardContent = cardContentObjs;
@@ -5017,24 +5030,15 @@ _buildSettingsPopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 0.85, font: "goldFont" },
-      { text: "- Added Spawn Triggers", scale: 0.7 },
-      { text: "- Added Groups", scale: 0.7 },
-      { text: "- Added Editor Layers", scale: 0.7 },
-      { text: "- Improved Move Triggers", scale: 0.7 },
-      { text: "- Lock player/camera x/y", scale: 0.7 },
-      { text: "- Added multi-object select", scale: 0.7 },
-      { text: "- Fixed copy+paste bug", scale: 0.7 },
-      { text: "- Fixed spider teleport not", scale: 0.7 },
-      { text: "checking for hazards lmao", scale: 0.7 },
+      { text: "- TELEPORT PORTALS!!!", scale: 0.7 },
+      { text: "- Fixed rotate triggers", scale: 0.7 },
+      { text: "- Fixed move trigger unit cap", scale: 0.7 },
+      { text: "- Fixed G2 not rendering", scale: 0.7 },
+      { text: "- Fingerdash is beatable now", scale: 0.7 },
+      { text: "- Fixed spider/robot portals", scale: 0.7 },
+      { text: "- Fix wave trail (credit 2 pinkdev)", scale: 0.7 },
       { text: "There's probably more but I forgot", color: 0x808080, scale: 0.5 },
       { text: "- Lasokar", scale: 0.7, color: 0x00e676 },
-      { text: " ...", scale: 0.7, color: 0x9966CC },
-      { text: "- Portal/Orb guides added", scale: 0.6 },
-      { text: "- Info boxes in the options menu", scale: 0.6 },
-      { text: "- fixed the stupid missing clubstep tile", scale: 0.4 },
-      { text: "- Removed Herobrine", scale: 0.6 },
-      { text: "- Done by yours truly,", scale: 0.5, color: 0x9966CC },
-      { text: "- Amethyst", scale: 0.4, color: 0x9966CC },
     ]; 
     let yPos = 0;
     const lineItems = [];
@@ -6562,6 +6566,7 @@ _buildSettingsPopup() {
       const _groundHex = Phaser.Display.Color.HSVToRGB(_rainbowHue / 360, 0.85, 1.0).color;
       this._bg.setTint(_rainbowHex);
       this._level.setGroundColor(_groundHex);
+      this._level.setGround2Color?.(_groundHex);
       return;
     }
     if (this._slideIn) {
@@ -6935,6 +6940,7 @@ _buildSettingsPopup() {
     this._level.applyColorChannels(this._colorManager);
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
+    this._level.setGround2Color?.(this._colorManager.getHex(1009));
     this._level.updateVisibility(this._cameraX);
     this._level.updateObjectDebugIds();
     this._level.checkEnterEffectTriggers(playerX);
