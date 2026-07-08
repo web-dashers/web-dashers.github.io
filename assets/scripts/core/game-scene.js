@@ -3218,17 +3218,31 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const arrowL = this.add.image(55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(true).setInteractive();
     const arrowR = this.add.image(sw - 55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(false).setInteractive();
     const allLevels = window.allLevels || [];
+    const pageCount = allLevels.length + 1;
+    let currentPageIndex = allLevels.findIndex(l => l[2] === window.currentlevel[2]);
+    if (currentPageIndex < 0) currentPageIndex = 0;
+    const isComingSoonPage = () => currentPageIndex >= allLevels.length;
+    const getPageLevel = () => {
+      if (isComingSoonPage()) return allLevels[allLevels.length - 1] || window.currentlevel || [];
+      return allLevels[currentPageIndex] || window.currentlevel || [];
+    };
+    const applyCurrentPage = () => {
+      this._levelSelectIsComingSoonPage = isComingSoonPage();
+      if (!isComingSoonPage() && allLevels[currentPageIndex]) {
+        window.currentlevel = [...allLevels[currentPageIndex]];
+      }
+    };
+    applyCurrentPage();
     const dotY = sh - 36;
-    const maxDots = Math.min(allLevels.length, 28);
+    const maxDots = Math.min(pageCount, 28);
     const dotSpacing = 27;
     const dotStartX = cx - (maxDots - 1) * dotSpacing / 2;
     const dotObjs = [];
     const refreshDots = () => {
       for (const d of dotObjs) d.destroy();
       dotObjs.length = 0;
-      const idx = allLevels.findIndex(l => l[2] === window.currentlevel[2]);
       for (let di = 0; di < maxDots; di++) {
-        const active = di === idx;
+        const active = di === currentPageIndex;
         const d = this.add.graphics().setScrollFactor(0).setDepth(153);
         d.fillStyle(0xffffff, active ? 1 : 0.3);
         d.fillCircle(dotStartX + di * dotSpacing, dotY, 7);
@@ -3245,8 +3259,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     cardSlideContainer.add(cardBounceContainer);
     const cardContainer = cardSlideContainer;
     const cardBg = this.add.graphics();
-    const drawCardBg = (colorHex, dark = false) => {
+    const drawCardBg = (colorHex, dark = false, textOnly = false) => {
       cardBg.clear();
+      if (textOnly) return;
       const mul = dark ? 0.10 : 0.22;
       const r = Math.round(((colorHex >> 16) & 0xff) * mul);
       const g = Math.round(((colorHex >> 8)  & 0xff) * mul);
@@ -3254,7 +3269,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       cardBg.fillStyle((r << 16) | (g << 8) | b, 0.92);
       cardBg.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 14);
     };
-    drawCardBg(bgHex, isEveryEnd(window.currentlevel[2]));
+    drawCardBg(bgHex, isEveryEnd(window.currentlevel[2]), isComingSoonPage());
     cardBounceContainer.add(cardBg);
 
     const cardHit = this.add.zone(cardX, cardY, cardW, cardH)
@@ -3289,6 +3304,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     cardHit.on("pointerdown", (ptr) => {
       onDragStart(ptr);
+      if (isComingSoonPage()) return;
       this.tweens.killTweensOf(cardBounceContainer, "scale");
       this.tweens.add({ targets: cardBounceContainer, scale: 1.26, duration: 300, ease: "Bounce.Out" });
     });
@@ -3346,6 +3362,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       } else {
         if (ptr.x >= cardX - cardW/2 && ptr.x <= cardX + cardW/2 &&
             ptr.y >= cardY - cardH/2 && ptr.y <= cardY + cardH/2) {
+            if (isComingSoonPage()) {
+              return;
+            }
             
             this.input.enabled = false;
             this.tweens.killTweensOf(cardBounceContainer, "scale");
@@ -3392,6 +3411,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const buildCardContent = () => {
       for (const o of cardContentObjs) { this.tweens.killTweensOf(o); o.destroy(); }
       cardContentObjs.length = 0;
+      if (isComingSoonPage()) {
+        this.tweens.killTweensOf(cardBounceContainer, "scale");
+        cardBounceContainer.setScale(1);
+        const comingSoonLabel = this.add.bitmapText(0, 0, "bigFont", "Coming Soon!", 56)
+          .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5);
+        comingSoonLabel.setScale(Math.min(1, (cardW - 40) / comingSoonLabel.width));
+        cardContentObjs.push(comingSoonLabel);
+        cardBounceContainer.add(comingSoonLabel);
+        return;
+      }
       const lvl = window.currentlevel;
       const levelId = lvl[2] || "level_1";
       const levelDifficultyMap = {
@@ -3477,6 +3506,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const buildBar = () => {
       for (const o of barObjs) { this.tweens.killTweensOf(o); o.destroy(); }
       barObjs.length = 0;
+      if (isComingSoonPage()) return;
       const bestNormal = parseFloat(localStorage.getItem("bestPercent_" + (window.currentlevel[2] || "level_1")) || "0");
       const modeLabel = this.add.bitmapText(cx, barAreaY - 40, "bigFont", "Normal Mode", 30)
         .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5);
@@ -3541,17 +3571,17 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     buildBar();
     let _currentAnimUpdate = null;
     const switchLevel = (dir, startX = null, dragVel = 0) => {
-      if (!window.allLevels || window.allLevels.length === 0) return;
+      if (pageCount <= 0) return;
 
       if (_currentAnimUpdate) {
         this.events.off("preupdate", _currentAnimUpdate);
         _currentAnimUpdate = null;
       }
-      let idx = window.allLevels.findIndex(l => l[2] === window.currentlevel[2]);
-      idx = (idx + dir + window.allLevels.length) % window.allLevels.length;
-      window.currentlevel = [...window.allLevels[idx]];
-      const newColors = this._parseLevelColors(window.currentlevel[2]);
-      const dark = isEveryEnd(window.currentlevel[2]);
+      currentPageIndex = (currentPageIndex + dir + pageCount) % pageCount;
+      applyCurrentPage();
+      const pageLevel = getPageLevel();
+      const newColors = this._parseLevelColors(pageLevel[2]);
+      const dark = isEveryEnd(pageLevel[2]);
       const slideDist = cardW - 200;
       const slideOutTarget = -dir * slideDist;
       const slideInStart = dir * slideDist;
@@ -3577,7 +3607,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             }
             cardContentObjs.length = 0;
             barObjs.length = 0;
-            drawCardBg(newColors.bgHex, dark);
+            drawCardBg(newColors.bgHex, dark, isComingSoonPage());
             buildCardContent();
             buildBar();
             drawOverlay(overlay, newColors.bgHex, dark);
@@ -3633,6 +3663,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._levelSelectCardContent = null;
       this._levelSelectBarObjs = null;
       this._levelSelectSwitchLevel = null;
+      this._levelSelectIsComingSoonPage = false;
     };
     if (silent) { destroy(); return; }
     const sw = screenWidth;
@@ -6166,6 +6197,11 @@ _buildSettingsPopup() {
     if (this._player && this._player._hitboxTrail) {
       this._player._hitboxTrail = [];
     }
+    if (this._player?._hitboxGraphics) this._player._hitboxGraphics.clear();
+    if (this._player2 && this._player2._hitboxTrail) {
+      this._player2._hitboxTrail = [];
+    }
+    if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
 
     if (this._macroBot?.recording == true){
       this._macroBot?.clearRecording();
@@ -6323,7 +6359,13 @@ _buildSettingsPopup() {
     }
     }
     if (checkpoint.dualMode) {
+      this._isDual = false;
+      this._dualBallOverlapResolved = false;
+      this._state2.reset();
+      this._player2.reset();
+      this._player2.setInvertedColors?.(true);
       this._enableDualMode();
+      this._state2.isDead = false;
       if (Number.isFinite(Number(checkpoint.dualY))) this._state2.y = Number(checkpoint.dualY);
       if (Number.isFinite(Number(checkpoint.dualYVelocity))) this._state2.yVelocity = Number(checkpoint.dualYVelocity);
       if (checkpoint.dualIsMini !== undefined) this._state2.isMini = !!checkpoint.dualIsMini;
@@ -6346,6 +6388,8 @@ _buildSettingsPopup() {
       this._player2.setBirdVisible?.(false);
       this._player2.setSpiderVisible(false);
       this._player2.setRobotVisible(false);
+      if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
+      if (this._player2) this._player2._hitboxTrail = [];
     }
     this._level.resetColorTriggers();
     this._level.resetAlphaTriggers();
@@ -6375,6 +6419,11 @@ _buildSettingsPopup() {
     if (this._player && this._player._hitboxTrail) {
       this._player._hitboxTrail = [];
     }
+    if (this._player?._hitboxGraphics) this._player._hitboxGraphics.clear();
+    if (this._player2 && this._player2._hitboxTrail) {
+      this._player2._hitboxTrail = [];
+    }
+    if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
 
     this._physicsFrame = checkpoint.physicsFrame;
     if (this._macroBot?.recording == true){
@@ -6649,6 +6698,9 @@ _buildSettingsPopup() {
         if (this._creatorMenuOpen) return;
         this._spaceWasDown = true;
         if (this._levelSelectOverlay) {
+        if (this._levelSelectIsComingSoonPage) {
+          return;
+        }
         this._creatorMenuOpen;
         this.input.enabled = false;
 
@@ -7394,7 +7446,8 @@ _applyMirrorEffect() {
     toState.upKeyDown = fromState.upKeyDown;
     toState.upKeyPressed = fromState.upKeyPressed;
     toState.queuedHold = fromState.queuedHold;
-    toState._orbActivationConsumedForPress = !!toState._orbActivationConsumedForPress || !!(fromState._orbActivationConsumedForPress ?? fromState.orbActivationConsumedForPress);
+    const fromConsumed = !!(fromState._orbActivationConsumedForPress ?? fromState.orbActivationConsumedForPress);
+    toState._orbActivationConsumedForPress = !!fromState.upKeyDown && (!!toState._orbActivationConsumedForPress || fromConsumed);
   }
   _shouldSuppressDualGravityAction(state, gravityAlreadySynced) {
     return !!(gravityAlreadySynced && state && (state.isBall || state.isSpider) && state.upKeyPressed);
@@ -7539,6 +7592,7 @@ _applyMirrorEffect() {
     if (initialPortalMode) this._setPlayerGamemode(this._player2, this._state2, initialPortalMode, true);
     this._ensureDualFlyBounds(this._state.y);
     if (this._player2 && this._player2._hitboxTrail) this._player2._hitboxTrail = [];
+    if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
   }
   _disableDualMode() {
     if (!this._isDual) return;

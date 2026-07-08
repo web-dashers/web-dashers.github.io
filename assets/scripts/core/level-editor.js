@@ -798,6 +798,8 @@ class LevelEditor {
         player.setBirdVisible(false);
         player.setSpiderVisible(false);
         player.setRobotVisible(false);
+        player._hitboxTrail = [];
+        if (player._hitboxGraphics?.clear) player._hitboxGraphics.clear();
     };
 
     hidePlayer(this._player);

@@ -30,7 +30,7 @@ class PlayerState {
     this.upKeyDown = false;
     this.upKeyPressed = false;
     this.queuedHold = false;
-    this._orbActivationConsumed = false;
+    this._orbActivationConsumedForPress = false;
     this.isDead = false;
     this.mirrored = false;
     this.isDashing = false;
@@ -535,8 +535,8 @@ class PlayerObject {
       }
     } catch(e) {}
   }
-  _consumeOrbActivationInput() { // i love consuming my orbs
-    this.p._orbActivationConsumed = true;
+  _consumeOrbActivationInput() {
+    this.p._orbActivationConsumedForPress = true;
     this.p.upKeyPressed = false;
     this.p.queuedHold = false;
   }
@@ -3023,13 +3023,13 @@ if (this.p.isFlying || this.p.isUfo) {
     if (!(this.p.isBall || this.p.isSpider)) return false;
     if (!this.p.upKeyPressed) return false;
     if (!(this.p.canJump || this.p.onGround || this.p.onCeiling)) return false;
-    return this._isTouchingAvailableOrb();
+    return this._isTouchingAvailableOrbForInput(false);
   }
   _shouldPrioritizeUfoOrbInput() {
-    return !!(this.p.isUfo && this.p.upKeyPressed && this._isTouchingAvailableOrb());
+    return !!(this.p.isUfo && this.p.upKeyPressed && this._isTouchingAvailableOrbForInput(true));
   }
-  _isTouchingAvailableOrb() {
-    if (this.p._orbActivationConsumed) return false;
+  _isTouchingAvailableOrbForInput(requireUnconsumedPress = true) {
+    if (requireUnconsumedPress && this.p._orbActivationConsumedForPress) return false;
 
     const playerWorldX = this._scene?._playerWorldX ?? centerX;
     const playerSize = this.p.isMini ? 18 : 30;
@@ -3599,6 +3599,9 @@ _updateWaveJump(dt) {
       this.p.diedThisFrame = true;
       this.p._spiderTeleportNoclipDeathPending = false;
     }
+    if (!this.p.upKeyDown || (this.p.upKeyDown && !this.p.wasUpKeyDown)) {
+      this.p._orbActivationConsumedForPress = false;
+    }
     const playerSize = this.p.isMini ? 18 : 30;
     const waveHitSize = this.p.isMini ? 6 : 9;
     const pieceWidth = _0x2f5078 + centerX;
@@ -3930,7 +3933,7 @@ _updateWaveJump(dt) {
           const _orbId = gameObj.orbId;
           const _isDash = (_orbId === 1704 || _orbId === 1751);
           const justPressed = this.p.upKeyDown && !this.p.wasUpKeyDown;
-          const _needsClick = !_orbInputConsumedThisStep && !this.p._orbActivationConsumed && ((this.p.isFlying || this.p.isUfo) ? justPressed : (justPressed || (this.p.queuedHold && this.p.upKeyDown)));
+          const _needsClick = !_orbInputConsumedThisStep && !this.p._orbActivationConsumedForPress && ((this.p.isFlying || this.p.isUfo) ? justPressed : (justPressed || (this.p.queuedHold && this.p.upKeyDown)));
           this.p.touchingRing = true;
           if (!this._isObjectActivated(gameObj) && _needsClick) {
             if (_isDash) {
@@ -4674,5 +4677,6 @@ _updateWaveJump(dt) {
     this._waveTrail.stop();
     this._waveTrail.reset();
     this._hitboxTrail = [];
+    if (this._hitboxGraphics?.clear) this._hitboxGraphics.clear();
   }
 }
