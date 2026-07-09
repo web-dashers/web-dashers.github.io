@@ -2223,6 +2223,8 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.onGround = false;
     this.p.canJump = false;
     this.p.isJumping = false;
+	this._streak.stop();
+    this._streak.reset();
     this.stopRotation();
     this._rotation = 0;
     this._flyParticleEmitter.stop();
