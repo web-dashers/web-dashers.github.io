@@ -425,6 +425,10 @@ class PlayerObject {
     this._lastCollisionWorldY = null;
     this._ignoreTeleportUntilClear = false;
     this._invertPlayerColors = false;
+    this._deathBurstEmitter = null;
+    this._deathFlashGraphics = null;
+    this._deathFlashTween = null;
+    this._deathAnimationPaused = false;
     this._createSprites();
     this._hitboxGraphics = scene.add.graphics().setScrollFactor(0).setDepth(20);
     this._initParticles(scene);
@@ -2304,11 +2308,12 @@ if (this.p.isFlying || this.p.isUfo) {
       if (this._dashAnimationSprite) this._dashAnimationSprite.setVisible(false);
       return;
     }
+
     const _0x3f4b84 = this._scene;
     const _0x3f0446 = _0x3f4b84._getMirrorXOffset(_0x3f4b84._playerWorldX - _0x3f4b84._cameraX);
     const _0x53ac5b = b(this.p.y) + this._lastCameraY;
     const _0x281e43 = 0.9;
-    _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
+    this._deathBurstEmitter = _0x3f4b84.add.particles(_0x3f0446, _0x53ac5b, "GJ_WebSheet", {
       frame: "square.png",
       speed: {
         min: 200,
@@ -2344,10 +2349,11 @@ if (this.p.isFlying || this.p.isUfo) {
       }
     }).setScrollFactor(0).setDepth(15);
     const _0x438d80 = _0x3f4b84.add.graphics().setScrollFactor(0).setDepth(15).setBlendMode(S);
+    this._deathFlashGraphics = _0x438d80;
     const _0x4683eb = {
       t: 0
     };
-    _0x3f4b84.tweens.add({
+    this._deathFlashTween = _0x3f4b84.tweens.add({
       targets: _0x4683eb,
       t: 1,
       duration: 500,
@@ -2359,7 +2365,15 @@ if (this.p.isFlying || this.p.isUfo) {
         _0x438d80.fillStyle(this._primaryColor(), _0xc8c1);
         _0x438d80.fillCircle(_0x3f0446, _0x53ac5b, _0x39f32);
       },
-      onComplete: () => _0x438d80.destroy()
+      onComplete: () => {
+        if (this._deathFlashGraphics === _0x438d80) {
+          this._deathFlashGraphics = null;
+        }
+        if (this._deathFlashTween) {
+          this._deathFlashTween = null;
+        }
+        _0x438d80.destroy();
+      }
     });
     this._createExplosionPieces(_0x3f0446, _0x53ac5b, _0x281e43);
     this.setCubeVisible(false);
@@ -2544,7 +2558,46 @@ if (this.p.isFlying || this.p.isUfo) {
       this._cleanupExplosion();
     }
   }
+  setDeathAnimationPaused(paused) {
+    const shouldPause = !!paused;
+    this._deathAnimationPaused = shouldPause;
+
+    if (this._deathBurstEmitter) {
+      this._deathBurstEmitter.timeScale = shouldPause ? 0 : 1;
+    }
+
+    if (this._explosionPieces) {
+      for (const piece of this._explosionPieces) {
+        if (piece?.particle) {
+          piece.particle.timeScale = shouldPause ? 0 : 1;
+        }
+      }
+    }
+
+    if (this._deathFlashTween) {
+      if (shouldPause) {
+        this._deathFlashTween.pause?.();
+      } else {
+        this._deathFlashTween.resume?.();
+      }
+    }
+  }
   _cleanupExplosion() {
+    if (this._deathFlashTween) {
+      this._deathFlashTween.stop?.();
+      this._deathFlashTween = null;
+    }
+    if (this._deathFlashGraphics) {
+      this._deathFlashGraphics.destroy?.();
+      this._deathFlashGraphics = null;
+    }
+    if (this._deathBurstEmitter) {
+      this._deathBurstEmitter.stop?.();
+      this._deathBurstEmitter.destroy?.();
+      this._deathBurstEmitter = null;
+    }
+    this._deathAnimationPaused = false;
+
     if (this._explosionPieces) {
       for (const _0x59172d of this._explosionPieces) {
         if (_0x59172d.particle) {

@@ -1181,7 +1181,8 @@ class LevelEditor {
     let primaryGravitySynced = false;
     if (primaryGravityChanged) {
         primaryGravitySynced = this._syncDualGlobalsFromPrimary?.({
-            skipBallInputGravity: this._state.isBall
+            skipBallInputGravity: this._state.isBall,
+            skipSpiderInputGravity: this._state.isSpider
         }) || false;
     }
 
@@ -1192,6 +1193,7 @@ class LevelEditor {
         }
         const secondaryGravityBefore = !!this._state2.gravityFlipped;
         const secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+        const secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
         if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
             this._player2.updateJump(0);
         } else if (this._state2.isUfo) {
@@ -1199,7 +1201,8 @@ class LevelEditor {
         }
         if (!!this._state2.gravityFlipped !== secondaryGravityBefore) {
             this._syncDualGlobalsFromSecondary?.({
-                skipBallInputGravity: secondaryBallInputGravity
+                skipBallInputGravity: secondaryBallInputGravity,
+                skipSpiderInputGravity: secondarySpiderInputGravity
             });
         }
     }
@@ -1277,7 +1280,8 @@ class LevelEditor {
             let primaryGravitySynced = false;
             if (this._isDual && primarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state) !== primarySharedBefore) {
                 primaryGravitySynced = this._syncDualGlobalsFromPrimary?.({
-                    skipBallInputGravity: primaryGravityChanged && this._state.isBall && dualInputState.upKeyPressed
+                    skipBallInputGravity: primaryGravityChanged && this._state.isBall && dualInputState.upKeyPressed,
+                    skipSpiderInputGravity: primaryGravityChanged && this._state.isSpider && dualInputState.upKeyPressed
                 }) || false;
             }
 
@@ -1296,12 +1300,14 @@ class LevelEditor {
                 this._state2.lastY = this._state2.y;
                 const secondarySharedBefore = this._getDualSharedSignature?.(this._state2);
                 const secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+                const secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
                 this._player2.updateJump(verticalDelta);
                 this._state2.y += this._state2.yVelocity * verticalDelta;
                 this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
                 if (this._isDual && !this._state2.isDead && secondarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state2) !== secondarySharedBefore) {
                     this._syncDualGlobalsFromSecondary?.({
-                        skipBallInputGravity: secondaryBallInputGravity
+                        skipBallInputGravity: secondaryBallInputGravity,
+                        skipSpiderInputGravity: secondarySpiderInputGravity
                     });
                 }
                 this._resolveDualBallOverlap?.();
