@@ -4696,18 +4696,6 @@ _buildSettingsPopup() {
       ease: "Elastic.Out",
       easeParams: [1, 0.6]
     });
-        this._infoPopupCleanup = () => {
-      this.events.off('postupdate', updateMask);
-      maskShape.destroy();
-      geomMask.destroy();
-    };
-    this.tweens.add({
-      targets: bounceContainer,
-      scale: { from: 0, to: 1 },
-      duration: 660,
-      ease: "Elastic.Out",
-      easeParams: [1, 0.6]
-    });
   }
   _closeInfoPopup() {
     if (this._infoPopup) {
@@ -4717,30 +4705,8 @@ _buildSettingsPopup() {
       }
       this._infoPopup.destroy();
       this._infoPopup = null;
-        }
-    this._infogoaway = () => {
-      this.events.off('postupdate', updateMask);
-      maskShape.destroy();
-      geomMask.destroy();
-    };
-    this.tweens.add({
-      targets: bounceContainer,
-      scale: { from: 0, to: 1 },
-      duration: 660,
-      ease: "Elastic.Out",
-      easeParams: [1, 0.6]
-    });
-  }
-  _closeInfoPopup() {
-    if (this._infoPopup) {
-      if (this._infogoaway) {
-        this._infogoaway();
-        this._infogoaway = null;
-      }
-      this._infoPopup.destroy();
-      this._infoPopup = null;
     }
-  } //im so tired of this
+  }
   InfoBoxDoAThing(displayText) {
     if (this.EditInfoText) {
       this.InfoBoxStopAThing();
