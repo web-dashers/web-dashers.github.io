@@ -3302,7 +3302,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     });
     this._saveCheckpointKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this._saveCheckpointKey.on("down", () => {
-      if (!this._menuActive && !this._slideIn && this._practicedMode.practiceMode && !this._state.isDead) {
+      if (!this._menuActive && !this._slideIn && this._practicedMode.practiceMode) {
         const saved = this._practicedMode.saveCheckpoint(this._state, this._playerWorldX, this._cameraX, this);
         if (saved) {
         }
@@ -4008,7 +4008,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       .setInteractive()
       .setScale(0.8);
     this._makeBouncyButton(this._checkpointBtn, 0.8, () => {
-      if (this._practicedMode.practiceMode && !this._state.isDead && !this._menuActive && !this._slideIn) {
+      if (this._practicedMode.practiceMode && !this._menuActive && !this._slideIn) {
         this._practicedMode.saveCheckpoint(this._state, this._playerWorldX, this._cameraX, this);
       }
     });
@@ -4018,7 +4018,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       .setInteractive()
       .setScale(0.8);
     this._makeBouncyButton(this._clearCheckpointBtn, 0.8, () => {
-      if (this._practicedMode.practiceMode && !this._state.isDead && !this._menuActive && !this._slideIn) {
+      if (this._practicedMode.practiceMode && !this._menuActive && !this._slideIn) {
         this._practicedMode.deleteLastCheckpoint();
       }
     }); 
@@ -7797,6 +7797,12 @@ _applyMirrorEffect() {
   _resolveDualBallOverlap() {
     if (!this._areDualBallsOverlapping()) {
       this._dualBallOverlapResolved = false;
+      this._dualBallSpawnGravityLock = false;
+      return false;
+    }
+    if (this._dualBallSpawnGravityLock) {
+      this._state2.gravityFlipped = !this._state.gravityFlipped;
+      this._dualBallOverlapResolved = true;
       return false;
     }
     if (this._dualBallOverlapResolved) return false;
@@ -7884,6 +7890,7 @@ _applyMirrorEffect() {
     if (this._isDual) return;
     this._isDual = true;
     this._dualBallOverlapResolved = false;
+    this._dualBallSpawnGravityLock = false;
     this._state2.reset();
     this._state2.isDead = false;
     this._state2.yVelocity = this._state.yVelocity;
@@ -7903,6 +7910,11 @@ _applyMirrorEffect() {
     this._copyInitialDualModeFlags(this._state, this._state2);
     const initialPortalMode = this._getInitialDualPortalMode();
     if (initialPortalMode) this._setPlayerGamemode(this._player2, this._state2, initialPortalMode, true);
+    if (this._state.isBall && this._state2.isBall) {
+      this._state2.gravityFlipped = !this._state.gravityFlipped;
+      this._dualBallOverlapResolved = true;
+      this._dualBallSpawnGravityLock = true;
+    }
     this._ensureDualFlyBounds(this._state.y);
     if (this._player2 && this._player2._hitboxTrail) this._player2._hitboxTrail = [];
     if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
@@ -7911,6 +7923,7 @@ _applyMirrorEffect() {
     if (!this._isDual) return;
     this._isDual = false;
     this._dualBallOverlapResolved = false;
+    this._dualBallSpawnGravityLock = false;
     this._state2.isDead = true;
     this._state2.upKeyDown = false;
     this._state2.upKeyPressed = false;
