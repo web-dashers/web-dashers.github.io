@@ -874,9 +874,10 @@ window.LevelObject = class LevelObject {
       const visualCeilingInset = Number.isFinite(Number(this._flyVisualCeilingInset)) ? Number(this._flyVisualCeilingInset) : 0;
       let targetGroundY = 620 - visualFloorInset;
       let targetCeilingY = 20 + visualCeilingInset;
-      leftTileIndex = this._groundStartScreenY + (targetGroundY - this._groundStartScreenY) * groundTarget;
-      rightTileIndex = this._ceilingStartScreenY + (targetCeilingY - this._ceilingStartScreenY) * groundTarget;
       let groundScreenY = b(0) + cameraY;
+      let ceilingScreenY = 0;
+      leftTileIndex = groundScreenY + (targetGroundY - groundScreenY) * groundTarget;
+      rightTileIndex = ceilingScreenY + (targetCeilingY - ceilingScreenY) * groundTarget;
       if (leftTileIndex > groundScreenY) {
         leftTileIndex = groundScreenY;
       }
