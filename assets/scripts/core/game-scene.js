@@ -1210,25 +1210,38 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         nameBox.on('pointerdown', () => { this._activeInput = 'title'; updateDisplay(); });
         descBox.on('pointerdown', () => { this._activeInput = 'desc'; updateDisplay(); });
 
-        const cleanup = () => {
+        const stopEditing = () => {
             clearInterval(cursorInterval);
             window.removeEventListener('keydown', keyHandler);
+        };
+        const cleanup = () => {
+            stopEditing();
             container.destroy();
             overlay.destroy();
             blocker.destroy();
         };
 
         const btnY = sh * 0.58;
+        let isLevelLoading = false;
         const editBtn = this.add.image(centerX - 220, btnY, "GJ_GameSheet03", "GJ_editBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.1);
-        this._makeBouncyButton(editBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, true); });
+        this._makeBouncyButton(editBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, true); }, () => !isLevelLoading);
         const playBtn = this.add.image(centerX, btnY, "GJ_GameSheet03", "GJ_playBtn2_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.1);
-        this._makeBouncyButton(playBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, false); });
+        this._makeBouncyButton(playBtn, 1.1, () => {
+            if (isLevelLoading) return;
+            isLevelLoading = true;
+            stopEditing();
+            editBtn.setAlpha(0.35);
+            playBtn.setAlpha(0.35);
+            shareBtn.setAlpha(0.35);
+            loadingText.setVisible(true);
+            this.time.delayedCall(50, () => { this._startCreatedLevel(level, false); });
+        }, () => !isLevelLoading);
         const shareBtn = this.add.image(centerX + 220, btnY, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.1);
-        this._makeBouncyButton(shareBtn, 1.1, () => { this._exportGMD(level); });
+        this._makeBouncyButton(shareBtn, 1.1, () => { this._exportGMD(level); }, () => !isLevelLoading);
         const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png").setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
-        this._makeBouncyButton(backBtn, 1, () => { cleanup(); this._openEditorMenu(); });
+        this._makeBouncyButton(backBtn, 1, () => { cleanup(); this._openEditorMenu(); }, () => !isLevelLoading);
         const deleteBtn = this.add.image(sw - 50, 48, "GJ_GameSheet03", "GJ_deleteBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.8);
-        this._makeBouncyButton(deleteBtn, 0.8, () => { deleteLevel(); });
+        this._makeBouncyButton(deleteBtn, 0.8, () => { deleteLevel(); }, () => !isLevelLoading);
 
         const footerY = sh - 100; 
         const subFooterY = sh - 30;
@@ -1249,8 +1262,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const statusLabel = this.add.bitmapText(centerX + 245, footerY, "bigFont", level.status, 33).setOrigin(0, 0.5).setDepth(152);
         const versionText = this.add.bitmapText(centerX - 180, subFooterY, "goldFont", `Version: ${level.version || 1}`, 30).setOrigin(0.5).setDepth(152);
         const idText = this.add.bitmapText(centerX + 180, subFooterY, "goldFont", `ID: ${level.levelId || "na"}`, 30).setOrigin(0.5).setDepth(152);
+        const loadingText = this.add.bitmapText(centerX, (btnY + footerY) / 2, "bigFont", "Downloading level assets...", 24).setOrigin(0.5).setDepth(152).setVisible(false);
 
-        container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText]);
+        container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText, loadingText]);
     };
     this._startCreatedLevel = async (level, isEditor) => {
         const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
