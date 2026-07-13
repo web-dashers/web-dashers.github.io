@@ -2510,6 +2510,9 @@ if (this.p.isFlying || this.p.isUfo) {
     this._explosionTexKey = _0xd0201e;
   }
   updateExplosionPieces(_0x1c8c6d) {
+    if (this._deathAnimationPaused) {
+      return;
+    }
     if (!this._explosionPieces || this._explosionPieces.length === 0) {
       return;
     }

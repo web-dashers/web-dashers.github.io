@@ -871,6 +871,35 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     this._searchOverlayObjects = [];
     this._playOverlay = null;
     this._playOverlayObjects = [];
+    this._saveOnlineLevelToSavedList = (lvl) => {
+      if (!lvl || !lvl.id) return;
+      try {
+        const _savedKey = "gd_saved_online_levels";
+        let _savedLevels = JSON.parse(localStorage.getItem(_savedKey) || "[]");
+        const numericId = String(lvl.id);
+        const _alreadySaved = _savedLevels.some(sl => String(sl.id) === numericId);
+        if (!_alreadySaved) {
+          _savedLevels.unshift({
+            id:            numericId,
+            name:          lvl.name || "Online Level",
+            author:        lvl.author || "Unknown",
+            customSongID:  lvl.customSongID || null,
+            songName:      lvl.songName || "Unknown",
+            difficulty:    lvl.difficulty || 0,
+            downloads:     lvl.downloads || 0,
+            likes:         lvl.likes || 0,
+            stars:         lvl.stars || 0,
+            coins:         lvl.coins || 0,
+            coinsVerified: lvl.coinsVerified || false,
+            length:        lvl.length || 0,
+            featured:      !!lvl.featured,
+            epic:          lvl.epic || 0,
+            savedAt:       Date.now()
+          });
+          localStorage.setItem(_savedKey, JSON.stringify(_savedLevels));
+        }
+      } catch (_e) {}
+    };
     this._openPlayMenu = (onBack = null) => {
       if (this._playOverlay) return;
       const sw = screenWidth;
@@ -909,6 +938,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._playOverlayObjects.push(overlay, blocker, backBtn, cornerBL, cornerBR);
       const lvl = window._selectedLevelData || {};
       if (lvl.id) localStorage.setItem("viewedLevel_" + lvl.id, "1");
+      this._saveOnlineLevelToSavedList(lvl);
       const centerX = sw / 2;
 
       const _diffFrames = [
@@ -951,7 +981,27 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const playBtnY = sh * 0.36 - 15;
       const playBtn2 = this.add.image(centerX, playBtnY, "GJ_GameSheet03", "GJ_playBtn2_001.png")
         .setScrollFactor(0).setDepth(504).setInteractive();
-      this._makeBouncyButton(playBtn2, 1, () => { this._playSelectedOnlineLevel(lvl); });
+      let playBtnLoading = false;
+      this._makeBouncyButton(playBtn2, 1, async () => {
+        if (playBtnLoading) return;
+        playBtnLoading = true;
+        this._audio.playEffect("playSound_01", { volume: 1 });
+        playBtn2.setTint(0x666666);
+        playBtn2.disableInteractive();
+
+        let started = false;
+        try {
+          started = await this._playSelectedOnlineLevel(lvl);
+        } catch (err) {
+          console.warn("Failed to start selected online level", err);
+        }
+
+        if (!started && playBtn2.scene) {
+          playBtnLoading = false;
+          playBtn2.clearTint();
+          playBtn2.setInteractive();
+        }
+      }, () => !playBtnLoading);
       this._playOverlayObjects.push(playBtn2);
 
       const _playStatDefs = [
@@ -1139,9 +1189,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       });
     };
     this._playSelectedOnlineLevel = async (lvl) => {
-      if (!lvl || !lvl.id) return;
+      if (!lvl || !lvl.id) return false;
       const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
-      if (!PROXY_BASE) { console.warn("Play online level: window._gdProxyUrl is not configured"); return; }
+      if (!PROXY_BASE) { console.warn("Play online level: window._gdProxyUrl is not configured"); return false; }
       try {
         const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
           method: "POST",
@@ -1150,7 +1200,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         });
         if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
         const rawResponse = await res.text();
-        if (!rawResponse || rawResponse === "-1" || !rawResponse.includes(":")) return;
+        if (!rawResponse || rawResponse === "-1" || !rawResponse.includes(":")) return false;
 
         const lvlParts = rawResponse.split("#")[0].split(":");
         const m = {};
@@ -1208,40 +1258,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         } else if (window.allLevels && window.allLevels[officialSong]) {
           songArtist = window.allLevels[officialSong][3] || "Unknown";
         }
-        try {
-          const _savedKey = "gd_saved_online_levels";
-          let _savedLevels = JSON.parse(localStorage.getItem(_savedKey) || "[]");
-          const numericId = String(lvl.id);
-          const _alreadySaved = _savedLevels.some(sl => String(sl.id) === numericId);
-          if (!_alreadySaved) {
-            _savedLevels.unshift({
-              id:            numericId,
-              name:          lvl.name || "Online Level",
-              author:        lvl.author || "Unknown",
-              customSongID:  isCustomSong ? customSongID : null,
-              songName:      isCustomSong
-                ? (songTitle || lvl.songName || ("Song #" + customSongID))
-                : (lvl.songName || (window.allLevels && window.allLevels[officialSong] ? window.allLevels[officialSong][1] : "Unknown")),
-              difficulty:    lvl.difficulty || 0,
-              downloads:     lvl.downloads || 0,
-              likes:         lvl.likes || 0,
-              stars:         lvl.stars || 0,
-              coins:         lvl.coins || 0,
-              coinsVerified: lvl.coinsVerified || false,
-              length:        lvl.length || 0,
-              featured:      !!lvl.featured,
-              epic:          lvl.epic || 0,
-              savedAt:       Date.now()
-            });
-            localStorage.setItem(_savedKey, JSON.stringify(_savedLevels));
-          }
-        } catch (_e) {}
-
         window.currentlevel = [songKey, window._onlineLevelName, window._onlineLevelId, ["Online", songArtist]];
         this.game.registry.set("autoStartGame", true);
+        window._onlineReturnToPlayMenu = { lvl, backTarget: this._playMenuBackTarget };
         this._closePlayMenu(false, () => this.scene.restart());
+        return true;
       } catch (err) {
         console.warn("Failed to start online level", err);
+        return false;
       }
     };
     this._duplicateOnlineLevelToEditor = async (lvl) => {
@@ -1362,9 +1386,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             }
         });
 
-        const lengthValues=[
-          "Tiny", "Short", "Medium", "Long", "XL"
-        ]
+        const lengthValues = ["Tiny", "Short", "Medium", "Long", "XL", "Plat."]
 
         const listContainer = this.add.container(0, 0);
         const maskShape = this.add.graphics().fillStyle(0xffffff).fillRect(tableX, tableY, tableW, tableH).setVisible(false);
@@ -1393,7 +1415,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             ).setOrigin(0, 0.5);
             const infoY = slotY + 18;
             const lenIcon = this.add.image(tableX + 35, infoY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(0.65);
-            const lenTxt = this.add.bitmapText(lenIcon.x + 22, infoY, "bigFont", lengthValues[level.levelLength], 18).setOrigin(0, 0.5);
+            const lenTxt = this.add.bitmapText(lenIcon.x + 22, infoY, "bigFont", lengthValues[parseInt(level.levelLength, 10)] || "Tiny", 18).setOrigin(0, 0.5);
             const songIcon = this.add.image(tableX + 150, infoY, "GJ_GameSheet03", "GJ_musicIcon_001.png").setScale(0.65);
             const songTxt = this.add.bitmapText(songIcon.x + 22, infoY, "bigFont", level.song, 18).setOrigin(0, 0.5);
             const statusIcon = this.add.image(tableX + 380, infoY, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScale(0.65);
@@ -1847,28 +1869,49 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             overlay.destroy();
             blocker.destroy();
             this._levelViewOverlay = null;
+            this._closeLevelView = null;
         };
+        this._levelViewOverlay = overlay;
+        this._closeLevelView = () => { cleanup(); this._openEditorMenu(); };
 
         const btnY = sh * 0.58;
         const editBtn = this.add.image(centerX - 220, btnY, "GJ_GameSheet03", "GJ_editBtn_001.png").setInteractive().setScale(1.1);
         this._makeBouncyButton(editBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, true); });
         const playBtn = this.add.image(centerX, btnY, "GJ_GameSheet03", "GJ_playBtn2_001.png").setInteractive().setScale(1.1);
-        this._makeBouncyButton(playBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, false); });
+        let playBtnLoading = false;
+        this._makeBouncyButton(playBtn, 1.1, async () => {
+            if (playBtnLoading) return;
+            playBtnLoading = true;
+            this._audio.playEffect("playSound_01", { volume: 1 });
+            playBtn.setTint(0x666666);
+            playBtn.disableInteractive();
+
+            let started = false;
+            try {
+                started = await this._startCreatedLevel(level, false, cleanup);
+            } catch (err) {
+                console.warn("Failed to start saved level", err);
+            }
+
+            if (!started && playBtn.scene) {
+                playBtnLoading = false;
+                playBtn.clearTint();
+                playBtn.setInteractive();
+            }
+        }, () => !playBtnLoading);
         const shareBtn = this.add.image(centerX + 220, btnY, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setScale(1.1);
         this._makeBouncyButton(shareBtn, 1.1, () => { this._exportGMD(level); });
         const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png").setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
-        this._makeBouncyButton(backBtn, 1, () => { cleanup(); this._openEditorMenu(); });
+        this._makeBouncyButton(backBtn, 1, () => { this._closeLevelView(); });
         const deleteBtn = this.add.image(sw - 50, 48, "GJ_GameSheet03", "GJ_deleteBtn_001.png").setInteractive().setScale(0.8);
         this._makeBouncyButton(deleteBtn, 0.8, () => { deleteLevel(); });
 
         const footerY = sh - 100; 
         const subFooterY = sh - 30;
-        const lengthValues=[
-          "Tiny", "Short", "Medium", "Long", "XL"
-        ]
+        const lengthValues = ["Tiny", "Short", "Medium", "Long", "XL", "Plat."]
 
         const lengthIcon = this.add.image(centerX - 350, footerY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(1).setDepth(152);
-        const lengthLabel = this.add.bitmapText(centerX - 310, footerY, "bigFont", lengthValues[level.levelLength], 33).setOrigin(0, 0.5).setDepth(152);
+        const lengthLabel = this.add.bitmapText(centerX - 310, footerY, "bigFont", lengthValues[parseInt(level.levelLength, 10)] || "Tiny", 33).setOrigin(0, 0.5).setDepth(152);
         const songIcon = this.add.image(centerX - 160, footerY, "GJ_GameSheet03", "GJ_musicIcon_001.png").setScale(1).setDepth(152);
         const songLabel = this.add.bitmapText(centerX - 115, footerY, "bigFont", level.song, 29).setOrigin(0, 0.5).setDepth(152);
         const statusIcon = this.add.image(centerX + 200, footerY, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScale(1).setDepth(152);
@@ -1883,17 +1926,21 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
         container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText]);
     };
-    this._startCreatedLevel = async (level, isEditor) => {
+    this._startCreatedLevel = async (level, isEditor, onBeforeRestart = null) => {
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
         window._onlineLevelString = level.levelString;
         window._onlineLevelName = level.levelName;
         window._onlineLevelId = level.createdId;
+        if (!isEditor) {
+          window._createdLevelReturnToView = {
+            createdId: level.createdId,
+            snapshot: { ...level }
+          };
+        }
         window._onlineSongBuffer = null;
         window._onlineSongKey = null;
         window._onlineSongOffset = 0;
-        if (isEditor){
-          window.isEditor = true;
-        }
+        window.isEditor = !!isEditor;
         this.game.registry.set("autoStartGame", true);
         window.currentlevel = [
             "Placeholder",
@@ -1949,7 +1996,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               }
           }
         }
+        if (onBeforeRestart) onBeforeRestart();
         this.scene.restart();
+        return true;
     };
     this._closeEditorMenu = () => {
         if (this._editorObjects) {
@@ -2300,7 +2349,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 this.tweens.killTweensOf(btnContainer, "scale");
                 btnContainer.setScale(baseScale);
                 this._closeSearchMenu(true);
-                this._openOnlineLevelsScene({ type });
+                const searchParams = { type };
+                const diffParam = _getActiveDiffParam();
+                if (diffParam) {
+                  searchParams.diff = diffParam;
+                  const demonIcon = this._diffFilterIcons && this._diffFilterIcons[6];
+                  if (demonIcon && demonIcon._diffFilterActive && this._selectedDemonTier) {
+                    searchParams.demonFilter = this._selectedDemonTier;
+                  }
+                }
+                this._openOnlineLevelsScene(searchParams);
               }
             });
           } else {
@@ -2417,7 +2475,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         extraComingSoon);
 
       let _loading = false;
-      const _diffFilterCodeMap = [-1, 1, 2, 3, 4, 5, -2, 0];
+      const _diffFilterCodeMap = [-1, 1, 2, 3, 4, 5, -2, -3];
       const _getActiveDiffParam = () => {
         const icons = this._diffFilterIcons || [];
         const activeCodes = [];
@@ -2444,20 +2502,15 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         window.removeEventListener("resize", _repositionInput);
         this._closeSearchMenu(true);
         const diffParam = _getActiveDiffParam();
+        const searchParams = rawInput ? { type: 0, str: rawInput } : { type: 2 };
         if (diffParam) {
-          const searchParams = { type: 2, diff: diffParam };
+          searchParams.diff = diffParam;
           const demonIcon = this._diffFilterIcons && this._diffFilterIcons[6];
           if (demonIcon && demonIcon._diffFilterActive && this._selectedDemonTier) {
             searchParams.demonFilter = this._selectedDemonTier;
           }
-          this._openOnlineLevelsScene(searchParams);
-          return;
         }
-        if (!rawInput) {
-          this._openOnlineLevelsScene({ type: 2 });
-          return;
-        }
-        this._openOnlineLevelsScene({ type: 0, str: rawInput });
+        this._openOnlineLevelsScene(searchParams);
       };
       const _doSearchInner = async (levelId) => {
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
@@ -3637,6 +3690,23 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       if (this._updateLogPopup) {
         this._closeUpdateLogPopup();
         return;
+      }
+      if (this._levelViewOverlay) {
+        this._closeLevelView();
+        return;
+      }
+      if (this._editorOverlay) {
+        this._closeEditorMenu();
+        this._openCreatorMenu();
+        return;
+      }
+      if (this._playOverlay) {
+        this._closePlayMenu(false, () => this._playMenuBackTarget());
+        return;
+      }
+      if (this._searchResultOverlay) {
+        this._closeSearchResultScene();
+        return;
       } 
       if (this._searchOverlay) {
         this._closeSearchMenu(true);
@@ -3857,6 +3927,48 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       } else {
         console.warn("autoStartGame: missing settingsMap for", window.currentlevel && window.currentlevel[2]);
       }
+    } else if (window._createdLevelReturnToView) {
+      const returnTarget = window._createdLevelReturnToView;
+      window._createdLevelReturnToView = null;
+      const levelId = returnTarget?.createdId;
+      let level = null;
+      try {
+        const createdLevels = JSON.parse(localStorage.getItem("created_levels") || "[]");
+        level = createdLevels.find(entry =>
+          entry && levelId !== undefined && levelId !== null &&
+          String(entry.createdId) === String(levelId)
+        ) || null;
+      } catch (err) {
+        console.warn("Failed to restore the created-level view", err);
+      }
+      if (!level && returnTarget?.snapshot) {
+        level = returnTarget.snapshot;
+      }
+      if (level) {
+        this._openLevelView(level);
+      } else {
+        this._openEditorMenu();
+      }
+    } else if (window._editorReturnToLevelViewId) {
+      const levelId = window._editorReturnToLevelViewId;
+      window._editorReturnToLevelViewId = null;
+      let level = null;
+      try {
+        const createdLevels = JSON.parse(localStorage.getItem("created_levels") || "[]");
+        level = createdLevels.find(entry => entry && entry.createdId === levelId) || null;
+      } catch (err) {
+        console.warn("Failed to restore the editor level view", err);
+      }
+      if (level) {
+        this._openLevelView(level);
+      } else {
+        this._openEditorMenu();
+      }
+    } else if (window._onlineReturnToPlayMenu) {
+      const { lvl, backTarget } = window._onlineReturnToPlayMenu;
+      window._onlineReturnToPlayMenu = null;
+      window._selectedLevelData = lvl;
+      this._openPlayMenu(backTarget);
     }
   }
   _parseLevelColors(levelId) {
@@ -4551,27 +4663,87 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     }
   }
   _pauseGame() {
-    if (!this._paused && !this._menuActive && !this._slideIn && !this._state.isDead && !this._levelWon) {
+    if (!this._paused && !this._menuActive && !this._slideIn && !this._levelWon) {
       this._paused = true;
       this._pauseBtn.setVisible(false);
       this._audio.pauseMusic();
       this._setParticleTimeScale(0);
+      this._player?.setDeathAnimationPaused?.(true);
+      this._player2?.setDeathAnimationPaused?.(true);
       this._buildPauseOverlay();
     }
   }
   _resumeGame() {
     if (this._paused) {
       this._setParticleTimeScale(1);
+      this._player?.setDeathAnimationPaused?.(false);
+      this._player2?.setDeathAnimationPaused?.(false);
       this._paused = false;
       this._pauseBtn.setVisible(true).setAlpha(75 / 255);
-      this._audio.resumeMusic();
-      this._audio._ensureCorrectMusicMode();
+      if (!this._state.isDead || this._practicedMode?.practiceMode) {
+        this._audio.resumeMusic();
+        this._audio._ensureCorrectMusicMode();
+      }
       if (this._pauseContainer) {
         this._pauseContainer.destroy();
         this._pauseContainer = null;
       }
     }
   }
+  _queueGameplayLevelViewReturn() {
+    const currentLevelId = window.currentlevel?.[2] ?? window._onlineLevelId ?? null;
+    const pendingCreatedReturn = window._createdLevelReturnToView || null;
+    const candidateCreatedIds = [
+      pendingCreatedReturn?.createdId,
+      currentLevelId,
+      window._onlineLevelId
+    ].filter(value => value !== undefined && value !== null);
+
+    let createdLevel = null;
+    try {
+      const createdLevels = JSON.parse(localStorage.getItem("created_levels") || "[]");
+      createdLevel = createdLevels.find(level => {
+        if (!level) return false;
+        return candidateCreatedIds.some(id =>
+          String(level.createdId) === String(id) ||
+          (level.levelId !== undefined && level.levelId !== null && String(level.levelId) === String(id))
+        );
+      }) || null;
+    } catch (err) {
+      console.warn("Failed to determine the created-level return target", err);
+    }
+
+    if (createdLevel || pendingCreatedReturn?.snapshot) {
+      const targetLevel = createdLevel || pendingCreatedReturn.snapshot;
+      window._createdLevelReturnToView = {
+        createdId: targetLevel.createdId ?? pendingCreatedReturn?.createdId ?? currentLevelId,
+        snapshot: { ...targetLevel }
+      };
+      window._editorReturnToLevelViewId = null;
+      window._onlineReturnToPlayMenu = null;
+      return true;
+    }
+
+    const levelSource = window.currentlevel?.[3]?.[0];
+    const isOnlineLevel = levelSource === "Online" || String(currentLevelId || "").startsWith("online_");
+    if (isOnlineLevel) {
+      const existingReturn = window._onlineReturnToPlayMenu;
+      const selectedLevel = existingReturn?.lvl || window._selectedLevelData || null;
+      if (selectedLevel) {
+        window._onlineReturnToPlayMenu = {
+          lvl: selectedLevel,
+          backTarget: existingReturn?.backTarget || null
+        };
+        window._createdLevelReturnToView = null;
+        window._editorReturnToLevelViewId = null;
+        return true;
+      }
+    }
+
+    window._createdLevelReturnToView = null;
+    return false;
+  }
+
   _createPauseToggleButton(_0x5376fd, _0x3b6200, _0x2b25c8, _0xe203c3, _0x268e2b, _0x2d04c4) {
     const _0x4864cc = this.add.container(_0x3b6200, _0x2b25c8);
     const pieceHeight = this.add.image(0, 0, "GJ_GameSheet03", _0x268e2b ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png").setScale(0.7).setInteractive();
@@ -4665,6 +4837,9 @@ _buildPauseOverlay() {
         { frame: "GJ_playBtn2_001.png", atlas: "GJ_WebSheet", action: () => this._resumeGame() },
         { frame: "GJ_menuBtn_001.png", atlas: "GJ_WebSheet", action: () => {
             this._audio.playEffect("quitSound_01");
+            this._queueGameplayLevelViewReturn();
+            this.game.registry.remove("autoStartGame");
+            window.isEditor = false;
             this._audio.stopMusic();
             this._resumeGame();
             this.scene.restart();
@@ -6287,112 +6462,39 @@ _buildSettingsPopup() {
       } catch (_0x22124f) {}
     }
   }
-  _drawScale9(_0x147730, _0x4c8cbf, scaleWidth, scaleHeight, _0x24a44b, borderSize, _0x590eba, _0x206735) {
-    const _0x4080b2 = this.add.container(_0x147730, _0x4c8cbf);
-    const _0x2522df = this.textures.get(_0x24a44b);
-    const _0x401ec1 = _0x2522df.source[0];
-    const _0x3f82ec = _0x401ec1.width;
-    const _0x294746 = _0x401ec1.height;
-    const _0x2b09f1 = scaleWidth - borderSize * 2;
-    const _0x990515 = scaleHeight - borderSize * 2;
-    const _0x1d065e = [{
-      sx: 0,
-      sy: 0,
-      sw: borderSize,
-      sh: borderSize,
-      dx: -scaleWidth / 2,
-      dy: -scaleHeight / 2,
-      dw: borderSize,
-      dh: borderSize
-    }, {
-      sx: borderSize,
-      sy: 0,
-      sw: _0x3f82ec - borderSize * 2,
-      sh: borderSize,
-      dx: -scaleWidth / 2 + borderSize,
-      dy: -scaleHeight / 2,
-      dw: _0x2b09f1,
-      dh: borderSize
-    }, {
-      sx: _0x3f82ec - borderSize,
-      sy: 0,
-      sw: borderSize,
-      sh: borderSize,
-      dx: scaleWidth / 2 - borderSize,
-      dy: -scaleHeight / 2,
-      dw: borderSize,
-      dh: borderSize
-    }, {
-      sx: 0,
-      sy: borderSize,
-      sw: borderSize,
-      sh: _0x294746 - borderSize * 2,
-      dx: -scaleWidth / 2,
-      dy: -scaleHeight / 2 + borderSize,
-      dw: borderSize,
-      dh: _0x990515
-    }, {
-      sx: borderSize,
-      sy: borderSize,
-      sw: _0x3f82ec - borderSize * 2,
-      sh: _0x294746 - borderSize * 2,
-      dx: -scaleWidth / 2 + borderSize,
-      dy: -scaleHeight / 2 + borderSize,
-      dw: _0x2b09f1,
-      dh: _0x990515
-    }, {
-      sx: _0x3f82ec - borderSize,
-      sy: borderSize,
-      sw: borderSize,
-      sh: _0x294746 - borderSize * 2,
-      dx: scaleWidth / 2 - borderSize,
-      dy: -scaleHeight / 2 + borderSize,
-      dw: borderSize,
-      dh: _0x990515
-    }, {
-      sx: 0,
-      sy: _0x294746 - borderSize,
-      sw: borderSize,
-      sh: borderSize,
-      dx: -scaleWidth / 2,
-      dy: scaleHeight / 2 - borderSize,
-      dw: borderSize,
-      dh: borderSize
-    }, {
-      sx: borderSize,
-      sy: _0x294746 - borderSize,
-      sw: _0x3f82ec - borderSize * 2,
-      sh: borderSize,
-      dx: -scaleWidth / 2 + borderSize,
-      dy: scaleHeight / 2 - borderSize,
-      dw: _0x2b09f1,
-      dh: borderSize
-    }, {
-      sx: _0x3f82ec - borderSize,
-      sy: _0x294746 - borderSize,
-      sw: borderSize,
-      sh: borderSize,
-      dx: scaleWidth / 2 - borderSize,
-      dy: scaleHeight / 2 - borderSize,
-      dw: borderSize,
-      dh: borderSize
-    }];
-    for (let _0x24f653 = 0; _0x24f653 < _0x1d065e.length; _0x24f653++) {
-      const scale9Piece = _0x1d065e[_0x24f653];
-      const _0xade586 = "_s9_" + _0x24f653;
-      if (!_0x2522df.has(_0xade586)) {
-        _0x2522df.add(_0xade586, 0, scale9Piece.sx, scale9Piece.sy, scale9Piece.sw, scale9Piece.sh);
-      }
-      const _0x1145e5 = this.add.image(scale9Piece.dx, scale9Piece.dy, _0x24a44b, _0xade586).setOrigin(0, 0).setDisplaySize(scale9Piece.dw, scale9Piece.dh);
-      if (_0x590eba !== undefined) {
-        _0x1145e5.setTint(_0x590eba);
-      }
-      if (_0x206735 !== undefined) {
-        _0x1145e5.setAlpha(_0x206735);
-      }
-      _0x4080b2.add(_0x1145e5);
+  _drawScale9(x, y, scaleWidth, scaleHeight, textureKey, borderSize, tint, alpha) {
+    const container = this.add.container(x, y);
+    const texture = this.textures.get(textureKey);
+    const baseFrame = texture?.get?.();
+    const source = texture?.source?.[0];
+    const textureWidth = baseFrame?.width || source?.width || scaleWidth;
+    const textureHeight = baseFrame?.height || source?.height || scaleHeight;
+    const requestedBorder = Math.max(0, Number(borderSize) || 0);
+    const horizontalBorder = Math.min(requestedBorder, textureWidth / 2, scaleWidth / 2);
+    const verticalBorder = Math.min(requestedBorder, textureHeight / 2, scaleHeight / 2);
+
+    const nineSlice = this.add.nineslice(
+      0,
+      0,
+      textureKey,
+      null,
+      scaleWidth,
+      scaleHeight,
+      horizontalBorder,
+      horizontalBorder,
+      verticalBorder,
+      verticalBorder
+    ).setOrigin(0.5);
+
+    if (tint !== undefined) {
+      nineSlice.setTint(tint);
     }
-    return _0x4080b2;
+    if (alpha !== undefined) {
+      nineSlice.setAlpha(alpha);
+    }
+
+    container.add(nineSlice);
+    return container;
   }
   _startGame() {
     if (!this._menuActive) {
@@ -6631,7 +6733,8 @@ _buildSettingsPopup() {
       let _primaryImmediateGravitySynced = false;
       if (_primaryImmediateGravityChanged) {
         _primaryImmediateGravitySynced = this._syncDualGlobalsFromPrimary({
-          skipBallInputGravity: this._state.isBall && _primaryImmediateJumped
+          skipBallInputGravity: this._state.isBall && _primaryImmediateJumped,
+          skipSpiderInputGravity: this._state.isSpider && _primaryImmediateJumped
         });
       }
       if (this._isDual && !this._state2.isDead) {
@@ -6641,6 +6744,7 @@ _buildSettingsPopup() {
         }
         const _secondaryImmediateBeforeGravity = !!this._state2.gravityFlipped;
         const _secondaryImmediateBallInput = this._state2.isBall && this._state2.upKeyPressed;
+        const _secondaryImmediateSpiderInput = this._state2.isSpider && this._state2.upKeyPressed;
         if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
           this._player2.updateJump(0);
         } else if (this._state2.isUfo) {
@@ -6650,7 +6754,8 @@ _buildSettingsPopup() {
         }
         if (!!this._state2.gravityFlipped !== _secondaryImmediateBeforeGravity) {
           this._syncDualGlobalsFromSecondary({
-            skipBallInputGravity: _secondaryImmediateBallInput
+            skipBallInputGravity: _secondaryImmediateBallInput,
+            skipSpiderInputGravity: _secondaryImmediateSpiderInput
           });
         }
       }
@@ -7139,6 +7244,7 @@ _buildSettingsPopup() {
     if (checkpoint.dualMode) {
       this._isDual = false;
       this._dualBallOverlapResolved = false;
+      this._dualBallSpawnGravityLock = false;
       this._state2.reset();
       this._player2.reset();
       this._player2.setInvertedColors?.(true);
@@ -7610,6 +7716,7 @@ _buildSettingsPopup() {
         }
         return;
     }
+
     let rawPercent = (this._playerWorldX / this._level.endXPos) * 100;
     rawPercent = Math.min(100, Math.max(0, rawPercent));
     let displayValue;
@@ -7880,7 +7987,10 @@ _buildSettingsPopup() {
           }
         }
       }
-      this._player.updateExplosionPieces(deltaTime);
+      this._player?.updateExplosionPieces?.(deltaTime);
+      if (this._isDual) {
+        this._player2?.updateExplosionPieces?.(deltaTime);
+      }
       if (this._player?._hitboxGraphics) {
         if (window.showHitboxes || window.hitboxesOnDeath) {
           this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
@@ -8007,7 +8117,8 @@ _buildSettingsPopup() {
       let _primaryGravitySynced = false;
       if (this._isDual && this._getDualSharedSignature(this._state) !== _primarySharedBefore) {
         _primaryGravitySynced = this._syncDualGlobalsFromPrimary({
-          skipBallInputGravity: _primaryGravityChanged && this._state.isBall && _dualInputState.upKeyPressed
+          skipBallInputGravity: _primaryGravityChanged && this._state.isBall && _dualInputState.upKeyPressed,
+          skipSpiderInputGravity: _primaryGravityChanged && this._state.isSpider && _dualInputState.upKeyPressed
         });
       }
       if (this._isDual && this._state.isDead && !this._state2.isDead) {
@@ -8023,12 +8134,14 @@ _buildSettingsPopup() {
         this._state2.lastY = this._state2.y;
         const _secondarySharedBefore = this._getDualSharedSignature(this._state2);
         const _secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+        const _secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
         this._player2.updateJump(verticalDelta);
         this._state2.y += this._state2.yVelocity * verticalDelta;
         this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
         if (this._isDual && !this._state2.isDead && this._getDualSharedSignature(this._state2) !== _secondarySharedBefore) {
           this._syncDualGlobalsFromSecondary({
-            skipBallInputGravity: _secondaryBallInputGravity
+            skipBallInputGravity: _secondaryBallInputGravity,
+            skipSpiderInputGravity: _secondarySpiderInputGravity
           });
         }
         this._resolveDualBallOverlap();
@@ -8430,13 +8543,18 @@ _applyMirrorEffect() {
     toState._orbActivationConsumedForPress = !!fromState.upKeyDown && (!!toState._orbActivationConsumedForPress || fromConsumed);
   }
   _shouldSuppressDualGravityAction(state, gravityAlreadySynced) {
-    return !!(gravityAlreadySynced && state && (state.isBall || state.isSpider) && state.upKeyPressed);
+    return !!(gravityAlreadySynced && state && state.isBall && state.upKeyPressed);
   }
   _shouldSkipDualBallGravitySync(fromState, toState, options = {}) {
     if (!fromState?.isBall || !toState) return false;
     if (options.forceGravitySync) return false;
     if (options.skipBallInputGravity) return true;
     return !(toState.onGround || toState.onCeiling || toState.canJump);
+  }
+  _shouldSkipDualSpiderInputGravitySync(fromState, options = {}) {
+    if (!fromState?.isSpider) return false;
+    if (options.forceGravitySync) return false;
+    return !!options.skipSpiderInputGravity;
   }
   _isDualBallOnSurface(state) {
     return !!(state && (state.onGround || state.onCeiling || state.canJump));
@@ -8498,7 +8616,7 @@ _applyMirrorEffect() {
   _syncDualGlobalsFromPrimary(options = {}) {
     if (!this._isDual || !this._state || !this._state2 || this._state2.isDead) return false;
     let gravitySynced = false;
-    if (!this._shouldSkipDualBallGravitySync(this._state, this._state2, options)) {
+    if (!this._shouldSkipDualBallGravitySync(this._state, this._state2, options) && !this._shouldSkipDualSpiderInputGravitySync(this._state, options)) {
       const nextGravity = !this._state.gravityFlipped;
       this._state2.gravityFlipped = nextGravity;
       gravitySynced = true;
@@ -8510,7 +8628,7 @@ _applyMirrorEffect() {
   _syncDualGlobalsFromSecondary(options = {}) {
     if (!this._isDual || !this._state || !this._state2 || this._state.isDead || this._state2.isDead) return false;
     let gravitySynced = false;
-    if (!this._shouldSkipDualBallGravitySync(this._state2, this._state, options)) {
+    if (!this._shouldSkipDualBallGravitySync(this._state2, this._state, options) && !this._shouldSkipDualSpiderInputGravitySync(this._state2, options)) {
       const nextGravity = !this._state2.gravityFlipped;
       this._state.gravityFlipped = nextGravity;
       gravitySynced = true;
@@ -9491,14 +9609,15 @@ _applyMirrorEffect() {
     const backBtn = this.add.image(45, 45, "GJ_GameSheet03", "GJ_arrow_01_001.png")
       .setScrollFactor(0).setDepth(204).setOrigin(0.5).setInteractive();
     objects.push(backBtn);
-    const closeOverlay = () => {
+    const closeOverlay = (returnToParent = true, onComplete = null) => {
       const fadeOut = this.add.graphics().setScrollFactor(0).setDepth(400).setAlpha(0);
       fadeOut.fillStyle(0x000000, 1);
       fadeOut.fillRect(0, 0, sw, sh);
       this.tweens.add({ targets: fadeOut, alpha: 1, duration: 160, ease: "Linear",
         onComplete: () => {
           for (const o of objects) if (o && o.destroy) o.destroy();
-          if (onBack) onBack();
+          if (returnToParent && onBack) onBack();
+          if (onComplete) onComplete();
           this.tweens.add({ targets: fadeOut, alpha: 0, duration: 160, ease: "Linear",
             onComplete: () => fadeOut.destroy() });
         }
@@ -9556,7 +9675,14 @@ _applyMirrorEffect() {
     const shell = this._openListScene(
       isFeatured ? "" : "Online Levels",
       180,
-      () => { this._onlineLevelsOverlay = null; this._openCreatorMenu(); }
+      () => {
+        this._onlineLevelsOverlay = null;
+        if (isFeatured) {
+          this._openCreatorMenu();
+        } else {
+          this._openSearchMenu();
+        }
+      }
     );
     const { objects, listLeft, listTop, panelW, panelH,
             panelCX, panelCY, addRow, clearRows,
@@ -9621,6 +9747,7 @@ _applyMirrorEffect() {
     let currentPage = 0;
     let _knownMaxPages = 1;
     const cache = {};
+    const _processedCache = {};
     let activeCellObjs = [];
     let _loading = false;
     let scrollOffsetY = 0;
@@ -9804,8 +9931,11 @@ _applyMirrorEffect() {
         btn9.setScale(_baseScale);
         btnLbl.setScale(_baseScale);
         window._selectedLevelData = levelData;
-        closeOverlay();
-        this._openPlayMenu(() => this._openOnlineLevelsScene(params));
+        closeOverlay(false, () => {
+          this._onlineLevelsOverlay = null;
+          this._closeOnlineLevelsOverlay = null;
+          this._openPlayMenu(() => this._openOnlineLevelsScene(params));
+        });
       });
 
       return cellObjs;
@@ -9905,6 +10035,21 @@ _applyMirrorEffect() {
         scrollOffsetY = 0;
         // wip
         _lastLevelStrs = levelStrs;
+        if (_processedCache[page]) {
+          _lastLevelData = _processedCache[page];
+          _lastLevelData.forEach((levelData, idx) => {
+            const cellObjs = _buildLevelCell(levelData, idx);
+            activeCellObjs.push(...cellObjs);
+            addRow();
+          });
+          spinSprite.setVisible(false);
+          refreshBtn.setVisible(true);
+          pageLbl.setVisible(true);
+          prevBtn.setVisible(page > 0);
+          nextBtn.setVisible(hasNextPage);
+          _loading = false;
+          return;
+        }
         _lastLevelData = levelStrs.map((ls) => {
           const m = _parseKV(ls);
           const rawLikes = parseInt(m["14"]) || 0;
@@ -9956,6 +10101,7 @@ _applyMirrorEffect() {
               .catch(() => {});
           }));
         }
+        _processedCache[page] = _lastLevelData;
         _lastLevelData.forEach((levelData, idx) => {
           const cellObjs = _buildLevelCell(levelData, idx);
           activeCellObjs.push(...cellObjs);
@@ -9972,7 +10118,7 @@ _applyMirrorEffect() {
     nextBtn.removeAllListeners("pointerup");
     prevBtn.on("pointerup", () => { if (!_loading && currentPage > 0) _setPage(currentPage - 1); });
     nextBtn.on("pointerup", () => { if (!_loading) _setPage(currentPage + 1); });
-    this._makeBouncyButton(refreshBtn, 1, () => { delete cache[currentPage]; _setPage(currentPage); });
+    this._makeBouncyButton(refreshBtn, 1, () => { delete cache[currentPage]; delete _processedCache[currentPage]; _setPage(currentPage); });
     const _onWheel = (pointer, gameObjects, deltaX, deltaY) => {
       if (pointer.x < listLeft || pointer.x > listLeft + panelW) return;
       if (pointer.y < listTop  || pointer.y > listTop + panelH) return;
@@ -10190,7 +10336,7 @@ _applyMirrorEffect() {
     const backBtn = this.add.image(45, 45, "GJ_GameSheet03", "GJ_arrow_01_001.png")
       .setScrollFactor(0).setDepth(204).setOrigin(0.5).setInteractive();
     objects.push(backBtn);
-    const closeOverlay = () => {
+    const closeOverlay = (returnToCreator = true, onComplete = null) => {
       const fadeOut = this.add.graphics().setScrollFactor(0).setDepth(400).setAlpha(0);
       fadeOut.fillStyle(0x000000, 1);
       fadeOut.fillRect(0, 0, sw, sh);
@@ -10198,7 +10344,8 @@ _applyMirrorEffect() {
         onComplete: () => {
           for (const o of objects) if (o && o.destroy) o.destroy();
           this._savedOverlay = null;
-          this._openCreatorMenu();
+          if (returnToCreator) this._openCreatorMenu();
+          if (onComplete) onComplete();
           this.tweens.add({ targets: fadeOut, alpha: 0, duration: 160, ease: "Linear",
             onComplete: () => fadeOut.destroy() });
         }
@@ -10441,8 +10588,9 @@ _applyMirrorEffect() {
         btn9.setScale(_baseScale);
         btnLbl.setScale(_baseScale);
         window._selectedLevelData = levelData;
-        closeOverlay();
-        this._openPlayMenu(() => this._openSavedLevelsScene());
+        closeOverlay(false, () => {
+          this._openPlayMenu(() => this._openSavedLevelsScene());
+        });
       });
 
       return cellObjs;
@@ -10808,8 +10956,11 @@ _applyMirrorEffect() {
       btn9.setScale(_baseScale);
       btnLbl.setScale(_baseScale);
       window._selectedLevelData = levelData;
-      closeOverlay();
-      this._openPlayMenu(() => this._openSearchResultScene(levelData));
+      closeOverlay(false, () => {
+        this._searchResultOverlay = null;
+        this._closeSearchResultOverlay = null;
+        this._openPlayMenu(() => this._openSearchResultScene(levelData));
+      });
     });
 
     addRow();

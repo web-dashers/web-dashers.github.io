@@ -302,8 +302,8 @@ class LevelEditor {
 
     this._zoomButtons = this.add.container(48, screenHeight / 2 - 20).setScrollFactor(0).setDepth(1000);
     
-    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
-    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
+    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setInteractive().setScale(0.9);
+    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setInteractive().setScale(0.9);
     
     this._zoomButtons.add([zoomInBtn, zoomOutBtn]);
 
@@ -1179,7 +1179,8 @@ class LevelEditor {
     let primaryGravitySynced = false;
     if (primaryGravityChanged) {
         primaryGravitySynced = this._syncDualGlobalsFromPrimary?.({
-            skipBallInputGravity: this._state.isBall
+            skipBallInputGravity: this._state.isBall,
+            skipSpiderInputGravity: this._state.isSpider
         }) || false;
     }
 
@@ -1190,6 +1191,7 @@ class LevelEditor {
         }
         const secondaryGravityBefore = !!this._state2.gravityFlipped;
         const secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+        const secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
         if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
             this._player2.updateJump(0);
         } else if (this._state2.isUfo) {
@@ -1197,7 +1199,8 @@ class LevelEditor {
         }
         if (!!this._state2.gravityFlipped !== secondaryGravityBefore) {
             this._syncDualGlobalsFromSecondary?.({
-                skipBallInputGravity: secondaryBallInputGravity
+                skipBallInputGravity: secondaryBallInputGravity,
+                skipSpiderInputGravity: secondarySpiderInputGravity
             });
         }
     }
@@ -1275,7 +1278,8 @@ class LevelEditor {
             let primaryGravitySynced = false;
             if (this._isDual && primarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state) !== primarySharedBefore) {
                 primaryGravitySynced = this._syncDualGlobalsFromPrimary?.({
-                    skipBallInputGravity: primaryGravityChanged && this._state.isBall && dualInputState.upKeyPressed
+                    skipBallInputGravity: primaryGravityChanged && this._state.isBall && dualInputState.upKeyPressed,
+                    skipSpiderInputGravity: primaryGravityChanged && this._state.isSpider && dualInputState.upKeyPressed
                 }) || false;
             }
 
@@ -1294,12 +1298,14 @@ class LevelEditor {
                 this._state2.lastY = this._state2.y;
                 const secondarySharedBefore = this._getDualSharedSignature?.(this._state2);
                 const secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+                const secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
                 this._player2.updateJump(verticalDelta);
                 this._state2.y += this._state2.yVelocity * verticalDelta;
                 this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
                 if (this._isDual && !this._state2.isDead && secondarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state2) !== secondarySharedBefore) {
                     this._syncDualGlobalsFromSecondary?.({
-                        skipBallInputGravity: secondaryBallInputGravity
+                        skipBallInputGravity: secondaryBallInputGravity,
+                        skipSpiderInputGravity: secondarySpiderInputGravity
                     });
                 }
                 this._resolveDualBallOverlap?.();
@@ -1813,15 +1819,15 @@ class LevelEditor {
             { dx: -3, dy: 0, icon: "edit_upBtn_001.png", angle: 270, scale: 1, flipX: false },
             { dx: 3, dy: 0,  icon: "edit_upBtn_001.png", angle: 90, scale: 1, flipX: false },
 
-            { dx: 0, dy: -60, icon: "edit_upBtn2_001.png", angle: 90, scale: 1, flipX: false },
-            { dx: 0, dy: 60,  icon: "edit_upBtn2_001.png", angle: 270, scale: 1, flipX: false },
-            { dx: -60, dy: 0, icon: "edit_upBtn2_001.png", angle: 0, scale: 1, flipX: false },
-            { dx: 60, dy: 0,  icon: "edit_upBtn2_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: 0, dy: -60, icon: "edit_upBtn2_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 0, dy: 60,  icon: "edit_upBtn2_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: -60, dy: 0, icon: "edit_upBtn2_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: 60, dy: 0,  icon: "edit_upBtn2_001.png", angle: 90, scale: 1, flipX: false },
 
-            { dx: 0, dy: -300, icon: "edit_upBtn3_001.png", angle: 90, scale: 1, flipX: false },
-            { dx: 0, dy: 300,  icon: "edit_upBtn3_001.png", angle: 270, scale: 1, flipX: false },
-            { dx: -300, dy: 0, icon: "edit_upBtn3_001.png", angle: 0, scale: 1, flipX: false },
-            { dx: 300, dy: 0,  icon: "edit_upBtn3_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: 0, dy: -300, icon: "edit_upBtn3_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 0, dy: 300,  icon: "edit_upBtn3_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: -300, dy: 0, icon: "edit_upBtn3_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: 300, dy: 0,  icon: "edit_upBtn3_001.png", angle: 90, scale: 1, flipX: false },
 
             { dx: 0, dy: -1, icon: "edit_upBtn_001.png", angle: 0, scale: 0.7, flipX: false },
             { dx: 0, dy: 1,  icon: "edit_upBtn_001.png", angle: 180, scale: 0.7, flipX: false },
@@ -1842,7 +1848,7 @@ class LevelEditor {
         flipActions.forEach(a => itemsForGrid.push({ type: "action", subType: "flip", ...a }));
 
         const rotateActions = [
-            { degrees: 90,  icon: "edit_ccwBtn_001.png", angle: 0, scale: 0.8, flipX: false },
+            { degrees: 90,  icon: "edit_ccwBtn_001.png", angle: 0, scale: 0.8, flipX: true },
             { degrees: -90, icon: "edit_ccwBtn_001.png", angle: 0, scale: 0.8, flipX: false },
             { degrees: 45,  icon: "edit_rotate45rBtn_001.png", angle: 0, scale: 0.85, flipX: false },
             { degrees: -45, icon: "edit_rotate45lBtn_001.png", angle: 0, scale: 0.85, flipX: false }
@@ -8350,6 +8356,24 @@ class LevelEditor {
         .setInteractive();
     this._editorMenuContainer.add(bgDim);
 
+    const returnToLevelView = async (showLoading = false) => {
+        this._showEditorPauseMenu(false);
+        this._stopEditorPlaytest?.();
+
+        const levelId = window.currentlevel?.[2] || window._onlineLevelId;
+        if (levelId) {
+            window._editorReturnToLevelViewId = levelId;
+        }
+
+        if (showLoading) {
+            await this._showLoadingBuffer("Loading...");
+        }
+
+        window.isEditor = false;
+        this.game.registry.remove("autoStartGame");
+        this.scene.restart();
+    };
+
     const buttonData = [
         { text: "Resume", cb: () => this._showEditorPauseMenu(false) },
         { 
@@ -8357,8 +8381,14 @@ class LevelEditor {
             cb: async () => { 
                 this._showEditorPauseMenu(false);
                 this._stopEditorPlaytest?.();
-                this._saveEditorLevel(); 
+                this._saveEditorLevel();
+                const savedRecord = this._getCurrentEditorLevelRecord?.().level || null;
+                window._createdLevelReturnToView = {
+                    createdId: savedRecord?.createdId ?? window.currentlevel?.[2] ?? window._onlineLevelId,
+                    snapshot: savedRecord ? { ...savedRecord } : null
+                };
                 await this._showLoadingBuffer("Loading...");
+                window._editorReturnToLevelViewId = null;
                 window.isEditor = false; 
                 this.game.registry.set("autoStartGame", true); 
                 this.scene.restart(); 
@@ -8367,16 +8397,12 @@ class LevelEditor {
         { 
             text: "Save and Exit", 
             cb: async () => { 
-                this._showEditorPauseMenu(false);
-                this._stopEditorPlaytest?.();
-                this._saveEditorLevel(); 
-                await this._showLoadingBuffer("Loading...");
-                window.isEditor = false; 
-                this.scene.restart(); 
+                this._saveEditorLevel();
+                await returnToLevelView(true);
             } 
         },
         { text: "Save", cb: () => this._saveEditorLevel() },
-        { text: "Exit", cb: () => { this._showEditorPauseMenu(false); this._stopEditorPlaytest?.(); window.isEditor = false; this.scene.restart(); } }
+        { text: "Exit", cb: () => { returnToLevelView(false); } }
     ];
 
     buttonData.forEach((data, i) => {
