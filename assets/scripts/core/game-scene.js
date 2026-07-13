@@ -301,6 +301,188 @@ class GameScene extends Phaser.Scene {
     });
   }
   create() {
+    // Universal GJ_GameSheet/02/03/04 + GJ_WebSheet UHD overlay system.
+    // Intercepts every this.add.image call for those sheets and layers a native DOM
+    // <img> over it, cropped from a packed UHD sheet, so the browser renders UHD
+    // pixels at full DPR without loading thousands of individually-cut per-frame files.
+    ['gj-s03-uhd', 'gj-s03-uhd-fade', 'gj-s03-uhd-flash', 'gj-s03-menu-dom'].forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
+    const _uhdParent = this.game.canvas.parentElement || document.body;
+    this._uhdParent = _uhdParent;
+    const _uhdCont = document.createElement('div');
+    _uhdCont.id = 'gj-s03-uhd';
+    _uhdCont.style.cssText = 'position:absolute;pointer-events:none;z-index:499;overflow:hidden;top:0;left:0;width:100%;height:100%;';
+    _uhdParent.appendChild(_uhdCont);
+    this._uhdCont = _uhdCont;
+    const _uhdFadeDiv = document.createElement('div');
+    _uhdFadeDiv.id = 'gj-s03-uhd-fade';
+    _uhdFadeDiv.style.cssText = 'position:absolute;pointer-events:none;z-index:500;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;';
+    _uhdParent.appendChild(_uhdFadeDiv);
+    this._uhdFadeDiv = _uhdFadeDiv;
+    // Noclip death flash mirror — must sit above EVERYTHING, including all UHD
+    // overlay canvases and the black fade div. Driven by this.noclipFlash's alpha.
+    const _uhdFlashDiv = document.createElement('div');
+    _uhdFlashDiv.id = 'gj-s03-uhd-flash';
+    _uhdFlashDiv.style.cssText = 'position:absolute;pointer-events:none;z-index:9000;top:0;left:0;width:100%;height:100%;background:#f00;opacity:0;';
+    _uhdParent.appendChild(_uhdFlashDiv);
+    this._uhdFlashDiv = _uhdFlashDiv;
+    this._uhdMap = new Map();
+    this._uhdContext = null; // null = main menu; must be set before any add.image calls
+    this._searchResultsOpen = false; // scene restarts reuse the instance; don't let a stale flag win the ctx priority chain
+    // Sync overlay positions after update() has moved containers/cameras for the frame
+    // (off-before-on: scene restarts reuse the same instance, avoid double registration)
+    this.events.off('postupdate', this._syncUhdOverlays);
+    this.events.on('postupdate', this._syncUhdOverlays);
+    const _sc = this;
+    // On scene restart this.add is the same plugin instance, so the patch from the
+    // previous create() may still be in place. Always unwrap to the true original first.
+    if (this.add.image._uhd_orig) this.add.image = this.add.image._uhd_orig;
+    const _uhdDirs = { GJ_GameSheet03: true, GJ_GameSheet04: true, GJ_WebSheet: true, GJ_GameSheet: true, GJ_GameSheet02: true };
+    const _uhdPacked = {};
+    Object.keys(_uhdDirs).forEach(k => {
+      const tex = _sc.textures.get('uhd_' + k);
+      const atlasJson = _sc.cache.json.get('uhd_' + k + '_atlas');
+      if (tex && tex.key !== '__MISSING' && atlasJson) {
+        _uhdPacked[k] = { img: tex.getSourceImage(), frames: atlasJson.frames };
+      }
+    });
+    const _uhdScratchCanvas = document.createElement('canvas');
+    const _uhdScratchCtx = _uhdScratchCanvas.getContext('2d');
+    const _uhdDataUrlCache = new Map();
+    const _uhdDrawFrame = (imgEl, key, frame) => {
+      const packed = _uhdPacked[key];
+      const rect = packed && packed.frames[frame];
+      if (!rect) return false;
+      const cacheKey = key + ':' + frame;
+      let url = _uhdDataUrlCache.get(cacheKey);
+      if (!url) {
+        _uhdScratchCanvas.width = rect.w;
+        _uhdScratchCanvas.height = rect.h;
+        _uhdScratchCtx.clearRect(0, 0, rect.w, rect.h);
+        _uhdScratchCtx.drawImage(packed.img, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+        url = _uhdScratchCanvas.toDataURL();
+        _uhdDataUrlCache.set(cacheKey, url);
+      }
+      imgEl.src = url;
+      return true;
+    };
+    this._uhdDrawFrame = _uhdDrawFrame;
+    // Per-frame shrink applied only to the UHD overlay's own box (not the underlying sprite),
+    // so the replacement art renders smaller than the original frame while staying centered
+    // on it. Keyed as "textureKey:frameName".
+    const _uhdScaleOverrides = { 'GJ_WebSheet:GJ_logo_001.png': 0.95 };
+    // Atlas-rotated frames normally get CSS rotation suppressed (their UHD art is packed in
+    // final visual orientation). But frames listed here are drawn at several code rotations
+    // (editor move arrows), so their overlay must follow go.rotation; the value is the offset
+    // between the packed art's on-disk orientation (up) and the frame's design orientation (left).
+    const _uhdRotateOverrides = {
+      'GJ_GameSheet03:edit_upBtn2_001.png': -Math.PI / 2,
+      'GJ_GameSheet03:edit_upBtn3_001.png': -Math.PI / 2,
+    };
+    // Per-frame position nudge (game units) applied only to the UHD overlay, not the
+    // underlying sprite. Keyed as "textureKey:frameName".
+    const _uhdOffsetOverrides = { 'GJ_WebSheet:GJ_logo_001.png': { x: -5, y: -5 } };
+    // Per-frame object-fit override. Default 'contain' never crops but can leave the old
+    // sprite visible in the letterboxed gap when the replacement art's aspect ratio doesn't
+    // match the original frame; 'cover' guarantees full coverage of the old frame's box
+    // (cropping the replacement's edges slightly) for cases where that gap is worse than the crop.
+    const _uhdFitOverrides = {};
+    const _uhdFrameAllowed = (key, frame) => !!(_uhdPacked[key] && _uhdPacked[key].frames[frame]);
+    // GJ_GameSheet/GJ_GameSheet02 hold the gameplay objects. Their overlays are tagged
+    // obj-mode: alpha maps to CSS opacity (not the disabled-button grayscale), and the
+    // overlay hides for color-tinted or additive-blend sprites (canvas fallback), since
+    // DOM elements can't replicate arbitrary tints or blend modes.
+    const _uhdObjSheet = (key) => key === 'GJ_GameSheet' || key === 'GJ_GameSheet02';
+    const _origAddImg = this.add.image.bind(this.add);
+    const _patchedAddImg = function(x, y, key, frame, ...rest) {
+      const go = _origAddImg(x, y, key, frame, ...rest);
+      if (_uhdDirs[key] && typeof frame === 'string' && _uhdFrameAllowed(key, frame)) {
+        // object-fit:contain (rather than the default fill/stretch) lets a UHD replacement
+        // whose own aspect ratio doesn't exactly match the original frame's sourceSize (e.g.
+        // a redrawn logo) scale in without distortion; it's a no-op when the aspect already
+        // matches, so it doesn't change anything for the existing GameSheet03/04 assets.
+        const _fitMode = _uhdFitOverrides[key + ':' + frame] || 'contain';
+        // Editor build-tab preview icons draw from the object sheets but are UI, not
+        // in-game objects — exempt them from the In-Game UHD toggle & lazy lifecycle,
+        // or they'd vanish behind their button-background overlays when it's off.
+        const _isObj = _uhdObjSheet(key) && !_sc._uhdPreviewIcons;
+        // Object-sheet sprites (level objects) get their DOM img lazily, in the sync
+        // loop, only while actually on screen — a long level would otherwise create
+        // thousands of img nodes up front and keep them all alive forever.
+        let di = null;
+        if (!_isObj) {
+          di = document.createElement('img');
+          di.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;display:none;object-fit:' + _fitMode + ';';
+          _uhdDrawFrame(di, key, frame);
+          _uhdCont.appendChild(di);
+        }
+        const entry = { img: di, key, frame, fit: _fitMode, group: _sc._uhdContext, obj: _isObj, _sized: false, _vis: null, _t: null, uhdScale: _uhdScaleOverrides[key + ':' + frame] || 1, uhdOffset: _uhdOffsetOverrides[key + ':' + frame] || null, uhdRot: _uhdRotateOverrides[key + ':' + frame] != null ? _uhdRotateOverrides[key + ':' + frame] : null };
+        _sc._uhdMap.set(go, entry);
+        // Follow dynamic texture swaps (nav dots, checkboxes, etc.)
+        const _oST = go.setTexture.bind(go);
+        go.setTexture = function(k, f, ...a) {
+          const r = _oST(k, f, ...a);
+          if (_uhdDirs[k] && typeof f === 'string' && _uhdFrameAllowed(k, f)) {
+            const e = _sc._uhdMap.get(go);
+            if (e) { e.key = k; e.frame = f; if (e.img) _uhdDrawFrame(e.img, k, f); e._sized = false; e.obj = _uhdObjSheet(k); e.uhdScale = _uhdScaleOverrides[k + ':' + f] || 1; e.uhdOffset = _uhdOffsetOverrides[k + ':' + f] || null; e.uhdRot = _uhdRotateOverrides[k + ':' + f] != null ? _uhdRotateOverrides[k + ':' + f] : null; }
+          }
+          return r;
+        };
+        // Follow same-texture frame swaps (editor build/edit/delete tabs, etc.)
+        const _oSFr = go.setFrame.bind(go);
+        go.setFrame = function(f, ...a) {
+          const r = _oSFr(f, ...a);
+          const k = go.texture && go.texture.key;
+          if (_uhdDirs[k] && typeof f === 'string' && _uhdFrameAllowed(k, f)) {
+            const e = _sc._uhdMap.get(go);
+            if (e) { e.key = k; e.frame = f; if (e.img) _uhdDrawFrame(e.img, k, f); e._sized = false; e.obj = _uhdObjSheet(k); e.uhdScale = _uhdScaleOverrides[k + ':' + f] || 1; e.uhdOffset = _uhdOffsetOverrides[k + ':' + f] || null; e.uhdRot = _uhdRotateOverrides[k + ':' + f] != null ? _uhdRotateOverrides[k + ':' + f] : null; }
+          }
+          return r;
+        };
+        // On by default; opt out via localStorage.setItem('uhdHideOldTextures', '0')
+        // (a plain window flag would reset on every refresh):
+        // give interactive UI icons a companion invisible Zone as their real input
+        // target. Phaser (3.52+) drops non-rendering objects from hit testing and
+        // the old alwaysEnabled escape hatch for that was removed, so a Zone is the
+        // only supported way to let the sync loop hide this sprite's own canvas
+        // rendering (behind its UHD overlay) without also killing its clicks. Once
+        // the zone takes over, the original sprite's own interactive state stops
+        // mattering for input at all, which is what makes that hiding safe.
+        if (!_isObj) {
+          const _oSetInteractive = go.setInteractive.bind(go);
+          const _oDisableInteractive = go.disableInteractive.bind(go);
+          go.setInteractive = function(...args) {
+            const r = _oSetInteractive(...args);
+            go._uhdWantsInteractive = true;
+            if (localStorage.getItem('uhdHideOldTextures') !== '0' && go.input) {
+              if (!go._uhdHitZone) {
+                const _cursor = go.input.cursor;
+                const zone = _sc.add.zone(go.x, go.y, go.width || 1, go.height || 1)
+                  .setOrigin(go.originX, go.originY)
+                  .setInteractive(_cursor ? { cursor: _cursor } : undefined);
+                go._uhdHitZone = zone;
+                ['pointerdown', 'pointerup', 'pointerover', 'pointerout', 'pointerupoutside', 'pointermove']
+                  .forEach(evt => zone.on(evt, (...a) => go.emit(evt, ...a)));
+                const e = _sc._uhdMap.get(go);
+                if (e) e.hitZone = zone;
+              }
+              // go's own hit-testing is never used again once its zone exists — the
+              // sync loop drives the zone's enabled state from _uhdWantsInteractive.
+              _oDisableInteractive();
+            }
+            return r;
+          };
+          go.disableInteractive = function(...args) {
+            const r = _oDisableInteractive(...args);
+            go._uhdWantsInteractive = false;
+            return r;
+          };
+        }
+      }
+      return go;
+    };
+    _patchedAddImg._uhd_orig = this.add.image; // keep reference to original for unwrap on restart
+    this.add.image = _patchedAddImg;
+
     this._bgSpeedX = 0.1;
     this._bgSpeedY = 0.1;
     this._menuCameraX = -centerX;
@@ -575,6 +757,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     this._openCreatorMenu = () => {
       if (this._creatorOverlay) return;
+      this._uhdContext = 'creator';
       this._creatorMenuOpen = true;
 
       const sw = screenWidth;
@@ -1124,6 +1307,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._openEditorMenu = () => {
         if (this._editorOverlay) return;
+        this._uhdContext = 'editor';
         const sw = screenWidth;
         const sh = screenHeight;
         const centerX = sw / 2;
@@ -1528,6 +1712,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         return "local_" + (maxId + 1);
     };
     this._openLevelView = (level) => {
+        this._uhdContext = 'levelView';
+        this._levelViewOverlay = true;
         const sw = screenWidth;
         const sh = screenHeight;
         const centerX = sw / 2;
@@ -1659,6 +1845,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             container.destroy();
             overlay.destroy();
             blocker.destroy();
+            this._levelViewOverlay = null;
         };
 
         const btnY = sh * 0.58;
@@ -1772,6 +1959,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._openSearchMenu = () => {
       if (this._searchOverlay) return;
+      this._uhdContext = 'search';
       const sw = screenWidth;
       const sh = screenHeight;
 
@@ -2415,6 +2603,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     this._openIconSelector = (startTab = "icon") => {
       if (this._iconOverlay) return;
+      this._uhdContext = 'icon';
 
       const sw = screenWidth;
       const sh = screenHeight;
@@ -3440,6 +3629,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
   }
   _openLevelSelect() {
     if (this._levelSelectOverlay) return;
+    this._uhdContext = 'levelSelect';
     const sw = screenWidth;
     const sh = screenHeight;
     const cx = sw / 2;
@@ -3923,6 +4113,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             }
             cardContentObjs.length = 0;
             barObjs.length = 0;
+            // update() resets _uhdContext to null every frame; this runs from a "preupdate"
+            // handler on a later frame than _openLevelSelect()'s synchronous build, so it must
+            // re-assert the tag before creating new icons or their UHD overlays get group:null
+            // and stay hidden forever (same bug/fix as the settings-popup page rebuild).
+            this._uhdContext = 'levelSelect';
             drawCardBg(newColors.bgHex, dark, isComingSoonPage());
             buildCardContent();
             buildBar();
@@ -4155,6 +4350,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     return _0x4864cc;
   }
 _buildPauseOverlay() {
+    this._uhdContext = 'pause';
     const textureY = screenWidth / 2;
     const _0xf70e04 = 320;
     const _0x4eb71b = screenWidth - 40;
@@ -4292,6 +4488,7 @@ _buildPauseOverlay() {
  }
 _buildSettingsPopup() {
     if (this._settingsPopup) return;
+    this._uhdContext = 'settings';
 
     const centerX = screenWidth / 2,
         centerY = 320,
@@ -4789,6 +4986,7 @@ _buildSettingsPopup() {
   }
   _buildMacroPopup() {
       if (this._macroPopup) return;
+      this._uhdContext = 'macro';
       const centerX = screenWidth / 2;
       const centerY = 320;
       const panelWidth = 800;
@@ -4953,6 +5151,7 @@ _buildSettingsPopup() {
     if (this._infoPopup) {
       return;
     }
+    this._uhdContext = 'info';
     const xPos = screenWidth / 2;
     const popupHeight = 320;
     const popupWidth = 336;
@@ -5371,6 +5570,7 @@ _buildSettingsPopup() {
     if (this._updateLogPopup || window.levelID) {
       return;
     }
+    this._uhdContext = 'updateLog';
     const xPos = screenWidth / 2;
     const popupHeight = 320;
     const popupWidth = 336;
@@ -5503,6 +5703,7 @@ _buildSettingsPopup() {
   }
   _buildNewgroundsPopup() {
     if (this._newgroundsPopup || window.levelID) return;
+    this._uhdContext = 'newgrounds';
     const xPos = screenWidth / 2;
     const centerY = screenHeight / 2;
     this._newgroundsPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
@@ -6897,7 +7098,209 @@ _buildSettingsPopup() {
     this._deltaBuffer = _0x578d1b - _0xd8019e;
     return _0xd8019e * 60;
   }
+  _syncUhdOverlays = () => {
+    if (this._uhdCont && this._uhdMap && this._uhdMap.size > 0) {
+      const _cr = this.game.canvas.getBoundingClientRect();
+      const _sx = _cr.width / screenWidth;
+      const _sy = _cr.height / screenHeight;
+      const _pr = this._uhdParent.getBoundingClientRect();
+      const _ox = _cr.left - _pr.left;
+      const _oy = _cr.top - _pr.top;
+      // Black fade div sits above UHD canvases and mirrors the Phaser depth-200 fade graphics
+      let _fadeCover = 0;
+      for (const _fc of this.children.list) {
+        if (_fc.depth === 200 && _fc.type === 'Graphics' && _fc.alpha > _fadeCover && _fc.scrollFactorX === 0) {
+          _fadeCover = _fc.alpha;
+          if (_fadeCover >= 1) break;
+        }
+      }
+      const _camA = this.cameras.main.alpha;
+      if (_camA < 1) _fadeCover = Math.max(_fadeCover, 1 - _camA);
+      const _fadeOp = _fadeCover.toFixed(2);
+      if (this._uhdFadeDiv._op !== _fadeOp) { this._uhdFadeDiv.style.opacity = _fadeOp; this._uhdFadeDiv._op = _fadeOp; }
+      // Noclip death flash: mirror the canvas rectangle's alpha above everything
+      if (this._uhdFlashDiv) {
+        const _flashOp = (this.noclipFlash && this.noclipFlash.alpha > 0) ? this.noclipFlash.alpha.toFixed(2) : '0';
+        if (this._uhdFlashDiv._op !== _flashOp) { this._uhdFlashDiv.style.opacity = _flashOp; this._uhdFlashDiv._op = _flashOp; }
+      }
+      // Priority-ordered: most-nested overlay first. Only its group's DOM canvases are shown.
+      const _effectiveCtx =
+        this._editorColorPickerPopup                      ? 'editorColorPicker' :
+        this._editorHorizontalOptionPopup                 ? 'editorHorizontalOption' :
+        this._editorStartOptionsPopup                     ? 'editorStartOptions' :
+        this._editorLevelSettingsPopup                    ? 'editorSettings' :
+        (this._editorMenuContainer && this._editorMenuContainer.visible) ? 'editorPause' :
+        this._nongPopupObjs                               ? 'nong' :
+        this._levelInfoContainer                          ? 'levelInfo' :
+        this._questPopup                                  ? 'quest' :
+        this._macroPopup                                  ? 'macro' :
+        (this._settingsLayerOverlay || this._settingsPopup) ? 'settings' :
+        this._achLayerOverlay                             ? 'achLayer' :
+        this._statsLayerOverlay                           ? 'stats' :
+        this._iconOverlay                                 ? 'icon' :
+        this._onlineLevelsOverlay                         ? 'online' :
+        this._searchResultsOpen                           ? 'searchResults' :
+        this._searchOverlay                               ? 'search' :
+        this._savedOverlay                                ? 'saved' :
+        this._newgroundsPopup                             ? 'newgrounds' :
+        this._infoPopup                                   ? 'info' :
+        this._updateLogPopup                              ? 'updateLog' :
+        this._levelViewOverlay                            ? 'levelView' :
+        this._creatorOverlay                              ? 'creator' :
+        this._editorOverlay                               ? 'editor' :
+        this._levelSelectOverlay                          ? 'levelSelect' :
+        this._pauseContainer                              ? 'pause' :
+        null;
+      // Graphics settings: master UHD switch (default on) and in-game object UHD
+      // (default off). Checked live each frame so the toggles apply instantly.
+      const _uhdOn = window.uhdTextures !== false;
+      const _uhdObjOn = _uhdOn && !!window.uhdInGameTextures;
+      const _uhdHideOld = localStorage.getItem('uhdHideOldTextures') !== '0';
+      for (const [go, entry] of this._uhdMap) {
+        if (!go.active) {
+          if (entry.img) entry.img.remove();
+          if (entry.hitZone) entry.hitZone.destroy();
+          this._uhdMap.delete(go);
+          continue;
+        }
+        // Fast path for culled level objects — the overwhelmingly common case in a long
+        // level. No DOM canvas exists and the section container is hidden: two reads, skip.
+        if (entry.obj && !entry.img) {
+          if (!_uhdObjOn) continue;
+          const _pc = go.parentContainer;
+          if (!go.visible || (_pc && !_pc.visible)) continue;
+        }
+        let _parVis = true; { let _chk = go.parentContainer; while (_chk) { if (!_chk.visible) { _parVis = false; break; } _chk = _chk.parentContainer; } }
+        // Keep the companion hit-zone (see the setInteractive patch above) tracking
+        // this sprite's current world transform and depth every frame, and mirror
+        // the game's own intended visibility (not the UHD-hiding state below, which
+        // is purely cosmetic) into whether it's actually clickable.
+        if (entry.hitZone) {
+          const _hz = entry.hitZone;
+          if (_hz.parentContainer !== go.parentContainer) {
+            if (_hz.parentContainer) _hz.parentContainer.remove(_hz);
+            if (go.parentContainer) go.parentContainer.add(_hz);
+            else this.sys.displayList.add(_hz);
+          }
+          _hz.setPosition(go.x, go.y).setScale(go.scaleX, go.scaleY).setRotation(go.rotation);
+          _hz.setScrollFactor(go.scrollFactorX, go.scrollFactorY);
+          if (_hz.depth !== go.depth) _hz.setDepth(go.depth);
+          const _hzActive = go._uhdWantsInteractive && go.visible && _parVis;
+          if (_hz.input && _hz.input.enabled !== _hzActive) {
+            if (_hzActive) _hz.setInteractive(); else _hz.disableInteractive();
+          }
+        }
+        // Object-sheet sprites with a color tint (not white/black) can't be replicated
+        // by a DOM canvas; nor can any sprite with a non-normal blend mode (e.g. the
+        // additive spider dash streak from GJ_GameSheet04) — hide the overlay so the
+        // canvas sprite shows through.
+        const _objUnsupported = (entry.obj && go.tintTopLeft !== 0xffffff && go.tintTopLeft !== 0) || (go.blendMode && go.blendMode !== 0);
+        const vis = go.visible && _parVis && entry.group === _effectiveCtx && !_objUnsupported && (entry.obj ? _uhdObjOn : _uhdOn);
+        if (!vis) {
+          if (entry.obj) {
+            // Level objects release their DOM node entirely while off screen; the
+            // browser's image cache makes re-creation on approach cheap.
+            if (entry.img) { entry.img.remove(); entry.img = null; entry._vis = false; entry._t = null; entry._al = ''; entry._op = ''; entry._sized = false; }
+            continue;
+          }
+          // Un-hide the canvas sprite (see below) now that its overlay isn't showing.
+          if (entry._forceHidden) { go.alpha = entry._authoredAlpha != null ? entry._authoredAlpha : 1; entry._forceHidden = false; }
+          if (entry._vis !== false) { entry.img.style.display = 'none'; entry._vis = false; }
+          continue;
+        }
+        if (_uhdHideOld && !entry.obj && (entry.hitZone || !go.input)) {
+          // Purely decorative sprites (corner art, backgrounds, etc.) were never made
+          // interactive at all, so there's no hitbox to protect — safe to hide
+          // outright. Interactive ones only get hidden once their own zone (see the
+          // setInteractive patch above) exists to keep handling clicks for them.
+          // The real alpha is stashed so the dim/disabled-look filter below still
+          // reflects what the game actually intended, not our forced 0.
+          if (!entry._forceHidden) { entry._authoredAlpha = go.alpha; entry._forceHidden = true; }
+          if (go.alpha !== 0) go.alpha = 0;
+        }
+        if (!entry.img) {
+          const _di = document.createElement('img');
+          _di.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;object-fit:' + (entry.fit || 'contain') + ';';
+          if (!this._uhdDrawFrame(_di, entry.key, entry.frame)) _di.style.display = 'none';
+          this._uhdCont.appendChild(_di);
+          entry.img = _di;
+          entry._vis = null; entry._t = null; entry._al = ''; entry._op = ''; entry._sized = false;
+        }
+        const _isSideArt = go.frame && go.frame.name === 'GJ_sideArt_001.png';
+        const _uhdScale = entry.uhdScale || 1;
+        const dw = go.width * _sx * _uhdScale;
+        const dh = go.height * _sy * _uhdScale;
+        const ox = go.originX != null ? go.originX : 0.5;
+        const oy = go.originY != null ? go.originY : 0.5;
+        if (!entry._sized) {
+          entry.img.style.width = dw.toFixed(1) + 'px';
+          entry.img.style.height = dh.toFixed(1) + 'px';
+          entry.img.style.transformOrigin = _isSideArt ? '0% 0%' : ((ox * 100).toFixed(0) + '% ' + (oy * 100).toFixed(0) + '%');
+          entry._sized = true;
+        }
+        if (entry._vis !== true) { entry.img.style.display = ''; entry._vis = true; }
+        let al = '';
+        if (entry.obj) {
+          // World objects: alpha is a real gameplay fade, not a disabled-button look.
+          const op = go.alpha < 1 ? go.alpha.toFixed(2) : '';
+          if (entry._op !== op) { entry.img.style.opacity = op; entry._op = op; }
+        } else if ((entry._forceHidden ? entry._authoredAlpha : go.alpha) < 1) {
+          al = 'grayscale(1) brightness(0.55)';
+        }
+        // Grey-tinted sprites (sawblades use setTint(0); dimmed/unselected UI icons
+        // use a mid-grey tint) — a neutral multiply tint is equivalent to a CSS
+        // brightness() scale by the tint's channel value, with hue/saturation
+        // untouched (unlike grayscale()). Only exact/near-neutral tints are
+        // approximated this way; colored tints aren't used on non-obj UHD sprites.
+        if (go.tintTopLeft !== 0xffffff) {
+          const _tintR = (go.tintTopLeft >> 16) & 0xff;
+          al += (al ? ' ' : '') + 'brightness(' + (_tintR / 255).toFixed(2) + ')';
+        }
+        if (entry._al !== al) { entry.img.style.filter = al; entry._al = al; }
+        let _wx = go.x, _wy = go.y, _ws = go.scaleX, _wsY = go.scaleY;
+        { let _wp = go.parentContainer; while (_wp) { _wx = _wp.x + _wx * (_wp.scaleX || 1); _wy = _wp.y + _wy * (_wp.scaleY || 1); _ws *= (_wp.scaleX || 1); _wsY *= (_wp.scaleY || 1); _wp = _wp.parentContainer; } }
+        let t;
+        if (_isSideArt) {
+          const _sFX = (_wx * _sx < _cr.width * 0.5 ? 1 : -1) * _ws;
+          const _sFY = (_wy * _sy < _cr.height * 0.5 ? -1 : 1) * _ws;
+          const _cX = (_sFX > 0 ? _ox : _wx * _sx + _ox).toFixed(1);
+          const _cY = (_sFY > 0 ? _wy * _sy - dh + _oy : dh + _oy).toFixed(1);
+          t = 'translate(' + _cX + 'px,' + _cY + 'px) scale(' + _sFX.toFixed(3) + ',' + _sFY.toFixed(3) + ')';
+        } else {
+          const _isAtlasComp = go.frame && go.frame.rotated && go.flipX && Math.abs(go.rotation + Math.PI * 0.5) < 0.01;
+          if (_isAtlasComp) {
+            const _fr = go.frame;
+            const _corX = (_fr.realWidth - _fr.realHeight + (_fr.y - _fr.x) * 2 + _fr.height - _fr.width) * 0.5;
+            _wx += _corX; _wy -= _corX;
+          }
+          const _isAtlasRotated = go.frame && go.frame.rotated;
+          // CSS scale(-1) mirrors around the origin point, which relocates an off-center
+          // box's footprint to the other side of that point (it does NOT mirror in place
+          // like Phaser's flip, which just reverses texture sampling within a fixed quad).
+          // Compensate by shifting translate so the footprint stays where Phaser puts it.
+          const _flipCorX = (!_isAtlasRotated && go.flipX) ? dw * _ws * (1 - 2 * ox) : 0;
+          const _flipCorY = (!_isAtlasRotated && go.flipY) ? dh * _wsY * (1 - 2 * oy) : 0;
+          const _uhdOffX = entry.uhdOffset ? entry.uhdOffset.x * _sx : 0;
+          const _uhdOffY = entry.uhdOffset ? entry.uhdOffset.y * _sy : 0;
+          const tx = (_wx * _sx - dw * ox + _flipCorX + _uhdOffX + _ox).toFixed(1);
+          const ty = (_wy * _sy - dh * oy + _flipCorY + _uhdOffY + _oy).toFixed(1);
+          const _cFX = (!_isAtlasRotated && go.flipX) ? -_ws : _ws;
+          const _cFY = (!_isAtlasRotated && go.flipY) ? -_wsY : _wsY;
+          const _cRot = _isAtlasRotated ? (entry.uhdRot != null ? go.rotation + entry.uhdRot : 0) : go.rotation;
+          if (_cRot === 0 && _cFX === _cFY) {
+            t = 'translate(' + tx + 'px,' + ty + 'px) scale(' + _cFX.toFixed(3) + ')';
+          } else {
+            t = 'translate(' + tx + 'px,' + ty + 'px)'
+              + (_cRot !== 0 ? ' rotate(' + _cRot.toFixed(4) + 'rad)' : '')
+              + ' scale(' + _cFX.toFixed(3) + ',' + _cFY.toFixed(3) + ')';
+          }
+        }
+        if (entry._t !== t) { entry.img.style.transform = t; entry._t = t; }
+      }
+    }
+  };
   update(_0x54fa47, deltaTime) {
+    this._uhdContext = null; // reset between frames so only current overlay's add.image calls get tagged
     if (window.isEditor) {
         if (this._editorPlaytestActive && !this._editorPlaytestPaused) {
             this._levelEditor._updateEditorPlaytest(deltaTime);
@@ -8280,6 +8683,7 @@ _applyMirrorEffect() {
     }
   }
   _showSettingsScreen() {
+    this._uhdContext = 'settings';
     this._settingsScreenClosing = false;
     if (this._pauseBtn) {
       this.tweens.add({
@@ -8528,6 +8932,7 @@ _applyMirrorEffect() {
     });
   }
   _showStatsScreen() {
+    this._uhdContext = 'stats';
     if (this._pauseBtn) {
       this.tweens.add({
         targets: this._pauseBtn,
@@ -8879,6 +9284,7 @@ _applyMirrorEffect() {
 
   _openOnlineLevelsScene(params = {}) {
     if (this._onlineLevelsOverlay) return;
+    this._uhdContext = 'online';
 
     const sw = screenWidth;
     const sh = screenHeight;
@@ -9412,6 +9818,8 @@ _applyMirrorEffect() {
   }
 
   _openSavedLevelsScene() {
+    this._uhdContext = 'saved';
+    this._savedOverlay = true;
     const sw = screenWidth;
     const sh = screenHeight;
 
@@ -9521,6 +9929,7 @@ _applyMirrorEffect() {
       this.tweens.add({ targets: fadeOut, alpha: 1, duration: 160, ease: "Linear",
         onComplete: () => {
           for (const o of objects) if (o && o.destroy) o.destroy();
+          this._savedOverlay = null;
           this._openCreatorMenu();
           this.tweens.add({ targets: fadeOut, alpha: 0, duration: 160, ease: "Linear",
             onComplete: () => fadeOut.destroy() });
