@@ -2013,15 +2013,16 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           ];
 
           const btnContainer = this.add.container(btnCX, btnCY).setScrollFactor(0).setDepth(105);
+          const bgPieces = [];
           pieces.forEach((p, i) => {
             const frameKey = `${tag}_p${i}`;
             if (!atlas.has(frameKey)) {
               atlas.add(frameKey, 0, p.sx, p.sy, p.sw, p.sh);
             }
-            btnContainer.add(
-              this.add.image(p.dx, p.dy, "GJ_GameSheet03", frameKey)
-                .setOrigin(0, 0).setDisplaySize(p.dw, p.dh)
-            );
+            const bgPiece = this.add.image(p.dx, p.dy, "GJ_GameSheet03", frameKey)
+              .setOrigin(0, 0).setDisplaySize(p.dw, p.dh);
+            bgPieces.push(bgPiece);
+            btnContainer.add(bgPiece);
           });
 
           const hitZone = this.add.zone(0, 0, btnW, btnH).setInteractive();
@@ -2084,6 +2085,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             "Awarded": 11,
           };
           const type = buttonTypes[labelStr];
+          if (!type) {
+            const disabledTint = 0x666666;
+            lbl.setTint(disabledTint);
+            icon.setTint(disabledTint);
+            bgPieces.forEach(p => p.setTint(disabledTint));
+          }
           if (type) {
             const baseScale = 1;
             const pressedScale = baseScale * 1.26;
