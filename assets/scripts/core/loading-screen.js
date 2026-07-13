@@ -186,7 +186,8 @@ class BootScene extends Phaser.Scene {
       "Why u have to be mad?",
       "It is only game...",
       "Unlock new icons and colors by completing achievements",
-      "y=mx+b"
+      "y=mx+b",
+      "Nicest game ever!"
     ];
     const sliderOriginX = cx - 105;
     const sliderOriginY = cy + 110;
@@ -292,6 +293,7 @@ class BootScene extends Phaser.Scene {
         let paddedIndex = String(index);
         if (paddedIndex.length < 2) paddedIndex = "0" + paddedIndex;
         this.load.image("groundSquare_" + paddedIndex + "_001.png", "assets/game-ground/groundSquare_" + i + "_001.png");
+        this.load.image("groundSquare_" + paddedIndex + "_2_001.png", "assets/game-ground/groundSquare_" + i + "_2_001.png");
       }
 
       for (let i = 1; i < 60; i++) {
