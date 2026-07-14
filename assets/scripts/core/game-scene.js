@@ -4194,19 +4194,18 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const arrowL = this.add.image(55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(true).setInteractive();
     const arrowR = this.add.image(sw - 55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(false).setInteractive();
     const allLevels = window.allLevels || [];
-    const visibleLevels = allLevels.filter(level => !(level && level[2] === "level_22"));
-    const pageCount = visibleLevels.length + 1;
-    let currentPageIndex = visibleLevels.findIndex(l => l[2] === window.currentlevel[2]);
+    const pageCount = allLevels.length + 1;
+    let currentPageIndex = allLevels.findIndex(l => l[2] === window.currentlevel[2]);
     if (currentPageIndex < 0) currentPageIndex = 0;
-    const isComingSoonPage = () => currentPageIndex >= visibleLevels.length;
+    const isComingSoonPage = () => currentPageIndex >= allLevels.length;
     const getPageLevel = () => {
-      if (isComingSoonPage()) return visibleLevels[visibleLevels.length - 1] || window.currentlevel || [];
-      return visibleLevels[currentPageIndex] || window.currentlevel || [];
+      if (isComingSoonPage()) return allLevels[allLevels.length - 1] || window.currentlevel || [];
+      return allLevels[currentPageIndex] || window.currentlevel || [];
     };
     const applyCurrentPage = () => {
       this._levelSelectIsComingSoonPage = isComingSoonPage();
-      if (!isComingSoonPage() && visibleLevels[currentPageIndex]) {
-        window.currentlevel = [...visibleLevels[currentPageIndex]];
+      if (!isComingSoonPage() && allLevels[currentPageIndex]) {
+        window.currentlevel = [...allLevels[currentPageIndex]];
       }
     };
     applyCurrentPage();
@@ -5138,125 +5137,6 @@ _closeSettingsPopup() {
             this.InfoBoxDoAThing(infoText);
         });
     };
-    const createNumberInput = (container, x, y, label, getVal, setVal) => {
-        const txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, 25).setOrigin(0, 0.5);
-        container.add(txt);
-
-        const boxX = x + checkOffset;
-        const boxY = y;
-        const boxW = 64;
-        const boxH = 48;
-
-        const bgBoxGraphics = this.add.graphics();
-        bgBoxGraphics.fillStyle(0x222222, 0.5);
-        bgBoxGraphics.fillRoundedRect(boxX - boxW / 2, boxY - boxH / 2, boxW, boxH, 8);
-        container.add(bgBoxGraphics);
-
-        const hitArea = this.add.rectangle(boxX, boxY, boxW, boxH, 0x000000, 0)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true });
-        container.add(hitArea);
-
-        let initialVal = getVal() || 1;
-        const valueTxt = this.add.bitmapText(boxX, boxY, "bigFont", initialVal.toString(), 28)
-            .setOrigin(0.5);
-        container.add(valueTxt);
-
-        let isFocused = false;
-        let internalString = initialVal.toString();
-
-        const updateDisplay = () => {
-            if (isFocused) {
-                valueTxt.setText(internalString + "|");
-            } else {
-                valueTxt.setText(internalString || " ");
-            }
-        };
-
-        const commitValue = () => {
-            isFocused = false;
-
-            let val = parseFloat(internalString);
-            if (isNaN(val)) val = 1;
-
-            if (val < 0.1) val = 0.1;
-            if (val > 10) val = 10;
-
-            internalString = val.toString();
-            valueTxt.setText(internalString);
-
-            setVal(val);
-            if (this._saveSettings) this._saveSettings();
-        };
-
-        hitArea.on('pointerdown', (pointer, localX, localY, event) => {
-            if (event) event.stopPropagation();
-
-            if (window._activeCustomInput && window._activeCustomInput !== commitValue) {
-                window._activeCustomInput();
-            }
-
-            isFocused = true;
-            window._activeCustomInput = commitValue;
-
-            internalString = "";
-            updateDisplay();
-        });
-
-        const outsideClickListener = () => {
-            if (isFocused) commitValue();
-        };
-        dim.on('pointerdown', outsideClickListener);
-
-        const keydownListener = (event) => {
-            if (!isFocused) return;
-
-            const key = event.key;
-
-            if (key === "Enter") {
-                event.preventDefault();
-                commitValue();
-                return;
-            }
-
-            if (key === "Backspace") {
-                event.preventDefault();
-                internalString = internalString.slice(0, -1);
-                updateDisplay();
-                return;
-            }
-
-            if (/^[0-9.]$/.test(key)) {
-                event.preventDefault();
-
-                if (key === "." && internalString.includes(".")) return;
-
-                const parts = internalString.split('.');
-
-                if (key === ".") {
-                    if (parts[0].length === 0) return;
-                } else {
-                    if (parts.length === 1 && parts[0].length >= 2) return;
-                    if (parts.length === 2 && parts[1].length >= 2) return;
-                }
-
-                internalString += key;
-                updateDisplay();
-            }
-        };
-
-        window.addEventListener('keydown', keydownListener);
-
-        const originalDestroy = container.destroy;
-        container.destroy = (...args) => {
-            window.removeEventListener('keydown', keydownListener);
-            if (dim) dim.off('pointerdown', outsideClickListener);
-            if (window._activeCustomInput === commitValue) {
-                window._activeCustomInput = null;
-            }
-            originalDestroy.apply(container, args);
-        };
-    };
 
     const buildGameplayPage = (container) => {
         createToggle(container, column1X, startY, "Show Percentage",
@@ -5277,39 +5157,7 @@ _closeSettingsPopup() {
             "Percentage Decimals"
         );
 
-        createToggle(container, column1X, startY + (spacingY * 2), "StartPos Switcher",
-            () => window.startPosSwitcher,
-            (v) => window.startPosSwitcher = v,
-            (v) => {
-                if (!v) this._startPosIndex = -1;
-                if (this._startPosGui) this._startPosGui.setVisible(v);
-                const total = this._level.getStartPositions().length;
-                if (this._startPosText) this._startPosText.setText(`0/${total}`);
-            }
-        );
-
-        createToggle(container, column1X, startY + (spacingY * 3), "Noclip",
-            () => window.noClip,
-            (v) => window.noClip = v,
-            (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); }
-        );
-
-        createToggle(container, column1X, startY + (spacingY * 4), "Noclip Accuracy",
-            () => window.noClipAccuracy,
-            (v) => window.noClipAccuracy = v
-        );
-
-        createToggle(container, column1X, startY + (spacingY * 5), "Macro Bot",
-            () => window.macroBot,
-            (v) => window.macroBot = v
-        );
-
-        createNumberInput(container, column2X, startY, "Speedhack",
-            () => window.speedHack,
-            (v) => window.speedHack = v
-        );
-
-        createToggle(container, column2X, startY + spacingY, "Practice Music Bypass",
+        createToggle(container, column2X, startY, "Practice Music Bypass",
             () => window.practiceMusicBypass,
             (v) => {
                 const changed = !!window.practiceMusicBypass !== !!v;
@@ -5326,74 +5174,19 @@ _closeSettingsPopup() {
     };
 
     const buildVisualPage = (container) => {
-        createToggle(container, column1X, startY, "Show Hitboxes",
-            () => window.showHitboxes,
-            (v) => window.showHitboxes = v,
-            (v) => {
-                if (!v) {
-                    this._player._hitboxGraphics.clear();
-                } else {
-                    this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
-                }
-            }
-        );
-
-        createToggle(container, column1X, startY + (spacingY), "Hitbox Trail",
-            () => window.showHitboxTrail,
-            (v) => window.showHitboxTrail = v,
-            (v) => { if (window.showHitboxes) this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY); }
-        );
-
-        createToggle(container, column1X, startY + (spacingY * 2), "Hitboxes on Death",
-            () => window.hitboxesOnDeath,
-            (v) => window.hitboxesOnDeath = v,
-            undefined,
-            undefined,
-            true,
-            "Hitboxes on Death"
-        );
-
-        createToggle(container, column1X, startY + (spacingY * 3), "Show FPS",
-            () => this._fpsText.visible,
-            (v) => this._fpsText.visible = v,
-            (v) => { if (this._fpsText) this._fpsText.setVisible(v); }
-        );
-
-        createToggle(container, column1X, startY + (spacingY * 4), "Solid Wave Trail",
+        createToggle(container, column1X, startY, "Solid Wave Trail",
             () => window.solidWave,
             (v) => window.solidWave = v
         );
 
-        createToggle(container, column1X, startY + (spacingY * 5), "Show CPS",
-            () => window.showCPS,
-            (v) => window.showCPS = v
-        );
-
-        createToggle(container, column2X, startY, "Show Glow",
-            () => window.showGlow,
-            (v) => window.showGlow = v,
-            () => { if (this._level && this._level._updateGlowVisibility) this._level._updateGlowVisibility(); }
-        );
-
-        createToggle(container, column2X, startY + spacingY, "Create Object ID labels",
-            () => window.createObjectIds,
-            (v) => window.createObjectIds = v,
-            null, 17
-        );
-
-        createToggle(container, column2X, startY + (spacingY * 2), "Show Object ID labels",
-            () => window.showObjectIds,
-            (v) => window.showObjectIds = v,
-            null, 17
-        );
-                createToggle(container, column2X, startY + (spacingY * 3), "Enable Portal Guide",
+        createToggle(container, column2X, startY, "Enable Portal Guide",
             () => window.enablePortalGuide,
             (v) => window.enablePortalGuide = v,
             null, 22,
             true,
             "Enable Portal Guide"
         );
-        createToggle(container, column2X, startY + (spacingY * 4), "Enable Orb Guide",
+        createToggle(container, column2X, startY + spacingY, "Enable Orb Guide",
             () => window.enableOrbGuide,
             (v) => window.enableOrbGuide = v,
             null,
@@ -5740,7 +5533,6 @@ _closeSettingsPopup() {
       portalGuide: { get: () => window.enablePortalGuide !== false, set: v => { window.enablePortalGuide = v; this._saveSettings(); } },
       orbGuide: { get: () => !!window.enableOrbGuide, set: v => { window.enableOrbGuide = v; this._saveSettings(); } },
       macroBot: { get: () => !!window.macroBot, set: v => { window.macroBot = v; this._saveSettings(); } },
-      useProxy: { get: () => !window.useDirectInternet, set: v => { window.useDirectInternet = !v; this._saveSettings(); } },
       fullscreen: { get: () => this.scale.isFullscreen, set: v => { if (v && !this.scale.isFullscreen) this.scale.startFullscreen(); else if (!v && this.scale.isFullscreen) this.scale.stopFullscreen(); } },
       speedhack: {
         get: () => this._mhSpeedStore ?? (window.speedHack && window.speedHack !== 1 ? window.speedHack : 2),
@@ -5913,27 +5705,25 @@ _closeSettingsPopup() {
       { l: 'Interface Scale', t: 'value', values: [0.8, 1, 1.2, 1.4], real: 'menuScale' },
       { l: 'Animations', t: 'value', values: [100, 250, 500, 750] },
       { l: 'Sort Interface', t: 'action' }, 'Miscellaneous'];
-    const SCREENSHOT_SUB = [{ l: 'Screenshot', t: 'action', real: 'screenshot' }];
+    const SCREENSHOT_SUB = [{ l: 'Screenshot', t: 'action', real: 'screenshot' }, { l: 'Mode: Save & copy', t: 'value', values: ['Save & copy', 'Save', 'Copy'] }];
     const BYPASS = ['Anti-Kick', 'Challenge Level', 'Keymaster', 'Main Levels', 'Music Customiser', 'Slider Limit',
       'Text Length', 'Treasure Room', 'Unlock Icons', 'Unlock Shops', 'Unlock Vaults'];
     const SPEEDHACK_SUB = [{ l: 'Speed', t: 'number', real: 'speedhack' }, { l: 'Enabled', t: 'toggle', real: 'speedhackEnabled' },
       'Speedhack Audio', 'Classic Mode'];
     const CREATOR = ['Accurate Save', 'Copy Hack', 'Custom Object Bypass', 'Default Song Bypass', 'Editor Extension',
-      'Free Scroll', 'Hide UI', 'Level Edit', 'Multiple Editor Trails', 'Place Over', 'Smooth Editor Trail',
+      'Free Scroll', 'Hide UI', 'Level Edit', 'Multiple Editor Trails', 'No C Mark', 'Place Over', 'Smooth Editor Trail',
       'Toolbox Button Bypass', 'Trigger Value Bypass', 'Verify Hack',
-      { l: 'Create Object ID Labels', t: 'toggle', real: 'createObjectIds' },
-      { l: 'Show Object ID Labels', t: 'toggle', real: 'showObjectIds' },
       { l: 'Show Editor Glow', t: 'toggle', real: 'showEditorGlow' }];
-    const COSMETIC = ['Ball Rotation Bug', 'Classic Particles', 'Classic Pulse', 'Classic Wave Trail', 'Coin Shower',
+    const COSMETIC = [{ l: 'Accurate Percentage', t: 'toggle', real: 'percentageDecimals' },
+      'Ball Rotation Bug', 'Classic Particles', 'Classic Pulse', 'Classic Wave Trail', 'Coin Shower',
       'Frozen Animations', 'Hide Pause Button', { l: 'Hide Pause Menu', t: 'toggle', real: 'hidePauseMenu' }, 'Hide Player', 'Icon Randomiser', 'No Camera',
       'No Camera Zoom', 'No Circle Effect', 'No Dash Fire', 'No Death Effect', 'No Do Not Flip', 'No End Shake',
       'No Ghost Trail', { l: 'No Glow', t: 'toggle', real: 'noGlow' }, 'No Mirror', 'No New Best Popup', 'No Orb Ring',
       'No Particles', 'No Particles Classic', 'No Portal Circle', 'No Portal Lightning', 'No Pulse', 'No Respawn Flash',
       'No Robot Fire', 'No Shaders', 'No Shake', 'No Spider Dash', 'No Swing Fire', 'No Trail', 'No Wave Pulse',
-      'No Wave Trail', 'No Trail Behind Wave', 'Player 1 on Top', 'Player on Top',
+      'No Wave Trail', 'No Trail Behind Wave', 'Player 1 on Top', 'Player on Top', 'Show Total Attempts',
       { l: 'Solid Wave Trail', t: 'toggle', real: 'solidWave' }, 'StartPos Reset Camera', 'Stop Triggers on Death',
-      'Trail Always On', 'Trail Cutting', 'Wave Pulse Size', 'Wave Trail on Death',
-      { l: 'Accurate Percentage', t: 'toggle', real: 'percentageDecimals' }];
+      'Trail Always On', 'Trail Cutting', 'Wave Pulse Size', 'Wave Trail on Death'];
     const LEVEL = ['0% Practice Complete', 'Allow Pause Buffering', 'All Modes Platformer', 'Auto Clicker', 'Auto Deafen',
       'Auto Kill', 'Auto Music Sync', 'Auto Pickup Coins', 'Auto Song Download', 'Click Between Frames',
       'Click Between Steps', 'Click on Steps', 'Checkpoint Limit Bypass', 'Collect Coins In Practice', 'Confirm Exit',
@@ -5951,20 +5741,25 @@ _closeSettingsPopup() {
       { l: 'Scale', t: 'value', values: [1, 1.25, 1.5, 0.75], real: 'menuScale' }, { l: 'Opacity', t: 'value', values: [1, 0.75, 0.5], real: 'menuOpacity' },
       'Hide Status', 'Message', 'Testmode', 'Cheat Indicator', { l: 'FPS Counter', t: 'toggle', real: 'showFPS' },
       { l: 'CPS Counter', t: 'toggle', real: 'showCPS' }, 'Best Run', { l: 'Noclip Accuracy', t: 'toggle', real: 'noclipAccuracy' },
-      { l: 'Noclip Deaths', t: 'toggle', real: 'noclipDeaths' }, 'Attempts', { l: 'Percentage', t: 'toggle', real: 'showPercentage' }, 'Level Time', 'Session Time',
+      { l: 'Noclip Deaths', t: 'toggle', real: 'noclipDeaths' }, 'Attempts', 'Jumps', { l: 'Percentage', t: 'toggle', real: 'showPercentage' }, 'Level Time', 'Session Time',
       'Clock', 'Frame Counter', 'Position', 'Velocity', 'Dead', 'Replay State'];
-    const UNIVERSAL = ['Allow Low Volume', 'Compact Lists', 'Custom Background', 'Fast Chests', 'Load Audio to Memory',
-      'Lock Cursor', 'Main Menu Play', 'No Music Fade Out', 'No Transition', 'Pitch Shifter', 'Thread Priority',
-      'Transition Customiser', 'Transparent Lists'];
-    const CHEATSAFETY = [{ l: 'Ruleset: Mega Hack', t: 'label' }, { l: '240 FPS', t: 'value', values: [60, 120, 144, 240] },
-      'Unlock FPS', { l: '360 Hz', t: 'value', values: [60, 144, 240, 360] }, 'Physics TPS', 'Disable Cheats',
-      'Auto Safe Mode', 'Safe Mode Popup', { l: 'Fullscreen', t: 'toggle', real: 'fullscreen' }];
+    const UNIVERSAL = ['Allow Low Volume', 'Compact Lists',
+      { l: 'Create Object ID Labels', t: 'toggle', real: 'createObjectIds' },
+      { l: 'Show Object ID Labels', t: 'toggle', real: 'showObjectIds' },
+      'Custom Background', 'Fast Chests', 'Load Audio to Memory',
+      'Lock Cursor', 'Main Menu Play', 'No Music Fade Out', 'No Transition', 'Pitch Shifter',
+      'Thread Priority', 'Transition Customiser', 'Transparent Lists'];
+    const CHEATSAFETY = [{ l: 'Ruleset: Mega Hack', t: 'label' }, 'Disable Cheats',
+      'Auto Safe Mode', 'Safe Mode', 'Safe Mode Popup'];
     const INTERFACE_SUB = ['Hide Endscreen Cheats', 'Hide Endscreen Extras', 'Hide Menu Snow', 'Hide Iconic on Pause', 'Hide RobsVault Shortcut'];
     const KEYBINDS_SUB = ['Choose Keybind', 'Choose Hack to Set', 'View Keybinds', 'Remove Keybinds', 'Disable in Editor'];
-    const DISPLAY = ['Frame Extrapolation', 'Vertical Sync', 'Borderless Classic'];
+    const DISPLAY = [{ l: '240 FPS', t: 'value', values: [60, 120, 144, 240] }, 'Unlock FPS',
+      { l: '360 Hz', t: 'value', values: [60, 144, 240, 360] }, 'Physics TPS',
+      'Frame Extrapolation', 'Vertical Sync', 'Lock Delta', 'Real Time', 'Borderless Classic',
+      { l: 'Fullscreen', t: 'toggle', real: 'fullscreen' }];
     const UTILITY = ['P1 Click', 'P2 Click', 'Left', 'Right', 'Uncomplete Level',
       { l: 'Restart Level', t: 'action', real: 'restartLevel' }, { l: 'Practice Mode', t: 'action', real: 'practiceMode' },
-      { l: 'Use Proxy (Schools)', t: 'toggle', real: 'useProxy' }, 'Resources', 'AppData', 'Toggle DevTools', 'Crash Game'];
+      'Settings', 'Resources', 'AppData', 'Toggle DevTools', 'Crash Game'];
     const REPLAY_SUB = ['Record', 'Play', 'Filename', 'Auto-save', 'Save', 'Clear & New', 'Delete', 'Gameplay Options',
       'Convert (.json, .gdr)', 'Open Folder'];
 
@@ -5987,9 +5782,10 @@ _closeSettingsPopup() {
     const gCheatSafety = group();
     buildWindowInto(gCheatSafety, 'Cheat Safety', CHEATSAFETY);
     buildWindowInto(gCheatSafety, 'Interface', INTERFACE_SUB);
-    buildWindowInto(gCheatSafety, 'Keybinds', KEYBINDS_SUB);
 
-    buildWindowInto(group(), 'Display', DISPLAY);
+    const gDisplay = group();
+    buildWindowInto(gDisplay, 'Display', DISPLAY);
+    buildWindowInto(gDisplay, 'Keybinds', KEYBINDS_SUB);
 
     const gUtility = group();
     buildWindowInto(gUtility, 'Utility', UTILITY);
