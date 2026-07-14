@@ -1,0 +1,335 @@
+{
+  "frames": {
+    "chest_03_price_001.png": {
+      "frame": {
+        "x": 925,
+        "y": 54,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chest_04_price_001.png": {
+      "frame": {
+        "x": 925,
+        "y": 88,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chest_05_price_001.png": {
+      "frame": {
+        "x": 616,
+        "y": 86,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chest_06_price_001.png": {
+      "frame": {
+        "x": 119,
+        "y": 165,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chest_07_price_001.png": {
+      "frame": {
+        "x": 146,
+        "y": 122,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chest_08_price_001.png": {
+      "frame": {
+        "x": 119,
+        "y": 199,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chest_09_price_001.png": {
+      "frame": {
+        "x": 119,
+        "y": 233,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chestPlatform_01_001.png": {
+      "frame": {
+        "x": 616,
+        "y": 54,
+        "w": 155,
+        "h": 31
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 5,
+        "w": 155,
+        "h": 31
+      },
+      "sourceSize": {
+        "w": 159,
+        "h": 36
+      }
+    },
+    "chestSpecial_01_price_001.png": {
+      "frame": {
+        "x": 726,
+        "y": 103,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chestSpecial_02_price_001.png": {
+      "frame": {
+        "x": 229,
+        "y": 156,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "chestSpecial_03_price_001.png": {
+      "frame": {
+        "x": 256,
+        "y": 120,
+        "w": 109,
+        "h": 33
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 109,
+        "h": 33
+      },
+      "sourceSize": {
+        "w": 109,
+        "h": 33
+      }
+    },
+    "tier1label_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 116,
+        "w": 145,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 7,
+        "y": 8,
+        "w": 145,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 152,
+        "h": 56
+      }
+    },
+    "tier2label_001.png": {
+      "frame": {
+        "x": 772,
+        "y": 54,
+        "w": 152,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 8,
+        "w": 152,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 56
+      }
+    },
+    "treasureRoomGround_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 1068,
+        "h": 53
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1068,
+        "h": 53
+      },
+      "sourceSize": {
+        "w": 1068,
+        "h": 53
+      }
+    },
+    "treasureRoomLabel_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 54,
+        "w": 615,
+        "h": 61
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 9,
+        "w": 615,
+        "h": 61
+      },
+      "sourceSize": {
+        "w": 623,
+        "h": 70
+      }
+    },
+    "treasureRoomSpiderweb_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 165,
+        "w": 118,
+        "h": 117
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 1,
+        "w": 118,
+        "h": 117
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 118
+      }
+    }
+  },
+  "meta": {
+    "app": "https://gdcolon.com/gdsplitter/",
+    "version": "1.0",
+    "image": "TreasureRoomSheet-hd.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1068,
+      "h": 282
+    },
+    "scale": 1
+  }
+}
