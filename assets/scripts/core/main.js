@@ -38,29 +38,36 @@ if (window.gameCache) {
     }, 3000);
   }
 }
+
+
+// Fixed full-screen flex wrapper as the Phaser parent.  Flexbox centering is
+// completely immune to anything ScaleManager writes to canvas inline styles,
+// so the game stays centered through scene restarts and resize callbacks.
+var _gameWrapper = document.createElement('div');
+_gameWrapper.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;pointer-events:none;';
+document.body.appendChild(_gameWrapper);
+
 const phaserConfig = {
   type: Phaser.AUTO,
   width: screenWidth,
   height: screenHeight,
-  resolution: 1,
-  fps: {
-    smoothStep: true
-  },
+  fps: { smoothStep: true },
   backgroundColor: "#000000",
-  parent: document.body,
-  input: {
-    windowEvents: false
-  },
-  render: {
-    powerPreference: "default"
-  },
+  parent: _gameWrapper,
+  input: { windowEvents: false },
+  render: { powerPreference: "default" },
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    autoCenter: Phaser.Scale.NO_CENTER
   },
   scene: [BootScene, GameScene]
 };
-new Phaser.Game(phaserConfig);
+const _phaserGame = new Phaser.Game(phaserConfig);
+
+// Re-enable pointer events on the canvas (wrapper has pointer-events:none).
+_phaserGame.events.once('ready', function () {
+  _phaserGame.canvas.style.pointerEvents = 'auto';
+});
 
 window.clearGameCache = () => {
   if (window.gameCache) {

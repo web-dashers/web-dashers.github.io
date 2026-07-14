@@ -1,0 +1,1280 @@
+{
+  "textures": [
+    {
+      "image": "GJ_GameSheet04_UHD.png",
+      "format": "RGBA8888",
+      "size": {
+        "w": 3570,
+        "h": 2909
+      },
+      "scale": 1,
+      "frames": [
+        {
+          "filename": "GJ_challengeBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 2,
+            "y": 2,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_createBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 400,
+            "y": 2,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_creatorBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 280,
+            "h": 280
+          },
+          "spriteSourceSize": {
+            "x": 15,
+            "y": 15,
+            "w": 265,
+            "h": 265
+          },
+          "frame": {
+            "x": 798,
+            "y": 2,
+            "w": 265,
+            "h": 265
+          }
+        },
+        {
+          "filename": "GJ_dailyBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 1065,
+            "y": 2,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_eventBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 1463,
+            "y": 2,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_featuredBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 1861,
+            "y": 2,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_freeLevelsBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 266,
+            "h": 262
+          },
+          "spriteSourceSize": {
+            "x": 4,
+            "y": 15,
+            "w": 262,
+            "h": 247
+          },
+          "frame": {
+            "x": 2259,
+            "y": 2,
+            "w": 262,
+            "h": 247
+          }
+        },
+        {
+          "filename": "GJ_fullBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 322,
+            "h": 280
+          },
+          "spriteSourceSize": {
+            "x": 5,
+            "y": 15,
+            "w": 317,
+            "h": 265
+          },
+          "frame": {
+            "x": 2523,
+            "y": 2,
+            "w": 317,
+            "h": 265
+          }
+        },
+        {
+          "filename": "GJ_gauntletsBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 2,
+            "y": 400,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_highscoreBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 400,
+            "y": 400,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_listsBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 798,
+            "y": 400,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_mapBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 1196,
+            "y": 400,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_mapPacksBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 1594,
+            "y": 400,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_moreGamesBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 330,
+            "h": 280
+          },
+          "spriteSourceSize": {
+            "x": 5,
+            "y": 15,
+            "w": 325,
+            "h": 265
+          },
+          "frame": {
+            "x": 1992,
+            "y": 400,
+            "w": 325,
+            "h": 265
+          }
+        },
+        {
+          "filename": "GJ_pathsBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 2319,
+            "y": 400,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_playBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 438,
+            "h": 438
+          },
+          "spriteSourceSize": {
+            "x": 21,
+            "y": 22,
+            "w": 417,
+            "h": 416
+          },
+          "frame": {
+            "x": 2717,
+            "y": 400,
+            "w": 417,
+            "h": 416
+          }
+        },
+        {
+          "filename": "GJ_safeBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 174,
+            "h": 196
+          },
+          "spriteSourceSize": {
+            "x": 4,
+            "y": 7,
+            "w": 170,
+            "h": 189
+          },
+          "frame": {
+            "x": 2,
+            "y": 818,
+            "w": 170,
+            "h": 189
+          }
+        },
+        {
+          "filename": "GJ_savedBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 174,
+            "y": 818,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_searchBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 572,
+            "y": 818,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_versusBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 418,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 396,
+            "h": 396
+          },
+          "frame": {
+            "x": 970,
+            "y": 818,
+            "w": 396,
+            "h": 396
+          }
+        },
+        {
+          "filename": "GJ_weeklyBtn_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 417,
+            "h": 418
+          },
+          "spriteSourceSize": {
+            "x": 22,
+            "y": 22,
+            "w": 395,
+            "h": 396
+          },
+          "frame": {
+            "x": 1368,
+            "y": 818,
+            "w": 395,
+            "h": 396
+          }
+        },
+        {
+          "filename": "boost_01_shine_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 128,
+            "h": 164
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 128,
+            "h": 164
+          },
+          "frame": {
+            "x": 1765,
+            "y": 818,
+            "w": 128,
+            "h": 164
+          }
+        },
+        {
+          "filename": "boost_02_shine_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 122,
+            "h": 216
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 122,
+            "h": 216
+          },
+          "frame": {
+            "x": 1895,
+            "y": 818,
+            "w": 122,
+            "h": 216
+          }
+        },
+        {
+          "filename": "boost_03_shine_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 192,
+            "h": 216
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 192,
+            "h": 216
+          },
+          "frame": {
+            "x": 2019,
+            "y": 818,
+            "w": 192,
+            "h": 216
+          }
+        },
+        {
+          "filename": "boost_04_shine_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 250,
+            "h": 216
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 250,
+            "h": 216
+          },
+          "frame": {
+            "x": 2,
+            "y": 1216,
+            "w": 250,
+            "h": 216
+          }
+        },
+        {
+          "filename": "boost_05_shine_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 256,
+            "h": 206
+          },
+          "spriteSourceSize": {
+            "x": 3,
+            "y": 0,
+            "w": 253,
+            "h": 206
+          },
+          "frame": {
+            "x": 254,
+            "y": 1216,
+            "w": 253,
+            "h": 206
+          }
+        },
+        {
+          "filename": "gj_dailyCrown_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 331,
+            "h": 238
+          },
+          "spriteSourceSize": {
+            "x": 2,
+            "y": 19,
+            "w": 327,
+            "h": 217
+          },
+          "frame": {
+            "x": 509,
+            "y": 1216,
+            "w": 327,
+            "h": 217
+          }
+        },
+        {
+          "filename": "gj_eventCrown_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 322,
+            "h": 252
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 17,
+            "w": 320,
+            "h": 233
+          },
+          "frame": {
+            "x": 838,
+            "y": 1216,
+            "w": 320,
+            "h": 233
+          }
+        },
+        {
+          "filename": "gj_weeklyCrown_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 331,
+            "h": 238
+          },
+          "spriteSourceSize": {
+            "x": 2,
+            "y": 19,
+            "w": 327,
+            "h": 219
+          },
+          "frame": {
+            "x": 1160,
+            "y": 1216,
+            "w": 327,
+            "h": 219
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 47,
+            "y": 54,
+            "w": 176,
+            "h": 174
+          },
+          "frame": {
+            "x": 1489,
+            "y": 1216,
+            "w": 176,
+            "h": 174
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_002.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 20,
+            "y": 28,
+            "w": 234,
+            "h": 216
+          },
+          "frame": {
+            "x": 1667,
+            "y": 1216,
+            "w": 234,
+            "h": 216
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_003.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 15,
+            "y": 12,
+            "w": 246,
+            "h": 242
+          },
+          "frame": {
+            "x": 1903,
+            "y": 1216,
+            "w": 246,
+            "h": 242
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_004.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 13,
+            "y": 10,
+            "w": 252,
+            "h": 252
+          },
+          "frame": {
+            "x": 2,
+            "y": 1460,
+            "w": 252,
+            "h": 252
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_005.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 9,
+            "y": 8,
+            "w": 257,
+            "h": 256
+          },
+          "frame": {
+            "x": 256,
+            "y": 1460,
+            "w": 257,
+            "h": 256
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_006.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 3,
+            "y": 3,
+            "w": 268,
+            "h": 268
+          },
+          "frame": {
+            "x": 515,
+            "y": 1460,
+            "w": 268,
+            "h": 268
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_007.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 1,
+            "w": 276,
+            "h": 272
+          },
+          "frame": {
+            "x": 785,
+            "y": 1460,
+            "w": 276,
+            "h": 272
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_008.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 1,
+            "w": 280,
+            "h": 272
+          },
+          "frame": {
+            "x": 1063,
+            "y": 1460,
+            "w": 280,
+            "h": 272
+          }
+        },
+        {
+          "filename": "playerDash2_boom2_009.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 282,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 2,
+            "w": 276,
+            "h": 270
+          },
+          "frame": {
+            "x": 1345,
+            "y": 1460,
+            "w": 276,
+            "h": 270
+          }
+        },
+        {
+          "filename": "portalshine_01_back_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 149,
+            "h": 287
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 1,
+            "w": 60,
+            "h": 286
+          },
+          "frame": {
+            "x": 1623,
+            "y": 1460,
+            "w": 60,
+            "h": 286
+          }
+        },
+        {
+          "filename": "portalshine_01_front_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 62,
+            "h": 287
+          },
+          "spriteSourceSize": {
+            "x": 5,
+            "y": 1,
+            "w": 57,
+            "h": 286
+          },
+          "frame": {
+            "x": 1685,
+            "y": 1460,
+            "w": 57,
+            "h": 286
+          }
+        },
+        {
+          "filename": "portalshine_02_back_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 172,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 77,
+            "h": 288
+          },
+          "frame": {
+            "x": 2,
+            "y": 1748,
+            "w": 77,
+            "h": 288
+          }
+        },
+        {
+          "filename": "portalshine_02_front_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 144,
+            "h": 332
+          },
+          "spriteSourceSize": {
+            "x": 29,
+            "y": 0,
+            "w": 115,
+            "h": 332
+          },
+          "frame": {
+            "x": 81,
+            "y": 1748,
+            "w": 115,
+            "h": 332
+          }
+        },
+        {
+          "filename": "portalshine_03_back_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 198,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 162,
+            "h": 288
+          },
+          "frame": {
+            "x": 198,
+            "y": 1748,
+            "w": 162,
+            "h": 288
+          }
+        },
+        {
+          "filename": "portalshine_03_front_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 176,
+            "h": 356
+          },
+          "spriteSourceSize": {
+            "x": 36,
+            "y": 2,
+            "w": 140,
+            "h": 354
+          },
+          "frame": {
+            "x": 362,
+            "y": 1748,
+            "w": 140,
+            "h": 354
+          }
+        },
+        {
+          "filename": "portalshine_04_back_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 178,
+            "h": 301
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 5,
+            "w": 90,
+            "h": 292
+          },
+          "frame": {
+            "x": 504,
+            "y": 1748,
+            "w": 90,
+            "h": 292
+          }
+        },
+        {
+          "filename": "portalshine_04_front_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 99,
+            "h": 347
+          },
+          "spriteSourceSize": {
+            "x": 23,
+            "y": 1,
+            "w": 76,
+            "h": 346
+          },
+          "frame": {
+            "x": 596,
+            "y": 1748,
+            "w": 76,
+            "h": 346
+          }
+        },
+        {
+          "filename": "portalshine_05_back_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 132,
+            "h": 280
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 13,
+            "w": 95,
+            "h": 267
+          },
+          "frame": {
+            "x": 674,
+            "y": 1748,
+            "w": 95,
+            "h": 267
+          }
+        },
+        {
+          "filename": "portalshine_05_front_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 132,
+            "h": 296
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 132,
+            "h": 296
+          },
+          "frame": {
+            "x": 771,
+            "y": 1748,
+            "w": 132,
+            "h": 296
+          }
+        },
+        {
+          "filename": "portalshine_06_back_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 172,
+            "h": 288
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 77,
+            "h": 288
+          },
+          "frame": {
+            "x": 2,
+            "y": 2104,
+            "w": 77,
+            "h": 288
+          }
+        },
+        {
+          "filename": "portalshine_06_front_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 86,
+            "h": 350
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 1,
+            "w": 63,
+            "h": 349
+          },
+          "frame": {
+            "x": 81,
+            "y": 2104,
+            "w": 63,
+            "h": 349
+          }
+        },
+        {
+          "filename": "spiderDash_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 30,
+            "y": 4,
+            "w": 848,
+            "h": 74
+          },
+          "frame": {
+            "x": 146,
+            "y": 2104,
+            "w": 848,
+            "h": 74
+          }
+        },
+        {
+          "filename": "spiderDash_002.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 33,
+            "y": 1,
+            "w": 788,
+            "h": 80
+          },
+          "frame": {
+            "x": 996,
+            "y": 2104,
+            "w": 788,
+            "h": 80
+          }
+        },
+        {
+          "filename": "spiderDash_003.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 21,
+            "y": 3,
+            "w": 600,
+            "h": 74
+          },
+          "frame": {
+            "x": 1786,
+            "y": 2104,
+            "w": 600,
+            "h": 74
+          }
+        },
+        {
+          "filename": "spiderDash_004.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 17,
+            "y": 3,
+            "w": 476,
+            "h": 72
+          },
+          "frame": {
+            "x": 2388,
+            "y": 2104,
+            "w": 476,
+            "h": 72
+          }
+        },
+        {
+          "filename": "spiderDash_005.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 15,
+            "y": 4,
+            "w": 418,
+            "h": 70
+          },
+          "frame": {
+            "x": 2866,
+            "y": 2104,
+            "w": 418,
+            "h": 70
+          }
+        },
+        {
+          "filename": "spiderDash_006.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 15,
+            "y": 3,
+            "w": 282,
+            "h": 68
+          },
+          "frame": {
+            "x": 3286,
+            "y": 2104,
+            "w": 282,
+            "h": 68
+          }
+        },
+        {
+          "filename": "spiderDash_007.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 11,
+            "y": 4,
+            "w": 232,
+            "h": 68
+          },
+          "frame": {
+            "x": 2,
+            "y": 2455,
+            "w": 232,
+            "h": 68
+          }
+        },
+        {
+          "filename": "spiderDash_008.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 884,
+            "h": 84
+          },
+          "spriteSourceSize": {
+            "x": 7,
+            "y": 5,
+            "w": 86,
+            "h": 60
+          },
+          "frame": {
+            "x": 236,
+            "y": 2455,
+            "w": 86,
+            "h": 60
+          }
+        },
+        {
+          "filename": "theTowerDoor_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 464,
+            "h": 458
+          },
+          "spriteSourceSize": {
+            "x": 8,
+            "y": 6,
+            "w": 456,
+            "h": 452
+          },
+          "frame": {
+            "x": 324,
+            "y": 2455,
+            "w": 456,
+            "h": 452
+          }
+        },
+        {
+          "filename": "theTowerLabel_001.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 368,
+            "h": 176
+          },
+          "spriteSourceSize": {
+            "x": 13,
+            "y": 12,
+            "w": 355,
+            "h": 164
+          },
+          "frame": {
+            "x": 782,
+            "y": 2455,
+            "w": 355,
+            "h": 164
+          }
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "app": "custom-packer",
+    "version": "1.0",
+    "smartupdate": ""
+  }
+}

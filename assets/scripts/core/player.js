@@ -4387,7 +4387,7 @@ _updateWaveJump(dt) {
   drawHitboxes(graphics, camX, camY) {
     graphics.clear();
     const playerSize = this.p.isMini ? 18 : 30;
-    const hitboxsize = playerSize*2;
+    const hitboxsize = playerSize*2*(window.hitboxMultiplier || 1);
     const isFlipped = this.p.mirrored;
     const camXCenter = camX + centerX;
     const playerY = this.p.y;

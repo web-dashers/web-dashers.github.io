@@ -65,6 +65,30 @@ function loadFont(scene, fontName, fontData) {
   scene.cache.bitmapFont.add(fontName, { data: fontConfig, texture: fontName, frame: null });
 }
 
+// Crops every frame out of the 5 packed UHD sheets into a data URL up front, during the
+// loading screen, so game-scene.js's DOM overlays never pay a first-use crop cost mid-game.
+function buildUhdDataUrlCache(scene) {
+  const cache = {};
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ["GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04", "GJ_WebSheet"].forEach(key => {
+    const tex = scene.textures.get('uhd_' + key);
+    const atlasJson = scene.cache.json.get('uhd_' + key + '_atlas');
+    if (!tex || tex.key === '__MISSING' || !atlasJson) return;
+    const img = tex.getSourceImage();
+    for (const frame in atlasJson.frames) {
+      const rect = atlasJson.frames[frame].w > 0 && atlasJson.frames[frame].h > 0 ? atlasJson.frames[frame] : null;
+      if (!rect) continue;
+      canvas.width = rect.w;
+      canvas.height = rect.h;
+      ctx.clearRect(0, 0, rect.w, rect.h);
+      ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+      cache[key + ':' + frame] = canvas.toDataURL();
+    }
+  });
+  window._uhdDataUrlCache = cache;
+}
+
 class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: "BootScene" });
@@ -241,9 +265,14 @@ class BootScene extends Phaser.Scene {
       this.load.atlas("GJ_GameSheet02", "assets/sheets/GJ_GameSheet02.png", "assets/sheets/GJ_GameSheet02.json");
       this.load.atlas("GJ_GameSheet03", "assets/sheets/GJ_GameSheet03.png", "assets/sheets/GJ_GameSheet03.json");
       this.load.atlas("GJ_GameSheet04", "assets/sheets/GJ_GameSheet04.png", "assets/sheets/GJ_GameSheet04.json");
+      this.load.atlas("GJ_GameSheet04_UHD", "assets/sheets/GJ_GameSheet04_UHD.png", "assets/sheets/GJ_GameSheet04_UHD.json");
       this.load.atlas("GJ_GameSheetEditor", "assets/sheets/GJ_GameSheetEditor.png", "assets/sheets/GJ_GameSheetEditor.json");
       this.load.atlas("GJ_GameSheetGlow", "assets/sheets/GJ_GameSheetGlow.png", "assets/sheets/GJ_GameSheetGlow.json");
       this.load.atlas("GJ_GameSheetIcons", "assets/sheets/GJ_GameSheetIcons.png", "assets/sheets/GJ_GameSheetIcons.json");
+      ["GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04", "GJ_WebSheet"].forEach(k => {
+        this.load.image("uhd_" + k, "assets/sheets/" + k + "-uhd-packed.png?v=uhd2");
+        this.load.json("uhd_" + k + "_atlas", "assets/sheets/" + k + "-uhd-packed.json?v=uhd2");
+      });
       this.load.json("Spider_AnimDesc", "assets/sheets/Spider_AnimDesc.json");
       this.load.json("Robot_AnimDesc", "assets/sheets/Robot_AnimDesc.json");
       this.load.atlas("GJ_LaunchSheet", "assets/sheets/GJ_LaunchSheet.png", "assets/sheets/GJ_LaunchSheet.json");
@@ -329,6 +358,8 @@ class BootScene extends Phaser.Scene {
           if (bigFontData) loadFont(this, "bigFont", bigFontData);
           const gfd = this.cache.text.get("goldFontFnt");
           if (gfd && !this.cache.bitmapFont.has("goldFont")) loadFont(this, "goldFont", gfd);
+
+          buildUhdDataUrlCache(this);
 
           localStorage.setItem('webdash_assets_loaded', 'true');
           localStorage.setItem('webdash_last_load_time', Date.now().toString());
