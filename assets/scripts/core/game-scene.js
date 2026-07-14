@@ -313,11 +313,6 @@ class GameScene extends Phaser.Scene {
     _uhdCont.style.cssText = 'position:absolute;pointer-events:none;z-index:499;overflow:hidden;top:0;left:0;width:100%;height:100%;';
     _uhdParent.appendChild(_uhdCont);
     this._uhdCont = _uhdCont;
-    const _uhdFadeDiv = document.createElement('div');
-    _uhdFadeDiv.id = 'gj-s03-uhd-fade';
-    _uhdFadeDiv.style.cssText = 'position:absolute;pointer-events:none;z-index:500;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;';
-    _uhdParent.appendChild(_uhdFadeDiv);
-    this._uhdFadeDiv = _uhdFadeDiv;
     // Noclip death flash mirror — must sit above EVERYTHING, including all UHD
     // overlay canvases and the black fade div. Driven by this.noclipFlash's alpha.
     const _uhdFlashDiv = document.createElement('div');
@@ -327,7 +322,6 @@ class GameScene extends Phaser.Scene {
     this._uhdFlashDiv = _uhdFlashDiv;
     this._uhdMap = new Map();
     this._uhdContext = null; // null = main menu; must be set before any add.image calls
-    this._searchResultsOpen = false; // scene restarts reuse the instance; don't let a stale flag win the ctx priority chain
     // Sync overlay positions after update() has moved containers/cameras for the frame
     // (off-before-on: scene restarts reuse the same instance, avoid double registration)
     this.events.off('postupdate', this._syncUhdOverlays);
@@ -336,7 +330,28 @@ class GameScene extends Phaser.Scene {
     // On scene restart this.add is the same plugin instance, so the patch from the
     // previous create() may still be in place. Always unwrap to the true original first.
     if (this.add.image._uhd_orig) this.add.image = this.add.image._uhd_orig;
+    if (this.add.nineslice._uhd_orig) this.add.nineslice = this.add.nineslice._uhd_orig;
     const _uhdDirs = { GJ_GameSheet03: true, GJ_GameSheet04: true, GJ_WebSheet: true, GJ_GameSheet: true, GJ_GameSheet02: true };
+    // Standalone assets/sprites/*.png files — not atlas frames, so there's no separate
+    // "-uhd-packed" sheet to swap in. These are already the only art that exists; the
+    // point of overlaying them as DOM elements is just to escape the game's fixed-resolution
+    // WebGL canvas (see feedback_uhd_packed_sheets memory, tenth gotcha).
+    // GJ_square01/02, square01_001, square04_001 are deliberately excluded here even
+    // though they're standalone sprites too: they're panel *backgrounds* (via direct
+    // nineslice or _drawScale9) with separate text/icons drawn on top at a higher Phaser
+    // depth but composited into the same canvas — an overlay big enough to matter always
+    // ends up covering some of that content once a panel's corner/border is wide relative
+    // to where its content sits (confirmed broken on the song-info box and a settings
+    // sub-popup). See eleventh gotcha in feedback_uhd_packed_sheets memory.
+    const _uhdRawDirs = {
+      GJ_button01: true, GJ_button02: true, GJ_button03: true, GJ_button04: true,
+      GJ_button05: true, GJ_button06: true, loadingCircle: true, macroBot: true,
+      import: true, export: true,
+      tutorial_01: true, tutorial_02: true, tutorial_03: true, tutorial_04: true, tutorial_05: true,
+      tab1: true, tab2: true, tab3: true, tab4: true, tab5: true,
+      GJ_moveBtn: true, GJ_moveSBtn: true, slidergroove2: true,
+      importMacro: true, playbackMacro: true, stopPlayback: true, recordMacro: true, stopRecord: true,
+    };
     const _uhdPacked = {};
     Object.keys(_uhdDirs).forEach(k => {
       const tex = _sc.textures.get('uhd_' + k);
@@ -345,22 +360,66 @@ class GameScene extends Phaser.Scene {
         _uhdPacked[k] = { img: tex.getSourceImage(), frames: atlasJson.frames };
       }
     });
+    // Data URLs are pre-cropped for every frame during the loading screen (see
+    // buildUhdDataUrlCache in loading-screen.js) — this is a cache lookup, not a crop.
+    // The scratch canvas is only a fallback for a frame that somehow missed pre-caching.
     const _uhdScratchCanvas = document.createElement('canvas');
     const _uhdScratchCtx = _uhdScratchCanvas.getContext('2d');
-    const _uhdDataUrlCache = new Map();
+    // Raw (non-atlas) sprite source: the "UHD" source IS the currently-loaded texture
+    // itself — there's no separate hi-res sheet, just a DOM element instead of a WebGL
+    // quad for the same pixels. frame===null means the whole image; a string frame is
+    // one of _drawScale9's synthetic "_s9_N" sub-rects, cropped the same way as atlas frames.
+    const _uhdRawFrameRect = (key, frame) => {
+      const tex = _sc.textures.get(key);
+      if (!tex || tex.key === '__MISSING') return null;
+      if (frame == null) { const img = tex.getSourceImage(); return { whole: true, w: img.width, h: img.height }; }
+      if (!tex.has(frame)) return null;
+      const f = tex.get(frame);
+      return { whole: false, x: f.cutX, y: f.cutY, w: f.cutWidth, h: f.cutHeight };
+    };
+    // Phaser's own loaded <img> for a texture is backed by a blob: URL that it's free to
+    // revoke once decoded — reusing that URL directly (e.g. as a second <img src> or a CSS
+    // border-image-source) intermittently 404s/ERR_FILE_NOT_FOUND once revoked. Baking a
+    // fresh data URL through the scratch canvas (same trick as the packed-atlas path below)
+    // sidesteps that entirely, since the data URL doesn't depend on the original blob at all.
+    const _uhdRawDataUrl = (key, frame) => {
+      const tex = _sc.textures.get(key);
+      if (!tex || tex.key === '__MISSING') return null;
+      const rect = _uhdRawFrameRect(key, frame);
+      if (!rect) return null;
+      const cacheKey = key + ':' + (frame == null ? '__whole' : frame);
+      let url = window._uhdDataUrlCache && window._uhdDataUrlCache[cacheKey];
+      if (!url) {
+        _uhdScratchCanvas.width = rect.w;
+        _uhdScratchCanvas.height = rect.h;
+        _uhdScratchCtx.clearRect(0, 0, rect.w, rect.h);
+        if (rect.whole) _uhdScratchCtx.drawImage(tex.getSourceImage(), 0, 0);
+        else _uhdScratchCtx.drawImage(tex.getSourceImage(), rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+        url = _uhdScratchCanvas.toDataURL();
+        if (window._uhdDataUrlCache) window._uhdDataUrlCache[cacheKey] = url;
+      }
+      return url;
+    };
+    this._uhdRawDataUrl = _uhdRawDataUrl;
     const _uhdDrawFrame = (imgEl, key, frame) => {
+      if (_uhdRawDirs[key]) {
+        const url = _uhdRawDataUrl(key, frame);
+        if (!url) return false;
+        imgEl.src = url;
+        return true;
+      }
       const packed = _uhdPacked[key];
       const rect = packed && packed.frames[frame];
       if (!rect) return false;
       const cacheKey = key + ':' + frame;
-      let url = _uhdDataUrlCache.get(cacheKey);
+      let url = window._uhdDataUrlCache && window._uhdDataUrlCache[cacheKey];
       if (!url) {
         _uhdScratchCanvas.width = rect.w;
         _uhdScratchCanvas.height = rect.h;
         _uhdScratchCtx.clearRect(0, 0, rect.w, rect.h);
         _uhdScratchCtx.drawImage(packed.img, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
         url = _uhdScratchCanvas.toDataURL();
-        _uhdDataUrlCache.set(cacheKey, url);
+        if (window._uhdDataUrlCache) window._uhdDataUrlCache[cacheKey] = url;
       }
       imgEl.src = url;
       return true;
@@ -386,16 +445,52 @@ class GameScene extends Phaser.Scene {
     // match the original frame; 'cover' guarantees full coverage of the old frame's box
     // (cropping the replacement's edges slightly) for cases where that gap is worse than the crop.
     const _uhdFitOverrides = {};
-    const _uhdFrameAllowed = (key, frame) => !!(_uhdPacked[key] && _uhdPacked[key].frames[frame]);
+    const _uhdFrameAllowed = (key, frame) => !!(_uhdPacked[key] && _uhdPacked[key].frames[frame]) || (!!_uhdRawDirs[key] && !!_uhdRawFrameRect(key, frame));
+    // A raw sprite has no atlas frame name at all when used whole (this.add.image(x,y,key)),
+    // so the usual `typeof frame === 'string'` gate has to loosen to allow frame == null too.
+    const _uhdShouldTag = (key, frame) =>
+      (_uhdDirs[key] && typeof frame === 'string' && _uhdFrameAllowed(key, frame)) ||
+      (_uhdRawDirs[key] && (frame == null || typeof frame === 'string') && _uhdFrameAllowed(key, frame));
     // GJ_GameSheet/GJ_GameSheet02 hold the gameplay objects. Their overlays are tagged
     // obj-mode: alpha maps to CSS opacity (not the disabled-button grayscale), and the
     // overlay hides for color-tinted or additive-blend sprites (canvas fallback), since
     // DOM elements can't replicate arbitrary tints or blend modes.
     const _uhdObjSheet = (key) => key === 'GJ_GameSheet' || key === 'GJ_GameSheet02';
+    // Shared by the add.image and add.nineslice patches: gives an interactive game object
+    // a companion invisible Zone as its real input target, so the sync loop can hide the
+    // object's own canvas rendering behind its DOM overlay without losing clicks.
+    const _uhdWireInteractive = (go) => {
+      const _oSetInteractive = go.setInteractive.bind(go);
+      const _oDisableInteractive = go.disableInteractive.bind(go);
+      go.setInteractive = function(...args) {
+        const r = _oSetInteractive(...args);
+        go._uhdWantsInteractive = true;
+        if (localStorage.getItem('uhdHideOldTextures') !== '0' && go.input) {
+          if (!go._uhdHitZone) {
+            const _cursor = go.input.cursor;
+            const zone = _sc.add.zone(go.x, go.y, go.width || 1, go.height || 1)
+              .setOrigin(go.originX, go.originY)
+              .setInteractive(_cursor ? { cursor: _cursor } : undefined);
+            go._uhdHitZone = zone;
+            ['pointerdown', 'pointerup', 'pointerover', 'pointerout', 'pointerupoutside', 'pointermove']
+              .forEach(evt => zone.on(evt, (...a) => go.emit(evt, ...a)));
+            const e = _sc._uhdMap.get(go);
+            if (e) e.hitZone = zone;
+          }
+          _oDisableInteractive();
+        }
+        return r;
+      };
+      go.disableInteractive = function(...args) {
+        const r = _oDisableInteractive(...args);
+        go._uhdWantsInteractive = false;
+        return r;
+      };
+    };
     const _origAddImg = this.add.image.bind(this.add);
     const _patchedAddImg = function(x, y, key, frame, ...rest) {
       const go = _origAddImg(x, y, key, frame, ...rest);
-      if (_uhdDirs[key] && typeof frame === 'string' && _uhdFrameAllowed(key, frame)) {
+      if (_uhdShouldTag(key, frame)) {
         // object-fit:contain (rather than the default fill/stretch) lets a UHD replacement
         // whose own aspect ratio doesn't exactly match the original frame's sourceSize (e.g.
         // a redrawn logo) scale in without distortion; it's a no-op when the aspect already
@@ -421,7 +516,7 @@ class GameScene extends Phaser.Scene {
         const _oST = go.setTexture.bind(go);
         go.setTexture = function(k, f, ...a) {
           const r = _oST(k, f, ...a);
-          if (_uhdDirs[k] && typeof f === 'string' && _uhdFrameAllowed(k, f)) {
+          if (_uhdShouldTag(k, f)) {
             const e = _sc._uhdMap.get(go);
             if (e) { e.key = k; e.frame = f; if (e.img) _uhdDrawFrame(e.img, k, f); e._sized = false; e.obj = _uhdObjSheet(k); e.uhdScale = _uhdScaleOverrides[k + ':' + f] || 1; e.uhdOffset = _uhdOffsetOverrides[k + ':' + f] || null; e.uhdRot = _uhdRotateOverrides[k + ':' + f] != null ? _uhdRotateOverrides[k + ':' + f] : null; }
           }
@@ -432,7 +527,7 @@ class GameScene extends Phaser.Scene {
         go.setFrame = function(f, ...a) {
           const r = _oSFr(f, ...a);
           const k = go.texture && go.texture.key;
-          if (_uhdDirs[k] && typeof f === 'string' && _uhdFrameAllowed(k, f)) {
+          if (_uhdShouldTag(k, f)) {
             const e = _sc._uhdMap.get(go);
             if (e) { e.key = k; e.frame = f; if (e.img) _uhdDrawFrame(e.img, k, f); e._sized = false; e.obj = _uhdObjSheet(k); e.uhdScale = _uhdScaleOverrides[k + ':' + f] || 1; e.uhdOffset = _uhdOffsetOverrides[k + ':' + f] || null; e.uhdRot = _uhdRotateOverrides[k + ':' + f] != null ? _uhdRotateOverrides[k + ':' + f] : null; }
           }
@@ -447,41 +542,39 @@ class GameScene extends Phaser.Scene {
         // rendering (behind its UHD overlay) without also killing its clicks. Once
         // the zone takes over, the original sprite's own interactive state stops
         // mattering for input at all, which is what makes that hiding safe.
-        if (!_isObj) {
-          const _oSetInteractive = go.setInteractive.bind(go);
-          const _oDisableInteractive = go.disableInteractive.bind(go);
-          go.setInteractive = function(...args) {
-            const r = _oSetInteractive(...args);
-            go._uhdWantsInteractive = true;
-            if (localStorage.getItem('uhdHideOldTextures') !== '0' && go.input) {
-              if (!go._uhdHitZone) {
-                const _cursor = go.input.cursor;
-                const zone = _sc.add.zone(go.x, go.y, go.width || 1, go.height || 1)
-                  .setOrigin(go.originX, go.originY)
-                  .setInteractive(_cursor ? { cursor: _cursor } : undefined);
-                go._uhdHitZone = zone;
-                ['pointerdown', 'pointerup', 'pointerover', 'pointerout', 'pointerupoutside', 'pointermove']
-                  .forEach(evt => zone.on(evt, (...a) => go.emit(evt, ...a)));
-                const e = _sc._uhdMap.get(go);
-                if (e) e.hitZone = zone;
-              }
-              // go's own hit-testing is never used again once its zone exists — the
-              // sync loop drives the zone's enabled state from _uhdWantsInteractive.
-              _oDisableInteractive();
-            }
-            return r;
-          };
-          go.disableInteractive = function(...args) {
-            const r = _oDisableInteractive(...args);
-            go._uhdWantsInteractive = false;
-            return r;
-          };
-        }
+        if (!_isObj) _uhdWireInteractive(go);
       }
       return go;
     };
     _patchedAddImg._uhd_orig = this.add.image; // keep reference to original for unwrap on restart
     this.add.image = _patchedAddImg;
+    // Raw-sprite nineslice panels (GJ_square01/02, GJ_button01, etc.) can't be replicated
+    // with a plain <img> — squashing the whole texture over an arbitrary width/height would
+    // stretch the rounded corners too. CSS border-image does the same corner-preserving
+    // stretch as Phaser's NineSlice, sourced directly from the same PNG.
+    const _origAddNineslice = this.add.nineslice.bind(this.add);
+    const _patchedAddNineslice = function(x, y, key, frame, width, height, leftWidth, rightWidth, topHeight, bottomHeight, ...rest) {
+      const go = _origAddNineslice(x, y, key, frame, width, height, leftWidth, rightWidth, topHeight, bottomHeight, ...rest);
+      const _nsUrl = _uhdRawDirs[key] ? _uhdRawDataUrl(key, frame) : null;
+      if (_nsUrl) {
+        const div = document.createElement('div');
+        div.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;display:none;box-sizing:border-box;border-style:solid;border-color:transparent;border-image-repeat:stretch;';
+        div.style.borderImageSource = 'url(' + _nsUrl + ')';
+        _uhdCont.appendChild(div);
+        const entry = {
+          img: div, key, frame: null, group: _sc._uhdContext, obj: false, nineslice: true,
+          corners: { l: leftWidth || 0, r: rightWidth || 0, t: topHeight || 0, b: bottomHeight || 0 },
+          _sized: false, _vis: null, _t: null, _al: '',
+        };
+        _sc._uhdMap.set(go, entry);
+        // Unlike the image patch, the original nineslice is never hidden (see the
+        // comment in the sync loop), so its own interactivity is left untouched —
+        // no companion hit-zone needed here.
+      }
+      return go;
+    };
+    _patchedAddNineslice._uhd_orig = this.add.nineslice;
+    this.add.nineslice = _patchedAddNineslice;
 
     this._bgSpeedX = 0.1;
     this._bgSpeedY = 0.1;
@@ -902,6 +995,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     this._openPlayMenu = (onBack = null) => {
       if (this._playOverlay) return;
+      this._uhdContext = 'playMenu';
       const sw = screenWidth;
       const sh = screenHeight;
       this._playMenuBackTarget = onBack || (() => this._openCreatorMenu());
@@ -3717,13 +3811,20 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._closeOnlineLevelsScene();
         return;
       }
+      if (this._savedOverlay) {
+        if (this._closeSavedLevelsOverlay) this._closeSavedLevelsOverlay();
+        return;
+      }
       if (this._creatorOverlay) {
         this._closeCreatorMenu();
         return;
       }
       if (this._settingsPopup) {
-        this._settingsPopup.destroy();
-        this._settingsPopup = null;
+        this._closeSettingsPopup();
+        return;
+      }
+      if (this._megaHackMenu) {
+        this._closeMegaHackMenu();
         return;
       }
       if (this._macroPopup) {
@@ -3783,6 +3884,17 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this.scene.restart();
       } else if (!this._menuActive && !this._slideIn && !this._levelWon) {
         this._pauseGame();
+      }
+    });
+    // MegaHack-style mod menu toggle key (backtick/grave), matches the real
+    // MegaHack default keybind. Separate from the settings-gear Options popup —
+    // that one carries real (non-cheat) settings like fullscreen/percentage/font.
+    this._megaHackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK);
+    this._megaHackKey.on("down", () => {
+      if (this._megaHackMenu) {
+        this._closeMegaHackMenu();
+      } else {
+        this._buildMegaHackMenu();
       }
     });
     this._restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
@@ -4670,7 +4782,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._setParticleTimeScale(0);
       this._player?.setDeathAnimationPaused?.(true);
       this._player2?.setDeathAnimationPaused?.(true);
-      this._buildPauseOverlay();
+      if (!window.hidePause) this._buildPauseOverlay();
     }
   }
   _resumeGame() {
@@ -4907,9 +5019,13 @@ _buildPauseOverlay() {
         localStorage.setItem("userSfxVol", v);
     });
  }
-_buildSettingsPopup() {
+_closeSettingsPopup() {
+    if (!this._settingsPopup) return;
+    this._settingsPopup.destroy();
+    this._settingsPopup = null;
+  }
+  _buildSettingsPopup() {
     if (this._settingsPopup) return;
-    this._uhdContext = 'settings';
 
     const centerX = screenWidth / 2,
         centerY = 320,
@@ -4931,8 +5047,7 @@ _buildSettingsPopup() {
     const closeBtn = this.add.image(-(panelWidth / 2) + 10, -(panelHeight / 2) + 10, 'GJ_WebSheet', "GJ_closeBtn_001.png").setScale(0.8).setInteractive();
     innerContainer.add(closeBtn);
     this._makeBouncyButton(closeBtn, 0.8, () => {
-        this._settingsPopup.destroy();
-        this._settingsPopup = null;
+        this._closeSettingsPopup();
     });
 
     const pages = ["Gameplay", "Visual", "Advanced"];
@@ -5068,22 +5183,22 @@ _buildSettingsPopup() {
 
             internalString = val.toString();
             valueTxt.setText(internalString);
-            
+
             setVal(val);
             if (this._saveSettings) this._saveSettings();
         };
 
         hitArea.on('pointerdown', (pointer, localX, localY, event) => {
             if (event) event.stopPropagation();
-            
+
             if (window._activeCustomInput && window._activeCustomInput !== commitValue) {
                 window._activeCustomInput();
             }
 
             isFocused = true;
             window._activeCustomInput = commitValue;
-            
-            internalString = ""; 
+
+            internalString = "";
             updateDisplay();
         });
 
@@ -5112,11 +5227,11 @@ _buildSettingsPopup() {
 
             if (/^[0-9.]$/.test(key)) {
                 event.preventDefault();
-                
+
                 if (key === "." && internalString.includes(".")) return;
 
                 const parts = internalString.split('.');
-                
+
                 if (key === ".") {
                     if (parts[0].length === 0) return;
                 } else {
@@ -5143,8 +5258,8 @@ _buildSettingsPopup() {
     };
 
     const buildGameplayPage = (container) => {
-        createToggle(container, column1X, startY, "Show Percentage", 
-            () => window.showPercentage, 
+        createToggle(container, column1X, startY, "Show Percentage",
+            () => window.showPercentage,
             (v) => window.showPercentage = v,
             (v) => { if (this._percentageLabel) this._percentageLabel.setVisible(v); },
             undefined,
@@ -5152,8 +5267,8 @@ _buildSettingsPopup() {
             "Show Percentage"
         );
 
-        createToggle(container, column1X, startY + spacingY, "Percentage Decimals", 
-            () => window.percentageDecimals, 
+        createToggle(container, column1X, startY + spacingY, "Percentage Decimals",
+            () => window.percentageDecimals,
             (v) => window.percentageDecimals = v,
             undefined,
             undefined,
@@ -5161,8 +5276,8 @@ _buildSettingsPopup() {
             "Percentage Decimals"
         );
 
-        createToggle(container, column1X, startY + (spacingY * 2), "StartPos Switcher", 
-            () => window.startPosSwitcher, 
+        createToggle(container, column1X, startY + (spacingY * 2), "StartPos Switcher",
+            () => window.startPosSwitcher,
             (v) => window.startPosSwitcher = v,
             (v) => {
                 if (!v) this._startPosIndex = -1;
@@ -5172,24 +5287,24 @@ _buildSettingsPopup() {
             }
         );
 
-        createToggle(container, column1X, startY + (spacingY * 3), "Noclip", 
-            () => window.noClip, 
+        createToggle(container, column1X, startY + (spacingY * 3), "Noclip",
+            () => window.noClip,
             (v) => window.noClip = v,
             (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); }
         );
-        
+
         createToggle(container, column1X, startY + (spacingY * 4), "Noclip Accuracy",
             () => window.noClipAccuracy,
             (v) => window.noClipAccuracy = v
         );
-        
+
         createToggle(container, column1X, startY + (spacingY * 5), "Macro Bot",
             () => window.macroBot,
             (v) => window.macroBot = v
         );
 
-        createNumberInput(container, column2X, startY, "Speedhack", 
-            () => window.speedHack, 
+        createNumberInput(container, column2X, startY, "Speedhack",
+            () => window.speedHack,
             (v) => window.speedHack = v
         );
 
@@ -5210,26 +5325,26 @@ _buildSettingsPopup() {
     };
 
     const buildVisualPage = (container) => {
-        createToggle(container, column1X, startY, "Show Hitboxes", 
-            () => window.showHitboxes, 
+        createToggle(container, column1X, startY, "Show Hitboxes",
+            () => window.showHitboxes,
             (v) => window.showHitboxes = v,
-            (v) => { 
+            (v) => {
                 if (!v) {
-                    this._player._hitboxGraphics.clear(); 
+                    this._player._hitboxGraphics.clear();
                 } else {
                     this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
                 }
             }
         );
 
-        createToggle(container, column1X, startY + (spacingY), "Hitbox Trail", 
-            () => window.showHitboxTrail, 
+        createToggle(container, column1X, startY + (spacingY), "Hitbox Trail",
+            () => window.showHitboxTrail,
             (v) => window.showHitboxTrail = v,
             (v) => { if (window.showHitboxes) this._player.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY); }
         );
-        
-        createToggle(container, column1X, startY + (spacingY * 2), "Hitboxes on Death", 
-            () => window.hitboxesOnDeath, 
+
+        createToggle(container, column1X, startY + (spacingY * 2), "Hitboxes on Death",
+            () => window.hitboxesOnDeath,
             (v) => window.hitboxesOnDeath = v,
             undefined,
             undefined,
@@ -5237,48 +5352,48 @@ _buildSettingsPopup() {
             "Hitboxes on Death"
         );
 
-        createToggle(container, column1X, startY + (spacingY * 3), "Show FPS", 
-            () => this._fpsText.visible, 
+        createToggle(container, column1X, startY + (spacingY * 3), "Show FPS",
+            () => this._fpsText.visible,
             (v) => this._fpsText.visible = v,
             (v) => { if (this._fpsText) this._fpsText.setVisible(v); }
         );
 
-        createToggle(container, column1X, startY + (spacingY * 4), "Solid Wave Trail", 
-            () => window.solidWave, 
+        createToggle(container, column1X, startY + (spacingY * 4), "Solid Wave Trail",
+            () => window.solidWave,
             (v) => window.solidWave = v
         );
-        
+
         createToggle(container, column1X, startY + (spacingY * 5), "Show CPS",
             () => window.showCPS,
             (v) => window.showCPS = v
         );
 
-        createToggle(container, column2X, startY, "Show Glow", 
-            () => window.showGlow, 
+        createToggle(container, column2X, startY, "Show Glow",
+            () => window.showGlow,
             (v) => window.showGlow = v,
             () => { if (this._level && this._level._updateGlowVisibility) this._level._updateGlowVisibility(); }
         );
 
-        createToggle(container, column2X, startY + spacingY, "Create Object ID labels", 
-            () => window.createObjectIds, 
+        createToggle(container, column2X, startY + spacingY, "Create Object ID labels",
+            () => window.createObjectIds,
             (v) => window.createObjectIds = v,
             null, 17
         );
 
-        createToggle(container, column2X, startY + (spacingY * 2), "Show Object ID labels", 
-            () => window.showObjectIds, 
+        createToggle(container, column2X, startY + (spacingY * 2), "Show Object ID labels",
+            () => window.showObjectIds,
             (v) => window.showObjectIds = v,
             null, 17
         );
-                createToggle(container, column2X, startY + (spacingY * 3), "Enable Portal Guide", 
-            () => window.enablePortalGuide, 
+                createToggle(container, column2X, startY + (spacingY * 3), "Enable Portal Guide",
+            () => window.enablePortalGuide,
             (v) => window.enablePortalGuide = v,
             null, 22,
             true,
             "Enable Portal Guide"
         );
-        createToggle(container, column2X, startY + (spacingY * 4), "Enable Orb Guide", 
-            () => window.enableOrbGuide, 
+        createToggle(container, column2X, startY + (spacingY * 4), "Enable Orb Guide",
+            () => window.enableOrbGuide,
             (v) => window.enableOrbGuide = v,
             null,
             25,
@@ -5300,7 +5415,7 @@ _buildSettingsPopup() {
         pageContainer = this.add.container(0, 0);
         innerContainer.add(pageContainer);
         pageTitle.setText(pages[idx]);
-        
+
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
         else if (idx === 2) buildAdvancedPage(pageContainer);
@@ -5325,6 +5440,492 @@ _buildSettingsPopup() {
         easeParams: [1, 0.6]
     });
   }
+  _closeMegaHackMenu() {
+    if (this._megaHackCleanups) { this._megaHackCleanups.forEach(fn => fn()); this._megaHackCleanups = null; }
+    const popup = this._megaHackMenu;
+    this._megaHackMenu = null;
+    if (!popup) return;
+    popup.classList.add('is-closed');
+    setTimeout(() => popup.remove(), 260);
+  }
+  // DOM-based mod menu, backtick-only. Toggles use the same window.* names the engine
+  // already reads elsewhere (noClip, showHitboxes, speedHack, etc.) so they stay real cheats.
+  _buildMegaHackMenu() {
+    if (this._megaHackMenu) return;
+
+    window.hitboxMultiplier = window.hitboxMultiplier ?? 1;
+    window.infiniteJump = window.infiniteJump ?? false;
+    window.tps = window.tps ?? 240;
+    window.noParticles = window.noParticles ?? false;
+    if (window.noGlow === undefined) window.noGlow = (window.showGlow === false);
+    if (window.showFps === undefined) window.showFps = !!(this._fpsText && this._fpsText.visible);
+    window.fpsOpacity = window.fpsOpacity ?? 1;
+    window.cpsOpacity = window.cpsOpacity ?? 1;
+    window.showTps = window.showTps ?? false;
+    window.showNoclipDeaths = window.showNoclipDeaths ?? false;
+    window.hidePause = window.hidePause ?? false;
+    window.menuBgBlur = window.menuBgBlur ?? false;
+    window.speedHack = window.speedHack || 1;
+
+    if (!document.getElementById('mh-style')) {
+      const style = document.createElement('style');
+      style.id = 'mh-style';
+      style.innerHTML = `
+        :root {
+            --mh-accent: #4bff93;
+            --mh-bg: #101010;
+            --mh-header-bg: #4bff93;
+        }
+        #gj-s03-menu-dom {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 999999;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.2px;
+            visibility: visible;
+            transition: backdrop-filter 0.2s, background-color 0.2s, visibility 0s linear 0s;
+        }
+        #gj-s03-menu-dom.is-closed {
+            visibility: hidden;
+            pointer-events: none !important;
+            backdrop-filter: blur(0px) !important;
+            background-color: transparent !important;
+            transition: backdrop-filter 0.2s, background-color 0.2s, visibility 0s linear 0.2s;
+        }
+        #gj-s03-menu-dom.global-blur {
+            backdrop-filter: blur(5px);
+            background-color: rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+        }
+        #gj-s03-menu-dom .mh-window {
+            position: absolute;
+            pointer-events: auto;
+            background-color: var(--mh-bg);
+            backdrop-filter: blur(5px);
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.6);
+            transform: translate(0, 0);
+            transition: transform 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+        #gj-s03-menu-dom.is-closed .mh-window {
+            transform: translate(calc(var(--slide-dir) * 100vw), 100vh);
+        }
+        #gj-s03-menu-dom .mh-header {
+            background-color: var(--mh-header-bg);
+            color: color-mix(in srgb, var(--mh-header-bg), #000 80%);
+            text-align: center;
+            padding: 2px 0;
+            user-select: none;
+            cursor: grab;
+            border-bottom: 1px solid rgba(0,0,0,0.5);
+        }
+        #gj-s03-menu-dom .mh-header-text {
+            display: block;
+            width: 100%;
+        }
+        #gj-s03-menu-dom .mh-header:active {
+            cursor: grabbing;
+        }
+        #gj-s03-menu-dom .mh-item {
+            padding: 4px 14px 4px 6px;
+            color: #eeeeee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            position: relative;
+            transition: background-color 0.1s;
+        }
+        #gj-s03-menu-dom .mh-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        #gj-s03-menu-dom .mh-item.active {
+            color: var(--mh-accent);
+            background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--mh-accent) 15%, transparent));
+        }
+        #gj-s03-menu-dom .mh-item.active:hover {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, color-mix(in srgb, var(--mh-accent) 25%, transparent));
+        }
+        #gj-s03-menu-dom .mh-item-text {
+            flex-grow: 1;
+            white-space: nowrap;
+        }
+        #gj-s03-menu-dom .mh-indicator {
+            position: absolute;
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 14px;
+            background-color: #333333;
+            transition: background-color 0.1s;
+        }
+        #gj-s03-menu-dom .mh-item.active .mh-indicator {
+            background-color: var(--mh-accent);
+        }
+        #gj-s03-menu-dom .mh-item.has-submenu .mh-indicator {
+            display: none;
+        }
+        #gj-s03-menu-dom .mh-submenu-arrow {
+            position: absolute;
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-bottom: 8px solid #333333;
+            border-left: 8px solid transparent;
+            display: none;
+            cursor: pointer;
+            transition: border-bottom-color 0.1s;
+        }
+        #gj-s03-menu-dom .mh-item.has-submenu .mh-submenu-arrow {
+            display: block;
+        }
+        #gj-s03-menu-dom .mh-item.active .mh-submenu-arrow {
+            border-bottom-color: var(--mh-accent);
+        }
+        #gj-s03-menu-dom .mh-input-container {
+            cursor: default;
+            color: #a0a0a0;
+            padding: 4px 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #gj-s03-menu-dom .mh-input {
+            width: 35px;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #333;
+            color: #fff;
+            text-align: center;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 1px 0;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #gj-s03-menu-dom .mh-input:focus {
+            border-color: var(--mh-accent);
+        }
+        #gj-s03-menu-dom .mh-input::-webkit-outer-spin-button,
+        #gj-s03-menu-dom .mh-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        #gj-s03-menu-dom .mh-dropdown {
+            position: relative;
+            width: 70px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 10px;
+            user-select: none;
+        }
+        #gj-s03-menu-dom .mh-dropdown-selected {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #333;
+            color: #fff;
+            padding: 2px 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+        #gj-s03-menu-dom .mh-dropdown.open .mh-dropdown-selected {
+            border-color: var(--mh-accent);
+        }
+        #gj-s03-menu-dom .mh-dropdown-list {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: var(--mh-bg);
+            border: 1px solid var(--mh-accent);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.6);
+            z-index: 20;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        #gj-s03-menu-dom .mh-dropdown.open .mh-dropdown-list {
+            display: block;
+        }
+        #gj-s03-menu-dom .mh-dropdown-item {
+            padding: 3px 4px;
+            color: #eeeeee;
+            cursor: pointer;
+            transition: background-color 0.1s, color 0.1s;
+        }
+        #gj-s03-menu-dom .mh-dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--mh-accent);
+        }
+        #gj-s03-menu-dom .mh-dropdown-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        #gj-s03-menu-dom .mh-dropdown-list::-webkit-scrollbar-thumb {
+            background: var(--mh-accent);
+        }
+        #gj-s03-menu-dom .mh-submenu-container {
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 100%;
+            background-color: var(--mh-bg);
+            backdrop-filter: blur(5px);
+            width: 140px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const container = document.createElement('div');
+    container.id = 'gj-s03-menu-dom';
+    container.classList.add('is-closed');
+    if (window.menuBgBlur) container.classList.add('global-blur');
+
+    const cleanups = [];
+    const on = (target, type, handler) => { target.addEventListener(type, handler); cleanups.push(() => target.removeEventListener(type, handler)); };
+
+    function makeDraggable(win, handle) {
+      let isDragging = false, offsetX = 0, offsetY = 0;
+      on(handle, 'mousedown', (e) => {
+        isDragging = true;
+        const rect = win.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        container.querySelectorAll('.mh-window').forEach(w => w.style.zIndex = '1');
+        win.style.zIndex = '2';
+      });
+      on(document, 'mousemove', (e) => {
+        if (!isDragging) return;
+        win.style.left = (e.clientX - offsetX) + 'px';
+        win.style.top = (e.clientY - offsetY) + 'px';
+      });
+      on(document, 'mouseup', () => { isDragging = false; });
+    }
+
+    on(document, 'click', (e) => {
+      if (!e.target.closest('.mh-item.has-submenu')) {
+        container.querySelectorAll('.mh-submenu-container').forEach(el => el.style.display = 'none');
+      }
+      if (!e.target.closest('.mh-dropdown')) {
+        container.querySelectorAll('.mh-dropdown').forEach(el => el.classList.remove('open'));
+      }
+    });
+
+    let globalWindowCounter = 1;
+    function createWindow(title, startX, startY) {
+      const win = document.createElement('div');
+      win.className = 'mh-window';
+      win.style.left = startX + 'px';
+      win.style.top = startY + 'px';
+      const slideDir = (globalWindowCounter % 2 !== 0) ? 1 : -1;
+      win.style.setProperty('--slide-dir', slideDir);
+      globalWindowCounter++;
+      const header = document.createElement('div');
+      header.className = 'mh-header';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'mh-header-text';
+      textSpan.innerText = `- ${title} -`;
+      header.appendChild(textSpan);
+      win.appendChild(header);
+      makeDraggable(win, header);
+      return win;
+    }
+
+    const createToggle = (moduleName, globalVarName, extraNodes = [], onChange = null) => {
+      const item = document.createElement('div');
+      item.className = 'mh-item';
+      if (window[globalVarName]) item.classList.add('active');
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'mh-item-text';
+      textSpan.innerText = moduleName;
+
+      const arrow = document.createElement('div');
+      arrow.className = 'mh-submenu-arrow';
+
+      const indicator = document.createElement('div');
+      indicator.className = 'mh-indicator';
+
+      item.appendChild(textSpan);
+      item.appendChild(arrow);
+      item.appendChild(indicator);
+
+      item.onclick = (e) => {
+        if (e.target === arrow || e.target.tagName === 'INPUT' || e.target.closest('.mh-dropdown')) return;
+        window[globalVarName] = !window[globalVarName];
+        item.classList.toggle('active', !!window[globalVarName]);
+        if (onChange) onChange(!!window[globalVarName]);
+      };
+
+      if (extraNodes.length > 0) {
+        item.classList.add('has-submenu');
+        const submenuContainer = document.createElement('div');
+        submenuContainer.className = 'mh-submenu-container';
+        extraNodes.forEach(node => submenuContainer.appendChild(node));
+        item.appendChild(submenuContainer);
+
+        const toggleSubmenu = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const isVisible = submenuContainer.style.display === 'flex';
+          container.querySelectorAll('.mh-submenu-container').forEach(el => el.style.display = 'none');
+          if (!isVisible) submenuContainer.style.display = 'flex';
+        };
+        arrow.onclick = toggleSubmenu;
+        item.oncontextmenu = toggleSubmenu;
+      }
+      return item;
+    };
+
+    const createNumberInput = (moduleName, globalVarName, step = 0.1, onChange = null) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mh-input-container';
+      const label = document.createElement('span');
+      label.innerText = moduleName;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'mh-input';
+      input.step = step;
+      input.value = window[globalVarName];
+      on(input, 'input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) {
+          window[globalVarName] = val;
+          if (onChange) onChange(val);
+        }
+      });
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
+      return wrapper;
+    };
+
+    const startY = 30;
+    const windowWidth = 160;
+    const padding = 10;
+    let col = 0;
+
+    const levelWindow = createWindow('Level', padding + (windowWidth + padding) * col++, startY);
+    levelWindow.appendChild(createToggle('Noclip', 'noClip', [], v => {
+      if (this._noclipIndicator) this._noclipIndicator.setVisible(v);
+      this._saveSettings();
+    }));
+    levelWindow.appendChild(createToggle('Hide Pause Menu', 'hidePause'));
+    levelWindow.appendChild(createToggle('Show Hitboxes', 'showHitboxes', [], v => {
+      if (!v) this._player?._hitboxGraphics?.clear();
+      else this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
+      this._saveSettings();
+    }));
+    levelWindow.appendChild(createToggle('Hitbox Trail', 'showHitboxTrail', [], () => {
+      if (window.showHitboxes) this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
+      this._saveSettings();
+    }));
+    levelWindow.appendChild(createNumberInput('Hitbox Mult', 'hitboxMultiplier', 0.1, () => {
+      if (window.showHitboxes) this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
+    }));
+    container.appendChild(levelWindow);
+
+    const playerWindow = createWindow('Player', padding + (windowWidth + padding) * col++, startY);
+    playerWindow.appendChild(createToggle('Infinite Jump', 'infiniteJump'));
+    playerWindow.appendChild(createNumberInput('TPS Bypass', 'tps', 60));
+    container.appendChild(playerWindow);
+
+    const cosmeticWindow = createWindow('Cosmetic', padding + (windowWidth + padding) * col++, startY);
+    cosmeticWindow.appendChild(createToggle('No Particles', 'noParticles'));
+    cosmeticWindow.appendChild(createToggle('No Object Glow', 'noGlow', [], v => {
+      window.showGlow = !v;
+      this._level?._updateGlowVisibility?.();
+      this._saveSettings();
+    }));
+    container.appendChild(cosmeticWindow);
+
+    const speedWindow = createWindow('Speedhack', padding + (windowWidth + padding) * col++, startY);
+    speedWindow.appendChild(createNumberInput('Multiplier', 'speedHack', 0.1, () => this._saveSettings()));
+    container.appendChild(speedWindow);
+
+    const displayWindow = createWindow('Display', padding + (windowWidth + padding) * col++, startY);
+    const fpsOpacityInput = createNumberInput('Opacity (0-1)', 'fpsOpacity', 0.1, v => this._fpsText?.setAlpha(v));
+    const cpsOpacityInput = createNumberInput('Opacity (0-1)', 'cpsOpacity', 0.1, v => this._cpsIndicator?.setAlpha(v));
+
+    displayWindow.appendChild(createToggle('Noclip Accuracy', 'noClipAccuracy', [], () => this._saveSettings()));
+    displayWindow.appendChild(createToggle('Noclip Deaths', 'showNoclipDeaths'));
+    displayWindow.appendChild(createToggle('FPS Counter', 'showFps', [fpsOpacityInput], v => {
+      this._fpsText?.setVisible(v);
+      this._saveSettings();
+    }));
+    displayWindow.appendChild(createToggle('CPS Counter', 'showCPS', [cpsOpacityInput], () => this._saveSettings()));
+    displayWindow.appendChild(createToggle('TPS Counter', 'showTps'));
+    container.appendChild(displayWindow);
+
+    const settingsWindow = createWindow('Settings', padding, startY + 160);
+    settingsWindow.appendChild(createToggle('Menu BG Blur', 'menuBgBlur', [], v => {
+      container.classList.toggle('global-blur', v);
+    }));
+
+    const themes = {
+      'Default': '#4bff93',
+      'Pink': '#e638e8',
+      'Abyss': '#443eff',
+      'Mint': '#6affd7',
+      'Crimson': '#ff3838',
+      'Sunset': '#ff665b',
+      'Gold': '#ffe586',
+      'Amethyst': '#d15eff'
+    };
+
+    const themeWrapper = document.createElement('div');
+    themeWrapper.className = 'mh-input-container';
+    const themeLabel = document.createElement('span');
+    themeLabel.innerText = 'Theme';
+    const dropdown = document.createElement('div');
+    dropdown.className = 'mh-dropdown';
+    const selected = document.createElement('div');
+    selected.className = 'mh-dropdown-selected';
+    selected.innerHTML = `<span>Default</span><span style="font-size:8px;">▼</span>`;
+    const list = document.createElement('div');
+    list.className = 'mh-dropdown-list';
+
+    for (const [name, color] of Object.entries(themes)) {
+      const item = document.createElement('div');
+      item.className = 'mh-dropdown-item';
+      item.innerText = name;
+      item.onclick = (e) => {
+        e.stopPropagation();
+        document.documentElement.style.setProperty('--mh-accent', color);
+        document.documentElement.style.setProperty('--mh-header-bg', color);
+        selected.querySelector('span').innerText = name;
+        dropdown.classList.remove('open');
+      };
+      list.appendChild(item);
+    }
+
+    selected.onclick = (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    };
+
+    dropdown.appendChild(selected);
+    dropdown.appendChild(list);
+    themeWrapper.appendChild(themeLabel);
+    themeWrapper.appendChild(dropdown);
+    settingsWindow.appendChild(themeWrapper);
+    container.appendChild(settingsWindow);
+
+    this._megaHackCleanups = cleanups;
+    this._megaHackMenu = container;
+    (this._uhdParent || document.body).appendChild(container);
+    requestAnimationFrame(() => requestAnimationFrame(() => container.classList.remove('is-closed')));
+  }
   _saveSettings() {
     const settings = {
         noclip: window.noClip,
@@ -5348,7 +5949,9 @@ _buildSettingsPopup() {
         useDirectInternet: !!window.useDirectInternet,
         enablePortalGuide: window.enablePortalGuide,
         enableOrbGuide: window.enableOrbGuide,
-        settingInfoText: window.settingInfoText || {}
+        settingInfoText: window.settingInfoText || {},
+        mhFlags: window._mhFlags || {},
+        mhFont: window._mhFont || 'Default'
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
     localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
@@ -5403,6 +6006,8 @@ _buildSettingsPopup() {
     window.enableOrbGuide = data.enableOrbGuide;
     window.settingInfoText = data.settingInfoText || {};
     window.useDirectInternet = !!data.useDirectInternet;
+    window._mhFlags = data.mhFlags || {};
+    window._mhFont = data.mhFont || 'Default';
     localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
   }
   _buildMacroPopup() {
@@ -7476,18 +8081,6 @@ _buildSettingsPopup() {
       const _pr = this._uhdParent.getBoundingClientRect();
       const _ox = _cr.left - _pr.left;
       const _oy = _cr.top - _pr.top;
-      // Black fade div sits above UHD canvases and mirrors the Phaser depth-200 fade graphics
-      let _fadeCover = 0;
-      for (const _fc of this.children.list) {
-        if (_fc.depth === 200 && _fc.type === 'Graphics' && _fc.alpha > _fadeCover && _fc.scrollFactorX === 0) {
-          _fadeCover = _fc.alpha;
-          if (_fadeCover >= 1) break;
-        }
-      }
-      const _camA = this.cameras.main.alpha;
-      if (_camA < 1) _fadeCover = Math.max(_fadeCover, 1 - _camA);
-      const _fadeOp = _fadeCover.toFixed(2);
-      if (this._uhdFadeDiv._op !== _fadeOp) { this._uhdFadeDiv.style.opacity = _fadeOp; this._uhdFadeDiv._op = _fadeOp; }
       // Noclip death flash: mirror the canvas rectangle's alpha above everything
       if (this._uhdFlashDiv) {
         const _flashOp = (this.noclipFlash && this.noclipFlash.alpha > 0) ? this.noclipFlash.alpha.toFixed(2) : '0';
@@ -7504,12 +8097,14 @@ _buildSettingsPopup() {
         this._levelInfoContainer                          ? 'levelInfo' :
         this._questPopup                                  ? 'quest' :
         this._macroPopup                                  ? 'macro' :
-        (this._settingsLayerOverlay || this._settingsPopup) ? 'settings' :
+        (this._settingsPopup || this._megaHackMenu)        ? 'megaHack' :
+        this._settingsLayerOverlay                         ? 'settings' :
         this._achLayerOverlay                             ? 'achLayer' :
         this._statsLayerOverlay                           ? 'stats' :
         this._iconOverlay                                 ? 'icon' :
+        this._playOverlay                                 ? 'playMenu' :
         this._onlineLevelsOverlay                         ? 'online' :
-        this._searchResultsOpen                           ? 'searchResults' :
+        this._searchResultOverlay                         ? 'searchResult' :
         this._searchOverlay                               ? 'search' :
         this._savedOverlay                                ? 'saved' :
         this._newgroundsPopup                             ? 'newgrounds' :
@@ -7578,7 +8173,13 @@ _buildSettingsPopup() {
           if (entry._vis !== false) { entry.img.style.display = 'none'; entry._vis = false; }
           continue;
         }
-        if (_uhdHideOld && !entry.obj && (entry.hitZone || !go.input)) {
+        // Nineslice panels routinely have separate content (text labels, icons) drawn
+        // on top of them at a higher Phaser depth but composited into the same single
+        // canvas — hiding the original like any other overlay would hide that content
+        // too. So nineslice originals are left fully visible; their overlay only draws
+        // a crisp border-image frame around the (transparent-centered) corners/edges,
+        // matching the same rect the original renders, rather than replacing it outright.
+        if (_uhdHideOld && !entry.obj && !entry.nineslice && (entry.hitZone || !go.input)) {
           // Purely decorative sprites (corner art, backgrounds, etc.) were never made
           // interactive at all, so there's no hitbox to protect — safe to hide
           // outright. Interactive ones only get hidden once their own zone (see the
@@ -7606,6 +8207,15 @@ _buildSettingsPopup() {
           entry.img.style.width = dw.toFixed(1) + 'px';
           entry.img.style.height = dh.toFixed(1) + 'px';
           entry.img.style.transformOrigin = _isSideArt ? '0% 0%' : ((ox * 100).toFixed(0) + '% ' + (oy * 100).toFixed(0) + '%');
+          if (entry.nineslice) {
+            const _c = entry.corners;
+            entry.img.style.borderWidth = (_c.t * _sy).toFixed(1) + 'px ' + (_c.r * _sx).toFixed(1) + 'px '
+              + (_c.b * _sy).toFixed(1) + 'px ' + (_c.l * _sx).toFixed(1) + 'px';
+            // No "fill" keyword: the center stays transparent so the original canvas
+            // rendering (and anything drawn on top of it) shows through untouched —
+            // only the border frame itself is replaced with the crisp DOM version.
+            entry.img.style.borderImageSlice = _c.t + ' ' + _c.r + ' ' + _c.b + ' ' + _c.l;
+          }
           entry._sized = true;
         }
         if (entry._vis !== true) { entry.img.style.display = ''; entry._vis = true; }
@@ -7622,8 +8232,11 @@ _buildSettingsPopup() {
         // brightness() scale by the tint's channel value, with hue/saturation
         // untouched (unlike grayscale()). Only exact/near-neutral tints are
         // approximated this way; colored tints aren't used on non-obj UHD sprites.
-        if (go.tintTopLeft !== 0xffffff) {
-          const _tintR = (go.tintTopLeft >> 16) & 0xff;
+        // NineSlice game objects don't expose tintTopLeft (always undefined there) —
+        // they carry their tint in a single .tint property instead.
+        const _tintVal = entry.nineslice ? go.tint : go.tintTopLeft;
+        if (_tintVal !== 0xffffff) {
+          const _tintR = (_tintVal >> 16) & 0xff;
           al += (al ? ' ' : '') + 'brightness(' + (_tintR / 255).toFixed(2) + ')';
         }
         if (entry._al !== al) { entry.img.style.filter = al; entry._al = al; }
@@ -7671,6 +8284,14 @@ _buildSettingsPopup() {
   };
   update(_0x54fa47, deltaTime) {
     this._uhdContext = null; // reset between frames so only current overlay's add.image calls get tagged
+    // Speedhack is universal: scale Phaser's own tween/timer/animation clocks too, so
+    // menus, popups and UI transitions speed up along with gameplay (_quantizeDelta
+    // handles the gameplay simulation tick separately, via a raw multiply, not via
+    // these engine clocks, so there's no double-scaling between the two).
+    const _shSpeed = window.speedHack || 1;
+    if (this.tweens.timeScale !== _shSpeed) this.tweens.timeScale = _shSpeed;
+    if (this.time.timeScale !== _shSpeed) this.time.timeScale = _shSpeed;
+    if (this.anims.globalTimeScale !== _shSpeed) this.anims.globalTimeScale = _shSpeed;
     if (window.isEditor) {
         if (this._editorPlaytestActive && !this._editorPlaytestPaused) {
             this._levelEditor._updateEditorPlaytest(deltaTime);
@@ -7735,9 +8356,11 @@ _buildSettingsPopup() {
     this._percentageLabel.setText(displayValue);
     this._percentageLabel.setVisible(window.showPercentage && !this._menuActive);
     this._startPosGui.setVisible(window.startPosSwitcher && !this._menuActive);
+    const _accOn = !!(window.noClip && window.noClipAccuracy);
+    const _deathOn = !!(window.noClip && window.showNoclipDeaths);
     this._noclipIndicator.setVisible(window.noClip && !this._menuActive);
-    this._accuracyIndicator.setVisible(window.noClip && window.noClipAccuracy && !this._menuActive);
-    this._deathsIndicator.setVisible(window.noClip && window.noClipAccuracy && !this._menuActive);
+    this._accuracyIndicator.setVisible(_accOn && !this._menuActive);
+    this._deathsIndicator.setVisible(_deathOn && !this._menuActive);
     this._accuracyIndicator.setText(`${this._player.noclipStats.accuracy.toFixed(2)}%`);
     this._deathsIndicator.setText(`${this._player.noclipStats.deaths} Deaths`);
 
@@ -7753,10 +8376,11 @@ _buildSettingsPopup() {
     } else{
       this._cpsIndicator.setTint(0xffffff);
     }
-    this._cpsIndicator.setPosition(10, 10 + (window.noClip * 20) + (window.noClip && window.noClipAccuracy * 40));
+    const _stackOffset = 10 + (window.noClip ? 20 : 0) + (_accOn ? 20 : 0) + (_deathOn ? 20 : 0);
+    this._cpsIndicator.setPosition(10, _stackOffset);
 
     this._bottedIndicator.setVisible(this._macroBot?.playing);
-    this._bottedIndicator.setPosition(10, 10 + (window.noClip * 20) + (window.noClip && window.noClipAccuracy * 40) + (window.showCPS * 20));
+    this._bottedIndicator.setPosition(10, _stackOffset + (window.showCPS ? 20 : 0));
     if (this._macroBtn){
       this._macroBtn.setVisible(window.macroBot);
     }
@@ -7769,7 +8393,7 @@ _buildSettingsPopup() {
       this._fpsFrames = 0;
     }
     if (this._paused) {
-      if (!this._updateLogPopup && (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown) && !this._spaceWasDown && !this._settingsPopup) {
+      if (!this._updateLogPopup && (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown || this._lKey.isDown) && !this._spaceWasDown && !this._settingsPopup && !this._megaHackMenu) {
         setTimeout(() => {
           this._resumeGame();
         }, 75);
@@ -7779,7 +8403,7 @@ _buildSettingsPopup() {
     }
     if (this._menuActive) {
       const _anyOverlayOpen = this._iconOverlay || this._creatorOverlay || this._searchOverlay ||
-        this._onlineLevelsOverlay || this._settingsLayerOverlay || this._settingsPopup ||
+        this._onlineLevelsOverlay || this._settingsLayerOverlay || this._settingsPopup || this._megaHackMenu ||
         this._infoPopup || this._newgroundsPopup || this._statsLayerOverlay || this._updateLogPopup;
       if (!_anyOverlayOpen && (this._spaceKey.isDown || this._upKey.isDown || this._wKey.isDown) && !this._spaceWasDown) {
         if (this._creatorMenuOpen) return;
@@ -9510,7 +10134,7 @@ _applyMirrorEffect() {
       });
     });
   }
-  _openListScene(title, rowHeight, onBack) {
+  _openListScene(title, rowHeight, onBack, onCleanup) {
     const sw = screenWidth;
     const sh = screenHeight;
     const objects = [];
@@ -10102,6 +10726,9 @@ _applyMirrorEffect() {
           }));
         }
         _processedCache[page] = _lastLevelData;
+        // Re-arm: _uhdContext resets to null every frame, and several awaits above
+        // mean this always runs frames later than that reset.
+        this._uhdContext = 'online';
         _lastLevelData.forEach((levelData, idx) => {
           const cellObjs = _buildLevelCell(levelData, idx);
           activeCellObjs.push(...cellObjs);
@@ -10351,6 +10978,7 @@ _applyMirrorEffect() {
         }
       });
     };
+    this._closeSavedLevelsOverlay = closeOverlay;
     this._makeBouncyButton(backBtn, 1, () => closeOverlay());
     const prevBtn = this.add.image(40, sh / 2, "GJ_GameSheet03", "GJ_arrow_03_001.png")
       .setScrollFactor(0).setDepth(204).setOrigin(0.5).setInteractive().setVisible(false);
@@ -10597,6 +11225,10 @@ _applyMirrorEffect() {
     };
 
     const _rebuildCells = () => {
+      // Re-arm: _uhdContext resets to null every frame, and this can run a frame
+      // (or a fetch) later than that reset — e.g. deferred behind the metadata
+      // Promise.all below, or from the prev/next page buttons.
+      this._uhdContext = 'saved';
       for (const o of activeCellObjs) if (o && o.destroy) o.destroy();
       activeCellObjs = [];
       clearRows();
@@ -10771,13 +11403,15 @@ _applyMirrorEffect() {
 
   _openSearchResultScene(levelData) {
     if (this._searchResultOverlay) return;
+    this._uhdContext = 'searchResult';
 
     const sw = screenWidth;
     const sh = screenHeight;
     const shell = this._openListScene(
       "Online Levels",
       180,
-      () => { this._searchResultOverlay = null; this._openSearchMenu(); }
+      () => this._openSearchMenu(),
+      () => { this._searchResultOverlay = null; }
     );
     const { objects, listLeft, listTop, panelW, panelH, addRow, closeOverlay } = shell;
 
