@@ -5256,7 +5256,7 @@ _closeSettingsPopup() {
     window.showNoclipDeaths = window.showNoclipDeaths ?? false;
     window.speedHack = window.speedHack || 1;
     window._mhMenuFont = window._mhMenuFont || 'Default';
-    window._mhMenuScale = window._mhMenuScale || 1;
+    window._mhMenuScale = window._mhMenuScale || 1.25;
     window._mhMenuOpacity = window._mhMenuOpacity ?? 1;
 
     if (!document.getElementById('mh-style')) {
@@ -5266,7 +5266,6 @@ _closeSettingsPopup() {
         :root {
             --mh-accent: #e83866;
             --mh-bg: #2a2a2a;
-            --mh-bg-alt: #242424;
             --mh-header-bg: #e83866;
         }
         #gj-s03-menu-dom {
@@ -5357,10 +5356,16 @@ _closeSettingsPopup() {
             align-items: center;
             user-select: none;
             white-space: nowrap;
+            position: relative;
         }
-        #gj-s03-menu-dom .mh-item:nth-child(odd) { background-color: var(--mh-bg-alt); }
         #gj-s03-menu-dom .mh-item:not(.placebo):hover { background-color: rgba(255, 255, 255, 0.08); }
-        #gj-s03-menu-dom .mh-item.active { color: var(--mh-accent); }
+        #gj-s03-menu-dom .mh-item.active {
+            color: var(--mh-accent);
+            background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--mh-accent) 15%, transparent));
+        }
+        #gj-s03-menu-dom .mh-item.active:not(.placebo):hover {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, color-mix(in srgb, var(--mh-accent) 25%, transparent));
+        }
         #gj-s03-menu-dom .mh-item.placebo {
             color: #6f6f6f;
             cursor: default;
@@ -5372,14 +5377,24 @@ _closeSettingsPopup() {
             opacity: 0.75;
             margin-left: 10px;
         }
+        #gj-s03-menu-dom .mh-indicator {
+            width: 2px;
+            height: 14px;
+            margin-left: 8px;
+            background-color: #333333;
+            flex: none;
+            transition: background-color 0.1s;
+        }
+        #gj-s03-menu-dom .mh-item.active .mh-indicator { background-color: var(--mh-accent); }
         #gj-s03-menu-dom .mh-item-arrow {
             width: 0; height: 0;
             margin-left: 8px;
-            border-top: 6px solid currentColor;
-            border-right: 6px solid transparent;
-            opacity: 0.55;
+            border-bottom: 8px solid #333333;
+            border-left: 8px solid transparent;
             flex: none;
+            transition: border-bottom-color 0.1s;
         }
+        #gj-s03-menu-dom .mh-item.active .mh-item-arrow { border-bottom-color: var(--mh-accent); }
         #gj-s03-menu-dom .mh-item.label-row {
             cursor: default;
             font-weight: 700;
@@ -5551,7 +5566,7 @@ _closeSettingsPopup() {
           document.documentElement.style.setProperty('--mh-header-bg', c);
         }
       },
-      menuScale: { get: () => window._mhMenuScale || 1, set: v => { window._mhMenuScale = v; content.style.transform = `scale(${v})`; } },
+      menuScale: { get: () => window._mhMenuScale || 1, set: v => { window._mhMenuScale = v; content.style.transform = `scale(${v})`; fitBodyHeights(); } },
       menuOpacity: { get: () => window._mhMenuOpacity ?? 1, set: v => { window._mhMenuOpacity = v; content.style.opacity = v; } },
       font: {
         get: () => window._mhMenuFont || 'Default',
@@ -5603,6 +5618,11 @@ _closeSettingsPopup() {
         input.placeholder = 'Search';
         on(input, 'input', () => applySearch(input.value));
         on(input, 'click', e => e.stopPropagation());
+        // Without this, keystrokes typed here still bubble up to Phaser's
+        // window-level keyboard listener and fire game keybinds (e.g. typing
+        // "restart" triggers the R-bound restart-level action mid-search).
+        on(input, 'keydown', e => e.stopPropagation());
+        on(input, 'keyup', e => e.stopPropagation());
         row.appendChild(input);
         return row;
       }
@@ -5637,6 +5657,8 @@ _closeSettingsPopup() {
             if (!isNaN(v)) wiredReal.set(v);
           });
           on(input, 'click', e => e.stopPropagation());
+          on(input, 'keydown', e => e.stopPropagation());
+          on(input, 'keyup', e => e.stopPropagation());
           row.appendChild(input);
         } else {
           const val = document.createElement('span');
@@ -5654,6 +5676,9 @@ _closeSettingsPopup() {
         val.className = 'mh-item-value';
         val.textContent = String(values[idx] ?? '');
         row.appendChild(val);
+        const arrow = document.createElement('span');
+        arrow.className = 'mh-item-arrow';
+        row.appendChild(arrow);
         if (isReal) {
           row.onclick = () => {
             idx = (idx + 1) % values.length;
@@ -5665,6 +5690,9 @@ _closeSettingsPopup() {
       }
 
       // plain toggle
+      const indicator = document.createElement('span');
+      indicator.className = 'mh-indicator';
+      row.appendChild(indicator);
       const refresh = () => row.classList.toggle('active', isReal && wiredReal.get());
       refresh();
       if (isReal) {
@@ -5687,13 +5715,32 @@ _closeSettingsPopup() {
     // once even that isn't enough room for its full row list.
     const fitBodyHeights = () => {
       const bottomMargin = 16;
+      const scale = window._mhMenuScale || 1;
       allBodies.forEach(body => {
         body.style.maxHeight = '';
         const top = body.getBoundingClientRect().top;
-        const available = window.innerHeight - top - bottomMargin;
+        // getBoundingClientRect() is post-transform (real screen px), but
+        // scrollHeight/maxHeight are pre-transform layout units — convert the
+        // remaining screen space back into that unscaled budget before comparing.
+        const available = (window.innerHeight - top - bottomMargin) / scale;
         if (body.scrollHeight > available) body.style.maxHeight = Math.max(40, available) + 'px';
       });
     };
+
+    // #gj-s03-menu-dom spans the full-screen Phaser parent, not the (possibly
+    // letterboxed) canvas, so anchor .mh-content to the canvas's own corner
+    // instead of (0,0) — otherwise the menu sits in the window's corner rather
+    // than the game's.
+    const positionContent = () => {
+      const canvas = this.game.canvas;
+      const parent = this._uhdParent || canvas.parentElement;
+      if (!canvas || !parent) return;
+      const cRect = canvas.getBoundingClientRect();
+      const pRect = parent.getBoundingClientRect();
+      content.style.left = (cRect.left - pRect.left) + 'px';
+      content.style.top = (cRect.top - pRect.top) + 'px';
+    };
+    positionContent();
 
     // --- Window data, transcribed from the real MegaHack v9 interface ---
     const MEGAHACK = [{ l: 'Search', t: 'search' }, 'Auto-Select', 'Auto-Update',
@@ -5702,7 +5749,7 @@ _closeSettingsPopup() {
       { l: 'Theme', t: 'value', values: ['Pink', 'Classic Red', 'Cyan', 'Purple', 'Green'], real: 'theme' },
       { l: 'Rulesets', t: 'value', values: ['Mega Hack', 'Vanilla', 'Custom'] },
       'Alt Hotkey', 'Icon Hotkey',
-      { l: 'Interface Scale', t: 'value', values: [0.8, 1, 1.2, 1.4], real: 'menuScale' },
+      { l: 'Interface Scale', t: 'value', values: [0.8, 1, 1.25, 1.5], real: 'menuScale' },
       { l: 'Animations', t: 'value', values: [100, 250, 500, 750] },
       { l: 'Sort Interface', t: 'action' }, 'Miscellaneous'];
     const SCREENSHOT_SUB = [{ l: 'Screenshot', t: 'action', real: 'screenshot' }, { l: 'Mode: Save & copy', t: 'value', values: ['Save & copy', 'Save', 'Copy'] }];
@@ -5738,7 +5785,7 @@ _closeSettingsPopup() {
       { l: 'Enable Portal Guide', t: 'toggle', real: 'portalGuide' }, { l: 'Enable Orb Guide', t: 'toggle', real: 'orbGuide' },
       { l: 'Macro Bot', t: 'toggle', real: 'macroBot' }];
     const STATUS = ['Field Formatting', { l: 'Font', t: 'value', values: FONT_VALUES, real: 'font' },
-      { l: 'Scale', t: 'value', values: [1, 1.25, 1.5, 0.75], real: 'menuScale' }, { l: 'Opacity', t: 'value', values: [1, 0.75, 0.5], real: 'menuOpacity' },
+      { l: 'Scale', t: 'value', values: [0.8, 1, 1.25, 1.5], real: 'menuScale' }, { l: 'Opacity', t: 'value', values: [1, 0.75, 0.5], real: 'menuOpacity' },
       'Hide Status', 'Message', 'Testmode', 'Cheat Indicator', { l: 'FPS Counter', t: 'toggle', real: 'showFPS' },
       { l: 'CPS Counter', t: 'toggle', real: 'showCPS' }, 'Best Run', { l: 'Noclip Accuracy', t: 'toggle', real: 'noclipAccuracy' },
       { l: 'Noclip Deaths', t: 'toggle', real: 'noclipDeaths' }, 'Attempts', 'Jumps', { l: 'Percentage', t: 'toggle', real: 'showPercentage' }, 'Level Time', 'Session Time',
@@ -5792,6 +5839,7 @@ _closeSettingsPopup() {
     buildWindowInto(gUtility, 'Replay', REPLAY_SUB);
 
     on(window, 'resize', fitBodyHeights);
+    on(window, 'resize', positionContent);
 
     this._megaHackCleanups = cleanups;
     this._megaHackMenu = container;
@@ -7809,7 +7857,45 @@ _closeSettingsPopup() {
     if (!_0x310c5b) {
       l(1138);
     }
+    // Phaser's ScaleManager doesn't fullscreen the canvas in place — on
+    // startFullscreen() it creates its own wrapper div, inserts it as a new
+    // sibling of the canvas, and moves the canvas inside that (reversed on
+    // exit, restoring the canvas to its original parent). That reparenting
+    // already happened by the time this fires. Our UHD overlay layer and the
+    // MegaHack DOM menu were appended into the canvas's *old* parent, so once
+    // fullscreen starts they're siblings of the new fullscreen element rather
+    // than descendants of it — outside what the browser actually paints while
+    // fullscreen is active, so they simply vanish. Follow the canvas.
+    this._resyncUhdParent();
+    // Chrome/Edge only: while fullscreen, lock the Escape key via the Keyboard
+    // Lock API so a single tap doesn't instantly exit — the browser then
+    // requires a press-and-hold instead (and shows its own "Hold ESC to exit
+    // fullscreen" hint). Unsupported browsers just keep tap-to-exit.
+    if (navigator.keyboard && navigator.keyboard.lock) {
+      if (_0x310c5b) {
+        // Only takes effect for fullscreen entered via this page's own JS call
+        // (this.scale.startFullscreen()) — the browser won't grant it for
+        // native F11 fullscreen, and only Chromium browsers implement it at
+        // all (Firefox/Safari: no-op, Escape stays tap-to-exit). Logged rather
+        // than silently swallowed since this API is genuinely flaky in the
+        // wild — even Nvidia's GeForce NOW hits the same inconsistency.
+        navigator.keyboard.lock(['Escape']).then(
+          () => console.log('[MegaHack] Escape keyboard-locked: hold to exit fullscreen.'),
+          (err) => console.warn('[MegaHack] keyboard.lock() rejected, Escape will exit fullscreen normally:', err)
+        );
+      } else {
+        try { navigator.keyboard.unlock(); } catch (_0x1a2b3c) {}
+      }
+    }
     this.time.delayedCall(200, () => this._applyScreenResize());
+  }
+  _resyncUhdParent() {
+    const newParent = this.game.canvas.parentElement || document.body;
+    if (newParent === this._uhdParent) return;
+    this._uhdParent = newParent;
+    if (this._uhdCont) newParent.appendChild(this._uhdCont);
+    if (this._uhdFlashDiv) newParent.appendChild(this._uhdFlashDiv);
+    if (this._megaHackMenu) newParent.appendChild(this._megaHackMenu);
   }
   _applyScreenResize() {
     if (this.scale.isFullscreen) {
@@ -7958,6 +8044,17 @@ _closeSettingsPopup() {
       const _pr = this._uhdParent.getBoundingClientRect();
       const _ox = _cr.left - _pr.left;
       const _oy = _cr.top - _pr.top;
+      // Each entry's img.style.width/height is only ever written once (see
+      // `entry._sized` below) — cheap, since it almost never changes. But the
+      // canvas's rendered size (and so _sx/_sy) does change across a fullscreen
+      // toggle, so a stale cached size then renders at the wrong scale while its
+      // position (which IS recomputed every frame) jumps to match the new one.
+      // Force every entry to re-measure whenever the scale itself has moved.
+      if (this._uhdLastSx !== _sx || this._uhdLastSy !== _sy) {
+        for (const entry of this._uhdMap.values()) entry._sized = false;
+        this._uhdLastSx = _sx;
+        this._uhdLastSy = _sy;
+      }
       // Noclip death flash: mirror the canvas rectangle's alpha above everything
       if (this._uhdFlashDiv) {
         const _flashOp = (this.noclipFlash && this.noclipFlash.alpha > 0) ? this.noclipFlash.alpha.toFixed(2) : '0';
