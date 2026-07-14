@@ -29,6 +29,9 @@ class AudioManager {
     const parsedOffset = Number(rawOffset);
     return Number.isFinite(parsedOffset) ? parsedOffset : 0;
   }
+  _shouldUsePracticeSong() {
+    return !!(this._scene?._practicedMode?.practiceMode && !window.practiceMusicBypass);
+  }
   _getOfficialSongAudioPath(songKey = window.currentlevel?.[0]) {
     if (!songKey || !Array.isArray(window.allLevels)) return null;
 
@@ -202,7 +205,7 @@ class AudioManager {
       this._music.stop();
       this._music.destroy();
     }
-    if (this._scene._practicedMode && this._scene._practicedMode.practiceMode) {
+    if (this._shouldUsePracticeSong()) {
       const practiceSongKey = "StayInsideMe";
       if (this._scene.cache.audio.exists(practiceSongKey)) {
         this._music = this._scene.sound.add(practiceSongKey, {
@@ -372,7 +375,7 @@ class AudioManager {
       this._music.stop();
       this._music.destroy();
     }
-    if (this._scene._practicedMode && this._scene._practicedMode.practiceMode) {
+    if (this._shouldUsePracticeSong()) {
       const practiceSongKey = "StayInsideMe";
       if (this._scene.cache.audio.exists(practiceSongKey)) {
         this._music = this._scene.sound.add(practiceSongKey, {
@@ -443,10 +446,15 @@ class AudioManager {
   playEffect(soundEffect, volumeObj = {}) {
     if (this._scene.sound.context && this._scene.cache.audio.exists(soundEffect)) {
       const soundObject = this._scene.sound.add(soundEffect);
-      soundObject.play();
-      if (volumeObj.volume) {
-        soundObject.setVolume(volumeObj.volume);
-      }
+      const rawBaseVolume = volumeObj && Object.prototype.hasOwnProperty.call(volumeObj, "volume")
+        ? Number(volumeObj.volume)
+        : 1;
+      const rawSfxVolume = Number(this._scene?._sfxVolume ?? localStorage.getItem("userSfxVol") ?? 1);
+      const baseVolume = Number.isFinite(rawBaseVolume) ? rawBaseVolume : 1;
+      const sfxVolume = Number.isFinite(rawSfxVolume) ? rawSfxVolume : 1;
+      soundObject.play({
+        volume: Math.max(0, baseVolume * sfxVolume)
+      });
     }
   }
   _setupAnalyser() {
@@ -460,12 +468,15 @@ class AudioManager {
     }
   }
   _ensureCorrectMusicMode() {
+    if (this._scene?._practiceMusicBypassChangePendingUntilRestart) return;
     if (this._pendingMusicLoadKey || this._pendingOnlineSongLoadKey) return;
     if (!this._music) return;
-    const isPracticeMode = this._scene._practicedMode && this._scene._practicedMode.practiceMode;
-    const expectedSongKey = isPracticeMode ? "StayInsideMe" : window.currentlevel?.[0];
-    if (this._music.key !== expectedSongKey && window._onlineSongKey !== expectedSongKey) {
-      const offset = this._scene._getStartPosMusicOffset();
+    const expectedSongKey = this._shouldUsePracticeSong() ? "StayInsideMe" : window.currentlevel?.[0];
+    const currentSongKey = this._music?.key || (this._onlineSource ? window._onlineSongKey : null);
+    if (currentSongKey !== expectedSongKey) {
+      const offset = typeof this._scene._getCurrentMusicSyncOffset === "function"
+        ? this._scene._getCurrentMusicSyncOffset()
+        : this._scene._getStartPosMusicOffset();
       this.startMusic(offset);
     }
   }

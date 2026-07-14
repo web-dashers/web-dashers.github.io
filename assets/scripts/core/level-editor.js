@@ -166,8 +166,8 @@ class LevelEditor {
     const bottomY = screenHeight - 100;
 
     this._editorGui = this.add.container(screenWidth - 40, 40).setScrollFactor(0).setDepth(1000);
-    const editorSettings = this.add.image(-87, 0, "GJ_GameSheet03", "GJ_optionsBtn02_001.png").setInteractive().setAngle(-90).setFlipX(true);
-    const editorPause = this.add.image(0, 0, "GJ_GameSheet03", "GJ_pauseBtn_001.png").setInteractive().setFlipX(true).setAngle(-90);
+    const editorSettings = this.add.image(-87, 0, "GJ_GameSheet03", "GJ_optionsBtn02_001.png").setInteractive();
+    const editorPause = this.add.image(0, 0, "GJ_GameSheet03", "GJ_pauseBtn_001.png").setInteractive();
     this._deleteButton = this.add.image(-(screenWidth - 40) + 50, 0, "GJ_GameSheet03", "GJ_trashBtn_001.png").setInteractive();
     this._editorGui.add([editorSettings, editorPause, this._deleteButton]);
     this._makeBouncyButton(editorSettings, 1.0, () => {this._openEditorLevelSettingsPopup();}, () => !this._editorLevelSettingsPopup);
@@ -239,19 +239,17 @@ class LevelEditor {
     });
 
     this._sideButtons = this.add.container(screenWidth - 48, 120).setScrollFactor(0).setDepth(1000);
-    this._copyPasteBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_duplicateObjectBtn2_001.png").setInteractive().setAngle(90).setFlipY(true).setScale(1);
+    this._copyPasteBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_duplicateObjectBtn2_001.png").setInteractive().setScale(1);
     this._editObjectBtn = this._addSafeFrameImage(0, 75, "GJ_editObjBtn3_001.png", 1);
     if (this._editObjectBtn?.setInteractive) this._editObjectBtn.setInteractive();
-    if (this._editObjectBtn?.setAngle) this._editObjectBtn.setAngle(90);
-    if (this._editObjectBtn?.setFlipY) this._editObjectBtn.setFlipY(true);
+    if (this._editObjectBtn?.setAngle) this._editObjectBtn;
+    if (this._editObjectBtn?.setFlipY) this._editObjectBtn;
 
     this._editGroupBtn = this._addSafeFrameImage(-75, 75, "GJ_groupIDBtn2_001.png", 1);
     if (this._editGroupBtn?.setInteractive) this._editGroupBtn.setInteractive();
-    if (this._editGroupBtn?.setAngle) this._editGroupBtn.setAngle(90);
-    if (this._editGroupBtn?.setFlipY) this._editGroupBtn.setFlipY(true);
     this._editGroupBtnVisual = this._editGroupBtn;
     this._editGroupBtnHit = this._editGroupBtn;
-    this._deselectBtn = this.add.image(0, 150, "GJ_GameSheet03", "GJ_deSelBtn2_001.png").setInteractive().setAngle(90).setFlipY(true).setScale(1);
+    this._deselectBtn = this.add.image(0, 150, "GJ_GameSheet03", "GJ_deSelBtn2_001.png").setInteractive().setScale(1);
 
     this._editorLayerSelector = this.add.container(-75, 275);
     this._editorLayerFirstBtn = this.add.image(-90, 0, "GJ_GameSheet03", "GJ_arrow_02_001.png").setInteractive().setScale(0.45).setAlpha(0.5);
@@ -304,8 +302,8 @@ class LevelEditor {
 
     this._zoomButtons = this.add.container(48, screenHeight / 2 - 20).setScrollFactor(0).setDepth(1000);
     
-    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
-    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(0.9);
+    const zoomInBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_zoomInBtn_001.png").setInteractive().setScale(0.9);
+    const zoomOutBtn = this.add.image(0, 75, "GJ_GameSheet03", "GJ_zoomOutBtn_001.png").setInteractive().setScale(0.9);
     
     this._zoomButtons.add([zoomInBtn, zoomOutBtn]);
 
@@ -315,9 +313,9 @@ class LevelEditor {
     this._editorPlaytestControls = this.add.container(48, screenHeight / 2 - 110).setScrollFactor(0).setDepth(1500);
     const playtestButtonScale = 1.1;
 
-    this._editorPlaytestPlayBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_playEditorBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(playtestButtonScale);
-    this._editorPlaytestPauseBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_pauseEditorBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(playtestButtonScale).setVisible(false);
-    this._editorPlaytestStopBtn = this.add.image(90, 0, "GJ_GameSheet03", "GJ_stopEditorBtn_001.png").setAngle(90).setFlipY(true).setInteractive().setScale(playtestButtonScale).setVisible(false);
+    this._editorPlaytestPlayBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_playEditorBtn_001.png").setInteractive().setScale(playtestButtonScale);
+    this._editorPlaytestPauseBtn = this.add.image(0, 0, "GJ_GameSheet03", "GJ_pauseEditorBtn_001.png").setInteractive().setScale(playtestButtonScale).setVisible(false);
+    this._editorPlaytestStopBtn = this.add.image(90, 0, "GJ_GameSheet03", "GJ_stopEditorBtn_001.png").setInteractive().setScale(playtestButtonScale).setVisible(false);
 
     this._editorPlaytestControls.add([
         this._editorPlaytestPlayBtn,
@@ -524,6 +522,7 @@ class LevelEditor {
 
     this._editorPlaytestDeathMarks = [];
     this._editorPlaytestLastTrailPoint = null;
+    this._editorPlaytestLastTrailPoint2 = null;
   }
 
 
@@ -541,25 +540,34 @@ class LevelEditor {
   _drawEditorPlaytestTrailPoint() {
     if (!this._editorPlaytestActive || !this._player) return;
 
-    const point = {
-        x: this._playerWorldX,
-        y: b(this._state.y)
+    const drawPointForState = (state, lastKey, color) => {
+        if (!state || state.isDead) return;
+        const point = {
+            x: this._playerWorldX,
+            y: b(state.y)
+        };
+
+        const last = this[lastKey];
+        if (last) {
+            const dx = point.x - last.x;
+            const dy = point.y - last.y;
+            if ((dx * dx) + (dy * dy) >= 2) {
+                const gfx = this._ensureEditorPlaytestTrail();
+                gfx.lineStyle(2, color, 0.95);
+                gfx.lineBetween(last.x, last.y, point.x, point.y);
+            }
+        }
+
+        this[lastKey] = point;
     };
 
-    const last = this._editorPlaytestLastTrailPoint;
-    if (last) {
-        const dx = point.x - last.x;
-        const dy = point.y - last.y;
-        if ((dx * dx) + (dy * dy) >= 2) {
-            const gfx = this._ensureEditorPlaytestTrail();
-            gfx.lineStyle(2, 0x00ff00, 0.95);
-            gfx.lineBetween(last.x, last.y, point.x, point.y);
-        }
+    drawPointForState(this._state, "_editorPlaytestLastTrailPoint", 0x00ff00);
+    if (this._isDual && this._state2 && !this._state2.isDead) {
+        drawPointForState(this._state2, "_editorPlaytestLastTrailPoint2", 0x00ffff);
+    } else {
+        this._editorPlaytestLastTrailPoint2 = null;
     }
-
-    this._editorPlaytestLastTrailPoint = point;
   }
-
 
   _addEditorPlaytestDeathMark() {
     const x = this._playerWorldX;
@@ -621,6 +629,35 @@ class LevelEditor {
 
     for (const collider of this._level.objects) {
         if (!collider) continue;
+        if (Number.isInteger(collider._eeObjectId)) {
+            const saveObj = this._getEditorSaveObjectForObjectId?.(collider._eeObjectId);
+            if (saveObj) this._syncEditorColliderWithSaveObject(collider, saveObj);
+        }
+
+        if (collider.type === "portal_teleport" && Number.isInteger(collider._eeObjectId)) {
+            const saveObj = this._getEditorSaveObjectForObjectId?.(collider._eeObjectId);
+            if (saveObj && parseInt(saveObj.id ?? 0, 10) === 747) {
+                const worldX = (parseFloat(saveObj.x ?? saveObj._raw?.[2] ?? saveObj._raw?.["2"] ?? 0) || 0) * 2;
+                const worldY = (parseFloat(saveObj.y ?? saveObj._raw?.[3] ?? saveObj._raw?.["3"] ?? 0) || 0) * 2;
+                const portalRot = parseFloat(saveObj.rot ?? saveObj._raw?.[6] ?? saveObj._raw?.["6"] ?? 0) || 0;
+                const portalRotRad = portalRot * Math.PI / 180;
+                const hitboxShift = -30;
+                const offsetY = parseFloat(saveObj._raw?.[54] ?? saveObj._raw?.["54"] ?? 90);
+                const validOffsetY = Number.isFinite(offsetY) ? offsetY : 90;
+                collider.x = worldX - Math.cos(portalRotRad) * hitboxShift;
+                collider.y = worldY + Math.sin(portalRotRad) * hitboxShift;
+                collider._baseX = collider.x;
+                collider._baseY = collider.y;
+                collider._origBaseX = collider.x;
+                collider._origBaseY = collider.y;
+                collider.rotationDegrees = portalRot;
+                collider.portalX = worldX;
+                collider.portalY = worldY;
+                collider.teleportTargetX = worldX;
+                collider.teleportTargetY = worldY + validOffsetY * 2;
+                collider.teleportYOffset = validOffsetY * 2;
+            }
+        }
 
         if (typeof this._level._addCollisionToSection === "function") {
             this._level._addCollisionToSection(collider);
@@ -666,6 +703,59 @@ class LevelEditor {
   }
 
 
+  _syncEditorColliderWithSaveObject(collider, saveObj) {
+    if (!collider || !saveObj) return;
+
+    const worldX = (parseFloat(saveObj.x ?? saveObj._raw?.[2] ?? saveObj._raw?.["2"] ?? 0) || 0) * 2;
+    const worldY = (parseFloat(saveObj.y ?? saveObj._raw?.[3] ?? saveObj._raw?.["3"] ?? 0) || 0) * 2;
+    const rot = parseFloat(saveObj.rot ?? saveObj._raw?.[6] ?? saveObj._raw?.["6"] ?? 0) || 0;
+    const rotRad = rot * Math.PI / 180;
+
+    if (collider.type === "portal_teleport" && parseInt(saveObj.id ?? 0, 10) === 747) {
+        const hitboxShift = -30;
+        const offsetY = parseFloat(saveObj._raw?.[54] ?? saveObj._raw?.["54"] ?? 90);
+        const validOffsetY = Number.isFinite(offsetY) ? offsetY : 90;
+        collider.x = worldX - Math.cos(rotRad) * hitboxShift;
+        collider.y = worldY + Math.sin(rotRad) * hitboxShift;
+        collider.portalX = worldX;
+        collider.portalY = worldY;
+        collider.teleportTargetX = worldX;
+        collider.teleportTargetY = worldY + validOffsetY * 2;
+        collider.teleportYOffset = validOffsetY * 2;
+    } else {
+        collider.x = worldX;
+        collider.y = worldY;
+        if (collider.portalX !== undefined) collider.portalX = worldX;
+        if (collider.portalY !== undefined) collider.portalY = worldY;
+    }
+
+    collider.rotation = rot;
+    collider.rotationDegrees = rot;
+    if (collider.orbId !== undefined) collider.orbRotation = rot;
+    collider._baseX = collider.x;
+    collider._baseY = collider.y;
+    collider._origBaseX = collider.x;
+    collider._origBaseY = collider.y;
+    collider._baseRotationDegrees = rot;
+    collider._origRotationDegrees = rot;
+    collider._eeMoveBaseX = collider.x;
+    collider._eeMoveBaseY = collider.y;
+    collider._eeInitialBaseX = collider.x;
+    collider._eeInitialBaseY = collider.y;
+    collider._eeInitialRotationDegrees = rot;
+  }
+
+
+  _syncEditorCollidersForObjectId(objectId, saveObj = null) {
+    const resolvedSaveObj = saveObj || this._getEditorSaveObjectForObjectId(objectId);
+    if (!resolvedSaveObj) return;
+    const colliders = this._getEditorCollidersForObjectId(objectId);
+    for (const collider of colliders) {
+        this._syncEditorColliderWithSaveObject(collider, resolvedSaveObj);
+    }
+  }
+
+
   _hideEditorPlaytestGlowLayers() {
     const hideForPlayer = (player) => {
         if (!player) return;
@@ -706,6 +796,8 @@ class LevelEditor {
         player.setBirdVisible(false);
         player.setSpiderVisible(false);
         player.setRobotVisible(false);
+        player._hitboxTrail = [];
+        if (player._hitboxGraphics?.clear) player._hitboxGraphics.clear();
     };
 
     hidePlayer(this._player);
@@ -815,8 +907,11 @@ class LevelEditor {
         return;
     }
 
+    const startPosY = Number.isFinite(Number(pos.y)) ? Number(pos.y) : 30;
     this._playerWorldX = pos.x || 0;
-    this._state.y = pos.y ?? 30;
+    this._state.y = startPosY;
+    this._state.lastY = startPosY;
+    this._state.lastGroundPosY = startPosY;
     this._state.onGround = true;
     this._state.canJump = true;
     this._player.setCubeVisible(true);
@@ -834,8 +929,8 @@ class LevelEditor {
     if (gamemode == 1) {
         this._player.enterShipMode();
     } else if (gamemode == 2) {
-        this._state.y = 30;
-        this._player.enterBallMode({ y: 30 });
+        this._state.y = startPosY;
+        this._player.enterBallMode({ y: startPosY });
     } else if (gamemode == 3) {
         this._player.enterUfoMode();
     } else if (gamemode == 4) {
@@ -857,6 +952,10 @@ class LevelEditor {
     }
 
     this._level.fastForwardTriggers(pos.x || 0, this._colorManager);
+    if (this._player) {
+        this._player._lastCollisionWorldX = Number.isFinite(Number(this._playerWorldX)) ? Number(this._playerWorldX) : null;
+        this._player._lastCollisionWorldY = startPosY;
+    }
     this._level.applyColorChannels(this._colorManager);
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
@@ -946,6 +1045,7 @@ class LevelEditor {
     this._isDual = false;
     this._state2.reset();
     this._player2.reset();
+    this._player2.setInvertedColors?.(true);
     this._player2.setCubeVisible(false);
     this._player2.setShipVisible(false);
     this._player2.setBallVisible(false);
@@ -1063,11 +1163,46 @@ class LevelEditor {
     this._state.upKeyDown = true;
     this._state.upKeyPressed = true;
     this._state.queuedHold = true;
+    if (this._isDual && this._state2 && !this._state2.isDead) {
+        this._state2.upKeyDown = true;
+        this._state2.upKeyPressed = true;
+        this._state2.queuedHold = true;
+    }
 
+    const primaryGravityBefore = !!this._state.gravityFlipped;
     if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && this._state.canJump) {
         this._player.updateJump(0);
     } else if (this._state.isUfo) {
         this._player.updateJump(0);
+    }
+    const primaryGravityChanged = this._isDual && !!this._state.gravityFlipped !== primaryGravityBefore;
+    let primaryGravitySynced = false;
+    if (primaryGravityChanged) {
+        primaryGravitySynced = this._syncDualGlobalsFromPrimary?.({
+            skipBallInputGravity: this._state.isBall,
+            skipSpiderInputGravity: this._state.isSpider
+        }) || false;
+    }
+
+    if (this._isDual && this._player2 && this._state2 && !this._state2.isDead) {
+        if (this._shouldSuppressDualGravityAction?.(this._state2, primaryGravitySynced)) {
+            this._state2.upKeyPressed = false;
+            this._state2.queuedHold = false;
+        }
+        const secondaryGravityBefore = !!this._state2.gravityFlipped;
+        const secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+        const secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
+        if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
+            this._player2.updateJump(0);
+        } else if (this._state2.isUfo) {
+            this._player2.updateJump(0);
+        }
+        if (!!this._state2.gravityFlipped !== secondaryGravityBefore) {
+            this._syncDualGlobalsFromSecondary?.({
+                skipBallInputGravity: secondaryBallInputGravity,
+                skipSpiderInputGravity: secondarySpiderInputGravity
+            });
+        }
     }
   }
 
@@ -1076,6 +1211,9 @@ class LevelEditor {
     this._state.upKeyDown = false;
     this._state.upKeyPressed = false;
     this._state.queuedHold = false;
+    this._state2.upKeyDown = false;
+    this._state2.upKeyPressed = false;
+    this._state2.queuedHold = false;
   }
 
 
@@ -1126,26 +1264,61 @@ class LevelEditor {
         for (let i = 0; i < subSteps; i++) {
             this._state.lastY = this._state.y;
             this._physicsFrame++;
+            const dualInputState = {
+                upKeyDown: this._state.upKeyDown,
+                upKeyPressed: this._state.upKeyPressed,
+                queuedHold: this._state.queuedHold
+            };
+            const primaryGravityBefore = !!this._state.gravityFlipped;
+            const primarySharedBefore = this._getDualSharedSignature?.(this._state);
             this._player.updateJump(verticalDelta);
             this._state.y += this._state.yVelocity * verticalDelta;
             this._player.checkCollisions(this._playerWorldX - centerX);
+            const primaryGravityChanged = this._isDual && !!this._state.gravityFlipped !== primaryGravityBefore;
+            let primaryGravitySynced = false;
+            if (this._isDual && primarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state) !== primarySharedBefore) {
+                primaryGravitySynced = this._syncDualGlobalsFromPrimary?.({
+                    skipBallInputGravity: primaryGravityChanged && this._state.isBall && dualInputState.upKeyPressed,
+                    skipSpiderInputGravity: primaryGravityChanged && this._state.isSpider && dualInputState.upKeyPressed
+                }) || false;
+            }
+
+            if (this._isDual && this._state.isDead && !this._state2.isDead) {
+                this._player2.killPlayer();
+            }
+
+            this._playerWorldX += horizontalDelta;
 
             if (this._isDual && !this._state2.isDead) {
-                this._state2.upKeyDown = this._state.upKeyDown;
-                this._state2.upKeyPressed = this._state.upKeyPressed;
-                this._state2.queuedHold = this._state.queuedHold;
+                this._copyDualInputFlags?.(dualInputState, this._state2);
+                if (this._shouldSuppressDualGravityAction?.(this._state2, primaryGravitySynced)) {
+                    this._state2.upKeyPressed = false;
+                    this._state2.queuedHold = false;
+                }
                 this._state2.lastY = this._state2.y;
+                const secondarySharedBefore = this._getDualSharedSignature?.(this._state2);
+                const secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
+                const secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
                 this._player2.updateJump(verticalDelta);
                 this._state2.y += this._state2.yVelocity * verticalDelta;
-                this._player2.checkCollisions(this._playerWorldX - centerX);
+                this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
+                if (this._isDual && !this._state2.isDead && secondarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state2) !== secondarySharedBefore) {
+                    this._syncDualGlobalsFromSecondary?.({
+                        skipBallInputGravity: secondaryBallInputGravity,
+                        skipSpiderInputGravity: secondarySpiderInputGravity
+                    });
+                }
+                this._resolveDualBallOverlap?.();
                 if (this._state2.isDead && !this._state.isDead) {
                     this._player.killPlayer();
                 }
+                if (this._state.isDead && !this._state2.isDead) {
+                    this._player2.killPlayer();
+                }
+                this._ensureDualFlyBounds?.();
             }
 
             if (this._state.isDead) break;
-
-            this._playerWorldX += horizontalDelta;
 
             if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
                 if (this._state.isBall) {
@@ -1158,6 +1331,32 @@ class LevelEditor {
                 } else if (this._state.isDashing) {
                     this._player.updateDashRotation(u);
                 }
+            }
+
+            if (this._isDual && !this._state2.isDead && !this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo) {
+                if (this._state2.isBall) {
+                    const ball2OnSurface = this._state2.onGround || this._state2.onCeiling;
+                    this._player2.updateBallRoll(horizontalDelta, ball2OnSurface);
+                } else if (this._state2.onGround) {
+                    this._player2.updateGroundRotation(verticalDelta);
+                } else if (this._player2.rotateActionActive) {
+                    this._player2.updateRotateAction(u);
+                } else if (this._state2.isDashing) {
+                    this._player2.updateDashRotation(u);
+                }
+            }
+
+            if (!this._player._hitboxTrail) this._player._hitboxTrail = [];
+            if (!this._state.isDead) {
+                const trailSize = this._state.isMini ? 18 : 30;
+                this._player._hitboxTrail.push({ x: this._playerWorldX, y: this._state.y, rotation: this._player._rotation, size: trailSize, isWave: this._state.isWave });
+                if (this._player._hitboxTrail.length > 180) this._player._hitboxTrail.shift();
+            }
+            if (this._isDual && !this._state2.isDead) {
+                if (!this._player2._hitboxTrail) this._player2._hitboxTrail = [];
+                const trailSize2 = this._state2.isMini ? 18 : 30;
+                this._player2._hitboxTrail.push({ x: this._playerWorldX, y: this._state2.y, rotation: this._player2._rotation, size: trailSize2, isWave: this._state2.isWave });
+                if (this._player2._hitboxTrail.length > 180) this._player2._hitboxTrail.shift();
             }
         }
     } finally {
@@ -1238,6 +1437,9 @@ class LevelEditor {
 
     if (this._state.isFlying) {
         this._player.updateShipRotation(quantizedDelta);
+    }
+    if (this._isDual && this._state2.isFlying && !this._state2.isDead) {
+        this._player2.updateShipRotation(quantizedDelta);
     }
 
     this._syncEditorPlaytestPlayerVisual(deltaTime / 1000);
@@ -1600,6 +1802,7 @@ class LevelEditor {
         });
         const activeCatDef = OBJECT_CATEGORIES.find(c => c.id === this._currentBuildCategory);
         for (let i = 1; i <= this._totalIds; i++) {
+            if (i === 749) continue;
             const def = getObjectFromId(i);
             const rawDef = allObjectsData[String(i)]; 
             
@@ -1616,15 +1819,15 @@ class LevelEditor {
             { dx: -3, dy: 0, icon: "edit_upBtn_001.png", angle: 270, scale: 1, flipX: false },
             { dx: 3, dy: 0,  icon: "edit_upBtn_001.png", angle: 90, scale: 1, flipX: false },
 
-            { dx: 0, dy: -60, icon: "edit_upBtn2_001.png", angle: 90, scale: 1, flipX: false },
-            { dx: 0, dy: 60,  icon: "edit_upBtn2_001.png", angle: 270, scale: 1, flipX: false },
-            { dx: -60, dy: 0, icon: "edit_upBtn2_001.png", angle: 0, scale: 1, flipX: false },
-            { dx: 60, dy: 0,  icon: "edit_upBtn2_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: 0, dy: -60, icon: "edit_upBtn2_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 0, dy: 60,  icon: "edit_upBtn2_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: -60, dy: 0, icon: "edit_upBtn2_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: 60, dy: 0,  icon: "edit_upBtn2_001.png", angle: 90, scale: 1, flipX: false },
 
-            { dx: 0, dy: -300, icon: "edit_upBtn3_001.png", angle: 90, scale: 1, flipX: false },
-            { dx: 0, dy: 300,  icon: "edit_upBtn3_001.png", angle: 270, scale: 1, flipX: false },
-            { dx: -300, dy: 0, icon: "edit_upBtn3_001.png", angle: 0, scale: 1, flipX: false },
-            { dx: 300, dy: 0,  icon: "edit_upBtn3_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: 0, dy: -300, icon: "edit_upBtn3_001.png", angle: 0, scale: 1, flipX: false },
+            { dx: 0, dy: 300,  icon: "edit_upBtn3_001.png", angle: 180, scale: 1, flipX: false },
+            { dx: -300, dy: 0, icon: "edit_upBtn3_001.png", angle: 270, scale: 1, flipX: false },
+            { dx: 300, dy: 0,  icon: "edit_upBtn3_001.png", angle: 90, scale: 1, flipX: false },
 
             { dx: 0, dy: -1, icon: "edit_upBtn_001.png", angle: 0, scale: 0.7, flipX: false },
             { dx: 0, dy: 1,  icon: "edit_upBtn_001.png", angle: 180, scale: 0.7, flipX: false },
@@ -1795,21 +1998,27 @@ class LevelEditor {
     const selectedObjectIds = this._getCurrentSelectedEditorObjectIds();
     if (!selectedObjectIds.length) return;
 
+    if (selectedObjectIds.length === 1 && this._editorSelectedTeleportExitObjectId === selectedObjectIds[0]) {
+        const selectedObjectId = selectedObjectIds[0];
+        const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
+        if (!saveObj || parseInt(saveObj.id ?? 0, 10) !== 747) return;
+
+        const currentOffset = parseFloat(saveObj._raw?.[54] ?? saveObj._raw?.["54"] ?? 90);
+        const nextOffset = (Number.isFinite(currentOffset) ? currentOffset : 90) - (dy / 2);
+        this._setTeleportExitYOffset(saveObj, nextOffset);
+        this._refreshTeleportExitVisualsForSaveObject(saveObj);
+        this._editorTeleportExitSelectionRequest = selectedObjectId;
+        this._selectEditorObjectsByIds([selectedObjectId], this._currentSelectedTintByObjectId?.[selectedObjectId] ?? 0x00ff00);
+        this._refreshEditorCollisionCaches();
+        this._applyEditorLayerFilter?.();
+        return;
+    }
+
     for (const selectedObjectId of selectedObjectIds) {
         const sprites = this._level.objectSprites[selectedObjectId];
         const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
-        const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
 
         if (!saveObj) continue;
-
-        for (const collider of colliders) {
-            collider.x += dx;
-            collider.y += dy;
-            collider._baseX = (collider._baseX ?? collider.x - dx) + dx;
-            collider._baseY = (collider._baseY ?? collider.y - dy) + dy;
-            collider._origBaseX = (collider._origBaseX ?? collider.x - dx) + dx;
-            collider._origBaseY = (collider._origBaseY ?? collider.y - dy) + dy;
-        }
 
         saveObj.x += dx / 2;
         saveObj.y -= dy / 2;
@@ -1817,6 +2026,7 @@ class LevelEditor {
             saveObj._raw["2"] = String(saveObj.x);
             saveObj._raw["3"] = String(saveObj.y);
         }
+        this._syncEditorCollidersForObjectId(selectedObjectId, saveObj);
 
         if (sprites) {
             for (const s of sprites) {
@@ -1885,6 +2095,10 @@ class LevelEditor {
         for (const collider of colliders) {
             collider.rotation = saveObj.rot;
             collider.rotationDegrees = saveObj.rot;
+            if (collider.orbId !== undefined) collider.orbRotation = saveObj.rot;
+            collider._baseRotationDegrees = saveObj.rot;
+            collider._origRotationDegrees = saveObj.rot;
+            collider._eeInitialRotationDegrees = saveObj.rot;
         }
 
         if (sprites) {
@@ -1913,40 +2127,53 @@ class LevelEditor {
 
 
   _flipObject(axis) {
-    const selectedObjectId = window.editorSelectedObject;
-    if (selectedObjectId === -1) return;
+    const selectedObjectIds = this._getCurrentSelectedEditorObjectIds();
+    if (!selectedObjectIds.length) return;
 
-    const sprites = this._level.objectSprites[selectedObjectId];
-    const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
+    for (const selectedObjectId of selectedObjectIds) {
+        const sprites = this._level.objectSprites[selectedObjectId];
+        const saveObj = this._getEditorSaveObjectForObjectId(selectedObjectId);
+        const colliders = this._getEditorCollidersForObjectId(selectedObjectId);
 
-    if (!saveObj) return;
+        if (!saveObj) continue;
 
-    if (axis === "x") {
-        saveObj.flipX = !saveObj.flipX;
-        if (saveObj._raw) saveObj._raw["4"] = saveObj.flipX ? "1" : "0";
+        if (axis === "x") {
+            saveObj.flipX = !saveObj.flipX;
+            if (saveObj._raw) saveObj._raw["4"] = saveObj.flipX ? "1" : "0";
 
-        if (sprites) {
-            for (const s of sprites) {
-                if (!s) continue;
-                s.setFlipX(!s.flipX);
-                s.angle = -s.angle;
+            if (sprites) {
+                for (const s of sprites) {
+                    if (!s) continue;
+                    s.setFlipX(!s.flipX);
+                    s.angle = -s.angle;
+                }
+            }
+        } else {
+            saveObj.flipY = !saveObj.flipY;
+            if (saveObj._raw) saveObj._raw["5"] = saveObj.flipY ? "1" : "0";
+
+            if (sprites) {
+                for (const s of sprites) {
+                    if (!s) continue;
+                    s.setFlipY(!s.flipY);
+                    s.angle = -s.angle;
+                }
             }
         }
-    } else {
-        saveObj.flipY = !saveObj.flipY;
-        if (saveObj._raw) saveObj._raw["5"] = saveObj.flipY ? "1" : "0";
 
-        if (sprites) {
-            for (const s of sprites) {
-                if (!s) continue;
-                s.setFlipY(!s.flipY);
-                s.angle = -s.angle;
-            }
+        saveObj.rot = -(saveObj.rot || 0);
+        if (saveObj._raw) saveObj._raw["6"] = String(saveObj.rot || 0);
+
+        for (const collider of colliders) {
+            collider.rotation = saveObj.rot;
+            collider.rotationDegrees = saveObj.rot;
+            if (collider.orbId !== undefined) collider.orbRotation = saveObj.rot;
+            collider._baseRotationDegrees = saveObj.rot;
+            collider._origRotationDegrees = saveObj.rot;
+            collider._eeInitialRotationDegrees = saveObj.rot;
         }
     }
 
-    saveObj.rot = -saveObj.rot;
-    if (saveObj._raw) saveObj._raw["6"] = String(saveObj.rot || 0);
     this._refreshEditorCollisionCaches();
   }
 
@@ -1988,6 +2215,8 @@ class LevelEditor {
 
 
   _selectEditorObjectsByIds(objectIds, tint = 0x00ff00) {
+    const requestedTeleportExitObjectId = Number.isInteger(this._editorTeleportExitSelectionRequest) ? this._editorTeleportExitSelectionRequest : -1;
+    this._editorTeleportExitSelectionRequest = -1;
     const previousTintByObjectId = this._currentSelectedTintByObjectId || {};
     this._restoreEditorSelectionTint();
 
@@ -1995,6 +2224,8 @@ class LevelEditor {
     this._currentSelectedSprite = null;
     this._currentSelectedObjectIds = [];
     this._currentSelectedTintByObjectId = {};
+    this._editorSelectedTeleportExitObjectId = -1;
+    this._editorTeleportExitSelectionRequest = -1;
     window.editorSelectedObject = -1;
 
     const uniqueIds = [];
@@ -2006,12 +2237,18 @@ class LevelEditor {
         uniqueIds.push(parsed);
     }
 
+    const teleportExitOnlyObjectId = uniqueIds.length === 1 && requestedTeleportExitObjectId === uniqueIds[0] ? requestedTeleportExitObjectId : -1;
+    this._editorSelectedTeleportExitObjectId = teleportExitOnlyObjectId;
+
     for (const objectId of uniqueIds) {
         const linkedSprites = this._level.objectSprites[objectId];
         const objectTint = previousTintByObjectId[objectId] ?? tint;
         this._currentSelectedTintByObjectId[objectId] = objectTint;
+        const spritesToTint = objectId === teleportExitOnlyObjectId
+            ? linkedSprites.filter(spr => spr && spr._eeGeneratedTeleportExit)
+            : linkedSprites;
 
-        for (const spr of linkedSprites) {
+        for (const spr of spritesToTint) {
             if (!spr) continue;
 
             if (spr._editorPrevTint === undefined) {
@@ -2030,7 +2267,9 @@ class LevelEditor {
 
     if (uniqueIds.length) {
         const firstSprites = this._level.objectSprites[uniqueIds[0]];
-        this._currentSelectedSprite = firstSprites?.[0] || null;
+        this._currentSelectedSprite = uniqueIds[0] === teleportExitOnlyObjectId
+            ? (firstSprites?.find(spr => spr && spr._eeGeneratedTeleportExit) || firstSprites?.[0] || null)
+            : (firstSprites?.[0] || null);
         window.editorSelectedObject = uniqueIds[0];
     }
 
@@ -2045,6 +2284,8 @@ class LevelEditor {
     this._currentSelectedSprite = null;
     this._currentSelectedObjectIds = [];
     this._currentSelectedTintByObjectId = {};
+    this._editorSelectedTeleportExitObjectId = -1;
+    this._editorTeleportExitSelectionRequest = -1;
     window.editorSelectedObject = -1;
     this._updateEditorActionButtons();
   }
@@ -2393,6 +2634,107 @@ class LevelEditor {
   }
 
 
+  _setTeleportExitYOffset(enterSaveObj, yOffset) {
+    if (!enterSaveObj) return false;
+    const parsed = parseFloat(yOffset);
+    const offset = Number.isFinite(parsed) ? parsed : 90;
+    enterSaveObj._raw = enterSaveObj._raw || {};
+    enterSaveObj._raw[54] = String(offset);
+    enterSaveObj._raw["54"] = String(offset);
+    return true;
+  }
+
+
+  _refreshTeleportExitVisualsForSaveObject(enterSaveObj) {
+    if (!enterSaveObj || parseInt(enterSaveObj.id ?? 0, 10) !== 747) return false;
+
+    const linkedId = Number.isInteger(enterSaveObj._eeObjectId) ? enterSaveObj._eeObjectId : -1;
+    if (linkedId < 0 || !this._level?.objectSprites?.[linkedId]) return false;
+
+    const sprites = this._level.objectSprites[linkedId];
+    for (const spr of sprites.slice()) {
+      if (spr && spr._eeGeneratedTeleportExit && spr.destroy) spr.destroy();
+    }
+    this._level.objectSprites[linkedId] = sprites.filter(spr => spr && !spr._eeGeneratedTeleportExit);
+
+    const objectDef = getObjectFromId(enterSaveObj.id);
+    const depthBase = { "-5": -12, "-3": -9, "-1": -6, 0: 0, 1: 3, 3: 6, 5: 9, 7: 10.5, 9: 12, 11: 13.5 };
+    const zLayer = enterSaveObj.zLayer || objectDef?.default_z_layer || 0;
+    const zOrder = enterSaveObj.zOrder || objectDef?.default_z_order || 0;
+    const objZDepth = (depthBase[zLayer] !== undefined ? depthBase[zLayer] : 0) + zOrder * 0.01;
+    const groupIds = this._getEditorObjectGroupIds ? this._getEditorObjectGroupIds(enterSaveObj) : [];
+    const col1 = enterSaveObj.color1 || objectDef?.default_base_color_channel || 0;
+
+    const registerObjectSprite = (spr) => {
+      if (!spr) return;
+      spr._eeObjectId = linkedId;
+      spr._eeEditorLayer = parseInt(enterSaveObj.editorLayer ?? enterSaveObj._raw?.[20] ?? enterSaveObj._raw?.["20"] ?? 0, 10) || 0;
+      spr._eeEditorLayer2 = parseInt(enterSaveObj.editorLayer2 ?? enterSaveObj._raw?.[61] ?? enterSaveObj._raw?.["61"] ?? 0, 10) || 0;
+      if (!this._level.objectSprites[linkedId]) this._level.objectSprites[linkedId] = [];
+      this._level.objectSprites[linkedId].push(spr);
+    };
+
+    const registerToGroups = (spr, baseWorldX, baseBaseY) => {
+      if (!spr || !groupIds.length) return;
+      spr._origWorldX = baseWorldX;
+      spr._origBaseY = baseBaseY;
+      for (const gid of groupIds) {
+        if (!this._level._groupSprites[gid]) this._level._groupSprites[gid] = [];
+        this._level._groupSprites[gid].push(spr);
+      }
+    };
+
+    const registerColor = (spr, ch) => {
+      if (ch > 0 && objectDef?.can_color !== false && spr && !spr._isSaw) {
+        spr._eeColorChannel = ch;
+        if (!this._level._colorChannelSprites[ch]) this._level._colorChannelSprites[ch] = [];
+        this._level._colorChannelSprites[ch].push(spr);
+      }
+    };
+
+    this._level._spawnTeleportExitPortalVisual?.(this, enterSaveObj, objectDef, linkedId, registerObjectSprite, registerToGroups, registerColor, objZDepth, col1);
+    return true;
+  }
+
+
+  _applyTeleportExitPlacement(exitX, exitY) {
+    if (!Array.isArray(window.levelObjects)) return false;
+
+    const selectedIds = this._getCurrentSelectedEditorObjectIds ? this._getCurrentSelectedEditorObjectIds() : [];
+    let enterSaveObj = null;
+
+    for (const objectId of selectedIds) {
+      const candidate = this._getEditorSaveObjectForObjectId(objectId);
+      if (candidate && parseInt(candidate.id ?? 0, 10) === 747) {
+        enterSaveObj = candidate;
+        break;
+      }
+    }
+
+    if (!enterSaveObj) {
+      let bestDistance = Infinity;
+      for (const obj of window.levelObjects) {
+        if (!obj || parseInt(obj.id ?? 0, 10) !== 747) continue;
+        const dx = Number(obj.x ?? 0) - Number(exitX ?? 0);
+        const dist = Math.abs(dx);
+        if (dist < bestDistance) {
+          bestDistance = dist;
+          enterSaveObj = obj;
+        }
+      }
+    }
+
+    if (!enterSaveObj) return false;
+
+    const yOffset = (Number(exitY) || 0) - (Number(enterSaveObj.y) || 0);
+    this._setTeleportExitYOffset(enterSaveObj, yOffset);
+    this._refreshTeleportExitVisualsForSaveObject(enterSaveObj);
+
+    this._refreshEditorCollisionCaches?.();
+    this._applyEditorLayerFilter?.();
+    return true;
+  }
+
   _placeObject() {
     const pointer = this.input.activePointer;
 
@@ -2409,6 +2751,11 @@ class LevelEditor {
     const objectDef = getObjectFromId(objId);
 
     if (!objectDef) return;
+
+    if (parseInt(objId ?? 0, 10) === 749) {
+        this._applyTeleportExitPlacement(transformedX, transformedY);
+        return;
+    }
 
     const saveData = {
         id: objId,
@@ -2456,6 +2803,11 @@ class LevelEditor {
 
     if (this._isEditorColorTriggerId(objId) && ![29, 30].includes(parseInt(objId ?? 0, 10))) {
         saveData._raw["23"] = "1";
+    }
+
+    if (parseInt(objId ?? 0, 10) === 747) {
+        saveData._raw[54] = "90";
+        saveData._raw["54"] = "90";
     }
 
     if (objectDef.textObject) {
@@ -2520,6 +2872,7 @@ class LevelEditor {
   _selectObjectAtPointer(addToSelection = false) {
     const pointer = this.input.activePointer;
     let foundObjectIndex = -1;
+    let foundSprite = null;
 
     for (let i = this._level.objectSprites.length - 1; i >= 0; i--) {
         const spriteList = this._level.objectSprites[i];
@@ -2533,6 +2886,7 @@ class LevelEditor {
             const bounds = spr.getBounds();
             if (bounds.contains(pointer.x, pointer.y)) {
                 foundObjectIndex = i;
+                foundSprite = spr;
                 break;
             }
         }
@@ -2547,11 +2901,15 @@ class LevelEditor {
         return;
     }
 
+    const clickedTeleportExit = !!foundSprite?._eeGeneratedTeleportExit;
+
     if (addToSelection || (this._editorTab === "edit" && this._isSwipeEnabled)) {
         const selectedIds = this._getCurrentSelectedEditorObjectIds();
         if (!selectedIds.includes(foundObjectIndex)) selectedIds.push(foundObjectIndex);
+        this._editorTeleportExitSelectionRequest = -1;
         this._selectEditorObjectsByIds(selectedIds, 0x00ff00);
     } else {
+        this._editorTeleportExitSelectionRequest = clickedTeleportExit ? foundObjectIndex : -1;
         this._selectEditorObjectsByIds([foundObjectIndex], 0x00ff00);
     }
   }
@@ -5588,17 +5946,24 @@ class LevelEditor {
   }
 
 
+  _parseEditorSingleGroupId(value, fallback = 0) {
+    const parts = String(value ?? "")
+      .split(/[,.]/)
+      .map(part => parseInt(part.trim(), 10))
+      .filter(groupId => Number.isFinite(groupId) && groupId > 0);
+    return parts.length ? parts[0] : fallback;
+  }
+
+
   _getEditorTriggerTargetGroup(saveObj) {
     const raw = saveObj?._raw || {};
-    const parsed = parseInt(raw[51] ?? raw["51"] ?? 0, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    return this._parseEditorSingleGroupId(raw[51] ?? raw["51"], 0);
   }
 
 
   _setEditorTriggerTargetGroup(saveObj, value) {
     if (!saveObj) return;
-    const parsed = parseInt(value ?? 0, 10);
-    const targetGroup = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
+    const targetGroup = Math.max(0, this._parseEditorSingleGroupId(value, 0));
     saveObj._raw = saveObj._raw || {};
     saveObj._raw[51] = String(targetGroup);
     saveObj._raw["51"] = String(targetGroup);
@@ -5861,7 +6226,7 @@ class LevelEditor {
       return entry;
     };
 
-    const makeSliderInput = ({ x, y, label, min, max, getValue, setValue, labelStyle = "gold", layout = "vertical", width = 300 }) => {
+    const makeSliderInput = ({ x, y, label, min, max, inputMin = min, inputMax = max, getValue, setValue, labelStyle = "gold", layout = "vertical", width = 300 }) => {
       const inputW = 118;
       const inputH = 50;
       const isHorizontal = layout === "horizontal";
@@ -5907,8 +6272,12 @@ class LevelEditor {
       let textValue = "";
       let beforeFocus = "";
       
-      const pctForValue = (value) => Phaser.Math.Clamp((Number(value) - min) / (max - min), 0, 1);
-      const valueForPct = (pct) => min + Phaser.Math.Clamp(pct, 0, 1) * (max - min);
+      const sliderMin = Number.isFinite(Number(min)) ? Number(min) : 0;
+      const sliderMax = Number.isFinite(Number(max)) ? Number(max) : sliderMin + 1;
+      const textMin = Number.isFinite(Number(inputMin)) ? Number(inputMin) : sliderMin;
+      const textMax = Number.isFinite(Number(inputMax)) ? Number(inputMax) : sliderMax;
+      const pctForValue = (value) => Phaser.Math.Clamp((Number(value) - sliderMin) / (sliderMax - sliderMin), 0, 1);
+      const valueForPct = (pct) => sliderMin + Phaser.Math.Clamp(pct, 0, 1) * (sliderMax - sliderMin);
       
       const render = () => {
         inputBg.clear();
@@ -5922,7 +6291,7 @@ class LevelEditor {
       
       const commit = () => {
         const parsed = parseFloat(textValue || "0");
-        setValue(Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, min, max));
+        setValue(Phaser.Math.Clamp(Number.isFinite(parsed) ? parsed : 0, textMin, textMax));
         render();
       };
       
@@ -6007,6 +6376,8 @@ class LevelEditor {
       label: "Move X:",
       min: -100,
       max: 100,
+      inputMin: -99999,
+      inputMax: 99999,
       labelStyle: "helvetica",
       layout: "horizontal",
       width: 200,
@@ -6019,6 +6390,8 @@ class LevelEditor {
       label: "Move Y:",
       min: -100,
       max: 100,
+      inputMin: -99999,
+      inputMax: 99999,
       labelStyle: "helvetica",
       layout: "horizontal",
       width: 200,
@@ -7005,8 +7378,6 @@ class LevelEditor {
 
     const settingsBtn = this.add.image(-(panelW / 2) + 58, -(panelH / 2) + 58, "GJ_GameSheet03", "GJ_optionsBtn_001.png")
         .setScale(0.64)
-        .setAngle(-90)
-        .setFlipX(true)
         .setInteractive();
     inner.add(settingsBtn);
     this._makeBouncyButton(settingsBtn, 0.64, () => this._openEditorStartPositionSettingsPopup(saveObj));
@@ -7020,11 +7391,11 @@ class LevelEditor {
     ];
 
     const modeDefs = [
-        { key: 0, label: "Cube", frame: "gj_iconBtn_off_001.png", rotateFlip: true },
+        { key: 0, label: "Cube", frame: "gj_iconBtn_off_001.png", rotateFlip: false },
         { key: 1, label: "Ship", frame: "gj_shipBtn_off_001.png", rotateFlip: false },
-        { key: 2, label: "Ball", frame: "gj_ballBtn_off_001.png", rotateFlip: true },
-        { key: 3, label: "UFO", frame: "gj_birdBtn_off_001.png", rotateFlip: true },
-        { key: 4, label: "Wave", frame: "gj_dartBtn_off_001.png", rotateFlip: true },
+        { key: 2, label: "Ball", frame: "gj_ballBtn_off_001.png", rotateFlip: false },
+        { key: 3, label: "UFO", frame: "gj_birdBtn_off_001.png", rotateFlip: false },
+        { key: 4, label: "Wave", frame: "gj_dartBtn_off_001.png", rotateFlip: false },
         { key: 5, label: "Robot", frame: "gj_robotBtn_off_001.png", rotateFlip: false },
         { key: 6, label: "Spider", frame: "gj_spiderBtn_off_001.png", rotateFlip: false },
         { key: 7, label: "Swing", frame: "gj_swingBtn_off_001.png", rotateFlip: false }
@@ -7439,11 +7810,11 @@ class LevelEditor {
     ];
 
     const modeDefs = [
-        { key: 0, label: "Cube", frame: "gj_iconBtn_off_001.png", rotateFlip: true },
+        { key: 0, label: "Cube", frame: "gj_iconBtn_off_001.png", rotateFlip: false },
         { key: 1, label: "Ship", frame: "gj_shipBtn_off_001.png", rotateFlip: false },
-        { key: 2, label: "Ball", frame: "gj_ballBtn_off_001.png", rotateFlip: true },
-        { key: 3, label: "UFO", frame: "gj_birdBtn_off_001.png", rotateFlip: true },
-        { key: 4, label: "Wave", frame: "gj_dartBtn_off_001.png", rotateFlip: true },
+        { key: 2, label: "Ball", frame: "gj_ballBtn_off_001.png", rotateFlip: false },
+        { key: 3, label: "UFO", frame: "gj_birdBtn_off_001.png", rotateFlip: false },
+        { key: 4, label: "Wave", frame: "gj_dartBtn_off_001.png", rotateFlip: false },
         { key: 5, label: "Robot", frame: "gj_robotBtn_off_001.png", rotateFlip: false },
         { key: 6, label: "Spider", frame: "gj_spiderBtn_off_001.png", rotateFlip: false },
         { key: 7, label: "Swing", frame: "gj_swingBtn_off_001.png", rotateFlip: false }
@@ -7552,7 +7923,7 @@ class LevelEditor {
     const editorOptionsLabel = this.add.bitmapText(leftX, 45, "goldFont", "Options:", 30).setOrigin(0.5);
     inner.add(editorOptionsLabel);
 
-    const editorOptionsBtn = this.add.image(leftX, 112, "GJ_GameSheet03", "GJ_optionsBtn_001.png").setScale(0.7).setAngle(-90).setFlipX(true).setInteractive();
+    const editorOptionsBtn = this.add.image(leftX, 112, "GJ_GameSheet03", "GJ_optionsBtn_001.png").setScale(0.7).setInteractive();
 
     inner.add(editorOptionsBtn);
 
@@ -7985,6 +8356,24 @@ class LevelEditor {
         .setInteractive();
     this._editorMenuContainer.add(bgDim);
 
+    const returnToLevelView = async (showLoading = false) => {
+        this._showEditorPauseMenu(false);
+        this._stopEditorPlaytest?.();
+
+        const levelId = window.currentlevel?.[2] || window._onlineLevelId;
+        if (levelId) {
+            window._editorReturnToLevelViewId = levelId;
+        }
+
+        if (showLoading) {
+            await this._showLoadingBuffer("Loading...");
+        }
+
+        window.isEditor = false;
+        this.game.registry.remove("autoStartGame");
+        this.scene.restart();
+    };
+
     const buttonData = [
         { text: "Resume", cb: () => this._showEditorPauseMenu(false) },
         { 
@@ -7992,8 +8381,14 @@ class LevelEditor {
             cb: async () => { 
                 this._showEditorPauseMenu(false);
                 this._stopEditorPlaytest?.();
-                this._saveEditorLevel(); 
+                this._saveEditorLevel();
+                const savedRecord = this._getCurrentEditorLevelRecord?.().level || null;
+                window._createdLevelReturnToView = {
+                    createdId: savedRecord?.createdId ?? window.currentlevel?.[2] ?? window._onlineLevelId,
+                    snapshot: savedRecord ? { ...savedRecord } : null
+                };
                 await this._showLoadingBuffer("Loading...");
+                window._editorReturnToLevelViewId = null;
                 window.isEditor = false; 
                 this.game.registry.set("autoStartGame", true); 
                 this.scene.restart(); 
@@ -8002,16 +8397,12 @@ class LevelEditor {
         { 
             text: "Save and Exit", 
             cb: async () => { 
-                this._showEditorPauseMenu(false);
-                this._stopEditorPlaytest?.();
-                this._saveEditorLevel(); 
-                await this._showLoadingBuffer("Loading...");
-                window.isEditor = false; 
-                this.scene.restart(); 
+                this._saveEditorLevel();
+                await returnToLevelView(true);
             } 
         },
         { text: "Save", cb: () => this._saveEditorLevel() },
-        { text: "Exit", cb: () => { this._showEditorPauseMenu(false); this._stopEditorPlaytest?.(); window.isEditor = false; this.scene.restart(); } }
+        { text: "Exit", cb: () => { returnToLevelView(false); } }
     ];
 
     buttonData.forEach((data, i) => {
@@ -8106,6 +8497,10 @@ _serializeObject(object) {
     return "";
   }
 
+  if (parseInt(object.id ?? 0, 10) === 749) {
+    return "";
+  }
+
   let objectData = { ...(object._raw || {}) };
 
   objectData[1] = String(object.id);
@@ -8144,6 +8539,26 @@ _serializeObject(object) {
   objectData["kA8"] = String(object.dualMode ?? object._raw?.["kA8"] ?? 0);
   objectData["kA28"] = String(object.mirrored ?? 0);
   objectData["kA11"] = object.flipGravity ? "1" : "0";
+
+  if (parseInt(object.id ?? 0, 10) === 1346) {
+    const parseGroupParts = (value) => String(value ?? "")
+      .split(/[,.]/)
+      .map(part => parseInt(part.trim(), 10))
+      .filter(groupId => Number.isFinite(groupId) && groupId > 0);
+    const targetParts = parseGroupParts(objectData[51] ?? objectData["51"]);
+    const centerParts = parseGroupParts(objectData[71] ?? objectData["71"]);
+    const targetGroup = targetParts[0] || 0;
+    const centerGroup = centerParts[0] || 0;
+    objectData[51] = String(targetGroup);
+    objectData["51"] = String(targetGroup);
+    if (centerGroup > 0) {
+      objectData[71] = String(centerGroup);
+      objectData["71"] = String(centerGroup);
+    } else {
+      delete objectData[71];
+      delete objectData["71"];
+    }
+  }
 
   const parts = [];
 
@@ -8284,6 +8699,8 @@ LevelEditor.methodNames = [
   "_getEditorSaveIndexForObjectId",
   "_getEditorSaveObjectForObjectId",
   "_getEditorCollidersForObjectId",
+  "_syncEditorColliderWithSaveObject",
+  "_syncEditorCollidersForObjectId",
   "_hideEditorPlaytestGlowLayers",
   "_hideEditorPlaytestPlayer",
   "_syncEditorPlaytestPlayerVisual",
@@ -8319,6 +8736,9 @@ LevelEditor.methodNames = [
   "_updateEditorActionButtons",
   "_updateEditorGrid",
   "_editorAction",
+  "_setTeleportExitYOffset",
+  "_refreshTeleportExitVisualsForSaveObject",
+  "_applyTeleportExitPlacement",
   "_placeObject",
   "_selectObjectAtPointer",
   "_deleteObjectAtPointer",
@@ -8397,6 +8817,7 @@ LevelEditor.methodNames = [
   "_openSelectedEditorObjectOptions",
   "_isEditorMoveTriggerId",
   "_isEditorSpawnTriggerId",
+  "_parseEditorSingleGroupId",
   "_getEditorTriggerTargetGroup",
   "_setEditorTriggerTargetGroup",
   "_getEditorTriggerBool",
