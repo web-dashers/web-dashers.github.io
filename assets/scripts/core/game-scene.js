@@ -5451,31 +5451,30 @@ _closeSettingsPopup() {
   }
   // DOM-based mod menu, backtick-only. Toggles use the same window.* names the engine
   // already reads elsewhere (noClip, showHitboxes, speedHack, etc.) so they stay real cheats.
+  // DOM-based mod menu, backtick-only, styled after the real MegaHack v9 client.
+  // Rows with a `real` key are wired to actual engine state and rendered bright/
+  // clickable; every other row (the vast majority of the real client's list) is
+  // rendered dimmed and inert via the .placebo class — "not added yet" at a glance.
   _buildMegaHackMenu() {
     if (this._megaHackMenu) return;
 
     window.hitboxMultiplier = window.hitboxMultiplier ?? 1;
-    window.infiniteJump = window.infiniteJump ?? false;
-    window.tps = window.tps ?? 240;
-    window.noParticles = window.noParticles ?? false;
-    if (window.noGlow === undefined) window.noGlow = (window.showGlow === false);
-    if (window.showFps === undefined) window.showFps = !!(this._fpsText && this._fpsText.visible);
-    window.fpsOpacity = window.fpsOpacity ?? 1;
-    window.cpsOpacity = window.cpsOpacity ?? 1;
-    window.showTps = window.showTps ?? false;
-    window.showNoclipDeaths = window.showNoclipDeaths ?? false;
     window.hidePause = window.hidePause ?? false;
-    window.menuBgBlur = window.menuBgBlur ?? false;
+    window.showNoclipDeaths = window.showNoclipDeaths ?? false;
     window.speedHack = window.speedHack || 1;
+    window._mhMenuFont = window._mhMenuFont || 'Default';
+    window._mhMenuScale = window._mhMenuScale || 1;
+    window._mhMenuOpacity = window._mhMenuOpacity ?? 1;
 
     if (!document.getElementById('mh-style')) {
       const style = document.createElement('style');
       style.id = 'mh-style';
       style.innerHTML = `
         :root {
-            --mh-accent: #4bff93;
-            --mh-bg: #101010;
-            --mh-header-bg: #4bff93;
+            --mh-accent: #e83866;
+            --mh-bg: #2a2a2a;
+            --mh-bg-alt: #242424;
+            --mh-header-bg: #e83866;
         }
         #gj-s03-menu-dom {
             position: absolute;
@@ -5483,7 +5482,7 @@ _closeSettingsPopup() {
             pointer-events: none;
             z-index: 999999;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 11px;
+            font-size: 12px;
             letter-spacing: 0.2px;
             visibility: visible;
             transition: backdrop-filter 0.2s, background-color 0.2s, visibility 0s linear 0s;
@@ -5500,16 +5499,28 @@ _closeSettingsPopup() {
             background-color: rgba(0, 0, 0, 0.3);
             pointer-events: auto;
         }
-        #gj-s03-menu-dom .mh-window {
+        #gj-s03-menu-dom .mh-content {
             position: absolute;
+            top: 0; left: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            transform-origin: top left;
+        }
+        #gj-s03-menu-dom .mh-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #gj-s03-menu-dom .mh-window {
             pointer-events: auto;
             background-color: var(--mh-bg);
-            backdrop-filter: blur(5px);
-            width: 160px;
+            width: 180px;
             display: flex;
             flex-direction: column;
             box-shadow: 2px 2px 10px rgba(0,0,0,0.6);
-            transform: translate(0, 0);
             transition: transform 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
         }
         #gj-s03-menu-dom.is-closed .mh-window {
@@ -5517,173 +5528,92 @@ _closeSettingsPopup() {
         }
         #gj-s03-menu-dom .mh-header {
             background-color: var(--mh-header-bg);
-            color: color-mix(in srgb, var(--mh-header-bg), #000 80%);
+            color: #fff;
+            font-weight: 700;
             text-align: center;
-            padding: 2px 0;
+            padding: 6px 0;
             user-select: none;
             cursor: grab;
-            border-bottom: 1px solid rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+        }
+        #gj-s03-menu-dom .mh-header:active { cursor: grabbing; }
+        #gj-s03-menu-dom .mh-header-collapse {
+            width: 22px;
+            text-align: center;
+            opacity: 0.85;
+            flex: none;
         }
         #gj-s03-menu-dom .mh-header-text {
-            display: block;
-            width: 100%;
-        }
-        #gj-s03-menu-dom .mh-header:active {
-            cursor: grabbing;
-        }
-        #gj-s03-menu-dom .mh-item {
-            padding: 4px 14px 4px 6px;
-            color: #eeeeee;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-            position: relative;
-            transition: background-color 0.1s;
-        }
-        #gj-s03-menu-dom .mh-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        #gj-s03-menu-dom .mh-item.active {
-            color: var(--mh-accent);
-            background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--mh-accent) 15%, transparent));
-        }
-        #gj-s03-menu-dom .mh-item.active:hover {
-            background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, color-mix(in srgb, var(--mh-accent) 25%, transparent));
-        }
-        #gj-s03-menu-dom .mh-item-text {
-            flex-grow: 1;
+            flex: 1;
             white-space: nowrap;
         }
-        #gj-s03-menu-dom .mh-indicator {
-            position: absolute;
-            right: 2px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 2px;
-            height: 14px;
-            background-color: #333333;
-            transition: background-color 0.1s;
-        }
-        #gj-s03-menu-dom .mh-item.active .mh-indicator {
-            background-color: var(--mh-accent);
-        }
-        #gj-s03-menu-dom .mh-item.has-submenu .mh-indicator {
-            display: none;
-        }
-        #gj-s03-menu-dom .mh-submenu-arrow {
-            position: absolute;
-            right: 2px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-bottom: 8px solid #333333;
-            border-left: 8px solid transparent;
-            display: none;
-            cursor: pointer;
-            transition: border-bottom-color 0.1s;
-        }
-        #gj-s03-menu-dom .mh-item.has-submenu .mh-submenu-arrow {
-            display: block;
-        }
-        #gj-s03-menu-dom .mh-item.active .mh-submenu-arrow {
-            border-bottom-color: var(--mh-accent);
-        }
-        #gj-s03-menu-dom .mh-input-container {
-            cursor: default;
-            color: #a0a0a0;
-            padding: 4px 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #gj-s03-menu-dom .mh-input {
-            width: 35px;
-            background: rgba(0,0,0,0.6);
-            border: 1px solid #333;
-            color: #fff;
-            text-align: center;
-            font-family: monospace;
-            font-size: 10px;
-            padding: 1px 0;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        #gj-s03-menu-dom .mh-input:focus {
-            border-color: var(--mh-accent);
-        }
-        #gj-s03-menu-dom .mh-input::-webkit-outer-spin-button,
-        #gj-s03-menu-dom .mh-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        #gj-s03-menu-dom .mh-dropdown {
-            position: relative;
-            width: 70px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 10px;
-            user-select: none;
-        }
-        #gj-s03-menu-dom .mh-dropdown-selected {
-            background: rgba(0,0,0,0.6);
-            border: 1px solid #333;
-            color: #fff;
-            padding: 2px 4px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: border-color 0.2s;
-        }
-        #gj-s03-menu-dom .mh-dropdown.open .mh-dropdown-selected {
-            border-color: var(--mh-accent);
-        }
-        #gj-s03-menu-dom .mh-dropdown-list {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            background: var(--mh-bg);
-            border: 1px solid var(--mh-accent);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.6);
-            z-index: 20;
-            max-height: 100px;
+        #gj-s03-menu-dom .mh-header-spacer { width: 22px; flex: none; }
+        #gj-s03-menu-dom .mh-body {
             overflow-y: auto;
         }
-        #gj-s03-menu-dom .mh-dropdown.open .mh-dropdown-list {
-            display: block;
-        }
-        #gj-s03-menu-dom .mh-dropdown-item {
-            padding: 3px 4px;
-            color: #eeeeee;
+        #gj-s03-menu-dom .mh-body::-webkit-scrollbar { width: 6px; }
+        #gj-s03-menu-dom .mh-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); }
+        #gj-s03-menu-dom .mh-body::-webkit-scrollbar-track { background: transparent; }
+        #gj-s03-menu-dom .mh-item {
+            padding: 5px 10px;
+            color: #f0f0f0;
             cursor: pointer;
-            transition: background-color 0.1s, color 0.1s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            white-space: nowrap;
         }
-        #gj-s03-menu-dom .mh-dropdown-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+        #gj-s03-menu-dom .mh-item:nth-child(odd) { background-color: var(--mh-bg-alt); }
+        #gj-s03-menu-dom .mh-item:not(.placebo):hover { background-color: rgba(255, 255, 255, 0.08); }
+        #gj-s03-menu-dom .mh-item.active { color: var(--mh-accent); }
+        #gj-s03-menu-dom .mh-item.placebo {
+            color: #6f6f6f;
+            cursor: default;
+        }
+        #gj-s03-menu-dom .mh-item.dimmed-match { opacity: 0.2; }
+        #gj-s03-menu-dom .mh-item-text { overflow: hidden; text-overflow: ellipsis; }
+        #gj-s03-menu-dom .mh-item-value {
+            color: inherit;
+            opacity: 0.75;
+            margin-left: 10px;
+        }
+        #gj-s03-menu-dom .mh-item-arrow {
+            width: 0; height: 0;
+            margin-left: 8px;
+            border-top: 6px solid currentColor;
+            border-right: 6px solid transparent;
+            opacity: 0.55;
+            flex: none;
+        }
+        #gj-s03-menu-dom .mh-item.label-row {
+            cursor: default;
+            font-weight: 700;
             color: var(--mh-accent);
         }
-        #gj-s03-menu-dom .mh-dropdown-list::-webkit-scrollbar {
-            width: 4px;
+        #gj-s03-menu-dom .mh-search-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #f0f0f0;
+            font-family: inherit;
+            font-size: inherit;
+            width: 100%;
         }
-        #gj-s03-menu-dom .mh-dropdown-list::-webkit-scrollbar-thumb {
-            background: var(--mh-accent);
+        #gj-s03-menu-dom .mh-search-input::placeholder { color: #6f6f6f; }
+        #gj-s03-menu-dom .mh-input {
+            width: 46px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid #444;
+            color: #f0f0f0;
+            text-align: center;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 1px 2px;
+            outline: none;
         }
-        #gj-s03-menu-dom .mh-submenu-container {
-            display: none;
-            flex-direction: column;
-            position: absolute;
-            top: 0;
-            left: 100%;
-            background-color: var(--mh-bg);
-            backdrop-filter: blur(5px);
-            width: 140px;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.6);
-            z-index: 10;
-        }
+        #gj-s03-menu-dom .mh-input:focus { border-color: var(--mh-accent); }
       `;
       document.head.appendChild(style);
     }
@@ -5691,241 +5621,391 @@ _closeSettingsPopup() {
     const container = document.createElement('div');
     container.id = 'gj-s03-menu-dom';
     container.classList.add('is-closed');
-    if (window.menuBgBlur) container.classList.add('global-blur');
 
     const cleanups = [];
     const on = (target, type, handler) => { target.addEventListener(type, handler); cleanups.push(() => target.removeEventListener(type, handler)); };
 
+    const content = document.createElement('div');
+    content.className = 'mh-content';
+    content.style.transform = `scale(${window._mhMenuScale})`;
+    content.style.opacity = window._mhMenuOpacity;
+    content.style.fontFamily = window._mhMenuFont === 'Default' ? '' : window._mhMenuFont;
+    container.appendChild(content);
+
     function makeDraggable(win, handle) {
       let isDragging = false, offsetX = 0, offsetY = 0;
       on(handle, 'mousedown', (e) => {
+        if (e.target.closest('input')) return;
         isDragging = true;
         const rect = win.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
-        container.querySelectorAll('.mh-window').forEach(w => w.style.zIndex = '1');
-        win.style.zIndex = '2';
+        if (win.style.position !== 'fixed') {
+          win.style.position = 'fixed';
+          win.style.left = rect.left + 'px';
+          win.style.top = rect.top + 'px';
+          win.style.zIndex = '2';
+        }
+        content.querySelectorAll('.mh-window').forEach(w => { if (w !== win) w.style.zIndex = '1'; });
       });
       on(document, 'mousemove', (e) => {
         if (!isDragging) return;
         win.style.left = (e.clientX - offsetX) + 'px';
         win.style.top = (e.clientY - offsetY) + 'px';
       });
-      on(document, 'mouseup', () => { isDragging = false; });
+      on(document, 'mouseup', () => {
+        if (isDragging) fitBodyHeights();
+        isDragging = false;
+      });
     }
 
-    on(document, 'click', (e) => {
-      if (!e.target.closest('.mh-item.has-submenu')) {
-        container.querySelectorAll('.mh-submenu-container').forEach(el => el.style.display = 'none');
-      }
-      if (!e.target.closest('.mh-dropdown')) {
-        container.querySelectorAll('.mh-dropdown').forEach(el => el.classList.remove('open'));
-      }
-    });
-
     let globalWindowCounter = 1;
-    function createWindow(title, startX, startY) {
+    const createWindow = (title) => {
       const win = document.createElement('div');
       win.className = 'mh-window';
-      win.style.left = startX + 'px';
-      win.style.top = startY + 'px';
       const slideDir = (globalWindowCounter % 2 !== 0) ? 1 : -1;
       win.style.setProperty('--slide-dir', slideDir);
       globalWindowCounter++;
+
       const header = document.createElement('div');
       header.className = 'mh-header';
+      const collapse = document.createElement('span');
+      collapse.className = 'mh-header-collapse';
+      collapse.textContent = '−';
       const textSpan = document.createElement('span');
       textSpan.className = 'mh-header-text';
-      textSpan.innerText = `- ${title} -`;
+      textSpan.textContent = title;
+      const spacer = document.createElement('span');
+      spacer.className = 'mh-header-spacer';
+      header.appendChild(collapse);
       header.appendChild(textSpan);
+      header.appendChild(spacer);
       win.appendChild(header);
-      makeDraggable(win, header);
-      return win;
-    }
 
-    const createToggle = (moduleName, globalVarName, extraNodes = [], onChange = null) => {
-      const item = document.createElement('div');
-      item.className = 'mh-item';
-      if (window[globalVarName]) item.classList.add('active');
+      const body = document.createElement('div');
+      body.className = 'mh-body';
+      win.appendChild(body);
+
+      let collapsed = false;
+      on(collapse, 'click', (e) => {
+        e.stopPropagation();
+        collapsed = !collapsed;
+        body.style.display = collapsed ? 'none' : '';
+        collapse.textContent = collapsed ? '+' : '−';
+      });
+
+      makeDraggable(win, header);
+      return { win, body };
+    };
+
+    // --- Real feature wiring: every flag/action the engine actually supports.
+    // Everything else in the category lists below renders dimmed via .placebo.
+    const REAL = {
+      noclip: { get: () => !!window.noClip, set: v => { window.noClip = v; if (this._noclipIndicator) this._noclipIndicator.setVisible(v); this._saveSettings(); } },
+      noclipAccuracy: { get: () => !!window.noClipAccuracy, set: v => { window.noClipAccuracy = v; this._saveSettings(); } },
+      noclipDeaths: { get: () => !!window.showNoclipDeaths, set: v => window.showNoclipDeaths = v },
+      showHitboxes: { get: () => !!window.showHitboxes, set: v => { window.showHitboxes = v; if (!v) this._player?._hitboxGraphics?.clear(); else this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY); this._saveSettings(); } },
+      hitboxTrail: { get: () => !!window.showHitboxTrail, set: v => { window.showHitboxTrail = v; if (window.showHitboxes) this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY); this._saveSettings(); } },
+      hitboxesOnDeath: { get: () => !!window.hitboxesOnDeath, set: v => window.hitboxesOnDeath = v },
+      hitboxMultiplier: { get: () => window.hitboxMultiplier ?? 1, set: v => { window.hitboxMultiplier = v; if (window.showHitboxes) this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY); } },
+      hidePauseMenu: { get: () => !!window.hidePause, set: v => window.hidePause = v },
+      startPosSwitcher: {
+        get: () => !!window.startPosSwitcher, set: v => {
+          window.startPosSwitcher = v;
+          if (!v) this._startPosIndex = -1;
+          if (this._startPosGui) this._startPosGui.setVisible(v);
+          const total = this._level.getStartPositions().length;
+          if (this._startPosText) this._startPosText.setText(`0/${total}`);
+          this._saveSettings();
+        }
+      },
+      practiceMusicBypass: {
+        get: () => !!window.practiceMusicBypass,
+        set: v => {
+          const changed = !!window.practiceMusicBypass !== !!v;
+          window.practiceMusicBypass = v;
+          if (changed && !this._menuActive && this._practicedMode?.practiceMode) this._practiceBypassPending = true;
+          this._saveSettings();
+        }
+      },
+      showPercentage: { get: () => !!window.showPercentage, set: v => { window.showPercentage = v; if (this._percentageLabel) this._percentageLabel.setVisible(v); this._saveSettings(); } },
+      percentageDecimals: { get: () => !!window.percentageDecimals, set: v => { window.percentageDecimals = v; this._saveSettings(); } },
+      showFPS: { get: () => !!(this._fpsText && this._fpsText.visible), set: v => { this._fpsText?.setVisible(v); this._saveSettings(); } },
+      showCPS: { get: () => !!window.showCPS, set: v => { window.showCPS = v; this._saveSettings(); } },
+      solidWave: { get: () => !!window.solidWave, set: v => { window.solidWave = v; this._saveSettings(); } },
+      noGlow: { get: () => window.showGlow === false, set: v => { window.showGlow = !v; if (this._level?._updateGlowVisibility) this._level._updateGlowVisibility(); this._saveSettings(); } },
+      createObjectIds: { get: () => !!window.createObjectIds, set: v => { window.createObjectIds = v; this._saveSettings(); } },
+      showObjectIds: { get: () => !!window.showObjectIds, set: v => { window.showObjectIds = v; this._saveSettings(); } },
+      showEditorGlow: { get: () => !!window.showEditorGlow, set: v => { window.showEditorGlow = v; this._saveSettings(); } },
+      portalGuide: { get: () => window.enablePortalGuide !== false, set: v => { window.enablePortalGuide = v; this._saveSettings(); } },
+      orbGuide: { get: () => !!window.enableOrbGuide, set: v => { window.enableOrbGuide = v; this._saveSettings(); } },
+      macroBot: { get: () => !!window.macroBot, set: v => { window.macroBot = v; this._saveSettings(); } },
+      useProxy: { get: () => !window.useDirectInternet, set: v => { window.useDirectInternet = !v; this._saveSettings(); } },
+      fullscreen: { get: () => this.scale.isFullscreen, set: v => { if (v && !this.scale.isFullscreen) this.scale.startFullscreen(); else if (!v && this.scale.isFullscreen) this.scale.stopFullscreen(); } },
+      speedhack: {
+        get: () => this._mhSpeedStore ?? (window.speedHack && window.speedHack !== 1 ? window.speedHack : 2),
+        set: v => { this._mhSpeedStore = v; if (window.speedHack !== 1) { window.speedHack = v; this._saveSettings(); } }
+      },
+      speedhackEnabled: {
+        get: () => window.speedHack !== 1,
+        set: v => { window.speedHack = v ? (this._mhSpeedStore ?? 2) : 1; this._saveSettings(); }
+      },
+      theme: {
+        get: () => window._mhTheme || 'Pink',
+        set: v => {
+          window._mhTheme = v;
+          const c = { Pink: '#e83866', 'Classic Red': '#ff3b3b', Cyan: '#38d6e8', Purple: '#a238e8', Green: '#4bff93' }[v] || '#e83866';
+          document.documentElement.style.setProperty('--mh-accent', c);
+          document.documentElement.style.setProperty('--mh-header-bg', c);
+        }
+      },
+      menuScale: { get: () => window._mhMenuScale || 1, set: v => { window._mhMenuScale = v; content.style.transform = `scale(${v})`; } },
+      menuOpacity: { get: () => window._mhMenuOpacity ?? 1, set: v => { window._mhMenuOpacity = v; content.style.opacity = v; } },
+      font: {
+        get: () => window._mhMenuFont || 'Default',
+        set: v => { window._mhMenuFont = v; content.style.fontFamily = v === 'Default' ? '' : v; }
+      },
+    };
+    const ACTIONS = {
+      screenshot: () => {
+        this.game.renderer.snapshot((image) => {
+          const a = document.createElement('a');
+          a.href = image.src;
+          a.download = 'megahack-screenshot-' + Date.now() + '.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
+      },
+      restartLevel: () => { if (!this._menuActive && !this._slideIn && !this._levelWon) { this._closeMegaHackMenu(); this._restartLevel(); } },
+      practiceMode: () => {
+        const isP = this._practicedMode.togglePracticeMode();
+        if (this._checkpointBtnContainer) this._checkpointBtnContainer.setVisible(isP);
+        if (this._practiceModeBarContainer) this._practiceModeBarContainer.setVisible(isP);
+      },
+    };
+
+    const FONT_VALUES = ['Default', 'Monospace', 'Serif', 'Cursive'];
+
+    const allRows = [];
+    const applySearch = (term) => {
+      const t = term.trim().toLowerCase();
+      allRows.forEach(r => r.el.classList.toggle('dimmed-match', !!t && !r.label.toLowerCase().includes(t)));
+    };
+
+    const createRow = (item) => {
+      const raw = typeof item === 'string' ? { l: item, t: 'toggle' } : item;
+
+      if (raw.t === 'label') {
+        const row = document.createElement('div');
+        row.className = 'mh-item label-row';
+        row.textContent = raw.l;
+        return row;
+      }
+
+      if (raw.t === 'search') {
+        const row = document.createElement('div');
+        row.className = 'mh-item';
+        const input = document.createElement('input');
+        input.className = 'mh-search-input';
+        input.placeholder = 'Search';
+        on(input, 'input', () => applySearch(input.value));
+        on(input, 'click', e => e.stopPropagation());
+        row.appendChild(input);
+        return row;
+      }
+
+      const wiredReal = raw.real && REAL[raw.real];
+      const wiredAction = raw.real && ACTIONS[raw.real];
+      const isReal = !!(wiredReal || wiredAction);
+
+      const row = document.createElement('div');
+      row.className = 'mh-item' + (isReal ? '' : ' placebo');
+      allRows.push({ el: row, label: raw.l });
 
       const textSpan = document.createElement('span');
       textSpan.className = 'mh-item-text';
-      textSpan.innerText = moduleName;
+      textSpan.textContent = raw.l;
+      row.appendChild(textSpan);
 
-      const arrow = document.createElement('div');
-      arrow.className = 'mh-submenu-arrow';
-
-      const indicator = document.createElement('div');
-      indicator.className = 'mh-indicator';
-
-      item.appendChild(textSpan);
-      item.appendChild(arrow);
-      item.appendChild(indicator);
-
-      item.onclick = (e) => {
-        if (e.target === arrow || e.target.tagName === 'INPUT' || e.target.closest('.mh-dropdown')) return;
-        window[globalVarName] = !window[globalVarName];
-        item.classList.toggle('active', !!window[globalVarName]);
-        if (onChange) onChange(!!window[globalVarName]);
-      };
-
-      if (extraNodes.length > 0) {
-        item.classList.add('has-submenu');
-        const submenuContainer = document.createElement('div');
-        submenuContainer.className = 'mh-submenu-container';
-        extraNodes.forEach(node => submenuContainer.appendChild(node));
-        item.appendChild(submenuContainer);
-
-        const toggleSubmenu = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const isVisible = submenuContainer.style.display === 'flex';
-          container.querySelectorAll('.mh-submenu-container').forEach(el => el.style.display = 'none');
-          if (!isVisible) submenuContainer.style.display = 'flex';
-        };
-        arrow.onclick = toggleSubmenu;
-        item.oncontextmenu = toggleSubmenu;
+      if (raw.t === 'action') {
+        if (isReal) row.onclick = () => wiredAction();
+        return row;
       }
-      return item;
-    };
 
-    const createNumberInput = (moduleName, globalVarName, step = 0.1, onChange = null) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'mh-input-container';
-      const label = document.createElement('span');
-      label.innerText = moduleName;
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.className = 'mh-input';
-      input.step = step;
-      input.value = window[globalVarName];
-      on(input, 'input', (e) => {
-        const val = parseFloat(e.target.value);
-        if (!isNaN(val)) {
-          window[globalVarName] = val;
-          if (onChange) onChange(val);
+      if (raw.t === 'number') {
+        if (isReal) {
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.className = 'mh-input';
+          input.step = 0.1;
+          input.value = wiredReal.get();
+          on(input, 'input', (e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v)) wiredReal.set(v);
+          });
+          on(input, 'click', e => e.stopPropagation());
+          row.appendChild(input);
+        } else {
+          const val = document.createElement('span');
+          val.className = 'mh-item-value';
+          val.textContent = '1';
+          row.appendChild(val);
         }
+        return row;
+      }
+
+      if (raw.t === 'value') {
+        const values = raw.values || [];
+        let idx = isReal ? Math.max(0, values.indexOf(wiredReal.get())) : 0;
+        const val = document.createElement('span');
+        val.className = 'mh-item-value';
+        val.textContent = String(values[idx] ?? '');
+        row.appendChild(val);
+        if (isReal) {
+          row.onclick = () => {
+            idx = (idx + 1) % values.length;
+            val.textContent = String(values[idx]);
+            wiredReal.set(values[idx]);
+          };
+        }
+        return row;
+      }
+
+      // plain toggle
+      const refresh = () => row.classList.toggle('active', isReal && wiredReal.get());
+      refresh();
+      if (isReal) {
+        row.onclick = () => { wiredReal.set(!wiredReal.get()); refresh(); };
+      }
+      return row;
+    };
+
+    const allBodies = [];
+    const buildWindowInto = (parentEl, title, items) => {
+      const { win, body } = createWindow(title);
+      items.forEach(raw => body.appendChild(createRow(raw)));
+      parentEl.appendChild(win);
+      allBodies.push(body);
+      return win;
+    };
+
+    // Each window's body grows to fill whatever vertical space is left below it —
+    // "extend to the ground" — and only falls back to its own internal scrollbar
+    // once even that isn't enough room for its full row list.
+    const fitBodyHeights = () => {
+      const bottomMargin = 16;
+      allBodies.forEach(body => {
+        body.style.maxHeight = '';
+        const top = body.getBoundingClientRect().top;
+        const available = window.innerHeight - top - bottomMargin;
+        if (body.scrollHeight > available) body.style.maxHeight = Math.max(40, available) + 'px';
       });
-      wrapper.appendChild(label);
-      wrapper.appendChild(input);
-      return wrapper;
     };
 
-    const startY = 30;
-    const windowWidth = 160;
-    const padding = 10;
-    let col = 0;
+    // --- Window data, transcribed from the real MegaHack v9 interface ---
+    const MEGAHACK = [{ l: 'Search', t: 'search' }, 'Auto-Select', 'Auto-Update',
+      { l: 'Language: en-GB', t: 'value', values: ['en-GB', 'en-US', 'es', 'fr', 'de', 'pt-BR', 'ru'] },
+      { l: 'Contribute Translations', t: 'action' },
+      { l: 'Theme', t: 'value', values: ['Pink', 'Classic Red', 'Cyan', 'Purple', 'Green'], real: 'theme' },
+      { l: 'Rulesets', t: 'value', values: ['Mega Hack', 'Vanilla', 'Custom'] },
+      'Alt Hotkey', 'Icon Hotkey',
+      { l: 'Interface Scale', t: 'value', values: [0.8, 1, 1.2, 1.4], real: 'menuScale' },
+      { l: 'Animations', t: 'value', values: [100, 250, 500, 750] },
+      { l: 'Sort Interface', t: 'action' }, 'Miscellaneous'];
+    const SCREENSHOT_SUB = [{ l: 'Screenshot', t: 'action', real: 'screenshot' }];
+    const BYPASS = ['Anti-Kick', 'Challenge Level', 'Keymaster', 'Main Levels', 'Music Customiser', 'Slider Limit',
+      'Text Length', 'Treasure Room', 'Unlock Icons', 'Unlock Shops', 'Unlock Vaults'];
+    const SPEEDHACK_SUB = [{ l: 'Speed', t: 'number', real: 'speedhack' }, { l: 'Enabled', t: 'toggle', real: 'speedhackEnabled' },
+      'Speedhack Audio', 'Classic Mode'];
+    const CREATOR = ['Accurate Save', 'Copy Hack', 'Custom Object Bypass', 'Default Song Bypass', 'Editor Extension',
+      'Free Scroll', 'Hide UI', 'Level Edit', 'Multiple Editor Trails', 'Place Over', 'Smooth Editor Trail',
+      'Toolbox Button Bypass', 'Trigger Value Bypass', 'Verify Hack',
+      { l: 'Create Object ID Labels', t: 'toggle', real: 'createObjectIds' },
+      { l: 'Show Object ID Labels', t: 'toggle', real: 'showObjectIds' },
+      { l: 'Show Editor Glow', t: 'toggle', real: 'showEditorGlow' }];
+    const COSMETIC = ['Ball Rotation Bug', 'Classic Particles', 'Classic Pulse', 'Classic Wave Trail', 'Coin Shower',
+      'Frozen Animations', 'Hide Pause Button', { l: 'Hide Pause Menu', t: 'toggle', real: 'hidePauseMenu' }, 'Hide Player', 'Icon Randomiser', 'No Camera',
+      'No Camera Zoom', 'No Circle Effect', 'No Dash Fire', 'No Death Effect', 'No Do Not Flip', 'No End Shake',
+      'No Ghost Trail', { l: 'No Glow', t: 'toggle', real: 'noGlow' }, 'No Mirror', 'No New Best Popup', 'No Orb Ring',
+      'No Particles', 'No Particles Classic', 'No Portal Circle', 'No Portal Lightning', 'No Pulse', 'No Respawn Flash',
+      'No Robot Fire', 'No Shaders', 'No Shake', 'No Spider Dash', 'No Swing Fire', 'No Trail', 'No Wave Pulse',
+      'No Wave Trail', 'No Trail Behind Wave', 'Player 1 on Top', 'Player on Top',
+      { l: 'Solid Wave Trail', t: 'toggle', real: 'solidWave' }, 'StartPos Reset Camera', 'Stop Triggers on Death',
+      'Trail Always On', 'Trail Cutting', 'Wave Pulse Size', 'Wave Trail on Death',
+      { l: 'Accurate Percentage', t: 'toggle', real: 'percentageDecimals' }];
+    const LEVEL = ['0% Practice Complete', 'Allow Pause Buffering', 'All Modes Platformer', 'Auto Clicker', 'Auto Deafen',
+      'Auto Kill', 'Auto Music Sync', 'Auto Pickup Coins', 'Auto Song Download', 'Click Between Frames',
+      'Click Between Steps', 'Click on Steps', 'Checkpoint Limit Bypass', 'Collect Coins In Practice', 'Confirm Exit',
+      'Confirm Full Reset', 'Confirm Normal', 'Confirm Practice', 'Confirm Reset', 'Force Ice', 'Force Platformer',
+      'Frame Stepper', { l: 'Hitbox Multiplier', t: 'number', real: 'hitboxMultiplier' }, 'Instant Complete', 'Jumpscare', 'Jump Hack',
+      { l: 'Noclip', t: 'toggle', real: 'noclip' }, 'Noclip Limits', 'No Collision', 'Pause During Complete',
+      'Practice Bug Fix', { l: 'Practice Music', t: 'toggle', real: 'practiceMusicBypass' }, 'Random Seed',
+      'Replay Last Checkpoint', 'Respawn Time', 'Shipcopter', { l: 'Show Hitboxes', t: 'toggle', real: 'showHitboxes' },
+      { l: 'Show Hitboxes on Death', t: 'toggle', real: 'hitboxesOnDeath' },
+      { l: 'Show Hitboxes Trail', t: 'toggle', real: 'hitboxTrail' }, 'Show Layout', 'Show Trajectory', 'Show Triggers',
+      'Smart StartPos', { l: 'StartPos Switcher', t: 'toggle', real: 'startPosSwitcher' },
+      { l: 'Enable Portal Guide', t: 'toggle', real: 'portalGuide' }, { l: 'Enable Orb Guide', t: 'toggle', real: 'orbGuide' },
+      { l: 'Macro Bot', t: 'toggle', real: 'macroBot' }];
+    const STATUS = ['Field Formatting', { l: 'Font', t: 'value', values: FONT_VALUES, real: 'font' },
+      { l: 'Scale', t: 'value', values: [1, 1.25, 1.5, 0.75], real: 'menuScale' }, { l: 'Opacity', t: 'value', values: [1, 0.75, 0.5], real: 'menuOpacity' },
+      'Hide Status', 'Message', 'Testmode', 'Cheat Indicator', { l: 'FPS Counter', t: 'toggle', real: 'showFPS' },
+      { l: 'CPS Counter', t: 'toggle', real: 'showCPS' }, 'Best Run', { l: 'Noclip Accuracy', t: 'toggle', real: 'noclipAccuracy' },
+      { l: 'Noclip Deaths', t: 'toggle', real: 'noclipDeaths' }, 'Attempts', { l: 'Percentage', t: 'toggle', real: 'showPercentage' }, 'Level Time', 'Session Time',
+      'Clock', 'Frame Counter', 'Position', 'Velocity', 'Dead', 'Replay State'];
+    const UNIVERSAL = ['Allow Low Volume', 'Compact Lists', 'Custom Background', 'Fast Chests', 'Load Audio to Memory',
+      'Lock Cursor', 'Main Menu Play', 'No Music Fade Out', 'No Transition', 'Pitch Shifter', 'Thread Priority',
+      'Transition Customiser', 'Transparent Lists'];
+    const CHEATSAFETY = [{ l: 'Ruleset: Mega Hack', t: 'label' }, { l: '240 FPS', t: 'value', values: [60, 120, 144, 240] },
+      'Unlock FPS', { l: '360 Hz', t: 'value', values: [60, 144, 240, 360] }, 'Physics TPS', 'Disable Cheats',
+      'Auto Safe Mode', 'Safe Mode Popup', { l: 'Fullscreen', t: 'toggle', real: 'fullscreen' }];
+    const INTERFACE_SUB = ['Hide Endscreen Cheats', 'Hide Endscreen Extras', 'Hide Menu Snow', 'Hide Iconic on Pause', 'Hide RobsVault Shortcut'];
+    const KEYBINDS_SUB = ['Choose Keybind', 'Choose Hack to Set', 'View Keybinds', 'Remove Keybinds', 'Disable in Editor'];
+    const DISPLAY = ['Frame Extrapolation', 'Vertical Sync', 'Borderless Classic'];
+    const UTILITY = ['P1 Click', 'P2 Click', 'Left', 'Right', 'Uncomplete Level',
+      { l: 'Restart Level', t: 'action', real: 'restartLevel' }, { l: 'Practice Mode', t: 'action', real: 'practiceMode' },
+      { l: 'Use Proxy (Schools)', t: 'toggle', real: 'useProxy' }, 'Resources', 'AppData', 'Toggle DevTools', 'Crash Game'];
+    const REPLAY_SUB = ['Record', 'Play', 'Filename', 'Auto-save', 'Save', 'Clear & New', 'Delete', 'Gameplay Options',
+      'Convert (.json, .gdr)', 'Open Folder'];
 
-    const levelWindow = createWindow('Level', padding + (windowWidth + padding) * col++, startY);
-    levelWindow.appendChild(createToggle('Noclip', 'noClip', [], v => {
-      if (this._noclipIndicator) this._noclipIndicator.setVisible(v);
-      this._saveSettings();
-    }));
-    levelWindow.appendChild(createToggle('Hide Pause Menu', 'hidePause'));
-    levelWindow.appendChild(createToggle('Show Hitboxes', 'showHitboxes', [], v => {
-      if (!v) this._player?._hitboxGraphics?.clear();
-      else this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
-      this._saveSettings();
-    }));
-    levelWindow.appendChild(createToggle('Hitbox Trail', 'showHitboxTrail', [], () => {
-      if (window.showHitboxes) this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
-      this._saveSettings();
-    }));
-    levelWindow.appendChild(createNumberInput('Hitbox Mult', 'hitboxMultiplier', 0.1, () => {
-      if (window.showHitboxes) this._player?.drawHitboxes(this._player._hitboxGraphics, this._cameraX, this._cameraY);
-    }));
-    container.appendChild(levelWindow);
+    const group = () => { const g = document.createElement('div'); g.className = 'mh-group'; content.appendChild(g); return g; };
 
-    const playerWindow = createWindow('Player', padding + (windowWidth + padding) * col++, startY);
-    playerWindow.appendChild(createToggle('Infinite Jump', 'infiniteJump'));
-    playerWindow.appendChild(createNumberInput('TPS Bypass', 'tps', 60));
-    container.appendChild(playerWindow);
+    const gMegaHack = group();
+    buildWindowInto(gMegaHack, 'Mega Hack', MEGAHACK);
+    buildWindowInto(gMegaHack, 'Screenshot', SCREENSHOT_SUB);
 
-    const cosmeticWindow = createWindow('Cosmetic', padding + (windowWidth + padding) * col++, startY);
-    cosmeticWindow.appendChild(createToggle('No Particles', 'noParticles'));
-    cosmeticWindow.appendChild(createToggle('No Object Glow', 'noGlow', [], v => {
-      window.showGlow = !v;
-      this._level?._updateGlowVisibility?.();
-      this._saveSettings();
-    }));
-    container.appendChild(cosmeticWindow);
+    const gBypass = group();
+    buildWindowInto(gBypass, 'Bypass', BYPASS);
+    buildWindowInto(gBypass, 'Speedhack', SPEEDHACK_SUB);
 
-    const speedWindow = createWindow('Speedhack', padding + (windowWidth + padding) * col++, startY);
-    speedWindow.appendChild(createNumberInput('Multiplier', 'speedHack', 0.1, () => this._saveSettings()));
-    container.appendChild(speedWindow);
+    buildWindowInto(group(), 'Creator', CREATOR);
+    buildWindowInto(group(), 'Cosmetic', COSMETIC);
+    buildWindowInto(group(), 'Level', LEVEL);
+    buildWindowInto(group(), 'Status', STATUS);
+    buildWindowInto(group(), 'Universal', UNIVERSAL);
 
-    const displayWindow = createWindow('Display', padding + (windowWidth + padding) * col++, startY);
-    const fpsOpacityInput = createNumberInput('Opacity (0-1)', 'fpsOpacity', 0.1, v => this._fpsText?.setAlpha(v));
-    const cpsOpacityInput = createNumberInput('Opacity (0-1)', 'cpsOpacity', 0.1, v => this._cpsIndicator?.setAlpha(v));
+    const gCheatSafety = group();
+    buildWindowInto(gCheatSafety, 'Cheat Safety', CHEATSAFETY);
+    buildWindowInto(gCheatSafety, 'Interface', INTERFACE_SUB);
+    buildWindowInto(gCheatSafety, 'Keybinds', KEYBINDS_SUB);
 
-    displayWindow.appendChild(createToggle('Noclip Accuracy', 'noClipAccuracy', [], () => this._saveSettings()));
-    displayWindow.appendChild(createToggle('Noclip Deaths', 'showNoclipDeaths'));
-    displayWindow.appendChild(createToggle('FPS Counter', 'showFps', [fpsOpacityInput], v => {
-      this._fpsText?.setVisible(v);
-      this._saveSettings();
-    }));
-    displayWindow.appendChild(createToggle('CPS Counter', 'showCPS', [cpsOpacityInput], () => this._saveSettings()));
-    displayWindow.appendChild(createToggle('TPS Counter', 'showTps'));
-    container.appendChild(displayWindow);
+    buildWindowInto(group(), 'Display', DISPLAY);
 
-    const settingsWindow = createWindow('Settings', padding, startY + 160);
-    settingsWindow.appendChild(createToggle('Menu BG Blur', 'menuBgBlur', [], v => {
-      container.classList.toggle('global-blur', v);
-    }));
+    const gUtility = group();
+    buildWindowInto(gUtility, 'Utility', UTILITY);
+    buildWindowInto(gUtility, 'Replay', REPLAY_SUB);
 
-    const themes = {
-      'Default': '#4bff93',
-      'Pink': '#e638e8',
-      'Abyss': '#443eff',
-      'Mint': '#6affd7',
-      'Crimson': '#ff3838',
-      'Sunset': '#ff665b',
-      'Gold': '#ffe586',
-      'Amethyst': '#d15eff'
-    };
-
-    const themeWrapper = document.createElement('div');
-    themeWrapper.className = 'mh-input-container';
-    const themeLabel = document.createElement('span');
-    themeLabel.innerText = 'Theme';
-    const dropdown = document.createElement('div');
-    dropdown.className = 'mh-dropdown';
-    const selected = document.createElement('div');
-    selected.className = 'mh-dropdown-selected';
-    selected.innerHTML = `<span>Default</span><span style="font-size:8px;">▼</span>`;
-    const list = document.createElement('div');
-    list.className = 'mh-dropdown-list';
-
-    for (const [name, color] of Object.entries(themes)) {
-      const item = document.createElement('div');
-      item.className = 'mh-dropdown-item';
-      item.innerText = name;
-      item.onclick = (e) => {
-        e.stopPropagation();
-        document.documentElement.style.setProperty('--mh-accent', color);
-        document.documentElement.style.setProperty('--mh-header-bg', color);
-        selected.querySelector('span').innerText = name;
-        dropdown.classList.remove('open');
-      };
-      list.appendChild(item);
-    }
-
-    selected.onclick = (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-    };
-
-    dropdown.appendChild(selected);
-    dropdown.appendChild(list);
-    themeWrapper.appendChild(themeLabel);
-    themeWrapper.appendChild(dropdown);
-    settingsWindow.appendChild(themeWrapper);
-    container.appendChild(settingsWindow);
+    on(window, 'resize', fitBodyHeights);
 
     this._megaHackCleanups = cleanups;
     this._megaHackMenu = container;
     (this._uhdParent || document.body).appendChild(container);
-    requestAnimationFrame(() => requestAnimationFrame(() => container.classList.remove('is-closed')));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      container.classList.remove('is-closed');
+      // Wait out the open transition (see .mh-window transition duration below) so
+      // getBoundingClientRect() reads each window's settled position, not mid-slide.
+      setTimeout(fitBodyHeights, 260);
+    }));
   }
   _saveSettings() {
     const settings = {
