@@ -4194,18 +4194,19 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const arrowL = this.add.image(55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(true).setInteractive();
     const arrowR = this.add.image(sw - 55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(false).setInteractive();
     const allLevels = window.allLevels || [];
-    const pageCount = allLevels.length + 1;
-    let currentPageIndex = allLevels.findIndex(l => l[2] === window.currentlevel[2]);
+    const visibleLevels = allLevels.filter(level => !(level && level[2] === "level_22"));
+    const pageCount = visibleLevels.length + 1;
+    let currentPageIndex = visibleLevels.findIndex(l => l[2] === window.currentlevel[2]);
     if (currentPageIndex < 0) currentPageIndex = 0;
-    const isComingSoonPage = () => currentPageIndex >= allLevels.length;
+    const isComingSoonPage = () => currentPageIndex >= visibleLevels.length;
     const getPageLevel = () => {
-      if (isComingSoonPage()) return allLevels[allLevels.length - 1] || window.currentlevel || [];
-      return allLevels[currentPageIndex] || window.currentlevel || [];
+      if (isComingSoonPage()) return visibleLevels[visibleLevels.length - 1] || window.currentlevel || [];
+      return visibleLevels[currentPageIndex] || window.currentlevel || [];
     };
     const applyCurrentPage = () => {
       this._levelSelectIsComingSoonPage = isComingSoonPage();
-      if (!isComingSoonPage() && allLevels[currentPageIndex]) {
-        window.currentlevel = [...allLevels[currentPageIndex]];
+      if (!isComingSoonPage() && visibleLevels[currentPageIndex]) {
+        window.currentlevel = [...visibleLevels[currentPageIndex]];
       }
     };
     applyCurrentPage();

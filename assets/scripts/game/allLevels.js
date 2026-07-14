@@ -124,13 +124,13 @@ window.allLevels = [
 	    "Fingerdash",
 	    "level_21",
 	    ["RobTop", "MDK"]
-    ],/*
+    ],
     [
         "dash",
 	    "Dash",
 	    "level_22",
 	    ["RobTop", "MDK"]
-    ],
+    ],/*
     [
         "every_end",
 	    "Every End",
