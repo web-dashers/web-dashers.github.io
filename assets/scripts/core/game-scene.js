@@ -481,7 +481,7 @@ class GameScene extends Phaser.Scene {
       color: "#ffffff",
       fontFamily: "Arial"
     }).setOrigin(1, 1).setScrollFactor(0).setDepth(30).setAlpha(0.3);
-    this._tryMeImg = this.add.image(0, 182.5, "GJ_WebSheet", "tryMe_001.png").setScrollFactor(0).setDepth(30);
+    this._tryMeImg = this.add.image(0, 150, "GJ_MenuBeta").setScrollFactor(0).setDepth(30).setScale(0.75);
     this._downloadBtns = [];
     const _0x4fc67f = [{
       key: "downloadSteam_001",
@@ -6655,7 +6655,7 @@ _buildSettingsPopup() {
       this._copyrightText.x = screenWidth - 20;
     }
     if (this._tryMeImg) {
-      this._tryMeImg.x = _0x1e5db8 + 175;
+      this._tryMeImg.x = _0x1e5db8 + 260;
     }
     if (this._menuGlitter) {
       this._menuGlitter.x = _0x1e5db8;
