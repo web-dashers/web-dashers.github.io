@@ -134,22 +134,27 @@ function parseObject(objectString) {
   }
 }
 function parseLevel(levelString) {
-  let decompressedString = function (compressedString) {
-    let getBase64 = function (compressedString) {
-      let lessCluttered = compressedString.replace(/-/g, "+").replace(/_/g, "/");
-      while (lessCluttered.length % 4 != 0) {
-        lessCluttered += "=";
+  let decompressedString = null;
+  try{
+    decompressedString = function (compressedString) {
+      let getBase64 = function (compressedString) {
+        let lessCluttered = compressedString.replace(/-/g, "+").replace(/_/g, "/");
+        while (lessCluttered.length % 4 != 0) {
+          lessCluttered += "=";
+        }
+        return lessCluttered;
+      }(compressedString.trim());
+      let decryptedString = atob(getBase64);
+      let rawBytes = new Uint8Array(decryptedString.length);
+      for (let byteStr = 0; byteStr < decryptedString.length; byteStr++) {
+        rawBytes[byteStr] = decryptedString.charCodeAt(byteStr);
       }
-      return lessCluttered;
-    }(compressedString.trim());
-    let decryptedString = atob(getBase64);
-    let rawBytes = new Uint8Array(decryptedString.length);
-    for (let byteStr = 0; byteStr < decryptedString.length; byteStr++) {
-      rawBytes[byteStr] = decryptedString.charCodeAt(byteStr);
-    }
-    let inflatedBytes = pako.inflate(rawBytes);
-    return new TextDecoder().decode(inflatedBytes);
-  }(levelString);
+      let inflatedBytes = pako.inflate(rawBytes);
+      return new TextDecoder().decode(inflatedBytes);
+    }(levelString);
+  } catch(InvalidCharacterError) {
+    decompressedString = levelString;
+  }
   let stringParts = decompressedString.split(";");
   let settings = stringParts.length > 0 ? stringParts[0] : "";
   let objects = [];
