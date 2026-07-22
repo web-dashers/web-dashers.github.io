@@ -4,7 +4,7 @@
 <div align="center">
   <img  
   alt="Web Dashers" 
-  src="./wd_assets/wordmark/wordmark_1080.png" 
+  src="./wd_branding/wordmark/wordmark_1080.png" 
   />
   <p>
   <strong>A modded Geometry Dash demo with extra features added!</strong>
