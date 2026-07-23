@@ -3477,6 +3477,12 @@ if (this.p.isFlying || this.p.isUfo) {
     }
   }
   updateSwingRotation(_0x217ad3) {
+    if (this._onSlopeAngle !== null && (this.p.onGround || this.p.onCeiling)) {
+      const _0x2371ed = 0.47250000000000003;
+      const _0x1857d4 = Math.min(_0x217ad3 * 1, _0x2371ed * _0x217ad3);
+      this._rotation = this.slerp2D(this._rotation, this._onSlopeAngle, _0x1857d4);
+      return;
+    }
     const _0x58cb3a = 10.3860036;
     const _0x5e6a2b = Math.atan2(-this.p.yVelocity, _0x58cb3a);
     const _0x2371ed = 0.15;
