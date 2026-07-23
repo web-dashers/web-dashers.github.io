@@ -4008,7 +4008,7 @@ _updateWaveJump(dt) {
     const playersY = this.p.y;
     const playersLastY = this.p.lastY;
     const previousCollisionWorldY = Number.isFinite(this._lastCollisionWorldY) ? this._lastCollisionWorldY : playersLastY;
-    const gamemodeAddition = this.p.isFlying || this.p.isWave || this.p.isUfo || this.p.isSwing ? 12 : 20;
+    const gamemodeAddition = this.p.isFlying || this.p.isWave || this.p.isUfo ? 12 : 20;
     this.p.collideTop = 0;
     this.p.collideBottom = 0;
     this.p.onCeiling = false;
