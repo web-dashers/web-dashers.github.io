@@ -1597,8 +1597,8 @@ class PlayerObject {
     {
       const _0xe76a85 = Math.cos(this._rotation);
       const _0x26ec65 = Math.sin(this._rotation);
-      const _0x216018 = this.p.isWave ? 0 : (this.p.isUfo ? 0 : -24);
-      const _0x2baeac = (this.p.isWave ? 4 : (this.p.isUfo ? 5 : 18)) * (this.p.gravityFlipped ? -1 : 1);
+      const _0x216018 = this.p.isWave ? 0 : (this.p.isUfo ? 0 : (this.p.isSwing ? 0 : -24));
+      const _0x2baeac = (this.p.isWave ? 4 : (this.p.isUfo ? 5 : (this.p.isSwing ? 0 : 18))) * (this.p.gravityFlipped ? -1 : 1);
       const _0x75c380 = _0x119eb7 + _0x216018 * _0xe76a85 - _0x2baeac * _0x26ec65;
       const _0x2b31d7 = _0x519d38 + _0x216018 * _0x26ec65 + _0x2baeac * _0xe76a85;
       const _0x5d66f4 = (Math.random() * 2 - 1) * 2 * 2;
@@ -1606,7 +1606,7 @@ class PlayerObject {
       this._flyParticleEmitter.particleY = _0x2b31d7 + _0x5d66f4;
       this._flyParticle2Emitter.particleX = _0x75c380;
       this._flyParticle2Emitter.particleY = _0x2b31d7 + _0x5d66f4;
-      this._streak.setPosition(this.p.isWave ? _0x75c380 : (this.p.isUfo ? _0x75c380 : _0x75c380 + 8), _0x2b31d7);
+      this._streak.setPosition(this.p.isWave || this.p.isUfo || this.p.isSwing ? _0x75c380 : _0x75c380 + 8, _0x2b31d7);
       this._waveTrail.setPosition(_0x119eb7, _0x519d38);
     }
     this._streak.update(_0x5af874);
@@ -3477,7 +3477,7 @@ if (this.p.isFlying || this.p.isUfo) {
     }
   }
   updateSwingRotation(_0x217ad3) {
-    if (this._onSlopeAngle !== null && (this.p.onGround || this.p.onCeiling)) {
+    if (this._activeSlopeObj && this._onSlopeAngle !== null) {
       const _0x2371ed = 0.47250000000000003;
       const _0x1857d4 = Math.min(_0x217ad3 * 1, _0x2371ed * _0x217ad3);
       this._rotation = this.slerp2D(this._rotation, this._onSlopeAngle, _0x1857d4);
@@ -5000,7 +5000,8 @@ _updateWaveJump(dt) {
       this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer,
       ...(this._birdLayers || []),
       ...(this._spiderLayers || []),
-      ...(this._robotLayers || [])
+      ...(this._robotLayers || []),
+      ...(this._swingLayers || [])
     ].filter(_0x3e9c62 => _0x3e9c62 && _0x3e9c62.sprite && _0x3e9c62.sprite.visible).map(_0x5cedeb => _0x5cedeb.sprite);
     this._startPercent = (this._scene._playerWorldX / this._scene._level.endXPos) * 100;
     this._particleEmitter.stop();
