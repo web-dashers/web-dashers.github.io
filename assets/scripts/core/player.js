@@ -2352,10 +2352,6 @@ if (this.p.isFlying || this.p.isUfo) {
       }
     } else if (this.p.isWave) {
       this._rotation = 0;
-    } else if (this.p.isSwing) {
-      if (!this._activeSlopeObj) {
-        this._rotation = this.p.gravityFlipped ? Math.PI : 0;
-      }
     }
     this.stopRotation();
     if (_0x4a38a5 && !this.p.isFlying && !this.p.isWave && !this.p.isSpider && !this.p.isSwing && !this._scene?._editorPlaytestActive) {
@@ -3490,6 +3486,13 @@ if (this.p.isFlying || this.p.isUfo) {
       const _0x2371ed = 0.47250000000000003;
       const _0x1857d4 = Math.min(_0x217ad3 * 1, _0x2371ed * _0x217ad3);
       this._rotation = this.slerp2D(this._rotation, targetAngle, _0x1857d4);
+      return;
+    }
+    if ((this.p.onGround || this.p.onCeiling) && !this.p.isJumping) {
+      const flatAngle = Math.round(this._rotation / Math.PI) * Math.PI;
+      const _0x2371ed = 0.25;
+      const _0x1857d4 = Math.min(_0x217ad3 * 1, _0x2371ed * _0x217ad3);
+      this._rotation = this.slerp2D(this._rotation, flatAngle, _0x1857d4);
       return;
     }
     const _0x58cb3a = 10.3860036;
