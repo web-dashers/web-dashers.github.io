@@ -2354,7 +2354,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this._rotation = 0;
     } else if (this.p.isSwing) {
       if (!this._activeSlopeObj) {
-        this._rotation = this.p.gravityFlipped ? Math.PI : 0;
+        this._rotation = Math.round(this._rotation / Math.PI) * Math.PI;
       }
     }
     this.stopRotation();
@@ -3448,12 +3448,13 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p.upKeyPressed) {
       this.p.upKeyPressed = false;
       this.p.queuedHold = false;
-      if (this._activeSlopeObj && this._activeSlopeAngle !== null) {
+      if (this.p.onGround || this.p.onCeiling || (this._activeSlopeObj && this._activeSlopeAngle !== null)) {
         const hitSize = this.p.isMini ? 18 : 30;
         this.p.y += this.p.gravityFlipped ? -hitSize : hitSize;
       }
       this.flipGravity(!this.p.gravityFlipped, 1.0);
       this.p.onGround = false;
+      this.p.onCeiling = false;
       this.p.canJump = false;
       this.p.isJumping = false;
       return;
