@@ -334,6 +334,7 @@ class GameScene extends Phaser.Scene {
     this._player2.setBirdVisible?.(false);
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
+    this._player2.setSwingVisible(false);
     this._colorManager = new ColorManager();
     this._practicedMode = new PracticeMode();
     if (this._audio == null) {
@@ -6464,6 +6465,7 @@ _buildSettingsPopup() {
     this._player2.setBirdVisible?.(false);
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
+    this._player2.setSwingVisible(false);
     this._levelAttempts = 1;
     this._levelJumps = 0;
     this._attempts++;
@@ -6525,10 +6527,10 @@ _buildSettingsPopup() {
       }
       const _dualImmediateBeforeGravity = !!this._state.gravityFlipped;
       let _primaryImmediateJumped = false;
-      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && this._state.canJump) {
+      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && !this._state.isSwing && this._state.canJump) {
         this._player.updateJump(0);
         _primaryImmediateJumped = true;
-      } else if (this._state.isUfo) {
+      } else if (this._state.isUfo || this._state.isSwing) {
         if (!this._player._shouldPrioritizeUfoOrbInput?.()) {
           this._player.updateJump(0);
           _primaryImmediateJumped = true;
@@ -6550,9 +6552,9 @@ _buildSettingsPopup() {
         const _secondaryImmediateBeforeGravity = !!this._state2.gravityFlipped;
         const _secondaryImmediateBallInput = this._state2.isBall && this._state2.upKeyPressed;
         const _secondaryImmediateSpiderInput = this._state2.isSpider && this._state2.upKeyPressed;
-        if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
+        if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && !this._state2.isSwing && this._state2.canJump) {
           this._player2.updateJump(0);
-        } else if (this._state2.isUfo) {
+        } else if (this._state2.isUfo || this._state2.isSwing) {
           if (!this._player2._shouldPrioritizeUfoOrbInput?.()) {
             this._player2.updateJump(0);
           }
@@ -6771,6 +6773,7 @@ _buildSettingsPopup() {
     this._player2.setBirdVisible?.(false);
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
+    this._player2.setSwingVisible(false);
     this._glitterEmitter.stop();
     let speedKey = parseInt(window.settingsMap["kA4"] || "0");
     if (speedKey == 0) {
@@ -7756,7 +7759,7 @@ _buildSettingsPopup() {
         }
         if (this._isDual) this._ensureDualFlyBounds();
       }
-      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
+      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && !this._state.isSwing) {
         if (this._state.isBall) {
           const ballOnSurface = this._state.onGround || this._state.onCeiling;
           this._player.updateBallRoll(horizontalDelta, ballOnSurface);
@@ -7768,7 +7771,7 @@ _buildSettingsPopup() {
           this._player.updateDashRotation(u);
         }
       }
-      if (this._isDual && !this._state2.isDead && !this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo) {
+      if (this._isDual && !this._state2.isDead && !this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && !this._state2.isSwing) {
         if (this._state2.isBall) {
           const ball2OnSurface = this._state2.onGround || this._state2.onCeiling;
           this._player2.updateBallRoll(horizontalDelta, ball2OnSurface);
@@ -8263,7 +8266,7 @@ _applyMirrorEffect() {
   }
   _refreshFlyBoundsAfterDual() {
     if (!this._level) return;
-    if (this._state.isFlying || this._state.isWave || this._state.isUfo) {
+    if (this._state.isFlying || this._state.isWave || this._state.isUfo || this._state.isSwing) {
       this._level.setFlyMode(true, this._state.y, f, false);
     } else if (this._state.isBall) {
       this._level.setFlyMode(true, this._state.y, f - a * 2, false);
@@ -8333,6 +8336,7 @@ _applyMirrorEffect() {
     this._player2.setBirdVisible?.(false);
     this._player2.setRobotVisible(false);
     this._player2.setSpiderVisible(false);
+    this._player2.setSwingVisible(false);
     if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
     if (this._player2 && this._player2._hitboxTrail) this._player2._hitboxTrail = [];
     this._refreshFlyBoundsAfterDual();
