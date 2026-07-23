@@ -12,6 +12,7 @@ window.currentBall   = localStorage.getItem("iconCurrentBall")   || "player_ball
 window.currentWave   = localStorage.getItem("iconCurrentWave")   || "dart_01";
 window.currentSpider = localStorage.getItem("iconCurrentSpider") || "spider_01";
 window.currentBird   = localStorage.getItem("iconCurrentBird")   || "bird_01";
+window.currentSwing  = localStorage.getItem("iconCurrentSwing")  || "swing_01";
 const storedUseDirectInternet = localStorage.getItem("gd_useDirectInternet");
 window.useDirectInternet = storedUseDirectInternet === null ? true : storedUseDirectInternet === "true";
 window.getGdApiBase = function () {
