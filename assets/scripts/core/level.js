@@ -318,11 +318,9 @@ function _resolveSlopeDir(objectDef, flipX, objId) {
   const text = frames.join(" ");
   let dir = 1;
 
-  /*
   if (/slope_02[^0-9]|slope_04|slope_06|slope_02[bcd]_|pit_0[14]_slope_02|plank_01_slope_02|slope_square_02|slope_square_04|slope_square_05/.test(text)) {
     dir = -1;
   }
-  */
   
   if (flipX) dir = -dir;
   return dir;
@@ -2304,6 +2302,7 @@ window.LevelObject = class LevelObject {
         111: "ufo",
         745: "robot",
         1331: "spider",
+        1933: "swing",
         747: "teleport",
         286: "dual_on",
         287: "dual_off"
@@ -2322,6 +2321,7 @@ window.LevelObject = class LevelObject {
         ufo: portalUfoType,
         robot: "portal_robot",
         spider: "portal_spider",
+        swing: "portal_swing",
         teleport: "portal_teleport",
         mirrora: "portal_mirror_on",
         mirrorb: "portal_mirror_off",

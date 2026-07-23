@@ -482,6 +482,8 @@ class PlayerObject {
     if (this._waveSpriteLayer?.sprite) this._waveSpriteLayer.sprite.setTint(this._primaryColor());
     if (this._waveGlowLayer?.sprite) this._waveGlowLayer.sprite.setTint(this._secondaryColor());
     if (this._waveOverlayLayer?.sprite) this._waveOverlayLayer.sprite.setTint(this._secondaryColor());
+    if (this._swingSpriteLayer?.sprite) this._swingSpriteLayer.sprite.setTint(this._primaryColor());
+    if (this._swingOverlayLayer?.sprite) this._swingOverlayLayer.sprite.setTint(this._secondaryColor());
     if (this._birdSpriteLayer?.sprite) this._birdSpriteLayer.sprite.setTint(this._primaryColor());
     if (this._birdGlowLayer?.sprite) this._birdGlowLayer.sprite.setTint(this._secondaryColor());
     if (this._birdOverlayLayer?.sprite) this._birdOverlayLayer.sprite.setTint(this._secondaryColor());
@@ -1265,6 +1267,16 @@ class PlayerObject {
     if (this._shipOverlayLayer) {
       this._shipOverlayLayer.sprite.setTint(this._secondaryColor());
     }
+    this._swingSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentSwing}_001.png`, 10, false);
+    this._swingOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentSwing}_2_001.png`, 8, false);
+    this._swingExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentSwing}_extra_001.png`, 12, false);
+    if (this._swingSpriteLayer) {
+      this._swingSpriteLayer.sprite.setTint(this._primaryColor());
+    }
+    if (this._swingOverlayLayer) {
+      this._swingOverlayLayer.sprite.setTint(this._secondaryColor());
+    }
+    this._swingLayers = [this._swingSpriteLayer, this._swingOverlayLayer, this._swingExtraLayer].filter(x => !!x);
     this._ballGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_glow_001.png`, 9, false);
     this._ballSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_001.png`, 10, false);
     this._ballOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_2_001.png`, 8, false);
@@ -1324,7 +1336,7 @@ class PlayerObject {
     }
     this._birdLayers = [this._birdSpriteLayer, this._birdGlowLayer, this._birdOverlayLayer, this._birdExtraLayer].filter(x => !!x);
 
-    this._allLayers = [...this._playerLayers, ...this._ballLayers, ...this._waveLayers, ...this._shipLayers, ...this._spiderLayers, ...this._robotLayers, ...this._birdLayers];
+    this._allLayers = [...this._playerLayers, ...this._ballLayers, ...this._waveLayers, ...this._shipLayers, ...this._spiderLayers, ...this._robotLayers, ...this._birdLayers, ...this._swingLayers];
     this._applyPlayerTints();
     
     this._dashAnimationSprite = spriteY.add.image(particleY, spriteX, "GJ_GameSheetGlow", "playerDash2_001.png");
@@ -1574,7 +1586,7 @@ class PlayerObject {
     const _0x519d38 = b(this.p.y);
     this._particleEmitter.particleX = _0x119eb7 - 20;
     this._particleEmitter.particleY = _0x519d38 + (this.p.gravityFlipped ? (-26 + (this.p.isUfo ? -5 : 0)) : (26 + (this.p.isUfo ? 5 : 0)));
-    const _0x4436ac = this.p.onGround && !this.p.isFlying && !this.p.isWave;
+    const _0x4436ac = this.p.onGround && !this.p.isFlying && !this.p.isWave && !this.p.isSwing;
     if (_0x4436ac && !this._particleActive) {
       this._particleEmitter.start();
       this._particleActive = true;
@@ -1659,6 +1671,12 @@ class PlayerObject {
     }
     if (this._shipExtraLayer) {
       this._shipExtraLayer.sprite.setVisible(_0x1c5620);
+    }
+  }
+  setSwingVisible(v) {
+    for (const layer of (this._swingLayers || [])) {
+      if (!layer?.sprite) continue;
+      layer.sprite.setVisible(v);
     }
   }
   setBirdVisible(v) {
@@ -1934,6 +1952,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitRobotMode();
     this.exitBallMode();
     this.exitWaveMode();
+    this.exitSwingMode();
     this.p.isFlying = true;
     this._scene.toggleGlitter(true);
     if (!fromCheckpoint){ // dont mess with y velocity if ur loading a checkpoint
@@ -2000,6 +2019,9 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitSpiderMode();
     this.exitRobotMode();
     this.exitWaveMode();
+    this.exitSwingMode();
+    this.exitShipMode();
+    this.exitUfoMode();
     this.p.isBall = true;
     this.p.onGround = false;
     this.p.canJump = false;
@@ -2038,6 +2060,8 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitRobotMode();
     this.exitShipMode();
     this.exitBallMode();
+    this.exitSwingMode();
+    this.exitUfoMode();
     this.p.isWave = true;
     this.p.yVelocity = 0;
     this.p.onGround = false;
@@ -2090,6 +2114,8 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitRobotMode();
     this.exitBallMode();
     this.exitWaveMode();
+    this.exitSwingMode();
+    this.exitUfoMode();
     const savedPortalYVelocity = Number.isFinite(portalYVelocity) ? portalYVelocity : null;
     this.p.isSpider = true;
     if (!enteredFromPortal) this.p.yVelocity = 0;
@@ -2150,6 +2176,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitWaveMode();
     this.exitSpiderMode();
     this.exitUfoMode();
+    this.exitSwingMode();
     const savedPortalYVelocity = Number.isFinite(portalYVelocity) ? portalYVelocity : null;
     this.p.isRobot = true;
     this.p._robotHold = false;
@@ -2186,7 +2213,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.stopRotation();
     this._rotation = 0;
     this.setRobotVisible(false);
-    this.setCubeVisible(!this.p.isBall && !this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider);
+    this.setCubeVisible(!this.p.isBall && !this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isSwing);
     this._setGamemodeFlyBounds(false, 0);
   }
   enterUfoMode(_portal = null, fromCheckpoint = false) {
@@ -2196,6 +2223,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this.exitBallMode();
     this.exitWaveMode();
     this.exitShipMode();
+    this.exitSwingMode();
     this.p.isUfo = true;
     this._scene.toggleGlitter(true);
     if (!fromCheckpoint){ // dont mess with y velocity if ur loading a checkpoint
@@ -2252,9 +2280,61 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     this._setGamemodeFlyBounds(false, 0);
   }
+  enterSwingMode(_portal = null, fromCheckpoint = false) {
+    if (this.p.isSwing) return;
+    this.exitSpiderMode();
+    this.exitRobotMode();
+    this.exitBallMode();
+    this.exitWaveMode();
+    this.exitShipMode();
+    this.exitUfoMode();
+    this.p.isSwing = true;
+    if (!fromCheckpoint) {
+      this.p.yVelocity *= 0.5;
+    }
+    this.p.onGround = false;
+    this.p.canJump = false;
+    this.p.isJumping = false;
+    this.stopRotation();
+    this._rotation = 0;
+    this._particleEmitter.stop();
+    this._streak.reset();
+    this._streak.start();
+    this.setBallVisible(false);
+    this.setShipVisible(false);
+    this.setWaveVisible(false);
+    this.setSpiderVisible(false);
+    this.setBirdVisible(false);
+    this.setCubeVisible(false);
+    this.setSwingVisible(true);
+    let _spawnY = this.p.y;
+    if (_portal) {
+      _spawnY = _portal.portalY !== undefined ? _portal.portalY : _portal.y;
+    }
+    this._setGamemodeFlyBounds(true, _spawnY, f, false);
+  }
+  exitSwingMode() {
+    if (!this.p.isSwing) return;
+    this.p.isSwing = false;
+    this.p.yVelocity *= 0.5;
+    this.p.onGround = false;
+    this.p.canJump = false;
+    this.p.isJumping = false;
+    this._streak.stop();
+    this._streak.reset();
+    this.stopRotation();
+    this._rotation = 0;
+    this._particleEmitter.stop();
+    this.setSwingVisible(false);
+    this.setCubeVisible(!this.p.isBall && !this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isSwing);
+    this.setBallVisible(this.p.isBall);
+    this.setShipVisible(this.p.isFlying);
+    this.setWaveVisible(this.p.isWave);
+    this._setGamemodeFlyBounds(false, 0);
+  }
   hitGround() {
     const _0x4a38a5 = !this.p.onGround;
-    if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo) {
+    if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSwing) {
       this.p.lastGroundY = this.p.y;
     }
     this.p.yVelocity = 0;
@@ -2274,7 +2354,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this._rotation = 0;
     }
     this.stopRotation();
-    if (_0x4a38a5 && !this.p.isFlying && !this.p.isWave && !this.p.isSpider && !this._scene?._editorPlaytestActive) {
+    if (_0x4a38a5 && !this.p.isFlying && !this.p.isWave && !this.p.isSpider && !this.p.isSwing && !this._scene?._editorPlaytestActive) {
       this._landIdx = !this._landIdx;
       const _0x31584b = this._landIdx ? this._landEmitter1 : this._landEmitter2;
       const _0x2248d5 = this._scene._playerWorldX;
@@ -3057,7 +3137,7 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p.isFlying) {
       this.p._slopeBounceActive = true;
     }
-    if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isRobot) {
+    if (!this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isRobot && !this.p.isSwing) {
       this.p.isJumping = true;
       this._rotation = slopeAngle;
       this.stopRotation();
@@ -3239,6 +3319,9 @@ if (this.p.isFlying || this.p.isUfo) {
       this._updateSpiderJump(_0x3d1c6f);
     } else if (this.p.isRobot) {
       this._updateRobotJump(_0x3d1c6f);
+    } else if (this.p.isSwing) {
+      this._updateSwingJump(_0x3d1c6f);
+      this.updateSwingRotation(_0x3d1c6f);
     } else if (this.p.upKeyDown && this.p.canJump) {
       this.p.isJumping = true;
       this.p.onGround = false;
@@ -3354,6 +3437,51 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p._slopeBounceActive && (this.playerIsFalling() || this.p.onGround)) {
       this.p._slopeBounceActive = false;
     }
+  }
+  _updateSwingJump(_0x2fe319) {
+    const _swingGrav = p * 0.4;
+    const _swingCap = 13;
+    if (this.p.upKeyPressed) {
+      this.p.upKeyPressed = false;
+      this.p.queuedHold = false;
+      this.flipGravity(!this.p.gravityFlipped, 1.0);
+      this.p.onGround = false;
+      this.p.canJump = false;
+      this.p.isJumping = false;
+      return;
+    }
+    if (this.playerIsFalling() && !this.p._slopeBounceActive) {
+      this.p.canJump = false;
+    }
+    this.p.yVelocity -= _swingGrav * _0x2fe319 * this.flipMod();
+    if (this.p.isJumping) {
+      if (this.playerIsFalling()) {
+        this.p.isJumping = false;
+        this.p.onGround = false;
+      }
+    } else if (!this.p._slopeBounceActive) {
+      if (this.p.gravityFlipped) {
+        this.p.yVelocity = Math.min(this.p.yVelocity, _swingCap);
+      } else {
+        this.p.yVelocity = Math.max(this.p.yVelocity, -_swingCap);
+      }
+    }
+    if (this.playerIsFalling()) {
+      const _fallingHard = this.p.gravityFlipped ? this.p.yVelocity > p * 2 : this.p.yVelocity < -(p * 2);
+      if (_fallingHard) {
+        this.p.onGround = false;
+      }
+    }
+    if (this.p._slopeBounceActive && (this.playerIsFalling() || this.p.onGround)) {
+      this.p._slopeBounceActive = false;
+    }
+  }
+  updateSwingRotation(_0x217ad3) {
+    const _0x58cb3a = 10.3860036;
+    const _0x5e6a2b = Math.atan2(-this.p.yVelocity, _0x58cb3a);
+    const _0x2371ed = 0.15;
+    const _0x1857d4 = Math.min(_0x217ad3 * 1, _0x2371ed * _0x217ad3);
+    this._rotation = this.slerp2D(this._rotation, _0x5e6a2b, _0x1857d4);
   }
 _updateBallJump(_0x2fe319) {
     const _0x144266 = p * 0.6;
@@ -3874,7 +4002,7 @@ _updateWaveJump(dt) {
     const playersY = this.p.y;
     const playersLastY = this.p.lastY;
     const previousCollisionWorldY = Number.isFinite(this._lastCollisionWorldY) ? this._lastCollisionWorldY : playersLastY;
-    const gamemodeAddition = this.p.isWave ? 0 : (this.p.isFlying || this.p.isUfo ? 12 : 20);
+    const gamemodeAddition = this.p.isFlying || this.p.isWave || this.p.isUfo || this.p.isSwing ? 12 : 20;
     this.p.collideTop = 0;
     this.p.collideBottom = 0;
     this.p.onCeiling = false;
@@ -4014,6 +4142,19 @@ _updateWaveJump(dt) {
             this.exitBallMode();
             this.exitWaveMode();
             this.exitUfoMode();
+            this.exitSwingMode();
+          }
+        } else if (_colType === "portal_swing") {
+          if (!this._isObjectActivated(gameObj)) {
+            this._setObjectActivated(gameObj, true);
+            this._playPortalShine(gameObj);
+            this.exitRobotMode();
+            this.exitBallMode();
+            this.exitWaveMode();
+            this.exitShipMode();
+            this.exitUfoMode();
+            this.exitSpiderMode();
+            this.enterSwingMode(gameObj);
           }
         } else if (_colType === "portal_ball") {
           if (!this._isObjectActivated(gameObj)) {
@@ -4524,7 +4665,7 @@ _updateWaveJump(dt) {
       this._activeSlopeObj = bestSlopeGameObj;
       this._activeSlopeAngle = bestSlopeCandidate.slopeAngle;
       _0x30410f = true;
-      if (!this.p.isFlying && !this.p.isWave) {
+      if (!this.p.isFlying && !this.p.isWave && !this.p.isSwing) {
         this._checkSnapJump(bestSlopeGameObj);
       }
     }
@@ -4538,7 +4679,7 @@ _updateWaveJump(dt) {
       }
     }
     let _0x3020c8 = this._gameLayer.getFloorY();
-    const iscube = !this.p.isFlying && !this.p.isBall && !this.p.isWave && !this.p.isUfo && !this.p.isSpider;
+    const iscube = !this.p.isFlying && !this.p.isBall && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isSwing;
     const _effectiveSize = this.p.isWave ? waveHitSize : playerSize;
     if (!_0x30410f && !_boostedThisStep) {
       let gravCeilY = this._gameLayer.getCeilingY();
@@ -4617,14 +4758,14 @@ _updateWaveJump(dt) {
     this._activeSlopeObj = bestSlopeGameObj;
     this._activeSlopeAngle = bestSlopeCandidate.slopeAngle;
     _0x30410f = true;
-    if (!this.p.isFlying && !this.p.isWave) {
+    if (!this.p.isFlying && !this.p.isWave && !this.p.isSwing) {
     this._checkSnapJump(bestSlopeGameObj);
     }
   }
     if (this._prevSlopeObj && !this._activeSlopeObj) {
      this._applySlopeExitBounce(this._prevSlopeObj, this._prevSlopeAngle, pieceWidth);
     }
-    if (this.p.isFlying || this.p.isWave || this.p.isUfo || this.p.isSpider) {
+    if (this.p.isFlying || this.p.isWave || this.p.isUfo || this.p.isSpider || this.p.isSwing) {
       const _0x354b7c = this.p.y <= _0x3020c8 + _effectiveSize;
       const _0xdc296 = _0x496456 !== null && this.p.y >= _0x496456 - _effectiveSize;
       if (!_0x30410f && !_0x354b7c && this.p.collideTop === 0 && !_0xdc296) {
@@ -4669,7 +4810,7 @@ _updateWaveJump(dt) {
       let hitboxColor = 65280;
       if (nearObject.type === hazardType) {
         hitboxColor = 16729156;
-      } else if (nearObject.type === "portal_fly" || nearObject.type === "portal_cube" || nearObject.type === "portal_ball" || nearObject.type === "portal_robot" || nearObject.type === portalWaveType || nearObject.type === portalUfoType) {
+      } else if (nearObject.type === "portal_fly" || nearObject.type === "portal_cube" || nearObject.type === "portal_ball" || nearObject.type === "portal_robot" || nearObject.type === "portal_swing" || nearObject.type === portalWaveType || nearObject.type === portalUfoType) {
         hitboxColor = 4491519;
       } else if (nearObject.type === "portal_gravity_down" || nearObject.type === "portal_gravity_up" || nearObject.type === "portal_gravity_toggle") {
         hitboxColor = 16776960;
