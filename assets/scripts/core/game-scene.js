@@ -2673,8 +2673,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     window.currentSpider = window.currentSpider || localStorage.getItem("iconCurrentSpider") || "spider_01";
     window.currentRobot = window.currentRobot || localStorage.getItem("iconCurrentRobot") || "robot_01";
+    window.currentSwing = window.currentSwing || localStorage.getItem("iconCurrentSwing") || "swing_01";
     _iconFrameSets.spider = _makeSegmentedIconFrames("spider");
     _iconFrameSets.robot = _makeSegmentedIconFrames("robot");
+    _iconFrameSets.swing = ["swing_01_001.png"];
 
 
     const _iconWindowProps = {
@@ -2685,6 +2687,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       ufo: "currentBird",
       robot: "currentRobot",
       spider: "currentSpider",
+      swing: "currentSwing",
     };
 
     const _iconAtlas = {
@@ -2695,6 +2698,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       ufo: "GJ_GameSheetIcons",
       robot: "GJ_GameSheetIcons",
       spider: "GJ_GameSheetIcons",
+      swing: "GJ_GameSheetIcons",
     };
 
     const _tabBtnFrames = {
@@ -2705,6 +2709,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       ufo:  { on: "gj_birdBtn_on_001.png",    off: "gj_birdBtn_off_001.png"    },
       robot:{ on: "gj_robotBtn_on_001.png",   off: "gj_robotBtn_off_001.png"   },
       spider:{ on: "gj_spiderBtn_on_001.png", off: "gj_spiderBtn_off_001.png" },
+      swing:{ on: "gj_swingBtn_on_001.png",   off: "gj_swingBtn_off_001.png"  },
     };
 
     const _safeTabBtnFrame = (tab, state) => {
@@ -3076,20 +3081,21 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._iconOverlayObjects.push(selectedIconExtra, selectedIcon);
 
       const tabBtnY = containerY - 40;
-      const tabKeys = ["icon", "ship", "ball", "ufo", "wave", "robot", "spider"];
+      const tabKeys = ["icon", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
       const tabSpacing = 58;
       const tabOffsets = {
-        icon: -tabSpacing * 3,
-        ship: -tabSpacing * 2,
-        ball: -tabSpacing,
-        ufo: 0,
-        wave: tabSpacing,
-        robot: tabSpacing * 2,
-        spider: tabSpacing * 3,
+        icon: -tabSpacing * 3.5,
+        ship: -tabSpacing * 2.5,
+        ball: -tabSpacing * 1.5,
+        ufo: -tabSpacing * 0.5,
+        wave: tabSpacing * 0.5,
+        robot: tabSpacing * 1.5,
+        spider: tabSpacing * 2.5,
+        swing: tabSpacing * 3.5,
       };
-      const tabRotations = { icon: -Math.PI/2, ship: 0, ball: -Math.PI/2, ufo: Math.PI/2, wave: Math.PI/2, robot: 0, spider: 0 };
-      const tabFlipXStates = { icon: true, ship: false, ball: true, ufo: false, wave: false, robot: false, spider: false };
-      const tabFlipYStates = { icon: false, ship: false, ball: false, ufo: true, wave: true, robot: false, spider: false };
+      const tabRotations = { icon: -Math.PI/2, ship: 0, ball: -Math.PI/2, ufo: Math.PI/2, wave: Math.PI/2, robot: 0, spider: 0, swing: 0 };
+      const tabFlipXStates = { icon: true, ship: false, ball: true, ufo: false, wave: false, robot: false, spider: false, swing: false };
+      const tabFlipYStates = { icon: false, ship: false, ball: false, ufo: true, wave: true, robot: false, spider: false, swing: false };
       const tabBtnSprites  = {};
 
       const _switchTab = (tab) => {
@@ -5249,8 +5255,8 @@ _buildSettingsPopup() {
       });
 
       const importBtn = this.add.image(centerX - 300, centerY + 20,"importMacro").setInteractive();
-      const exportBtn = this.add.image(centerX - 150, centerY + 20, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setScale(0.53);
-      const createBtn = this.add.image(centerX, centerY + 20, "GJ_GameSheet03", "GJ_plusBtn_001.png").setInteractive().setScale(1.2);
+      const exportBtn = this.add.image(centerX - 150, centerY + 20, "GJ_GameSheet03", "GJ_shareBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(0.53);
+      const createBtn = this.add.image(centerX, centerY + 20, "GJ_GameSheet03", "GJ_plusBtn_001.png").setInteractive().setFlipY(true).setAngle(90).setScale(1.2);
       const playbackBtn = this.add.image(centerX + 150, centerY + 20, this._macroBot?.playing ? "stopPlayback" : "playbackMacro").setInteractive().setScale(0.25);
       const recordBtn = this.add.image(centerX + 300, centerY + 20, this._macroBot?.recording ? "stopRecord" : "recordMacro").setInteractive().setScale(0.25);
 
@@ -7108,7 +7114,6 @@ _buildSettingsPopup() {
     }
     if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
 
-    this._deltaBuffer = 0;
     this._physicsFrame = checkpoint.physicsFrame;
     if (this._macroBot?.recording == true){
       this._macroBot?.rollbackRecording(this._physicsFrame);
@@ -7554,7 +7559,7 @@ _buildSettingsPopup() {
     }
     if (this._state.isDead) {
       if (!this._deathSoundPlayed) {
-        if (!this._audio._shouldUsePracticeSong()) {
+        if (!this._practicedMode.practiceMode) {
           this._audio.stopMusic();
         }
         this._audio.playEffect("explode_11", {
@@ -7734,9 +7739,6 @@ _buildSettingsPopup() {
         const _secondaryBallInputGravity = this._state2.isBall && this._state2.upKeyPressed;
         const _secondarySpiderInputGravity = this._state2.isSpider && this._state2.upKeyPressed;
         this._player2.updateJump(verticalDelta);
-        if (!this._state2.upKeyPressed) this._state.upKeyPressed = false;
-        if (!this._state2.queuedHold) this._state.queuedHold = false;
-        if (this._state2._orbActivationConsumedForPress) this._state._orbActivationConsumedForPress = true;
         this._state2.y += this._state2.yVelocity * verticalDelta;
         this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
         if (this._isDual && !this._state2.isDead && this._getDualSharedSignature(this._state2) !== _secondarySharedBefore) {
@@ -7957,6 +7959,7 @@ _applyMirrorEffect() {
     if (state.isWave) return "wave";
     if (state.isRobot) return "robot";
     if (state.isSpider) return "spider";
+    if (state.isSwing) return "swing";
     return "cube";
   }
   _getGamemodePortalMode(portalType) {
@@ -7975,6 +7978,8 @@ _applyMirrorEffect() {
         return "robot";
       case "portal_spider":
         return "spider";
+      case "portal_swing":
+        return "swing";
       default:
         return null;
     }
@@ -7990,6 +7995,7 @@ _applyMirrorEffect() {
       player.setBirdVisible?.(mode === "ufo");
       player.setRobotVisible(mode === "robot");
       player.setSpiderVisible(mode === "spider");
+      player.setSwingVisible(mode === "swing");
       return;
     }
     const saved = {
@@ -8022,6 +8028,9 @@ _applyMirrorEffect() {
       case "spider":
         player.enterSpiderMode({ y: saved.y, portalY: saved.y });
         break;
+      case "swing":
+        player.enterSwingMode({ y: saved.y, portalY: saved.y }, true);
+        break;
       default:
         player.exitShipMode();
         player.exitBallMode();
@@ -8029,18 +8038,21 @@ _applyMirrorEffect() {
         player.exitWaveMode();
         player.exitRobotMode();
         player.exitSpiderMode();
+        player.exitSwingMode();
         state.isFlying = false;
         state.isBall = false;
         state.isUfo = false;
         state.isWave = false;
         state.isRobot = false;
         state.isSpider = false;
+        state.isSwing = false;
         player.setShipVisible(false);
         player.setBallVisible(false);
         player.setWaveVisible(false);
         player.setBirdVisible?.(false);
         player.setRobotVisible(false);
         player.setSpiderVisible(false);
+        player.setSwingVisible(false);
         player.setCubeVisible(true);
         break;
     }
