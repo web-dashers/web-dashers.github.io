@@ -5160,6 +5160,7 @@ _updateWaveJump(dt) {
 	  this.setBirdVisible(false);
     this.setSpiderVisible(false);
     this.setRobotVisible(false);
+    this.setSwingVisible(false);
     for (const _0x5a0fa9 of this._allLayers) {
       if (_0x5a0fa9) {
         _0x5a0fa9.sprite.setAlpha(1);

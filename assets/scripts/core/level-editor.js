@@ -1035,6 +1035,8 @@ class LevelEditor {
       this._player.enterRobotMode();
     } else if (gamemode == 6) {
       this._player.enterSpiderMode();
+    } else if (gamemode == 7) {
+      this._player.enterSwingMode();
     }
 
     const getBool = (key) => parseInt(window.settingsMap?.[key] || "0", 10) === 1;
