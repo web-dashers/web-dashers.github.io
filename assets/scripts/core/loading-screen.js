@@ -242,6 +242,7 @@ class BootScene extends Phaser.Scene {
       this.load.atlas("GJ_GameSheet02", "assets/sheets/GJ_GameSheet02.png", "assets/sheets/GJ_GameSheet02.json");
       this.load.atlas("GJ_GameSheet03", "assets/sheets/GJ_GameSheet03.png", "assets/sheets/GJ_GameSheet03.json");
       this.load.atlas("GJ_GameSheet04", "assets/sheets/GJ_GameSheet04.png", "assets/sheets/GJ_GameSheet04.json");
+      this.load.atlas("TreasureRoomSheet", "assets/sheets/TreasureRoomSheet.png", "assets/sheets/TreasureRoomSheet.json");
       this.load.atlas("GJ_GameSheetEditor", "assets/sheets/GJ_GameSheetEditor.png", "assets/sheets/GJ_GameSheetEditor.json");
       this.load.atlas("GJ_GameSheetGlow", "assets/sheets/GJ_GameSheetGlow.png", "assets/sheets/GJ_GameSheetGlow.json");
       this.load.atlas("GJ_GameSheetIcons", "assets/sheets/GJ_GameSheetIcons.png", "assets/sheets/GJ_GameSheetIcons.json");
@@ -318,6 +319,11 @@ class BootScene extends Phaser.Scene {
       this.load.audio("playSound_01", "assets/sfx/playSound_01.ogg");
       this.load.audio("quitSound_01", "assets/sfx/quitSound_01.ogg");
       this.load.audio("highscoreGet02", "assets/sfx/highscoreGet02.ogg");
+      this.load.audio("chestClick", "assets/sfx/chestClick.ogg");
+      this.load.audio("chestLand", "assets/sfx/chestLand.ogg");
+      this.load.audio("chestOpen01", "assets/sfx/chestOpen01.ogg");
+      this.load.audio("reward01", "assets/sfx/reward01.ogg");
+      this.load.audio("secretKey", "assets/sfx/secretKey.ogg");
 
       this.load.on("progress", (value) => {
         if (sliderFill) sliderFill.width = value * 380;

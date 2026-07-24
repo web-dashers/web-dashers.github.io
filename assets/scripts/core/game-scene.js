@@ -613,7 +613,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         .setRotation(Math.PI).setInteractive();
       this._makeBouncyButton(backBtn, 1, () => this._closeCreatorMenu());
 
-      this._creatorOverlayObjects = [overlay, blocker, cornerTL, cornerBL, backBtn];
+      const TreasureRoomBtn = this.add.image(sw + 10, sh + 105, "GJ_GameSheet03", "secretDoorBtn_open_001.png")
+        .setScrollFactor(0).setDepth(104).setOrigin(1, 2).setInteractive().setScale(1.05)
+
+        this._creatorOverlayObjects = [overlay, blocker, cornerTL, cornerBL, backBtn];
 
       const menuButtons = [
         "GJ_createBtn_001.png",
