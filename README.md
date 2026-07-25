@@ -3,7 +3,7 @@
 
 <div align="center">
   <img  
-  alt="Web Dashers" 
+  alt="Web Crackers" 
   src="./wd_assets/wordmark/wordmark_1080.png" 
   />
   <p>
