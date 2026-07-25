@@ -2681,7 +2681,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     window.currentSwing = window.currentSwing || localStorage.getItem("iconCurrentSwing") || "swing_01";
     _iconFrameSets.spider = _makeSegmentedIconFrames("spider");
     _iconFrameSets.robot = _makeSegmentedIconFrames("robot");
-    _iconFrameSets.swing = ["swing_01_001.png", "swing_02_001.png", "swing_03_001.png", "swing_04_001.png", "swing_05_001.png"];
+    _iconFrameSets.swing = ["swing_01_001.png", "swing_07_001.png", "swing_12_001.png", "swing_24_001.png", "swing_25_001.png", "swing_28_001.png"];
 
 
     const _iconWindowProps = {
