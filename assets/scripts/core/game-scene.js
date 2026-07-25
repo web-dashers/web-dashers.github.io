@@ -2795,7 +2795,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._iconOverlayObjects.push(topBar);
 
       const cols = 12;
-      const iconSize = 78;
+      const iconSize = 60;
       const padding = 2;
       const containerPadding = 10;
       const rows = 3;
@@ -3065,14 +3065,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           selectedIcon.setVisible(false);
           selectedIconExtra.setVisible(false);
           selectedIconOutline.setVisible(false);
-          selectedSegmentedPreview = _createSegmentedIconComposite(tab, frame, sw / 2, previewY, 107, 103, false);
+          selectedSegmentedPreview = _createSegmentedIconComposite(tab, frame, sw / 2, previewY, 82, 103, false);
           if (selectedSegmentedPreview) this._iconOverlayObjects.push(selectedSegmentedPreview);
           return;
         }
         _destroySegmentedPreview();
         selectedIcon.setVisible(true);
         selectedIcon.setTexture(_iconAtlas[tab], frame);
-        const s = Math.min(104 / (selectedIcon.width || 104), 104 / (selectedIcon.height || 104)) * 0.85;
+        const s = Math.min(80 / (selectedIcon.width || 80), 80 / (selectedIcon.height || 80)) * 0.85;
         selectedIcon.setScale(s);
         selectedIcon.setTint(window.mainColor);
         const extraFrame = frame.replace("_001.png", "_2_001.png");
