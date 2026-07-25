@@ -2681,7 +2681,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     window.currentSwing = window.currentSwing || localStorage.getItem("iconCurrentSwing") || "swing_01";
     _iconFrameSets.spider = _makeSegmentedIconFrames("spider");
     _iconFrameSets.robot = _makeSegmentedIconFrames("robot");
-    _iconFrameSets.swing = ["swing_01_001.png"];
+    _iconFrameSets.swing = ["swing_01_001.png", "swing_02_001.png", "swing_03_001.png", "swing_04_001.png", "swing_05_001.png", "swing_06_001.png", "swing_07_001.png", "swing_08_001.png", "swing_09_001.png", "swing_10_001.png", "swing_11_001.png", "swing_12_001.png", "swing_13_001.png", "swing_14_001.png", "swing_15_001.png", "swing_16_001.png", "swing_17_001.png", "swing_18_001.png", "swing_19_001.png", "swing_20_001.png", "swing_21_001.png", "swing_22_001.png", "swing_23_001.png", "swing_24_001.png", "swing_25_001.png", "swing_26_001.png", "swing_27_001.png", "swing_28_001.png", "swing_29_001.png", "swing_30_001.png", "swing_31_001.png", "swing_32_001.png", "swing_33_001.png", "swing_34_001.png", "swing_35_001.png", "swing_36_001.png", "swing_37_001.png", "swing_38_001.png", "swing_39_001.png", "swing_40_001.png", "swing_41_001.png", "swing_42_001.png", "swing_43_001.png"];
 
 
     const _iconWindowProps = {
