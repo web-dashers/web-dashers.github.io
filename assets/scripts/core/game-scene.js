@@ -3205,7 +3205,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             const outlineFrame = frame.replace("_001.png", "_extra_001.png");
             const outlineInfo = getAtlasFrame(this, outlineFrame);
             outlineImg = outlineInfo
-              ? this.add.image(ix, iy, outlineInfo.atlas, outlineInfo.frame).setScrollFactor(0).setDepth(101).setScale(origScale)
+              ? this.add.image(ix, iy, outlineInfo.atlas, outlineInfo.frame).setScrollFactor(0).setDepth(103.5).setScale(origScale)
               : null;
           }
           if (outlineImg) this._iconGridObjects.push(outlineImg);
