@@ -2681,7 +2681,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     window.currentSwing = window.currentSwing || localStorage.getItem("iconCurrentSwing") || "swing_01";
     _iconFrameSets.spider = _makeSegmentedIconFrames("spider");
     _iconFrameSets.robot = _makeSegmentedIconFrames("robot");
-    _iconFrameSets.swing = ["swing_01_001.png", "swing_02_001.png", "swing_03_001.png", "swing_04_001.png", "swing_05_001.png", "swing_06_001.png", "swing_07_001.png", "swing_08_001.png", "swing_09_001.png", "swing_10_001.png", "swing_11_001.png", "swing_12_001.png", "swing_13_001.png", "swing_14_001.png", "swing_15_001.png", "swing_16_001.png", "swing_17_001.png", "swing_18_001.png", "swing_19_001.png", "swing_20_001.png", "swing_21_001.png", "swing_22_001.png", "swing_23_001.png", "swing_24_001.png", "swing_25_001.png", "swing_26_001.png", "swing_27_001.png", "swing_28_001.png", "swing_29_001.png", "swing_30_001.png", "swing_31_001.png", "swing_32_001.png", "swing_33_001.png", "swing_34_001.png", "swing_35_001.png", "swing_36_001.png", "swing_37_001.png", "swing_38_001.png", "swing_39_001.png", "swing_40_001.png", "swing_41_001.png", "swing_42_001.png", "swing_43_001.png"];
+    _iconFrameSets.swing = ["swing_01_001.png", "swing_02_001.png", "swing_03_001.png", "swing_04_001.png", "swing_05_001.png"];
 
 
     const _iconWindowProps = {
@@ -3179,6 +3179,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           const hitRect = this.add.rectangle(ix, iy, iconSize, iconSize, 0x000000, 0).setScrollFactor(0).setDepth(104).setInteractive();
           let iconImg;
           let extraImg = null;
+          let outlineImg = null;
           let origScale;
           if (_isSegmentedIconTab(tab)) {
             iconImg = _createSegmentedIconComposite(tab, frame, ix, iy, iconSize * 0.76, 103, true);
@@ -3201,16 +3202,22 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             extraImg = extraInfo
               ? this.add.image(ix, iy, extraInfo.atlas, extraInfo.frame).setScrollFactor(0).setDepth(102).setScale(origScale)
               : null;
+            const outlineFrame = frame.replace("_001.png", "_extra_001.png");
+            const outlineInfo = getAtlasFrame(this, outlineFrame);
+            outlineImg = outlineInfo
+              ? this.add.image(ix, iy, outlineInfo.atlas, outlineInfo.frame).setScrollFactor(0).setDepth(101).setScale(origScale)
+              : null;
           }
+          if (outlineImg) this._iconGridObjects.push(outlineImg);
           if (extraImg) this._iconGridObjects.push(extraImg);
           this._iconGridObjects.push(iconImg, hitRect);
           if (frame.replace("_001.png", "") === window[prop]) {
             selLabel.setPosition(ix, iy).setScale(0.75).setVisible(true);
           }
 
-          ((capturedFrame, capturedImg, capturedExtra, capturedOrigScale) => {
+          ((capturedFrame, capturedImg, capturedExtra, capturedOutline, capturedOrigScale) => {
             const bouncedScale = capturedOrigScale * 1.26;
-            const iconTargets = capturedExtra ? [capturedImg, capturedExtra] : [capturedImg];
+            const iconTargets = [capturedImg, capturedExtra, capturedOutline].filter(Boolean);
             hitRect.on("pointerdown", () => {
               hitRect._pressed = true;
               iconTargets.forEach(t => this.tweens.killTweensOf(t, "scale"));
@@ -3319,7 +3326,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
               _refreshPreview(tab, capturedFrame);
             });
-          })(frame, iconImg, extraImg, origScale);
+          })(frame, iconImg, extraImg, outlineImg, origScale);
         });
       };
 
