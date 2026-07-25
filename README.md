@@ -3,7 +3,7 @@
 
 <div align="center">
   <img  
-  alt="Web Crackers" 
+  alt="Web Dashers" 
   src="./wd_assets/wordmark/wordmark_1080.png" 
   />
   <p>
@@ -38,7 +38,7 @@
 - **Main Menu** - A mostly fully working main menu with all 2.1 levels.
 - **Online Levels** - You can play online levels, and even upload your own!
 - **Icon Kit** - A working Icon Kit with different colors and icons to choose from!
-- **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Mini portals and Speed portals!
+- **Different Gamemodes** - Multiple working gamemodes such as the Ball, Wave, Cube, UFO, Swing, Spider, Robot, Ship, Mini portals and Speed portals!
 - **Extra Settings** - You can enable and disable Noclip or Show Hitboxes from the pause menu in a level, along with other settings, like the level percentage!
 - **Account System** - You can save/load all level progress, and upload it to the cloud to keep your progress on different devices!
 
