@@ -2977,6 +2977,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
       const previewY = lineY - 35;
       const selectedIconExtra = this.add.image(sw / 2, previewY, _iconAtlas[startTab], null).setScrollFactor(0).setDepth(102).setVisible(false);
+      const selectedIconOutline = this.add.image(sw / 2, previewY, _iconAtlas[startTab], null).setScrollFactor(0).setDepth(103.5).setVisible(false);
       const selectedIcon = this.add.image(sw / 2, previewY, _iconAtlas[startTab], null).setScrollFactor(0).setDepth(103);
       let selectedSegmentedPreview = null;
 
@@ -3063,6 +3064,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
           _destroySegmentedPreview();
           selectedIcon.setVisible(false);
           selectedIconExtra.setVisible(false);
+          selectedIconOutline.setVisible(false);
           selectedSegmentedPreview = _createSegmentedIconComposite(tab, frame, sw / 2, previewY, 82, 103, false);
           if (selectedSegmentedPreview) this._iconOverlayObjects.push(selectedSegmentedPreview);
           return;
@@ -3080,10 +3082,17 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         } else {
           selectedIconExtra.setVisible(false);
         }
+        const outlineFrame = frame.replace("_001.png", "_extra_001.png");
+        const outlineInfo = getAtlasFrame(this, outlineFrame);
+        if (outlineInfo) {
+          selectedIconOutline.setTexture(outlineInfo.atlas, outlineInfo.frame).setVisible(true).setScale(s);
+        } else {
+          selectedIconOutline.setVisible(false);
+        }
       };
 
       _refreshPreview(startTab, _getPreviewFrame(startTab));
-      this._iconOverlayObjects.push(selectedIconExtra, selectedIcon);
+      this._iconOverlayObjects.push(selectedIconExtra, selectedIconOutline, selectedIcon);
 
       const tabBtnY = containerY - 40;
       const tabKeys = ["icon", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
