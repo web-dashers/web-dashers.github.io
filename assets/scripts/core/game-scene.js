@@ -41,6 +41,10 @@ class PracticeMode {
       mirrored: playerState.mirrored,
       isDashing: playerState.isDashing,
       dashYVelocity: playerState.dashYVelocity,
+      ballShouldRotate: playerState.ballShouldRotate,
+      ballRotateOpposite: playerState.ballRotateOpposite,
+      ballNormalRotate: playerState.ballNormalRotate,
+      ballHitPad: playerState.ballHitPad,
       robotHold: !!playerState._robotHold,
       robotHoldTimer: playerState._robotHoldTimer || 0,
       cameraX: cameraX,
@@ -6970,6 +6974,10 @@ _buildSettingsPopup() {
     this._state.mirrored = checkpoint.mirrored;
     this._state.isDashing = checkpoint.isDashing;
     this._state.dashYVelocity = checkpoint.dashYVelocity;
+    this._state.ballShouldRotate = checkpoint.ballShouldRotate || false;
+    this._state.ballRotateOpposite = checkpoint.ballRotateOpposite || false;
+    this._state.ballNormalRotate = checkpoint.ballNormalRotate || 1;
+    this._state.ballHitPad = checkpoint.ballHitPad || false;
     this._state._robotHold = !!checkpoint.robotHold;
     this._state._robotHoldTimer = checkpoint.robotHoldTimer || 0;
     this._player.reset();
