@@ -2316,7 +2316,7 @@ window.allobjects = function() {
     "default_z_order": 2,
     "children": [
       {
-        "frame": "square_g_13_001.png",
+        "frame": "square_g_03_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1
