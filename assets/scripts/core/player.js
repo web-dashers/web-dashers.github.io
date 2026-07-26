@@ -1285,9 +1285,9 @@ class PlayerObject {
       if (this._swingExtraLayer.sprite.clearTint) this._swingExtraLayer.sprite.clearTint();
     }
     this._swingLayers = [this._swingSpriteLayer, this._swingOverlayLayer, this._swingExtraLayer].filter(x => !!x);
-    this._swingFireTop = ds(spriteY, particleY, spriteX, "Fire_01_looped_001.png", 7, false);
-    this._swingFireMiddle = ds(spriteY, particleY, spriteX, "Fire_01_looped_001.png", 7, false);
-    this._swingFireBottom = ds(spriteY, particleY, spriteX, "Fire_01_looped_001.png", 7, false);
+    this._swingFireTop = ds(spriteY, particleY, spriteX, "fireBoost_001.png", 7, false);
+    this._swingFireMiddle = ds(spriteY, particleY, spriteX, "fireBoost_001.png", 7, false);
+    this._swingFireBottom = ds(spriteY, particleY, spriteX, "fireBoost_001.png", 7, false);
     this._ballGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_glow_001.png`, 9, false);
     this._ballSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_001.png`, 10, false);
     this._ballOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_2_001.png`, 8, false);
