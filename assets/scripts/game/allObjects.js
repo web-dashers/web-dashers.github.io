@@ -2313,7 +2313,15 @@ window.allobjects = function() {
     "spritesheet": "GJ_GameSheet-uhd",
     "default_detail_color_channel": -1,
     "default_z_layer": 5,
-    "default_z_order": 2
+    "default_z_order": 2,
+    "children": [
+      {
+        "frame": "square_g_13_001.png",
+        "localDy": 0,
+        "tint": 65280,
+        "z": -1
+      },
+    ],
   },
   "163": {
     "can_color": true,
@@ -5548,15 +5556,7 @@ window.allobjects = function() {
     "z": 9,
     "default_detail_color_channel": -1,
     "default_z_layer": 3,
-    "default_z_order": 9,
-    "children": [
-      {
-        "frame": "square_g_13_001.png",
-        "localDy": 0,
-        "tint": 65280,
-        "z": -1
-      },
-    ],
+    "default_z_order": 9
   },
   "377": {
     "can_color": true,
