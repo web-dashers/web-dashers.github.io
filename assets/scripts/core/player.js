@@ -1280,6 +1280,10 @@ class PlayerObject {
     if (this._swingOverlayLayer) {
       this._swingOverlayLayer.sprite.setTint(this._secondaryColor());
     }
+    if (this._swingExtraLayer) {
+      this._swingExtraLayer.kind = "extra";
+      if (this._swingExtraLayer.sprite.clearTint) this._swingExtraLayer.sprite.clearTint();
+    }
     this._swingLayers = [this._swingSpriteLayer, this._swingOverlayLayer, this._swingExtraLayer].filter(x => !!x);
     this._ballGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_glow_001.png`, 9, false);
     this._ballSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_001.png`, 10, false);
