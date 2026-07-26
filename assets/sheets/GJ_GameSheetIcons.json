@@ -85399,6 +85399,26 @@
         "w": 63,
         "h": 74
       }
+    },
+    "fireBoost_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 3494,
+        "w": 24,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 32
+      }
     }
   },
   "meta": {
@@ -85408,7 +85428,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 3517,
-      "h": 3494
+      "h": 3534
     },
     "scale": 1
   }
