@@ -1285,9 +1285,6 @@ class PlayerObject {
       if (this._swingExtraLayer.sprite.clearTint) this._swingExtraLayer.sprite.clearTint();
     }
     this._swingLayers = [this._swingSpriteLayer, this._swingOverlayLayer, this._swingExtraLayer].filter(x => !!x);
-    this._swingFireTop = ds(spriteY, particleY, spriteX, "fireBoost_001.png", 7, false);
-    this._swingFireMiddle = ds(spriteY, particleY, spriteX, "fireBoost_001.png", 7, false);
-    this._swingFireBottom = ds(spriteY, particleY, spriteX, "fireBoost_001.png", 7, false);
     this._ballGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_glow_001.png`, 9, false);
     this._ballSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_001.png`, 10, false);
     this._ballOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_2_001.png`, 8, false);
@@ -1882,36 +1879,6 @@ if (this.p.isFlying || this.p.isUfo) {
             playerLayer.sprite.scaleX = (this.p.mirrored ? -_miniS : _miniS);
         }
       }
-      if (this.p.isSwing && this._swingFireTop && this._swingFireMiddle && this._swingFireBottom) {
-        const fireBackOffset = this.p.isMini ? 16 : 26;
-        const fireSpacing = this.p.isMini ? 10 : 16;
-        const fireDirX = Math.cos(playerRotation + Math.PI);
-        const fireDirY = Math.sin(playerRotation + Math.PI);
-        const perpX = -fireDirY;
-        const perpY = fireDirX;
-        const baseX = _0x7f0705 + fireDirX * fireBackOffset;
-        const baseY = _0x1a433c + fireDirY * fireBackOffset;
-        const fireScale = this.p.isMini ? 0.6 : 1;
-
-        this._swingFireTop.sprite.setPosition(baseX + perpX * fireSpacing, baseY + perpY * fireSpacing);
-        this._swingFireMiddle.sprite.setPosition(baseX, baseY);
-        this._swingFireBottom.sprite.setPosition(baseX - perpX * fireSpacing, baseY - perpY * fireSpacing);
-
-        for (const fireSprite of [this._swingFireTop.sprite, this._swingFireMiddle.sprite, this._swingFireBottom.sprite]) {
-          fireSprite.rotation = playerRotation;
-          fireSprite.setScale(this.p.mirrored ? -fireScale : fireScale, fireScale);
-        }
-
-        const isFalling = this.playerIsFalling();
-        const isGoingUp = !isFalling && !this.p.onGround && !this.p.onCeiling;
-        this._swingFireMiddle.sprite.setVisible(true);
-        this._swingFireBottom.sprite.setVisible(isGoingUp || this.p.onCeiling);
-        this._swingFireTop.sprite.setVisible(isFalling || this.p.onGround);
-      } else if (this._swingFireTop && this._swingFireMiddle && this._swingFireBottom) {
-        this._swingFireTop.sprite.setVisible(false);
-        this._swingFireMiddle.sprite.setVisible(false);
-        this._swingFireBottom.sprite.setVisible(false);
-      }
       for (const layer of this._spiderLayers) {
         if (layer) {
           layer.sprite.setVisible(false);
@@ -2377,9 +2344,6 @@ if (this.p.isFlying || this.p.isUfo) {
     this._rotation = 0;
     this._particleEmitter.stop();
     this.setSwingVisible(false);
-    if (this._swingFireTop) this._swingFireTop.sprite.setVisible(false);
-    if (this._swingFireMiddle) this._swingFireMiddle.sprite.setVisible(false);
-    if (this._swingFireBottom) this._swingFireBottom.sprite.setVisible(false);
     this.setCubeVisible(!this.p.isBall && !this.p.isFlying && !this.p.isWave && !this.p.isUfo && !this.p.isSpider && !this.p.isSwing);
     this.setBallVisible(this.p.isBall);
     this.setShipVisible(this.p.isFlying);
