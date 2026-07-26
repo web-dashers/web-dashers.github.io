@@ -3221,6 +3221,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 player._ballLayers = [player._ballSpriteLayer, player._ballGlowLayer, player._ballOverlayLayer].filter(x => !!x);
                 player._waveLayers = [player._waveSpriteLayer, player._waveOverlayLayer, player._waveExtraLayer, player._waveGlowLayer].filter(x => !!x);
                 player._birdLayers = [player._birdSpriteLayer, player._birdGlowLayer, player._birdOverlayLayer, player._birdExtraLayer].filter(x => !!x);
+                player._swingLayers = [player._swingSpriteLayer, player._swingOverlayLayer, player._swingExtraLayer].filter(x => !!x);
                 player._allLayers = [
                   ...player._playerLayers,
                   ...player._ballLayers,
@@ -3229,28 +3230,42 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                   ...(player._spiderLayers || []),
                   ...(player._robotLayers || []),
                   ...player._birdLayers,
-                  ...(player._swingLayers || []),
+                  ...player._swingLayers,
                 ];
               };
               const _applyIconLayerSwap = (player, baseName, layerMap) => {
                 if (!player) return;
                 let structureChanged = false;
-                for (const { lp, suffix, tint, depth, isGlow } of layerMap) {
+                // Match whatever on/off state this gamemode's layers are already in (e.g. hidden,
+                // because cube is what's actually showing in the main menu) instead of forcing
+                // things visible - that was the bug causing the picked icon to stay stuck on screen.
+                const referenceLayer = layerMap[0] ? player[layerMap[0].lp] : null;
+                const groupVisible = referenceLayer?.sprite ? referenceLayer.sprite.visible : false;
+                for (const { lp, suffix, tint, depth, isGlow, kind } of layerMap) {
                   const found = getAtlasFrame(this, `${baseName}${suffix}`);
                   let layer = player[lp];
                   if (found) {
                     if (!layer || !layer.sprite) {
-                      const anchor = player._playerSpriteLayer?.sprite || player._shipSpriteLayer?.sprite;
+                      const anchor = player._playerSpriteLayer?.sprite || player._shipSpriteLayer?.sprite
+                        || player._ballSpriteLayer?.sprite || player._waveSpriteLayer?.sprite
+                        || player._birdSpriteLayer?.sprite || player._swingSpriteLayer?.sprite;
                       const img = this.add.image(anchor?.x ?? centerX, anchor?.y ?? 0, found.atlas, found.frame).setDepth(depth);
                       if (isGlow) img._glowEnabled = false;
+                      img.setVisible(isGlow ? false : groupVisible);
                       layer = { sprite: img };
+                      if (kind) layer.kind = kind;
                       player[lp] = layer;
                       structureChanged = true;
                     } else {
+                      // Layer already existed - just swap its texture. Never touch visibility here;
+                      // whatever gamemode logic already controls showing/hiding it stays in charge.
                       layer.sprite.setTexture(found.atlas, found.frame);
                     }
-                    layer.sprite.setVisible(!isGlow || !!layer.sprite._glowEnabled);
-                    if (tint !== null && tint !== undefined) layer.sprite.setTint(tint);
+                    if (tint === null) {
+                      if (layer.sprite.clearTint) layer.sprite.clearTint();
+                    } else if (tint !== undefined) {
+                      layer.sprite.setTint(tint);
+                    }
                   } else if (layer && layer.sprite) {
                     layer.sprite.setVisible(false);
                   }
@@ -3294,6 +3309,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                   { lp: "_birdGlowLayer",    suffix: "_2_001.png",     tint: window.secondaryColor, depth: 9, isGlow: true },
                   { lp: "_birdOverlayLayer", suffix: "_3_001.png",     tint: window.secondaryColor, depth: 8 },
                   { lp: "_birdExtraLayer",   suffix: "_extra_001.png", tint: window.mainColor,      depth: 12 },
+                ]);
+              }
+
+              if (tab === "swing" && this._player) {
+                _applyIconLayerSwap(this._player, window.currentSwing, [
+                  { lp: "_swingSpriteLayer",  suffix: "_001.png",       tint: window.mainColor,      depth: 10 },
+                  { lp: "_swingOverlayLayer", suffix: "_2_001.png",     tint: window.secondaryColor, depth: 8 },
+                  { lp: "_swingExtraLayer",   suffix: "_extra_001.png", tint: null,                  depth: 12, kind: "extra" },
                 ]);
               }
 
