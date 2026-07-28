@@ -2498,15 +2498,76 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
     this._iconOverlay = null;
 
-    // Frame lists below are auto-detected from the loaded atlas (see _makeSimpleIconFrames
-    // further down, right before it's used), so any icons you add to the sheet in the future
-    // show up automatically without needing to edit this file again.
     const _iconFrameSets = {
-      icon: [],
-      ship: [],
-      ball: [],
-      wave: [],
-      ufo: [],
+      icon: [
+"player_01_001.png", "player_02_001.png", "player_03_001.png", "player_04_001.png", "player_05_001.png", "player_06_001.png", "player_07_001.png", "player_08_001.png", "player_09_001.png", "player_10_001.png",
+"player_11_001.png", "player_12_001.png", "player_13_001.png", "player_14_001.png", "player_15_001.png", "player_16_001.png", "player_17_001.png", "player_18_001.png", "player_19_001.png", "player_20_001.png",
+"player_21_001.png", "player_22_001.png", "player_23_001.png", "player_24_001.png", "player_25_001.png", "player_26_001.png", "player_27_001.png", "player_28_001.png", "player_29_001.png", "player_30_001.png",
+"player_31_001.png", "player_32_001.png", "player_33_001.png", "player_34_001.png", "player_35_001.png", "player_36_001.png", "player_37_001.png", "player_38_001.png", "player_39_001.png", "player_40_001.png",
+"player_41_001.png", "player_42_001.png", "player_43_001.png", "player_44_001.png", "player_45_001.png", "player_46_001.png", "player_47_001.png", "player_48_001.png", "player_49_001.png", "player_50_001.png",
+"player_51_001.png", "player_52_001.png", "player_53_001.png", "player_54_001.png", "player_55_001.png", "player_56_001.png", "player_57_001.png", "player_58_001.png", "player_59_001.png", "player_60_001.png",
+"player_61_001.png", "player_62_001.png", "player_63_001.png", "player_64_001.png", "player_65_001.png", "player_66_001.png", "player_67_001.png", "player_68_001.png", "player_69_001.png", "player_70_001.png",
+"player_71_001.png", "player_72_001.png", "player_73_001.png", "player_74_001.png", "player_75_001.png", "player_76_001.png", "player_77_001.png", "player_78_001.png", "player_79_001.png", "player_80_001.png",
+"player_81_001.png", "player_82_001.png", "player_83_001.png", "player_84_001.png", "player_85_001.png", "player_86_001.png", "player_87_001.png", "player_88_001.png", "player_89_001.png", "player_90_001.png",
+"player_91_001.png", "player_92_001.png", "player_93_001.png", "player_94_001.png", "player_95_001.png", "player_96_001.png", "player_97_001.png", "player_98_001.png", "player_99_001.png", "player_100_001.png",
+"player_101_001.png", "player_102_001.png", "player_103_001.png", "player_104_001.png", "player_105_001.png", "player_106_001.png", "player_107_001.png", "player_108_001.png", "player_109_001.png", "player_110_001.png",
+"player_111_001.png", "player_112_001.png", "player_113_001.png", "player_114_001.png", "player_115_001.png", "player_116_001.png", "player_117_001.png", "player_118_001.png", "player_119_001.png", "player_120_001.png",
+"player_121_001.png", "player_122_001.png", "player_123_001.png", "player_124_001.png", "player_125_001.png", "player_126_001.png", "player_127_001.png", "player_128_001.png", "player_129_001.png", "player_130_001.png",
+"player_131_001.png", "player_132_001.png", "player_133_001.png", "player_134_001.png", "player_135_001.png", "player_136_001.png", "player_137_001.png", "player_138_001.png", "player_139_001.png", "player_140_001.png",
+"player_141_001.png", "player_142_001.png", "player_143_001.png", "player_144_001.png", "player_145_001.png", "player_146_001.png", "player_147_001.png", "player_148_001.png", "player_149_001.png", "player_150_001.png",
+"player_151_001.png", "player_152_001.png", "player_153_001.png", "player_154_001.png", "player_155_001.png", "player_156_001.png", "player_157_001.png", "player_158_001.png", "player_159_001.png", "player_160_001.png",
+"player_161_001.png", "player_162_001.png", "player_163_001.png", "player_164_001.png", "player_165_001.png", "player_166_001.png", "player_167_001.png", "player_168_001.png", "player_169_001.png", "player_170_001.png",
+"player_171_001.png", "player_172_001.png", "player_173_001.png", "player_174_001.png", "player_175_001.png", "player_176_001.png", "player_177_001.png", "player_178_001.png", "player_179_001.png", "player_180_001.png",
+"player_181_001.png", "player_182_001.png", "player_183_001.png", "player_184_001.png", "player_185_001.png", "player_186_001.png", "player_187_001.png", "player_188_001.png", "player_189_001.png", "player_190_001.png",
+"player_191_001.png", "player_192_001.png",
+"player_193_001.png", "player_194_001.png", "player_195_001.png", "player_196_001.png", "player_197_001.png", "player_198_001.png", "player_199_001.png", "player_200_001.png", "player_201_001.png", "player_202_001.png",
+"player_203_001.png", "player_204_001.png", "player_205_001.png", "player_206_001.png", "player_207_001.png", "player_208_001.png", "player_209_001.png", "player_210_001.png", "player_211_001.png", "player_212_001.png",
+"player_213_001.png", "player_214_001.png", "player_215_001.png", "player_216_001.png", "player_217_001.png", "player_218_001.png", "player_219_001.png", "player_220_001.png", "player_221_001.png", "player_222_001.png",
+"player_223_001.png", "player_224_001.png", "player_225_001.png", "player_226_001.png", "player_227_001.png", "player_228_001.png", "player_229_001.png", "player_230_001.png", "player_231_001.png", "player_232_001.png",
+"player_233_001.png", "player_234_001.png", "player_235_001.png", "player_236_001.png", "player_237_001.png", "player_238_001.png", "player_239_001.png", "player_240_001.png", "player_241_001.png", "player_242_001.png",
+"player_243_001.png", "player_244_001.png", "player_245_001.png", "player_246_001.png", "player_247_001.png", "player_248_001.png"
+      ],
+      ship: [
+        "ship_01_001.png", "ship_02_001.png", "ship_03_001.png", "ship_04_001.png", "ship_05_001.png", "ship_06_001.png", "ship_07_001.png", "ship_08_001.png", "ship_09_001.png", "ship_10_001.png",
+"ship_11_001.png", "ship_12_001.png", "ship_13_001.png", "ship_14_001.png", "ship_15_001.png", "ship_16_001.png", "ship_17_001.png", "ship_18_001.png", "ship_19_001.png", "ship_20_001.png",
+"ship_21_001.png", "ship_22_001.png", "ship_23_001.png", "ship_24_001.png", "ship_25_001.png", "ship_26_001.png", "ship_27_001.png", "ship_28_001.png", "ship_29_001.png", "ship_30_001.png",
+"ship_31_001.png", "ship_32_001.png", "ship_33_001.png", "ship_34_001.png", "ship_35_001.png", "ship_36_001.png", "ship_37_001.png", "ship_38_001.png", "ship_39_001.png", "ship_40_001.png",
+"ship_41_001.png", "ship_42_001.png", "ship_43_001.png", "ship_44_001.png", "ship_45_001.png", "ship_46_001.png", "ship_47_001.png", "ship_48_001.png", "ship_49_001.png", "ship_50_001.png",
+"ship_51_001.png", "ship_52_001.png", "ship_53_001.png", "ship_54_001.png", "ship_55_001.png", "ship_56_001.png", "ship_57_001.png", "ship_58_001.png", "ship_59_001.png", "ship_60_001.png",
+"ship_61_001.png", "ship_62_001.png", "ship_63_001.png", "ship_64_001.png", "ship_65_001.png", "ship_66_001.png", "ship_67_001.png", "ship_68_001.png", "ship_69_001.png", "ship_70_001.png",
+"ship_71_001.png", "ship_72_001.png", "ship_73_001.png", "ship_74_001.png", "ship_75_001.png", "ship_76_001.png", "ship_77_001.png", "ship_78_001.png", "ship_79_001.png"
+      ],
+      ball: [
+        "player_ball_01_001.png", "player_ball_02_001.png", "player_ball_03_001.png", "player_ball_04_001.png", "player_ball_05_001.png", "player_ball_06_001.png", "player_ball_07_001.png", "player_ball_08_001.png", "player_ball_09_001.png", "player_ball_10_001.png",
+        "player_ball_11_001.png", "player_ball_12_001.png", "player_ball_13_001.png", "player_ball_14_001.png", "player_ball_15_001.png", "player_ball_16_001.png", "player_ball_17_001.png", "player_ball_18_001.png", "player_ball_19_001.png", "player_ball_20_001.png",
+        "player_ball_21_001.png", "player_ball_22_001.png", "player_ball_23_001.png", "player_ball_24_001.png", "player_ball_25_001.png", "player_ball_26_001.png", "player_ball_27_001.png", "player_ball_28_001.png", "player_ball_29_001.png", "player_ball_30_001.png",
+
+        "player_ball_31_001.png", "player_ball_32_001.png", "player_ball_33_001.png", "player_ball_34_001.png", "player_ball_35_001.png", "player_ball_36_001.png", "player_ball_37_001.png", "player_ball_38_001.png", "player_ball_39_001.png", "player_ball_40_001.png",
+        "player_ball_41_001.png", "player_ball_42_001.png", "player_ball_43_001.png", "player_ball_44_001.png", "player_ball_45_001.png", "player_ball_46_001.png", "player_ball_47_001.png", "player_ball_48_001.png", "player_ball_49_001.png", "player_ball_50_001.png",
+        "player_ball_51_001.png", "player_ball_52_001.png",
+      ],
+      wave: [
+        "dart_01_001.png", "dart_02_001.png", "dart_03_001.png", "dart_04_001.png", "dart_05_001.png",
+        "dart_06_001.png", "dart_07_001.png", "dart_08_001.png", "dart_09_001.png", "dart_10_001.png",
+        "dart_11_001.png", "dart_12_001.png", "dart_13_001.png", "dart_14_001.png", "dart_15_001.png",
+        "dart_16_001.png", "dart_17_001.png", "dart_18_001.png", "dart_19_001.png", "dart_20_001.png",
+        "dart_21_001.png", "dart_22_001.png", "dart_23_001.png", "dart_24_001.png", "dart_25_001.png",
+        "dart_26_001.png", "dart_27_001.png", "dart_28_001.png", "dart_29_001.png", "dart_30_001.png",
+        "dart_31_001.png", "dart_32_001.png", "dart_33_001.png", "dart_34_001.png", "dart_35_001.png",
+      ],
+      ufo: [
+        "bird_01_001.png", "bird_02_001.png", "bird_03_001.png", "bird_04_001.png", "bird_05_001.png",
+        "bird_06_001.png", "bird_07_001.png", "bird_08_001.png", "bird_09_001.png", "bird_10_001.png",
+        "bird_11_001.png", "bird_12_001.png", "bird_13_001.png", "bird_14_001.png", "bird_15_001.png",
+        "bird_16_001.png", "bird_17_001.png", "bird_18_001.png", "bird_19_001.png", "bird_20_001.png",
+        "bird_21_001.png", "bird_22_001.png", "bird_23_001.png", "bird_24_001.png", "bird_25_001.png",
+        "bird_26_001.png", "bird_27_001.png", "bird_28_001.png", "bird_29_001.png", "bird_30_001.png",
+        "bird_31_001.png", "bird_32_001.png", "bird_33_001.png", "bird_34_001.png", "bird_35_001.png",
+        "bird_36_001.png", "bird_37_001.png", "bird_38_001.png", "bird_39_001.png", "bird_40_001.png",
+        "bird_41_001.png", "bird_42_001.png", "bird_43_001.png", "bird_44_001.png", "bird_45_001.png",
+        "bird_46_001.png", "bird_47_001.png", "bird_48_001.png", "bird_49_001.png", "bird_50_001.png",
+        "bird_51_001.png",
+      ],
     };
 
 
@@ -2615,31 +2676,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       return frames.length ? frames : [`${cfg.fallbackBase}_001.png`];
     };
 
-    // Scans the atlas for "<prefix>_01_001.png", "<prefix>_02_001.png", ... and returns every
-    // frame that actually exists, in order. This is how new icons get picked up automatically
-    // instead of relying on a hardcoded list that goes stale every time icons are added.
-    const _makeSimpleIconFrames = (prefix, max = 600) => {
-      const frames = [];
-      for (let i = 1; i <= max; i++) {
-        const frameName = `${prefix}_${String(i).padStart(2, "0")}_001.png`;
-        if (typeof getAtlasFrame === "function" && getAtlasFrame(this, frameName)) {
-          frames.push(frameName);
-        }
-      }
-      return frames;
-    };
-
     window.currentSpider = window.currentSpider || localStorage.getItem("iconCurrentSpider") || "spider_01";
     window.currentRobot = window.currentRobot || localStorage.getItem("iconCurrentRobot") || "robot_01";
     window.currentSwing = window.currentSwing || localStorage.getItem("iconCurrentSwing") || "swing_01";
     _iconFrameSets.spider = _makeSegmentedIconFrames("spider");
     _iconFrameSets.robot = _makeSegmentedIconFrames("robot");
-    _iconFrameSets.icon = _makeSimpleIconFrames("player");
-    _iconFrameSets.ship = _makeSimpleIconFrames("ship");
-    _iconFrameSets.ball = _makeSimpleIconFrames("player_ball");
-    _iconFrameSets.wave = _makeSimpleIconFrames("dart");
-    _iconFrameSets.ufo = _makeSimpleIconFrames("bird");
-    _iconFrameSets.swing = _makeSimpleIconFrames("swing");
+    _iconFrameSets.swing = ["swing_01_001.png", "swing_02_001.png", "swing_03_001.png", "swing_04_001.png", "swing_05_001.png", "swing_06_001.png", "swing_07_001.png", "swing_08_001.png", "swing_09_001.png", "swing_10_001.png", "swing_11_001.png", "swing_12_001.png", "swing_13_001.png", "swing_14_001.png", "swing_15_001.png", "swing_16_001.png", "swing_17_001.png", "swing_18_001.png", "swing_19_001.png", "swing_20_001.png", "swing_21_001.png", "swing_22_001.png", "swing_23_001.png", "swing_24_001.png", "swing_25_001.png", "swing_26_001.png", "swing_27_001.png", "swing_28_001.png", "swing_29_001.png", "swing_30_001.png", "swing_31_001.png", "swing_32_001.png", "swing_33_001.png", "swing_34_001.png", "swing_35_001.png", "swing_36_001.png", "swing_37_001.png", "swing_38_001.png", "swing_39_001.png", "swing_40_001.png", "swing_41_001.png", "swing_42_001.png", "swing_43_001.png"];
 
 
     const _iconWindowProps = {
@@ -3207,117 +3249,88 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               window[prop] = capturedFrame.replace("_001.png", "");
               localStorage.setItem("icon" + prop.charAt(0).toUpperCase() + prop.slice(1), window[prop]);
 
-              // Some icons only have a base layer (single color) while others have a
-              // secondary-color overlay and/or an outline "extra" layer. The player object's
-              // layer sprites are created once up-front, so if the icon you *start* with is
-              // missing a layer, that sprite simply doesn't exist yet. These helpers create it
-              // on demand when you switch to an icon that needs it, and hide (rather than just
-              // skip) layers the new icon doesn't have, so you never see a stale leftover piece
-              // or a layer that never shows up.
-              const _rebuildPlayerLayerArrays = (player) => {
-                if (!player) return;
-                player._playerLayers = [player._playerSpriteLayer, player._playerGlowLayer, player._playerOverlayLayer, player._playerExtraLayer];
-                player._shipLayers = [player._shipSpriteLayer, player._shipGlowLayer, player._shipOverlayLayer, player._shipExtraLayer];
-                player._ballLayers = [player._ballSpriteLayer, player._ballGlowLayer, player._ballOverlayLayer].filter(x => !!x);
-                player._waveLayers = [player._waveSpriteLayer, player._waveOverlayLayer, player._waveExtraLayer, player._waveGlowLayer].filter(x => !!x);
-                player._birdLayers = [player._birdSpriteLayer, player._birdGlowLayer, player._birdOverlayLayer, player._birdExtraLayer].filter(x => !!x);
-                player._swingLayers = [player._swingSpriteLayer, player._swingOverlayLayer, player._swingExtraLayer].filter(x => !!x);
-                player._allLayers = [
-                  ...player._playerLayers,
-                  ...player._ballLayers,
-                  ...player._waveLayers,
-                  ...player._shipLayers,
-                  ...(player._spiderLayers || []),
-                  ...(player._robotLayers || []),
-                  ...player._birdLayers,
-                  ...player._swingLayers,
+              if (tab === "icon" && this._player) {
+                const layerMap = [
+                  { lp: "_playerSpriteLayer",  suffix: "_001.png",       tint: window.mainColor      },
+                  { lp: "_playerGlowLayer",    suffix: "_glow_001.png",  tint: window.secondaryColor },
+                  { lp: "_playerOverlayLayer", suffix: "_2_001.png",     tint: window.secondaryColor },
+                  { lp: "_playerExtraLayer",   suffix: "_extra_001.png", tint: window.mainColor      },
                 ];
-              };
-              const _applyIconLayerSwap = (player, baseName, layerMap) => {
-                if (!player) return;
-                let structureChanged = false;
-                // Match whatever on/off state this gamemode's layers are already in (e.g. hidden,
-                // because cube is what's actually showing in the main menu) instead of forcing
-                // things visible - that was the bug causing the picked icon to stay stuck on screen.
-                const referenceLayer = layerMap[0] ? player[layerMap[0].lp] : null;
-                const groupVisible = referenceLayer?.sprite ? referenceLayer.sprite.visible : false;
-                for (const { lp, suffix, tint, depth, isGlow, kind } of layerMap) {
-                  const found = getAtlasFrame(this, `${baseName}${suffix}`);
-                  let layer = player[lp];
+                for (const { lp, suffix, tint } of layerMap) {
+                  const layer = this._player[lp];
+                  if (!layer || !layer.sprite) continue;
+                  const found = getAtlasFrame(this, `${window.currentPlayer}${suffix}`);
                   if (found) {
-                    if (!layer || !layer.sprite) {
-                      const anchor = player._playerSpriteLayer?.sprite || player._shipSpriteLayer?.sprite
-                        || player._ballSpriteLayer?.sprite || player._waveSpriteLayer?.sprite
-                        || player._birdSpriteLayer?.sprite || player._swingSpriteLayer?.sprite;
-                      const img = this.add.image(anchor?.x ?? centerX, anchor?.y ?? 0, found.atlas, found.frame).setDepth(depth);
-                      if (isGlow) img._glowEnabled = false;
-                      img.setVisible(isGlow ? false : groupVisible);
-                      layer = { sprite: img };
-                      if (kind) layer.kind = kind;
-                      player[lp] = layer;
-                      structureChanged = true;
-                    } else {
-                      // Layer already existed - just swap its texture. Never touch visibility here;
-                      // whatever gamemode logic already controls showing/hiding it stays in charge.
-                      layer.sprite.setTexture(found.atlas, found.frame);
-                    }
-                    if (tint === null) {
-                      if (layer.sprite.clearTint) layer.sprite.clearTint();
-                    } else if (tint !== undefined) {
-                      layer.sprite.setTint(tint);
-                    }
-                  } else if (layer && layer.sprite) {
-                    layer.sprite.setVisible(false);
+                    layer.sprite.setTexture(found.atlas, found.frame);
+                    if (tint !== null) layer.sprite.setTint(tint);
                   }
                 }
-                if (structureChanged) _rebuildPlayerLayerArrays(player);
-              };
-
-              if (tab === "icon" && this._player) {
-                _applyIconLayerSwap(this._player, window.currentPlayer, [
-                  { lp: "_playerSpriteLayer",  suffix: "_001.png",       tint: window.mainColor,      depth: 10 },
-                  { lp: "_playerGlowLayer",    suffix: "_glow_001.png",  tint: window.secondaryColor, depth: 9, isGlow: true },
-                  { lp: "_playerOverlayLayer", suffix: "_2_001.png",     tint: window.secondaryColor, depth: 8 },
-                  { lp: "_playerExtraLayer",   suffix: "_extra_001.png", tint: window.mainColor,      depth: 12 },
-                ]);
               }
               if (tab === "ship" && this._player) {
-                _applyIconLayerSwap(this._player, window.currentShip, [
-                  { lp: "_shipSpriteLayer",  suffix: "_001.png",       tint: window.mainColor,      depth: 10 },
-                  { lp: "_shipGlowLayer",    suffix: "_glow_001.png",  tint: window.secondaryColor, depth: 9, isGlow: true },
-                  { lp: "_shipOverlayLayer", suffix: "_2_001.png",     tint: window.secondaryColor, depth: 8 },
-                  { lp: "_shipExtraLayer",   suffix: "_extra_001.png", tint: window.secondaryColor, depth: 12 },
-                ]);
+                const layerMap = [
+                  { lp: "_shipSpriteLayer",  suffix: "_001.png",       tint: window.mainColor      },
+                  { lp: "_shipGlowLayer",    suffix: "_glow_001.png",  tint: window.secondaryColor },
+                  { lp: "_shipOverlayLayer", suffix: "_2_001.png",     tint: window.secondaryColor },
+                  { lp: "_shipExtraLayer",   suffix: "_2_001.png",     tint: window.secondaryColor },
+                ];
+                for (const { lp, suffix, tint } of layerMap) {
+                  const layer = this._player[lp];
+                  if (!layer || !layer.sprite) continue;
+                  const found = getAtlasFrame(this, `${window.currentShip}${suffix}`);
+                  if (found) {
+                    layer.sprite.setTexture(found.atlas, found.frame);
+                    if (tint !== null) layer.sprite.setTint(tint);
+                  }
+                }
               }
               if (tab === "ball" && this._player) {
-                _applyIconLayerSwap(this._player, window.currentBall, [
-                  { lp: "_ballSpriteLayer",  suffix: "_001.png",      tint: window.mainColor,      depth: 10 },
-                  { lp: "_ballGlowLayer",    suffix: "_glow_001.png", tint: window.secondaryColor, depth: 9, isGlow: true },
-                  { lp: "_ballOverlayLayer", suffix: "_2_001.png",    tint: window.secondaryColor, depth: 8 },
-                ]);
+                const layerMap = [
+                  { lp: "_ballSpriteLayer",  suffix: "_001.png",      tint: window.mainColor      },
+                  { lp: "_ballGlowLayer",    suffix: "_glow_001.png", tint: window.secondaryColor },
+                  { lp: "_ballOverlayLayer", suffix: "_2_001.png",    tint: window.secondaryColor },
+                ];
+                for (const { lp, suffix, tint } of layerMap) {
+                  const layer = this._player[lp];
+                  if (!layer || !layer.sprite) continue;
+                  const found = getAtlasFrame(this, `${window.currentBall}${suffix}`);
+                  if (found) {
+                    layer.sprite.setTexture(found.atlas, found.frame);
+                    layer.sprite.setTint(tint);
+                  }
+                }
               }
               if (tab === "wave" && this._player) {
-                _applyIconLayerSwap(this._player, window.currentWave, [
-                  { lp: "_waveSpriteLayer",  suffix: "_001.png",      tint: window.mainColor,      depth: 10 },
-                  { lp: "_waveGlowLayer",    suffix: "_glow_001.png", tint: window.secondaryColor, depth: 9, isGlow: true },
-                  { lp: "_waveOverlayLayer", suffix: "_2_001.png",    tint: window.secondaryColor, depth: 8 },
-                ]);
+                const layerMap = [
+                  { lp: "_waveSpriteLayer",  suffix: "_001.png",      tint: window.mainColor      },
+                  { lp: "_waveGlowLayer",    suffix: "_glow_001.png", tint: window.secondaryColor },
+                  { lp: "_waveOverlayLayer", suffix: "_2_001.png",    tint: window.secondaryColor },
+                ];
+                for (const { lp, suffix, tint } of layerMap) {
+                  const layer = this._player[lp];
+                  if (!layer || !layer.sprite) continue;
+                  const found = getAtlasFrame(this, `${window.currentWave}${suffix}`);
+                  if (found) {
+                    layer.sprite.setTexture(found.atlas, found.frame);
+                    if (tint !== null) layer.sprite.setTint(tint);
+                  }
+                }
               }
               if (tab === "ufo" && this._player) {
-                _applyIconLayerSwap(this._player, window.currentBird, [
-                  { lp: "_birdSpriteLayer",  suffix: "_001.png",       tint: window.mainColor,      depth: 10 },
-                  { lp: "_birdGlowLayer",    suffix: "_2_001.png",     tint: window.secondaryColor, depth: 9, isGlow: true },
-                  { lp: "_birdOverlayLayer", suffix: "_3_001.png",     tint: window.secondaryColor, depth: 8 },
-                  { lp: "_birdExtraLayer",   suffix: "_extra_001.png", tint: window.mainColor,      depth: 12 },
-                ]);
-              }
-
-              if (tab === "swing" && this._player) {
-                _applyIconLayerSwap(this._player, window.currentSwing, [
-                  { lp: "_swingSpriteLayer",  suffix: "_001.png",       tint: window.mainColor,      depth: 10 },
-                  { lp: "_swingOverlayLayer", suffix: "_2_001.png",     tint: window.secondaryColor, depth: 8 },
-                  { lp: "_swingExtraLayer",   suffix: "_extra_001.png", tint: null,                  depth: 12, kind: "extra" },
-                ]);
+                const layerMap = [
+                  { lp: "_birdSpriteLayer",  suffix: "_001.png",      tint: window.mainColor      },
+                  { lp: "_birdGlowLayer",    suffix: "_2_001.png",    tint: window.secondaryColor },
+                  { lp: "_birdOverlayLayer", suffix: "_3_001.png",    tint: window.secondaryColor },
+                  { lp: "_birdExtraLayer",   suffix: "_extra_001.png",tint: window.mainColor      },
+                ];
+                for (const { lp, suffix, tint } of layerMap) {
+                  const layer = this._player[lp];
+                  if (!layer || !layer.sprite) continue;
+                  const found = getAtlasFrame(this, `${window.currentBird}${suffix}`);
+                  if (found) {
+                    layer.sprite.setTexture(found.atlas, found.frame);
+                    if (tint !== null) layer.sprite.setTint(tint);
+                  }
+                }
               }
 
               _refreshPreview(tab, capturedFrame);
