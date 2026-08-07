@@ -499,7 +499,7 @@ function calculateSongOffsetForX(targetX, startSpeedKey = 0, sourceObjects = nul
 
 window.calculateGeometryDashSongOffsetForX = calculateSongOffsetForX;
 
-const objsWithGlow = [1, 2, 3, 4, 6, 7, 83, 8, 39, 103, 392, 35, 36, 40, 140, 141, 62, 65, 66, 68, 195, 196, 1022, 1594];
+const objsWithGlow = [1, 2, 3, 4, 6, 7, 83, 8, 39, 103, 392, 35, 36, 40, 140, 141, 62, 65, 66, 68, 195, 196, 1022, 1594, 3004];
 for (let obj of objsWithGlow) {
   if (allObjects[obj]) {
     allObjects[obj].glow = true;
@@ -2533,6 +2533,7 @@ window.LevelObject = class LevelObject {
       const orbObj = new Collider(jumpRingType, worldX, worldY, orbW, orbH, levelObj.rot || 0);
       orbObj.orbId = levelObj.id;
       orbObj.orbRotation = levelObj.rot || 0;
+      orbObj.orbFlipY = !!levelObj.flipY;
       orbObj._dashHoldTicks = 0;
       registerCollider(orbObj);
       this.objects.push(orbObj);
