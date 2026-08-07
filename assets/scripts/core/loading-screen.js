@@ -187,7 +187,8 @@ class BootScene extends Phaser.Scene {
       "It is only game...",
       "Unlock new icons and colors by completing achievements",
       "y=mx+b",
-      "Nicest game ever!"
+      "Nicest game ever!",
+      "GeometFree Dash!"
     ];
     const sliderOriginX = cx - 105;
     const sliderOriginY = cy + 110;

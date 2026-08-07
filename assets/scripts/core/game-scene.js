@@ -3686,7 +3686,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       if (!this._menuActive && !this._slideIn) {
         const isPracticeMode = this._practicedMode.togglePracticeMode();
         if (this._checkpointBtnContainer) {
-          this._checkpointBtnContainer.setVisible(isPracticeMode);
+            this._checkpointBtnContainer.setVisible(isPracticeMode);
+            this._checkpointBtnContainer.setAlpha(window.hidePracticeUI ? 0 : 1);
         }
         if (this._practiceModeBarContainer) {
           this._practiceModeBarContainer.setVisible(isPracticeMode);
@@ -4564,17 +4565,23 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._player?.setDeathAnimationPaused?.(false);
       this._player2?.setDeathAnimationPaused?.(false);
       this._paused = false;
-      this._pauseBtn.setVisible(true).setAlpha(75 / 255);
+      this._pauseBtn.setVisible(true).setAlpha(window.hidePauseBtn ? 0 : 75 / 255);
+      
       if (!this._state.isDead || this._practicedMode?.practiceMode) {
         this._audio.resumeMusic();
         this._audio._ensureCorrectMusicMode();
+        if (this._checkpointBtnContainer) {
+          this._checkpointBtnContainer.setAlpha(window.hidePracticeUI ? 0 : 1);
+        }
       }
+
       if (this._pauseContainer) {
         this._pauseContainer.destroy();
         this._pauseContainer = null;
       }
     }
   }
+
   _queueGameplayLevelViewReturn() {
     const currentLevelId = window.currentlevel?.[2] ?? window._onlineLevelId ?? null;
     const pendingCreatedReturn = window._createdLevelReturnToView || null;
@@ -4831,8 +4838,8 @@ _buildSettingsPopup() {
     const column1X = -200;
     const column2X = 200;
     const checkOffset = -120;
-    const textOffset = -70;
-    const spacingY = 70;
+    const textOffset = -80;
+    const spacingY = 54;
     const startY = -150;
     let pageContainer = this.add.container(0, 0);
     innerContainer.add(pageContainer);
@@ -4844,13 +4851,13 @@ _buildSettingsPopup() {
 
         var isOn = getVal();
         var checkTexture = isOn ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
-        var check = this.add.image(x + checkOffset, y, "GJ_GameSheet03", checkTexture).setScale(0.8).setInteractive();
+        var check = this.add.image(x + checkOffset, y, "GJ_GameSheet03", checkTexture).setScale(0.6).setInteractive();
         var txt = this.add.bitmapText(x + textOffset, y, "bigFont", label, fontSize).setOrigin(0, 0.5);
         container.add([check, txt]);
 
         if (hasInfoBox) {
             if (infoText) {
-                createInfoButton(container, x + checkOffset - 34, y - 30, infoText, 0.45);
+                createInfoButton(container, x + checkOffset - 30, y - 24, infoText, 0.34);
             }
         }
 
@@ -4880,6 +4887,8 @@ _buildSettingsPopup() {
         "Show Percentage": "Shows the percentage you are at in a level.",
         "Percentage Decimals": "Shows decimals in level progress.",
         "Hitboxes on Death": "Shows hitboxes upon death in both normal and practice mode.",
+        "Hide Pause Button": "Hides the pause button during gameplay. Prevents accidental clicks.",
+        "Hide Practice UI": "Hides the checkpoint buttons in practice mode.",
     };
 
     const createInfoButton = (container, x, y, infoTextOrKey, scale) => {
@@ -4956,19 +4965,64 @@ _buildSettingsPopup() {
             if (this._saveSettings) this._saveSettings();
         };
 
-        hitArea.on('pointerdown', (pointer, localX, localY, event) => {
-            if (event) event.stopPropagation();
-            
-            if (window._activeCustomInput && window._activeCustomInput !== commitValue) {
-                window._activeCustomInput();
-            }
+    hitArea.on('pointerdown', (pointer, localX, localY, event) => {
+        if (event) event.stopPropagation();
 
-            isFocused = true;
-            window._activeCustomInput = commitValue;
-            
-            internalString = ""; 
+        if (window._activeCustomInput && window._activeCustomInput !== commitValue) {
+            window._activeCustomInput();
+        }
+
+        isFocused = true;
+        window._activeCustomInput = commitValue;
+
+        internalString = "";
+        updateDisplay();
+
+        let mobileInput = document.getElementById('phaser-mobile-input');
+        if (!mobileInput) {
+            mobileInput = document.createElement('input');
+            mobileInput.id = 'phaser-mobile-input';
+            mobileInput.type = 'number';
+            mobileInput.step = '0.1';
+            mobileInput.style.position = 'absolute';
+            mobileInput.style.opacity = '0';
+            mobileInput.style.left = '0px';
+            mobileInput.style.top = '0px';
+            mobileInput.style.width = '1px';
+            mobileInput.style.height = '1px';
+            document.body.appendChild(mobileInput);
+        }
+
+        mobileInput.value = "";
+        mobileInput.focus();
+
+        mobileInput.oninput = () => {
+            internalString = mobileInput.value;
             updateDisplay();
-        });
+        };
+
+        mobileInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                mobileInput.blur();
+            }
+        };
+
+        mobileInput.onblur = () => {
+            commitValue();
+            isFocused = false;
+            if (mobileInput.parentNode) {
+                mobileInput.parentNode.removeChild(mobileInput);
+            }
+        };
+
+        const removeMobileFocus = () => {
+            if (document.activeElement === mobileInput) {
+                mobileInput.blur();
+            }
+            window.removeEventListener('pointerdown', removeMobileFocus);
+        };
+        window.addEventListener('pointerdown', removeMobileFocus);
+    });
 
         const outsideClickListener = () => {
             if (isFocused) commitValue();
@@ -5076,7 +5130,12 @@ _buildSettingsPopup() {
             (v) => window.speedHack = v
         );
 
-        createToggle(container, column2X, startY + spacingY, "Practice Music Bypass",
+        createNumberInput(container, column2X, startY + (spacingY * 1), "Respawn Delay (s)",
+            () => window.respawnDelay,
+            (v) => { window.respawnDelay = v; }
+        );
+
+        createToggle(container, column2X, startY + (spacingY * 2), "Practice Music Bypass",
             () => window.practiceMusicBypass,
             (v) => {
                 const changed = !!window.practiceMusicBypass !== !!v;
@@ -5093,6 +5152,7 @@ _buildSettingsPopup() {
     };
 
     const buildVisualPage = (container) => {
+        const spacingY = 54; 
         createToggle(container, column1X, startY, "Show Hitboxes", 
             () => window.showHitboxes, 
             (v) => window.showHitboxes = v,
@@ -5168,6 +5228,25 @@ _buildSettingsPopup() {
             true,
             "Enable Orb Guide"
         );
+        createToggle(container, column2X, startY + (spacingY * 5), "Hide Pause Button", 
+            () => window.hidePauseBtn, 
+            (v) => { 
+                window.hidePauseBtn = v; 
+                if (this._pauseBtn) {
+                    this._pauseBtn.setAlpha(v ? 0 : 0.75);
+                }
+            },
+            null, 25, true, "Hide Pause Button"
+        );
+        createToggle(container, column2X, startY + (spacingY * 6), "Hide Practice UI", 
+            () => window.hidePracticeUI, 
+            (v) => { 
+                window.hidePracticeUI = v; 
+                if (this._practiceBtn) this._practiceBtn.setAlpha(v ? 0 : 0.75);
+                if (this._removeBtn) this._removeBtn.setAlpha(v ? 0 : 0.75);
+            },
+            null, 25, true, "Hide Practice UI"
+        );
     };
 
     const buildAdvancedPage = (container) => {
@@ -5217,6 +5296,8 @@ _buildSettingsPopup() {
         startPosSwitcher: window.startPosSwitcher,
         hitboxTrail: window.showHitboxTrail,
         showFPS: this._fpsText.visible,
+        hidePauseBtn: window.hidePauseBtn,
+        hidePracticeUI: window.hidePracticeUI,
         solidWaveTrail: window.solidWave,
         noclipAccuracy: window.noClipAccuracy,
         hitboxesOnDeath: window.hitboxesOnDeath,
@@ -5224,6 +5305,7 @@ _buildSettingsPopup() {
         showObjectIds: window.showObjectIds,
         showCPS: window.showCPS,
         speedHack: window.speedHack,
+        respawnDelay: window.respawnDelay,
         macroBot: window.macroBot,
         practiceMusicBypass: window.practiceMusicBypass,
         showGlow: window.showGlow,
@@ -5246,6 +5328,8 @@ _buildSettingsPopup() {
         startPosSwitcher: false,
         hitboxTrail: false,
         showFPS: false,
+        hidePauseBtn: false,
+        hidePracticeUI: false,
         solidWaveTrail: false,
         noclipAccuracy: false,
         hitboxesOnDeath: false,
@@ -5253,6 +5337,7 @@ _buildSettingsPopup() {
         showObjectIds: false,
         showCPS: false,
         speedHack: 1.0,
+        respawnDelay: 1.0,
         macroBot: false,
         practiceMusicBypass: false,
         showGlow: true,
@@ -5271,11 +5356,14 @@ _buildSettingsPopup() {
     window.startPosSwitcher = data.startPosSwitcher;
     window.showHitboxTrail = data.hitboxTrail;
     this._fpsText.visible = data.showFPS;
+    window.hidePauseBtn = data.hidePauseBtn;
+    window.hidePracticeUI = data.hidePracticeUI;
     window.solidWave = data.solidWaveTrail;
     window.noClipAccuracy = data.noclipAccuracy;
     window.hitboxesOnDeath = data.hitboxesOnDeath;
     window.showCPS = data.showCPS;
     window.speedHack = data.speedHack;
+    window.respawnDelay = data.respawnDelay;
     window.macroBot = data.macroBot;
     window.practiceMusicBypass = !!data.practiceMusicBypass;
     window.showGlow = data.showGlow;
@@ -6010,6 +6098,9 @@ _buildSettingsPopup() {
       }
       this._updateLogPopup.destroy();
       this._updateLogPopup = null;
+    }
+    if (this.sound && this.sound.context && this.sound.context.state === 'suspended') {
+        this.sound.context.resume().catch(err => console.warn(err));
     }
   }
   _buildNewgroundsPopup() {
@@ -6955,6 +7046,10 @@ _buildSettingsPopup() {
         this._enableDualMode();
       }
       this._level.fastForwardTriggers(pos.x, this._colorManager);
+            if (typeof this._level.updateMoveTriggers === 'function') {
+          const speed = window.speedHack || 1;
+          this._level.updateMoveTriggers(0, speed);
+      }
       if (this._player) {
         this._player._lastCollisionWorldX = Number.isFinite(Number(this._playerWorldX)) ? Number(this._playerWorldX) : null;
         this._player._lastCollisionWorldY = startPosY;
@@ -6969,7 +7064,7 @@ _buildSettingsPopup() {
       this._pauseContainer.destroy();
       this._pauseContainer = null;
     }
-    this._pauseBtn.setVisible(true).setAlpha(75 / 255);
+    this._pauseBtn.setVisible(true).setAlpha(window.hidePauseBtn ? 0 : 75 / 255);
     if (this._practiceModeBarContainer) {
       this._practiceModeBarContainer.setVisible(this._practicedMode && this._practicedMode.practiceMode);
     }
@@ -7397,6 +7492,29 @@ _buildSettingsPopup() {
     return _0xd8019e * 60;
   }
   update(_0x54fa47, deltaTime) {
+    if (this._pauseBtn) {
+        this._pauseBtn.setAlpha(window.hidePauseBtn ? 0 : (this._paused ? 75 / 255 : 0.75));
+        if (window.hidePauseBtn && this._pauseBtn.input && this._pauseBtn.input.enabled) {
+            this._pauseBtn.disableInteractive();
+        }
+    }
+
+    if (this._level && !window.isEditor && this._audio) {
+        const currentSpeed = window.speedHack ? Math.sqrt(window.speedHack) : 1;
+        
+        if (this._audio._music && typeof this._audio._music.setRate === 'function') {
+            this._audio._music.setRate(currentSpeed);
+        } else if (this._audio._music && this._audio._music.rate !== undefined) {
+            this._audio._music.rate = currentSpeed;
+        }
+        
+        if (this.sound && this.sound !== null && this.sound.rate !== undefined) {
+            this.sound.rate = currentSpeed;
+        }
+    }
+
+
+
     if (window.isEditor) {
         if (this._editorPlaytestActive && !this._editorPlaytestPaused) {
             this._levelEditor._updateEditorPlaytest(deltaTime);
@@ -7732,7 +7850,7 @@ _buildSettingsPopup() {
         }
       }
       this._deathTimer += deltaTime;
-      let _0x237728 = this._hadNewBest ? 1400 : 1000;
+      let _0x237728 = (this._hadNewBest ? 1400 : 1000) * (window.respawnDelay !== undefined ? window.respawnDelay : 1.0);
       if (this._deathTimer > _0x237728) {
         if (this._practicedMode.practiceMode) {
           this._respawnFromCheckpoint();
