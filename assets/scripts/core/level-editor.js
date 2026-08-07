@@ -1543,9 +1543,10 @@ class LevelEditor {
         "GJ_GameSheet02",
         "GJ_GameSheet03",
         "GJ_GameSheet04",
+        "FireSheet_01-hd",
+        "PixelSheet_01-hd",
         "GJ_GameSheetEditor",
-        "GJ_ParticleSheet-uhd",
-        "GJ_ParticleSheet"
+        "GJ_ParticleSheet-uhd"
     ];
     for (const key of sheets) {
         if (this.textures.exists(key) && this.textures.get(key).has(frameName)) {
@@ -1556,7 +1557,7 @@ class LevelEditor {
 
 
   _getTextureRefForFrameThingy(frameName) { // getSheetForFrameThingy: the sequel
-    const sheets = ["GJ_WebSheet", "GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04", "GJ_GameSheetEditor"];
+    const sheets = ["GJ_WebSheet", "GJ_GameSheet", "GJ_GameSheet02", "GJ_GameSheet03", "GJ_GameSheet04", "GJ_GameSheetEditor", "PixelSheet_01-hd", "GJ_ParticleSheet-uhd", "FireSheet_01-hd"];
     for (const key of sheets) {
         if (this.textures.exists(key) && this.textures.get(key).has(frameName)) {
             return {
