@@ -4382,6 +4382,70 @@ if (this.p.isFlying || this.p.isUfo) {
                 this.runRotateAction();
                 _boostedThisStep = true;
                 this._markActivatedOrbSprites(gameObj);
+              } else if (_orbId === 3004) {
+                // Swallow the press the way a spider teleport does, so landing back on a
+                // surface with canJump set doesn't immediately spend the same click on a
+                // jump. Only this orb consumes the input; every other orb is untouched.
+                this.p.upKeyPressed = false;
+                this.p.queuedHold = false;
+                // The sprite is an arrow that points up at rot 0 and rotates clockwise,
+                // so cos(rot) is how much it points upward, negated if the object is
+                // flipped vertically. Closer to up teleports up (and flips gravity);
+                // closer to down teleports down. Exactly sideways (90/270) counts as up.
+                const _spRotRad = (gameObj.orbRotation || 0) * Math.PI / 180;
+                const _spFlipY = gameObj.orbFlipY ? -1 : 1;
+                const _spGoingUp = Math.cos(_spRotRad) * _spFlipY >= -1e-9;
+                const _spSurfaceY = this._findSpiderTeleportSurface(_spGoingUp, pieceWidth, playerSize);
+                const _spOldY = this.p.y;
+                _teleportedThisStep = true;
+                if (_spSurfaceY !== null && Number.isFinite(_spSurfaceY)) {
+                  const _spLandingY = _spGoingUp ? _spSurfaceY - playerSize : _spSurfaceY + playerSize;
+                  const _spHazard = this._findSpiderTeleportHazard(_spGoingUp, pieceWidth, playerSize, _spLandingY);
+                  if (_spHazard && !window.noClip) {
+                    const _spHazardY = (_spHazard.bounds.lower + _spHazard.bounds.upper) / 2;
+                    this.p.y = Number.isFinite(_spHazardY) ? _spHazardY : _spLandingY;
+                    this._spawnSpiderTeleportEffects(_spOldY, this.p.y);
+                    this.p.yVelocity = 0;
+                    this.p.onGround = false;
+                    this.p.canJump = false;
+                    this.p.isJumping = false;
+                    this._markActivatedOrbSprites(gameObj);
+                    this.killPlayer();
+                    return;
+                  }
+                  this.p.y = _spLandingY;
+                  this.flipGravity(_spGoingUp, 1.0);
+                  this.p.onCeiling = _spGoingUp;
+                  if (_spHazard && window.noClip) {
+                    this.p._spiderTeleportNoclipDeathPending = true;
+                    this.p.diedThisFrame = true;
+                  }
+                  this._spawnSpiderTeleportEffects(_spOldY, this.p.y);
+                  this.p.yVelocity = 0;
+                  this.p.onGround = true;
+                  this.p.canJump = true;
+                  this.p.isJumping = false;
+                } else {
+                  this.flipGravity(_spGoingUp, 1.0);
+                  this.p.yVelocity = 0;
+                  this.p.onGround = false;
+                  this.p.canJump = false;
+                  this.p.isJumping = false;
+                }
+                this._syncOtherDualGravityForBlueBoost();
+                if (this.p.isBall) {
+                  this.p.ballShouldRotate = true;
+                  this.p.ballRotateOpposite = this.p.gravityFlipped;
+                  this.p.ballHitPad = true;
+                }
+                this.p._spiderTeleportAnimTimer = 0;
+                if (!this._scene?._editorPlaytestActive) {
+                  this.p._spiderFlashDuration = 0.5;
+                  this.p._spiderFlashTimer = 0.5;
+                }
+                this.runRotateAction();
+                _boostedThisStep = true;
+                this._markActivatedOrbSprites(gameObj);
               } else if (this.p.isWave) {
                 if (_orbId === 84 || _orbId === 1022) {
                   this.flipGravity(!this.p.gravityFlipped);

@@ -8063,7 +8063,8 @@ _buildSettingsPopup() {
           1333: 0xff6326,
           1594: 0x6cff6b,
           1704: 0x04ff04,
-          1751: 0xff00d2
+          1751: 0xff00d2,
+          3004: 0xea5bff
         };
         for (let _oSpr of this._level._orbSprites) {
           if (_drawn >= 4) break;

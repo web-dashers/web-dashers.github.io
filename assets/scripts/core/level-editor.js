@@ -2250,7 +2250,10 @@ class LevelEditor {
         for (const collider of colliders) {
             collider.rotation = saveObj.rot;
             collider.rotationDegrees = saveObj.rot;
-            if (collider.orbId !== undefined) collider.orbRotation = saveObj.rot;
+            if (collider.orbId !== undefined) {
+              collider.orbRotation = saveObj.rot;
+              collider.orbFlipY = !!saveObj.flipY;
+            }
             collider._baseRotationDegrees = saveObj.rot;
             collider._origRotationDegrees = saveObj.rot;
             collider._eeInitialRotationDegrees = saveObj.rot;
