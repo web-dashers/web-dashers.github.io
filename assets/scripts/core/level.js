@@ -51,7 +51,7 @@ class Collider {
     }
     const surfaceY = this.getSlopeSurfaceY(worldX);
     if (surfaceY === null) return false;
-    return this.isSolidBelowSurface(gravityFlipped) ? worldY < surfaceY : worldY > surfaceY;
+    return this.slopeFlipY ? worldY > surfaceY : worldY < surfaceY;
   }
   getSlopeBackWallSide(gravityFlipped = false) {
     let leftWall = this.slopeDir > 0;
