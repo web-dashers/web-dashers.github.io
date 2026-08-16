@@ -309,7 +309,7 @@ class WaveTrail {
     this._glowGfx.clear();
     if (this._pts.length < 2) return;
 
-    d = window.solidWave === true;
+    const solid = window.solidWave === true;
     if (solid) {
       this._drawRibbon(this._gfx, this._pts, this._halfW, this._color, 1.0);
     } else {
