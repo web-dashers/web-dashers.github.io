@@ -47,7 +47,7 @@ class Collider {
       return false;
     }
     if (this.slopeIsFilled) {
-     return this.slopeFlipY ? worldY > surfaceY : worldY < surfaceY;
+      return true;
     }
     const surfaceY = this.getSlopeSurfaceY(worldX);
     if (surfaceY === null) return false;
