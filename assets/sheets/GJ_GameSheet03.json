@@ -5220,6 +5220,26 @@
         "h": 66
       }
     },
+    "gj_wbdlIcon_001.png": {
+      "frame": {
+        "x": 1936,
+        "y": 1934,
+        "w": 61,
+        "h": 60
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 4,
+        "w": 61,
+        "h": 60
+      },
+      "sourceSize": {
+        "w": 62,
+        "h": 66
+      }
+    },
     "GJ_gkBtn_001.png": {
       "frame": {
         "x": 1461,
