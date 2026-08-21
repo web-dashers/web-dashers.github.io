@@ -7102,6 +7102,7 @@ _buildSettingsPopup() {
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
     this._glitterEmitter.stop();
+    this._setParticleTimeScale(1);
     let speedKey = parseInt(window.settingsMap["kA4"] || "0");
     if (speedKey == 0) {
       playerSpeed = SpeedPortal.ONE_TIMES;
