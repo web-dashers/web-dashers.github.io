@@ -4961,7 +4961,7 @@ if (this.p.isFlying || this.p.isUfo) {
         const leftSurfY = nearObject.getSlopeSurfaceY(leftWorld);
         const rightSurfY = nearObject.getSlopeSurfaceY(rightWorld);
         if (leftSurfY !== null && rightSurfY !== null) {
-          const solidBelow = nearObject.isSolidBelowSurface(this.p.gravityFlipped);
+          const solidBelow = nearObject.isSolidBelowSurface(false);
           const leftIsBottom = Math.abs(leftSurfY - bboxBottom) < Math.abs(rightSurfY - bboxBottom);
           const thirdWorldX = solidBelow ? (leftIsBottom ? rightWorld : leftWorld) : (leftIsBottom ? leftWorld : rightWorld);
           const thirdWorldY = solidBelow ? bboxBottom : bboxTop;
