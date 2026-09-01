@@ -297,7 +297,7 @@ class AudioManager {
       return;
     }
     this._music = this._scene.sound.add(_songKey, {
-      loop: true,
+      loop: false,
       volume: this._effectiveVolume()
     });
     this._music.play();

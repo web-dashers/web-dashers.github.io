@@ -509,6 +509,10 @@ class GameScene extends Phaser.Scene {
     this._resetGameplayState();
     this._totalJumps = parseInt(localStorage.getItem("gd_totalJumps") || "0", 10);
     this._totalDeaths = parseInt(localStorage.getItem("gd_totalDeaths") || "0", 10);
+    this._totalsecretcoins = parseInt(localStorage.getItem("gd_totalsecretcoins") || "0", 10);
+    window._totalsecretcoins = this._totalsecretcoins;
+    this._totalusercoins = parseInt(localStorage.getItem("gd_totalusercoins") || "0", 10);
+    window._totalusercoins = this._totalusercoins;
     window._completedLevels = parseInt(localStorage.getItem("gd_completedLevels") || "0", 10);
     this._playTime = 0;
     this._menuActive = true;
@@ -568,26 +572,23 @@ class GameScene extends Phaser.Scene {
     return icon;
   });
 
-    this._copyrightText = this.add.text(0, 625, "© 2026 RobTop Games · geometrydash.com", {
+    this._copyrightText = this.add.text(0, 630, "© 2026 RobTop Games · geometrydash.com", {
       fontSize: "14px",
       color: "#ffffff",
       fontFamily: "Arial"
     }).setOrigin(1, 1).setScrollFactor(0).setDepth(30).setAlpha(0.3);
     this._tryMeImg = this.add.image(0, 150, "GJ_MenuBeta").setScrollFactor(0).setDepth(30).setScale(0.75);
     this._downloadBtns = [];
-    const _0x4fc67f = [{
-      key: "downloadSteam_001",
-      url: "https://github.com/web-dashers/web-dashers.github.io"
-    },
+    const _0x4fc67f = [
     {
-      key: "downloadApple_001",
-      url: "https://discord.gg/TfEzAVWPSJ"
+      key: "GJ_moreGamesBtn_001",
+      url: "https://pinkdev.d13qic2f6zga3.amplifyapp.com"
     }];
     for (let _0xfeaf5c = 0; _0xfeaf5c < _0x4fc67f.length; _0xfeaf5c++) {
       const _0x1ce2a6 = _0x4fc67f[_0xfeaf5c];
       const _0x6bf69f = 1 / 1.5;
-      const _0x1d293f = this.add.image(0, 0, "GJ_WebSheet", _0x1ce2a6.key + ".png").setScrollFactor(0).setDepth(30).setScale(_0x6bf69f).setInteractive();
-      this._makeBouncyButton(_0x1d293f, _0x6bf69f, () => window.open(_0x1ce2a6.url, "_blank"), () => this._menuActive);
+      const _0x1d293f = this.add.image(0, 0, "GJ_GameSheet04", _0x1ce2a6.key + ".png").setScrollFactor(0).setDepth(30).setScale(1).setInteractive();
+      this._makeBouncyButton(_0x1d293f, 1, () => window.open(_0x1ce2a6.url, "_blank"), () => this._menuActive);
       this._downloadBtns.push(_0x1d293f);
     }
     const _0x28fa5b = this.scale.isFullscreen;
@@ -4058,6 +4059,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
     };
     const isEveryEnd = (levelId) => levelId === "level_99";
+    const levelCoinRequirements = {
+      "level_14": 10,
+      "level_18": 20,
+      "level_20": 30
+    };
+    const getLevelCoinRequirement = (levelId) => levelCoinRequirements[levelId] || 0;
     const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
     fadeIn.fillStyle(0x000000, 1);
     fadeIn.fillRect(0, 0, sw, sh);
@@ -4127,6 +4134,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._closeLevelSelect();
       }
     });
+
+    const downloadsoundtrack = this.add.bitmapText(cx, 585, "bigFont", "Download the soundtracks", 56).setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5).setScale(0.52).setInteractive();
+        this._makeBouncyButton(downloadsoundtrack, 0.52, () => { this._buildsongspopup(1); }); 
+
     const arrowL = this.add.image(55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(true).setInteractive();
     const arrowR = this.add.image(sw - 55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(false).setInteractive();
     const allLevels = window.allLevels || [];
@@ -4146,9 +4157,10 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
     };
     applyCurrentPage();
-    const dotY = sh - 36;
+    const dotY = sh - 20;
+    
     const maxDots = Math.min(pageCount, 28);
-    const dotSpacing = 27;
+    const dotSpacing = 29;
     const dotStartX = cx - (maxDots - 1) * dotSpacing / 2;
     const dotObjs = [];
     const refreshDots = () => {
@@ -4164,7 +4176,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     };
     refreshDots();
     const cardW = Math.min(700, sw - 180);
-    const cardH = 180;
+    const cardH = 185;
     const cardX = cx;
     const cardY = cy - 100;
     const cardSlideContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(152);
@@ -4218,6 +4230,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     cardHit.on("pointerdown", (ptr) => {
       onDragStart(ptr);
       if (isComingSoonPage()) return;
+      const levelId = window.currentlevel?.[2];
+      if (getLevelCoinRequirement(levelId) > (Number(window._totalsecretcoins) || 0)) return;
       this.tweens.killTweensOf(cardBounceContainer, "scale");
       this.tweens.add({ targets: cardBounceContainer, scale: 1.26, duration: 300, ease: "Bounce.Out" });
     });
@@ -4278,6 +4292,12 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             if (isComingSoonPage()) {
               return;
             }
+
+            const requiredCoins = getLevelCoinRequirement(window.currentlevel?.[2]);
+            const collectedCoins = Number(window._totalsecretcoins) || 0;
+            if (requiredCoins > collectedCoins) {
+              return;
+            }
             
             this.input.enabled = false;
             this.tweens.killTweensOf(cardBounceContainer, "scale");
@@ -4336,6 +4356,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       const lvl = window.currentlevel;
       const levelId = lvl[2] || "level_1";
+      const requiredCoins = getLevelCoinRequirement(levelId);
+      const collectedCoins = Number(window._totalsecretcoins) || 0;
+      const levellocked = requiredCoins > collectedCoins;
       const levelDifficultyMap = {
         "level_1":         "diffIcon_01_btn_001",
         "level_2":         "diffIcon_01_btn_001",
@@ -4372,44 +4395,85 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const diffIconKey = levelDifficultyMap[levelId] || "diffIcon_05_btn_001";
       const diffFrame = diffIconKey + ".png";
       const iconX = cardX - cardW / 2 + 52;
-      const isHardDemon = diffIconKey === "diffIcon_06_btn_001";
-      const iconRotation = isHardDemon ? Math.PI / 2 : 0;
-      const demonIcon = this.add.image(iconX - cardX, 0, "GJ_GameSheet03", diffFrame)
-        .setScrollFactor(0).setDepth(155).setScale(1).setOrigin(0.5, 0.5);
-      cardContentObjs.push(demonIcon);
-      cardBounceContainer.add(demonIcon);
-      const maxIconH = cardH - 16;
-      const maxIconW = 80;
-      const iconFrame = this.textures.getFrame("GJ_GameSheet03", diffFrame);
-      let finalIconScale = 1;
-      if (iconFrame) {
-        const scaleForH = maxIconH / iconFrame.height;
-        let scaleForW = maxIconW / iconFrame.width;
-        finalIconScale = Math.min(1, scaleForH, scaleForW);
-        demonIcon.setScale(finalIconScale);
+      if (levellocked) {
+        const lock = this.add.image(0, -8, "GJ_GameSheet03", "GJLargeLock_001.png")
+          .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5);
+        const lockFrame = this.textures.getFrame("GJ_GameSheet03", "GJLargeLock_001.png");
+        if (lockFrame) lock.setScale(Math.min(1, (cardH - 20) / lockFrame.height));
+        cardContentObjs.push(lock);
+        cardBounceContainer.add(lock);
+      } else {
+        const isHardDemon = diffIconKey === "diffIcon_06_btn_001";
+        const demonIcon = this.add.image(iconX - cardX, 0, "GJ_GameSheet03", diffFrame)
+          .setScrollFactor(0).setDepth(155).setScale(1).setOrigin(0.5, 0.5);
+        cardContentObjs.push(demonIcon);
+        cardBounceContainer.add(demonIcon);
+        const maxIconH = cardH - 16;
+        const maxIconW = 80;
+        const iconFrame = this.textures.getFrame("GJ_GameSheet03", diffFrame);
+        let finalIconScale = 1.115;
+        if (iconFrame) {
+          const scaleForH = maxIconH / iconFrame.height;
+          const scaleForW = maxIconW / iconFrame.width;
+          finalIconScale = Math.min(1.115, scaleForH, scaleForW);
+          demonIcon.setScale(finalIconScale);
+        }
+        const iconDisplayW = (iconFrame ? iconFrame.width : 80) * finalIconScale;
+        const iconDisplayH = (iconFrame ? iconFrame.height : 80) * finalIconScale;
+        const nameLabel = this.add.bitmapText(0, 0, "bigFont", lvl[1], 60)
+          .setScrollFactor(0).setDepth(155).setOrigin(0, 0.5);
+        const gap = 25;
+        const naturalGroupW = iconDisplayW + gap + nameLabel.width;
+        const naturalGroupH = Math.max(iconDisplayH, nameLabel.height);
+        const cardPad = 16;
+        const maxGroupW = cardW - cardPad * 2 - 100;
+        const maxGroupH = cardH - cardPad * 2;
+        const groupScale = Math.min(1, maxGroupW / naturalGroupW, maxGroupH / naturalGroupH);
+        const scaledIconW = iconDisplayW * groupScale;
+        const scaledGap = gap * groupScale;
+        const totalW = scaledIconW + scaledGap + nameLabel.width * groupScale;
+        const groupStartX = cardX - totalW / 2;
+        demonIcon.setScale(finalIconScale * groupScale);
+        demonIcon.setPosition(groupStartX + scaledIconW / 2 - cardX, 0);
+        nameLabel.setScale(groupScale);
+        nameLabel.setPosition(groupStartX + scaledIconW + scaledGap - cardX, 0);
+        cardContentObjs.push(nameLabel);
+        cardBounceContainer.add(nameLabel);
       }
-      let iconDisplayW = (iconFrame ? iconFrame.width : 80) * finalIconScale;
-      const iconDisplayH = (iconFrame ? iconFrame.height : 80) * finalIconScale;
-      const nameLabel = this.add.bitmapText(0, 0, "bigFont", lvl[1], 60)
-        .setScrollFactor(0).setDepth(155).setOrigin(0, 0.5);
-      const gap = 25;
-      const naturalGroupW = iconDisplayW + gap + nameLabel.width;
-      const naturalGroupH = Math.max(iconDisplayH, nameLabel.height);
-      const cardPad = 16;
-      const maxGroupW = cardW - cardPad * 2;
-      const maxGroupH = cardH - cardPad * 2;
-      const groupScale = Math.min(1, maxGroupW / naturalGroupW, maxGroupH / naturalGroupH);
-      const scaledIconW  = iconDisplayW  * groupScale;
-      const scaledLabelW = nameLabel.width * groupScale;
-      const scaledGap = gap * groupScale;
-      const totalW = scaledIconW + scaledGap + scaledLabelW;
-      const groupStartX = cardX - totalW / 2;
-      demonIcon.setScale((finalIconScale * groupScale)+0.1);
-      demonIcon.setPosition(groupStartX + scaledIconW / 2 - cardX, 0);
-      nameLabel.setScale(groupScale);
-      nameLabel.setPosition(groupStartX + scaledIconW + scaledGap - cardX, 0);
-      cardContentObjs.push(nameLabel);
-      cardBounceContainer.add(nameLabel);
+
+      let collectedSecretCoins = [];
+      try {
+        const savedCoins = JSON.parse(localStorage.getItem("gd_secretCoins_" + levelId) || "[]");
+        const savedSlotsKey = "gd_secretCoins_" + levelId + "_slots";
+        const savedSlots = JSON.parse(localStorage.getItem(savedSlotsKey) || "null");
+        if (Array.isArray(savedSlots)) {
+          collectedSecretCoins = savedSlots.filter(slot => Number.isInteger(slot) && slot >= 0 && slot < 3);
+        } else if (levelId === window.currentlevel?.[2] && Array.isArray(this._level?._coinSprites)) {
+          const savedIds = new Set(Array.isArray(savedCoins) ? savedCoins.map(String) : []);
+          collectedSecretCoins = this._level._coinSprites
+            .filter(sprite => sprite?._secretCoinId !== undefined && savedIds.has(String(sprite._secretCoinId)))
+            .map(sprite => sprite._secretCoinSlot)
+            .filter(slot => Number.isInteger(slot));
+        }
+      } catch (_error) {}
+      if (levellocked) {
+        const coinCount = this.add.bitmapText(cardW / 2 - 117, 63, "bigFont", `${collectedCoins}/${requiredCoins}`, 42)
+          .setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5);
+        const coinIcon = this.add.image(cardW / 2 - 31, 63, "GJ_GameSheet03", "GJ_coinsIcon_001.png")
+          .setScrollFactor(0).setDepth(155).setOrigin(0.5);
+        cardContentObjs.push(coinCount, coinIcon);
+        cardBounceContainer.add([coinCount, coinIcon]);
+      }
+      for (let coinIndex = 0; !levellocked && coinIndex < 3; coinIndex++) {
+        const coinIcon = this.add.image(
+          cardW / 2 - 131 + coinIndex * 50,
+          63,
+          "GJ_GameSheet03",
+          collectedSecretCoins.includes(coinIndex) ? "GJ_coinsIcon_001.png" : "GJ_coinsIcon_gray_001.png"
+        ).setScrollFactor(0).setDepth(155).setOrigin(0.5);
+        cardContentObjs.push(coinIcon);
+        cardBounceContainer.add(coinIcon);
+      }
     };
     const barAreaY = cardY + cardH / 2 + 100;
     const barW2 = Math.min(600, sw - 200);
@@ -4554,7 +4618,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const inputBlocker = this.add.zone(cx, cy, sw, sh)
       .setScrollFactor(0).setDepth(151).setInteractive();
     inputBlocker.on("pointerdown", onDragStart);
-    this._levelSelectStaticObjs = [overlay, inputBlocker, tableBottom, ...staticGroundTiles, ...staticGround2Tiles, staticFloorLine, cornerBL, cornerBR, backBtn, infoBtn, arrowL, arrowR, cardSlideContainer, cardHit];
+    this._levelSelectStaticObjs = [overlay, inputBlocker, tableBottom, ...staticGroundTiles, ...staticGround2Tiles, staticFloorLine, cornerBL, cornerBR, backBtn, infoBtn, arrowL, arrowR, cardSlideContainer, cardHit, downloadsoundtrack];
     this._levelSelectSwitchLevel = switchLevel;
     this._levelSelectDotObjs = dotObjs;
     this._levelSelectCardContent = cardContentObjs;
@@ -5050,8 +5114,9 @@ _buildSettingsPopup() {
         "Show CPS": "Shows when you click in a level in the top left of your screen.",
         "Show Glow": "Shows glow for basic object sets.",
         "Use Proxy (for schools)": "Enables a proxy for a better chance to see online levels when blocked.",
-        "LDM": "Removes many effects, objects, and other things to improve performance.",
-        "Cull Distance": "Changes how many objects are shown. [DOES NOT SAVE!!]"
+        "Cull Distance": "Changes how many objects are shown. [DOES NOT SAVE!!]",
+        "Default Mini Icon": "Sets player icon in min mode to default.",
+        "Safe Mode": "Enables when Noclip or Speedhack are on. Disables level Completion when enabled."
     };
 
     const createInfoButton = (container, x, y, infoTextOrKey, scale) => {
@@ -5390,6 +5455,14 @@ _buildSettingsPopup() {
             true,
             "Enable Orb Guide"
         );
+          createToggle(container, column2X, startY + (spacingY * 5), "Default Mini Icon", 
+            () => window.enableMiniIcon, 
+            (v) => window.enableMiniIcon = v,
+            null, //broken script refrence???? null??? 
+            25,
+            true,
+            "Default Mini Icon"
+        );
     };
 
     const buildAdvancedPage = (container) => {
@@ -5400,19 +5473,21 @@ _buildSettingsPopup() {
             22,
             true,
             "Use Proxy (for schools)"
+        );/*
+          createToggle(container, column1X, startY + (spacingY * 1), "Safe Mode",
+            () => !window.enablesafemode,
+            (v) => { window.enablesafemode = !v; },
+            null,
+            22,
+            true,
+            "Safe Mode"
+            
         );
+        */
     };
 
         const buildPerformancePage = (container) => {
-        createToggle(container, column1X, startY, "Low Detail Mode", 
-            () => window.enableLDM, 
-            (v) => window.enableLDM = v,
-            null,
-            26,
-            true,
-            "LDM"
-        );
-        createNumberInput(container, column1X, startY + (spacingY * 1), "Cull Distance",
+        createNumberInput(container, column1X, startY, "Cull Distance",
           () => (typeof window.cullDistance !== 'undefined' ? window.cullDistance : 3),
           (v) => window.cullDistance = v,
           0,
@@ -5477,6 +5552,7 @@ _buildSettingsPopup() {
         useDirectInternet: !!window.useDirectInternet,
         enablePortalGuide: window.enablePortalGuide,
         enableOrbGuide: window.enableOrbGuide,
+        enableMiniIcon: window.enableMiniIcon,
         cullDistance: window.cullDistance,
         settingInfoText: window.settingInfoText || {},
         enableLDM: window.enableLDM,
@@ -5508,6 +5584,7 @@ _buildSettingsPopup() {
         useDirectInternet: true,
         enablePortalGuide: true,
         enableOrbGuide: false,
+        enableMiniIcon: false,
         enableLDM: false,
         cullDistance: 3
     };
@@ -5534,6 +5611,7 @@ _buildSettingsPopup() {
     window.showObjectIds = data.showObjectIds;
     window.enablePortalGuide = data.enablePortalGuide;
     window.enableOrbGuide = data.enableOrbGuide;
+    window.enableMiniIcon = data.enableMiniIcon;
     window.cullDistance = typeof data.cullDistance !== 'undefined' ? data.cullDistance : 3;
     window.settingInfoText = data.settingInfoText || {};
     window.useDirectInternet = !!data.useDirectInternet;
@@ -5873,6 +5951,243 @@ _buildSettingsPopup() {
       this._infoPopup = null;
     }
   } //im so tired of this
+  _showReqpopup() {
+    if (this._reqpopup) {
+      return;
+    }
+
+    const xPos = screenWidth / 2;
+    const centerY = screenHeight / 2;
+    const popupWidth = 475;
+    const popupContentHeight = 230;
+    this._reqpopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+
+    const background = this.add.rectangle(xPos, centerY, screenWidth, screenHeight, 0, 100 / 255).setInteractive();
+    this._reqpopup.add(background);
+
+    const bounceContainer = this.add.container(xPos, centerY).setScale(0);
+    this._reqpopup.add(bounceContainer);
+
+    const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
+    const popupBg = this._drawScale9(0, 0, popupWidth, popupContentHeight, "GJ_square02", cornerRadius, 16777215, 1);
+    bounceContainer.add(popupBg);
+
+    const closeBtn = this.add.image(-(popupWidth / 2) + 20, -(popupContentHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(0.95).setInteractive();
+    bounceContainer.add(closeBtn);
+    this._makeBouncyButton(closeBtn, 0.95, () => this._closeReqPopup());
+
+    const fakeloading = this.add.image(0, -10, "loadingCircle").setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.5);
+    bounceContainer.add(fakeloading);
+
+    const statusText = this.add.text(0, popupContentHeight / 2 - 40, " Loading...", {
+      fontFamily: "Arial",
+      fontSize: "26px",
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(statusText);
+
+    const spinTimer = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        if (!fakeloading.scene) {
+          spinTimer.remove();
+          return;
+        }
+        fakeloading.rotation += 0.1;
+      }
+    });
+
+    const failTimer = this.time.delayedCall(5000, () => {
+      if (!fakeloading.scene || !statusText.scene) return;
+      spinTimer.remove();
+      fakeloading.clearTint();
+      fakeloading.setBlendMode(Phaser.BlendModes.NORMAL);
+      fakeloading.setAlpha(1);
+      fakeloading.setTexture("GJ_GameSheet03", "exMark_001.png");
+      fakeloading.setRotation(0);
+      fakeloading.setScale(1.25);
+      fakeloading.y = -25;
+      statusText.setText("Failed. Please try again never. ");
+    });
+
+    this._reqpopupexit = () => {
+      spinTimer.remove();
+      failTimer.remove();
+    };
+
+    this.tweens.add({
+      targets: bounceContainer,
+      scale: { from: 0, to: 1 },
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
+    });
+  }
+  _closeReqPopup() {
+    if (this._reqpopup) {
+      if (this._reqpopupexit) {
+        this._reqpopupexit();
+        this._reqpopupexit = null;
+      }
+      this._reqpopup.destroy();
+      this._reqpopup = null;
+    }
+    }
+  _showcontactpopup() {
+    if (this._reqpopup) {
+      return;
+    }
+
+    const xPos = screenWidth / 2;
+    const centerY = screenHeight / 2;
+    const popupWidth = 500;
+    const popupContentHeight = 250;
+    this._reqpopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+
+    const background = this.add.rectangle(xPos, centerY, screenWidth, screenHeight, 0, 100 / 255).setInteractive();
+    this._reqpopup.add(background);
+
+    const bounceContainer = this.add.container(xPos, centerY).setScale(0);
+    this._reqpopup.add(bounceContainer);
+
+    const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
+    const popupBg = this._drawScale9(0, 0, popupWidth, popupContentHeight, "GJ_square02", cornerRadius, 16777215, 1);
+    bounceContainer.add(popupBg);
+
+    const closeBtn = this.add.image(-(popupWidth / 2) + 20, -(popupContentHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(1).setInteractive();
+    bounceContainer.add(closeBtn);
+    this._makeBouncyButton(closeBtn, 1, () => this._closeReqPopup());
+
+    const lock = this.add.image(0, 110, "GJ_GameSheet03", "GJ_lockGray_001.png").setOrigin(0.5).setSize(1.5);
+    bounceContainer.add(lock);
+
+
+    const statusText = this.add.text(0, popupContentHeight / 2 - 90, "Or, call 480-957-8838 for more info.", {
+      fontFamily: "Arial",
+      fontSize: "26px",
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(statusText);
+
+    
+    const statusText2 = this.add.text(0, popupContentHeight / 2 - 130, "Message pinkdevyt on Discord,", {
+      fontFamily: "Arial",
+      fontSize: "26px",
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(statusText2);
+
+    const statusText3 = this.add.text(0, popupContentHeight / 2 - 170, "Message ameth7st_nya on Discord,", {
+      fontFamily: "Arial",
+      fontSize: "26px",
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(statusText3);
+
+    const statusText4 = this.add.text(0, popupContentHeight / 2 - 210, "Message lasokar on Discord,", {
+      fontFamily: "Arial",
+      fontSize: "26px",
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(statusText4);
+
+    const statusText5 = this.add.text(0, popupContentHeight / 2 - 50, "(Pinkdev's real phone number btw)", {
+      fontFamily: "Arial",
+      fontSize: "17px",
+      color: "#92a7c0",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(statusText5);
+
+
+    this.tweens.add({
+      targets: bounceContainer,
+      scale: { from: 0, to: 1 },
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
+    });
+  }
+
+_showwippopup() {
+    if (this._reqpopup) {
+      return;
+    }
+
+    const xPos = screenWidth / 2;
+    const centerY = screenHeight / 2;
+    const popupWidth = 500;
+    const popupContentHeight = 200;
+    this._reqpopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+
+    const background = this.add.rectangle(xPos, centerY, screenWidth, screenHeight, 0, 100 / 255).setInteractive();
+    this._reqpopup.add(background);
+
+    const bounceContainer = this.add.container(xPos, centerY).setScale(0);
+    this._reqpopup.add(bounceContainer);
+
+    const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
+    const popupBg = this._drawScale9(0, 0, popupWidth, popupContentHeight, "GJ_square02", cornerRadius, 16777215, 1);
+    bounceContainer.add(popupBg);
+
+    const closeBtn = this.add.image(-(popupWidth / 2) + 20, -(popupContentHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(1).setInteractive();
+    bounceContainer.add(closeBtn);
+    this._makeBouncyButton(closeBtn, 1, () => this._closeReqPopup());
+
+    const allroadsleadtoparticles = this.add.image(0, 100, "GJ_GameSheet03", "GJ_timeIcon_001.png").setOrigin(0.5).setSize(1.5);
+    bounceContainer.add(allroadsleadtoparticles);
+
+
+    const text = this.add.text(0, popupContentHeight / 2 - 150, "Coming in another pr later!-", {
+      fontFamily: "Arial",
+      fontSize: "22px",
+      color: "#92a7c0",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(text);
+
+    const text1 = this.add.text(0, popupContentHeight / 2 - 100, "This is still being worked on.", {
+      fontFamily: "Arial",
+      fontSize: "26px",
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(text1);
+
+    const text2 = this.add.text(0, popupContentHeight / 2 - 50, "Expect this to be finished with particles.", {
+      fontFamily: "Arial",
+      fontSize: "17px",
+      color: "#92a7c0",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    bounceContainer.add(text2);
+
+
+    this.tweens.add({
+      targets: bounceContainer,
+      scale: { from: 0, to: 1 },
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
+    });
+  }
+
+  _closeReqPopup() {
+    if (this._reqpopup) {
+      if (this._reqpopupexit) {
+        this._reqpopupexit();
+        this._reqpopupexit = null;
+      }
+      this._reqpopup.destroy();
+      this._reqpopup = null;
+    }
+  }
   InfoBoxDoAThing(displayText) {
     if (this.EditInfoText) {
       this.InfoBoxStopAThing();
@@ -5946,7 +6261,6 @@ _buildSettingsPopup() {
       ease: "Back.Out"
     });
   }
-
   InfoBoxStopAThing() {
     if (!this.EditInfoText) return;
 
@@ -6162,6 +6476,23 @@ _buildSettingsPopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 1, font: "goldFont" },
+      { text: "Coins reworked", scale: 0.75, },
+      { text: "Ufo rotation changed", scale: 0.75, },
+      { text: "Unlockable Levels", scale: 0.7, },
+      { text: "Saws optimized", scale: 0.75, },
+      { text: "Special suprise in Blast Processing...", scale: 0.6, },
+      { text: "Rate, Help, and Songs menu", scale: 0.75, },
+      { text: "Songs is empty- ;-;", scale: 0.5, color: 0x666666},
+      { text: "Default Mini Icon", scale: 0.75, },
+      { text: "New animation plays when-", scale: 0.75, },
+      { text: "-hitting orbs, pads, etc.", scale: 0.75, },
+      { text: "New More Games button-", scale: 0.7, },
+      { text: "-that links Interdimentional", scale: 0.7, },
+      { text: "Links and Notes page coming-", scale: 0.7, color: 0x666666 },
+      { text: "Next PR, still working on them.", scale: 0.7, color: 0x666666 },
+      { text: "Slopes OVERHAULED", scale: 0.75, color: 0xff9944 },
+      { text: "Bug reports are appreciated", scale: 0.75, },
+      { text: "-Bari", scale: 0.75, },
       { text: "Credits menu fixed :3", scale: 0.75, },
       { text: "Small Icon Kit changes", scale: 0.75, },
       { text: "Low Detail Mode", scale: 0.75, },
@@ -6177,7 +6508,6 @@ _buildSettingsPopup() {
       { text: "Pulsing rods reworked a lil", scale: 0.75, },
       { text: "Breakable blocks break now.", scale: 0.75, },
       { text: "Fixed objects not showing in editor", scale: 0.65, },
-      { text: "^ I, Amethyst, did all this btw. ^", scale: 0.6, color: 0x9966cc},
       { text: "Slopes (very buggy)", scale: 0.75, color: 0xff9944 },
       { text: "THEY WILL BE FIXED-", scale: 0.75, },
       { text: "OVER TIME.", scale: 0.75, },
@@ -6985,7 +7315,7 @@ _buildSettingsPopup() {
       this._menuInfoBtn.x = screenWidth - 30 - 3;
     }
     if (this._copyrightText) {
-      this._copyrightText.x = screenWidth - 20;
+      this._copyrightText.x = screenWidth - 850;
     }
     if (this._tryMeImg) {
       this._tryMeImg.x = _0x1e5db8 + 260;
@@ -7000,9 +7330,9 @@ _buildSettingsPopup() {
       this._playBtn.y = 320;
     }
     if (this._downloadBtns) {
-      const _0x285ef7 = screenWidth - 130;
-      const _0x4a8263 = 570;
-      const _0x23d03e = 60;
+      const _0x285ef7 = screenWidth - 105;
+      const _0x4a8263 = 550;
+      const _0x23d03e = 100;
       for (let _0x1bdfae = 0; _0x1bdfae < this._downloadBtns.length; _0x1bdfae++) {
         const yOffset = _0x1bdfae === 1 ? -_0x23d03e : 0;
         this._downloadBtns[_0x1bdfae].setPosition(_0x285ef7, _0x4a8263 + yOffset);
@@ -8007,6 +8337,7 @@ _buildSettingsPopup() {
     if (!window.enableLDM) {
       window._animTimer += deltaTime;
       for (let _as of window._animatedSprites) {
+        if (!_as || !_as.active || !_as.visible) continue;
         if (window._animTimer - (_as._lastAnimSwap || 0) >= _as._animInterval) {
           _as._lastAnimSwap = window._animTimer;
           _as._animIdx = (_as._animIdx + 1) % _as._animFrames.length;
@@ -8770,6 +9101,13 @@ _applyMirrorEffect() {
   }
   _levelComplete() {
     if (!this._practicedMode.practiceMode) {
+      const isNonPersistentCoinLevel = window.isEditor || this._level?._isStoredUserLevel?.();
+      if (isNonPersistentCoinLevel) {
+        this._level.resetCoinsForEditorCompletion?.();
+      } else {
+        this._level.commitSecretCoins?.();
+        this._level.commitUserCoins?.();
+      }
       this._bestPercent = 100;
       localStorage.setItem("bestPercent_" + (window.currentlevel[2] || "level_1"), 100);
       const completedKey = "gd_completedSet";
@@ -8797,7 +9135,6 @@ _applyMirrorEffect() {
     this._showCompleteEffect();
   }
   _showCompleteEffect() {
-    this._audio.fadeOutMusic(1500);
     this.sound.play("endStart_02", {
       volume: 0.8 * this._sfxVolume
     });
@@ -8954,6 +9291,10 @@ _applyMirrorEffect() {
     }
     this.time.delayedCall(1500, () => this._showEndLayer());
   }
+  _isMainLevelForCoinDisplay() {
+    const levelId = window.currentlevel?.[2];
+    return !!levelId && Array.isArray(window.allLevels) && window.allLevels.some(level => level?.[2] === levelId);
+  }
   _showEndLayer() {
     if (this._pauseBtn) {
       this.tweens.add({
@@ -8982,7 +9323,14 @@ _applyMirrorEffect() {
       onUpdate: () => {
         this._endLayerInternal.y = _0x59b9ab.p * 650 - 640;
       },
-      onComplete: () => this._playStarAward()
+      onComplete: () => {
+        if (this._isMainLevelForCoinDisplay()) {
+          this._playsecretcoinanimation();
+        } else {
+          this._playusercoinanimation();
+        }
+        this.time.delayedCall(250, () => this._playStarAward());
+      }
     });
     const _0x595215 = 712;
     const _0x950c8d = 460;
@@ -8999,15 +9347,15 @@ _applyMirrorEffect() {
     this._endLayerInternal.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     this._endLayerInternal.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
     const _completeBanner = this._practicedMode.practiceMode
-      ? this.add.image(containerX, 170, "GJ_GameSheet03", "GJ_practiceComplete_001.png").setScale(0.8)
-      : this.add.image(containerX, 170, "GJ_WebSheet", "GJ_levelComplete_001.png").setScale(0.8);
+      ? this.add.image(containerX, 170, "GJ_GameSheet03", "GJ_practiceComplete_001.png").setScale(0.85)
+      : this.add.image(containerX, 170, "GJ_WebSheet", "GJ_levelComplete_001.png").setScale(0.85);
     this._endLayerInternal.add(_completeBanner);
     const _0x45b6e4 = 0.8;
     let _0xe44f6d = 250;
-    const _0x2de55e = this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Attempts: " + this._levelAttempts, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4);
+    const _0x2de55e = this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Attempts: " + this._levelAttempts, 46).setOrigin(0.5, 0.5).setScale(_0x45b6e4);
     this._endLayerInternal.add(_0x2de55e);
     _0xe44f6d += 48;
-    this._endLayerInternal.add(this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Jumps: " + this._levelJumps, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4));
+    this._endLayerInternal.add(this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Jumps: " + this._levelJumps, 46).setOrigin(0.5, 0.5).setScale(_0x45b6e4));
     _0xe44f6d += 48;
     const _0x596450 = Math.floor(this._playTime);
     const _0x30687e = Math.floor(_0x596450 / 3600);
@@ -9016,28 +9364,87 @@ _applyMirrorEffect() {
     let _0x2be782;
     _0x2be782 = _0x30687e > 0 ? String(_0x30687e).padStart(2, "0") + ":" + String(_0x52f8ee).padStart(2, "0") + ":" + String(_0x2591d0).padStart(2, "0") : String(_0x52f8ee).padStart(2, "0") + ":" + String(_0x2591d0).padStart(2, "0");
     const _0x241209 = _0xe44f6d;
-    this._endLayerInternal.add(this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Time: " + _0x2be782, 40).setOrigin(0.5, 0.5).setScale(_0x45b6e4));
-    const _0x452429 = ["Awesome!", "Good\nJob!", "Well\nDone!", "Impressive!", "Amazing!", "Incredible!", "Skillful!", "Brilliant!", "Not\nbad!", "Warp\nSpeed!", "Challenge\nBreaker!", "Reflex\nMaster!", "I am\nspeechless...", "You are...\nThe One!", "How is this\npossible!?", "You beat\nme..."];
-    const _0x165c06 = _0x452429[Math.floor(Math.random() * _0x452429.length)];
-    const _0x45540f = 225;
-    const _0x8e2b = ["\x5f\x6d\x61\x63\x72\x6f\x42\x6f\x74", "\x70\x6c\x61\x79\x69\x6e\x67"];let _0x3bc14 = 0xffffff; try {if (this[_0x8e2b[0]] && this[_0x8e2b[0]][_0x8e2b[1]]) {_0x3bc14 = (_0x3bc14 & 0xffff00) | 0xfa;}} catch (_0xe31) {}const _0x17fa2b = this.add.bitmapText(containerX + _0x45540f, _0x241209, "bigFont", _0x165c06, 40).setOrigin(0.5, 0.5).setScale(0.8).setCenterAlign();if (_0x3bc14 !== 0xffffff) _0x17fa2b.setTint(_0x3bc14);
-    this._endLayerInternal.add(_0x17fa2b);
-    this._endLayerInternal.add(this.add.image(containerX - _0x45540f, 352.5, "GJ_WebSheet", "getIt_001.png").setScale(1 / 1.5));
-    const _0x34b1bd = [{
-      key: "downloadApple_001",
-      url: "https://discord.gg/TfEzAVWPSJ"
-    }, {
-      key: "downloadSteam_001",
-      url: "https://github.com/web-dashers/web-dashers.github.io"
-    }];
-    for (let _0x10f8cc = 0; _0x10f8cc < _0x34b1bd.length; _0x10f8cc++) {
-      const _0xd7310b = _0x34b1bd[_0x10f8cc];
-      const _0x1e3f82 = (_0x10f8cc - 1) * _0x45540f;
-      const _0x55a82e = 1 / 1.5;
-      const _0x4c7fb8 = this.add.image(containerX + _0x1e3f82, 437.5, "GJ_WebSheet", _0xd7310b.key + ".png").setScale(_0x55a82e).setInteractive();
-      this._endLayerInternal.add(_0x4c7fb8);
-      this._makeBouncyButton(_0x4c7fb8, _0x55a82e, () => window.open(_0xd7310b.url, "_blank"));
+    this._endLayerInternal.add(this.add.bitmapText(containerX, _0xe44f6d, "goldFont", "Time: " + _0x2be782, 46).setOrigin(0.5, 0.5).setScale(_0x45b6e4));
+    const isMainLevel = this._isMainLevelForCoinDisplay();
+    const coinSprites = (this._level?._coinSprites || []).filter(sprite => isMainLevel
+      ? sprite?._secretCoinSlot !== undefined
+      : sprite?._userCoinSlot !== undefined);
+    const coinCount = Math.min(3, coinSprites.length);
+    const coinOffsets = coinCount === 1
+      ? [0]
+      : coinCount === 2
+        ? [-60, 60]
+        : [-120, 0, 120];
+    const completionMessageY = coinCount > 0 ? _0x241209 : _0x241209 + 96;
+    this._endsecretcoinPositions = isMainLevel
+      ? coinOffsets.map(offset => ({ x: containerX + offset, y: 445 }))
+      : null;
+    let savedSecretCoinSlots = new Set();
+    try {
+      const savedSlots = JSON.parse(localStorage.getItem(`gd_secretCoins_${window.currentlevel?.[2] || "level_1"}_slots`) || "[]");
+      if (Array.isArray(savedSlots)) {
+        savedSecretCoinSlots = new Set(savedSlots.filter(slot => Number.isInteger(slot) && slot >= 0 && slot < 3));
+      }
+    } catch (_error) {}
+    const runSecretCoinSlots = this._level?._editorEndSecretCoinSlots
+      ? new Set(this._level._editorEndSecretCoinSlots)
+      : new Set(
+        (this._level?._coinSprites || [])
+          .filter(sprite => this._level?._secretCoinRunCollected?.has(String(sprite?._secretCoinId)))
+          .map(sprite => sprite?._secretCoinSlot)
+          .filter(slot => Number.isInteger(slot))
+      );
+    this._endsecretcoinPositions?.forEach(({ x, y }, slot) => {
+      if (savedSecretCoinSlots.has(slot) && !runSecretCoinSlots.has(slot)) return;
+      this._endLayerInternal.add(
+        this.add.image(x, y, "GJ_GameSheet02", "secretCoin_b_01_001.png")
+          .setOrigin(0.5)
+          .setScale(1.1)
+      );
+    });
+    for (const slot of savedSecretCoinSlots) {
+      if (!this._endsecretcoinPositions) break;
+      if (runSecretCoinSlots.has(slot)) continue;
+      const position = this._endsecretcoinPositions[slot];
+      this._endLayerInternal.add(
+        this.add.image(position.x, position.y, "GJ_GameSheet03", "secretCoinUI_001.png")
+          .setOrigin(0.5)
+          .setScale(1.1)
+      );
     }
+    this._endusercoinPosition = null;
+    if (!isMainLevel && coinCount > 0) {
+      this._endusercoinPosition = coinOffsets.map(offset => ({ x: containerX + offset, y: 445 }));
+      let savedUserCoinSlots = new Set();
+      try {
+        const savedSlots = JSON.parse(localStorage.getItem(`gd_userCoins_${window.currentlevel?.[2] || "level_1"}_slots`) || "[]");
+        if (Array.isArray(savedSlots)) {
+          savedUserCoinSlots = new Set(savedSlots.filter(slot => Number.isInteger(slot) && slot >= 0 && slot < 3));
+        }
+      } catch (_error) {}
+      const runUserCoinSlots = this._level?._editorEndUserCoinSlots
+        ? new Set(this._level._editorEndUserCoinSlots)
+        : new Set(
+          (this._level?._coinSprites || [])
+            .filter(sprite => this._level?._userCoinRunCollected?.has(String(sprite?._userCoinId)))
+            .map(sprite => sprite?._userCoinSlot)
+            .filter(slot => Number.isInteger(slot))
+        );
+      this._endusercoinPosition.forEach(({ x, y }, slot) => {
+        if (savedUserCoinSlots.has(slot) && !runUserCoinSlots.has(slot)) return;
+        this._endLayerInternal.add(this.add.image(x, y, "GJ_GameSheet02", "secretCoin_2_b_01_001.png").setOrigin(0.5));
+      });
+      for (const slot of savedUserCoinSlots) {
+        if (runUserCoinSlots.has(slot)) continue;
+        const position = this._endusercoinPosition[slot];
+        this._endLayerInternal.add(this.add.image(position.x, position.y, "GJ_GameSheet0", "secretCoinUI2_001.png").setOrigin(0.5));
+      }
+    }
+    const _0x452429 = ["Awesome!", "Good\nJob!", "Well\nDone!", "Impressive!", "Amazing!", "Incredible!", "Skillful!", "Brilliant!", "Not\nbad!", "Warp\nSpeed!", "Challenge\nBreaker!", "Reflex\nMaster!", "I am\nspeechless...", "You are...\nThe One!", "How is this\npossible!?", "You beat\nme...", /* "You cannot beat a level with Noclip enabled.", "You cannot beat a level with Speedhack enabled.", "Safe Mode enabled."*/];
+    const _0x165c06 = _0x452429[Math.floor(Math.random() * _0x452429.length)];
+    const _0x45540f = 235;
+    const _0x8e2b = ["\x5f\x6d\x61\x63\x72\x6f\x42\x6f\x74", "\x70\x6c\x61\x79\x69\x6e\x67"];let _0x3bc14 = 0xffffff; try {if (this[_0x8e2b[0]] && this[_0x8e2b[0]][_0x8e2b[1]]) {_0x3bc14 = (_0x3bc14 & 0xffff00) | 0xfa;}} catch (_0xe31) {}const _0x17fa2b = this.add.bitmapText(coinCount > 0 ? containerX + _0x45540f : containerX, completionMessageY, "bigFont", coinCount > 0 ? _0x165c06 : _0x165c06.replace(/\n/g, " "), coinCount > 0 ? 40 : 46).setOrigin(0.5, 0.5).setScale(coinCount > 0 ? 0.8 : 0.9).setCenterAlign();if (_0x3bc14 !== 0xffffff) _0x17fa2b.setTint(_0x3bc14);
+    this._endLayerInternal.add(_0x17fa2b);
     _0x2de55e.width;
     this._endStarX = containerX + _0x45540f;
     this._endStarY = _0x241209 - 77.5;
@@ -9075,6 +9482,235 @@ _applyMirrorEffect() {
       this._makeBouncyButton(_0xdde774, 1, _0x2d4335.action);
     }
   }
+
+      _buildhelppopup() {
+    this._Helpclosed = false;
+    if (this._pauseBtn) {
+      this.tweens.add({
+        targets: this._pauseBtn,
+        alpha: 0,
+        duration: 300
+      });
+    }
+
+    const containerX = screenWidth / 2;
+    const _0x1aa656 = 320;
+    this._helpoverlay = this.add.rectangle(containerX, _0x1aa656, screenWidth, screenHeight, 0, 0).setScrollFactor(0).setDepth(200).setInteractive();
+    this._helplayer = this.add.container(0, -640).setScrollFactor(0).setDepth(201);
+    this._helplayer.add(this.add.bitmapText(containerX, 65, "bigFont", "Support", 55).setOrigin(0.5, 0.5));
+    this._helpclose = false;
+    this.tweens.add({
+      targets: this._helpoverlay,
+      alpha: 180 / 255,
+      duration: 250,
+      ease: "Linear"
+    });
+
+    const _0x59b9ab = {
+      p: 0
+    };
+    this.tweens.add({
+      targets: _0x59b9ab,
+      p: 1,
+      duration: 450,
+      ease: "Quad.Out",
+      onUpdate: () => {
+        this._helplayer.y = _0x59b9ab.p * 650 - 640;
+      },
+      onComplete: () => {}
+    });
+        this._playusercoinanimation();
+
+    const _0x595215 = 712;
+    const _0x950c8d = 460;
+    const _0x2a115c = (screenWidth - _0x595215) / 2;
+    this._helplayer.add(this.add.rectangle(_0x2a115c + 356, 310, _0x595215, _0x950c8d, 0, 180 / 255));
+    const _0x43f2e3 = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const _0x3feccc = _0x43f2e3 ? _0x950c8d / _0x43f2e3.height : 1;
+    this._helplayer.add(this.add.image(_0x2a115c - 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc));
+    this._helplayer.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc));
+    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_WebSheet", "GJ_table_top_001.png");
+    this._helplayer.add(_0x33b564);
+    this._helplayer.add(this.add.image(_0x2a115c + 356, 560, "GJ_WebSheet", "GJ_table_bottom_001.png"));
+    const _0x3e9c79 = _0x33b564.y - 35;
+    this._helplayer.add(this.add.bitmapText(containerX, 65, "bigFont", "Support", 55).setOrigin(0.5, 0.5));
+    this._helplayer.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
+    this._helplayer.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1));
+    this._helplayer.add(this.add.image(_0x2a115c + 258, 285, "GJ_GameSheet03", "developedBy_001.png"));
+    const robtopSupportLogo = this.add.image(_0x2a115c + 440, 285, "GJ_GameSheet03", "robtoplogo_small.png").setScale(0.95).setInteractive();
+    this._makeBouncyButton(robtopSupportLogo, 0.95, () => {
+      window.open("https://geometrydash.com", "_blank");
+    }, () => !this._helpclose);
+    this._helplayer.add(robtopSupportLogo);
+    this._helplayer.add(this.add.image(_0x2a115c + 250, 375, "GJ_GameSheet03", "poweredBy_001.png"));
+    const phaserlogo = this.add.image(_0x2a115c + 432, 380, "Phaserlogo").setScale(0.1).setInteractive();
+    this._makeBouncyButton(phaserlogo, 0.1, () => {
+      window.open("https://docs.phaser.io/", "_blank");
+    }, () => !this._helpclose);
+    this._helplayer.add(phaserlogo);
+    this._helplayer.add(this.add.bitmapText(containerX, 440, "goldFont", "Web Dashers not associated with RobTop Games", 22).setOrigin(0.5, 0.5));
+
+    const _helpbuttonborder = this.textures.get("GJ_button01").source[0].width * 0.3;
+    const _helpbtnh = 70;
+    const _helpbtnw = 195;
+    const _helpBtnGap = 52.5;
+    const _helpBtnY = 180;
+    const _makesupportButton = (cx, label, action) => {
+      const grp = this.add.container(cx, _helpBtnY);
+      const btn9 = this.add.nineslice(0, 0, "GJ_button01", null, _helpbtnw, _helpbtnh, _helpbuttonborder, _helpbuttonborder, _helpbuttonborder, _helpbuttonborder).setOrigin(0.5).setTint(0xffffff);
+      grp.add(btn9);
+      const lbl = this.add.bitmapText(0, -5, "bigFont", label, 40).setOrigin(0.5, 0.5);
+      grp.add(lbl);
+      const hitZone = this.add.zone(0, 0, _helpbtnw, _helpbtnh).setInteractive();
+      grp.add(hitZone);
+      const baseScale = 1;
+      const pressedScale = baseScale * 1.26;
+      hitZone.on("pointerdown", () => {
+        hitZone._pressed = true;
+        this.tweens.killTweensOf(grp, "scale");
+        this.tweens.add({ targets: grp, scale: pressedScale, duration: 300, ease: "Bounce.Out" });
+      });
+      hitZone.on("pointerout", () => {
+        if (hitZone._pressed) {
+          hitZone._pressed = false;
+          this.tweens.killTweensOf(grp, "scale");
+          this.tweens.add({ targets: grp, scale: baseScale, duration: 400, ease: "Bounce.Out" });
+        }
+      });
+      hitZone.on("pointerup", () => {
+        if (hitZone._pressed) {
+          hitZone._pressed = false;
+          this.tweens.killTweensOf(grp, "scale");
+          grp.setScale(baseScale);
+          action?.();
+        }
+      });
+      this._helplayer.add(grp);
+      return grp;
+    };
+
+    _makesupportButton(containerX - _helpbtnw - _helpBtnGap / 2, "Links", () => {
+      this._showwippopup();
+    });
+    _makesupportButton(containerX, "Contact", () => {
+      this._showcontactpopup();
+    });
+    _makesupportButton(containerX + _helpbtnw + _helpBtnGap / 2, "Notes", () => {
+      this._showwippopup();
+    });
+
+    const ldmX = _0x2a115c + 160;
+    const ldmY = 495;
+    const ldmCheckOffset = -120;
+    const ldmTextOffset = -80;
+    
+    var ldmIsOn = window.enableLDM;
+    var ldmCheckTexture = ldmIsOn ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
+    var ldmCheck = this.add.image(ldmX + ldmCheckOffset, ldmY, "GJ_GameSheet03", ldmCheckTexture).setScale(0.8).setInteractive();
+    var ldmTxt = this.add.bitmapText(ldmX + ldmTextOffset, ldmY, "bigFont", "Low Detail Mode", 25).setOrigin(0, 0.5);
+    this._helplayer.add([ldmCheck, ldmTxt]);
+
+    this._makeBouncyButton(ldmCheck, 0.8, () => {
+        var current = window.enableLDM;
+        window.enableLDM = !current;
+        var newTexture = window.enableLDM ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
+        ldmCheck.setTexture("GJ_GameSheet03", newTexture);
+        if (this._saveSettings) {
+            this._saveSettings();
+        }
+    });
+
+    const reqbtnX = _0x2a115c + 655;
+    const reqbtnY = 495;
+    const reqbtnW = 80;
+    const reqbtnH = 55;
+    const reqbtnborder = (this.textures.get("GJ_button04")?.source[0].width || 40) * 0.3;
+    const reqbtn = this.add.nineslice(reqbtnX, reqbtnY, "GJ_button04", null, reqbtnW, reqbtnH, reqbtnborder, reqbtnborder, reqbtnborder, reqbtnborder).setInteractive().setOrigin(0.5).setTint(0xffffff);
+    const reqLbl = this.add.bitmapText(reqbtnX, reqbtnY - 2, "bigFont", "Req", 28).setOrigin(0.5, 0.5);
+    this._helplayer.add([reqbtn, reqLbl]);
+    this._makeCompositeBouncyButton(reqbtn, [reqbtn, reqLbl], 0.8, () => this._showReqpopup());
+
+    const closeBtn = this.add.image(containerX - 535, 30, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive();
+    this._helplayer.add(closeBtn);
+    this._makeBouncyButton(closeBtn, 1, () => this._hideHelpPopup());
+  }
+    _buildsongspopup() {
+    this._songpopupclose = false;
+    if (this._pauseBtn) {
+      this.tweens.add({
+        targets: this._pauseBtn,
+        alpha: 0,
+        duration: 300
+      });
+    }
+
+    const containerX = screenWidth / 2;
+    const _0x1aa656 = 320;
+    this._songsoverlay = this.add.rectangle(containerX, _0x1aa656, screenWidth, screenHeight, 0, 0).setScrollFactor(0).setDepth(200).setInteractive();
+    this._songslayer = this.add.container(0, -640).setScrollFactor(0).setDepth(201);
+    this._songpopupclose = false;
+    this.tweens.add({
+      targets: this._songsoverlay,
+      alpha: 100 / 255,
+      duration: 1000
+    });
+
+    const _0x59b9ab = {
+      p: 0
+    };
+    this.tweens.add({
+      targets: _0x59b9ab,
+      p: 1,
+      duration: 500,
+      ease: "Quad.Out",
+      onUpdate: () => {
+        this._songslayer.y = _0x59b9ab.p * 650 - 640;
+      }
+    });
+    const _0x595215 = 712;
+    const _0x950c8d = 460;
+    const _0x2a115c = (screenWidth - _0x595215) / 2;
+
+    const panelBase = this.add.rectangle(_0x2a115c + 356, 310, _0x595215, _0x950c8d, 0xac531e).setDepth(150);
+    this._songslayer.add(panelBase);
+    const _0x43f2e3 = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
+    const _0x3feccc = _0x43f2e3 ? _0x950c8d / _0x43f2e3.height : 1;
+    this._songslayer.add(this.add.image(_0x2a115c - 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(0, 0).setScale(1, _0x3feccc).setDepth(200));
+    this._songslayer.add(this.add.image(_0x2a115c + _0x595215 + 40, 80, "GJ_WebSheet", "GJ_table_side_001.png").setOrigin(1, 0).setFlipX(true).setScale(1, _0x3feccc).setDepth(200));
+    const _0x33b564 = this.add.image(_0x2a115c + 356, 70, "GJ_WebSheet", "GJ_table_top_001.png").setDepth(200);
+    this._songslayer.add(_0x33b564);
+    this._songslayer.add(this.add.image(_0x2a115c + 356, 560, "GJ_WebSheet", "GJ_table_bottom_001.png").setDepth(200));
+    const _0x3e9c79 = _0x33b564.y - 35;
+    
+    this._songslayer.add(this.add.bitmapText(containerX, 65, "bigFont", "Soundtrack", 55).setOrigin(0.5, 0.5).setDepth(210));
+    this._songslayer.add(this.add.bitmapText(containerX, 300, "bigFont", "Nothing here yet... Sorry :(", 42).setOrigin(0.5, 0.5).setDepth(210));
+    
+    this._songslayer.add(this.add.image(containerX - 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1).setDepth(210));
+    this._songslayer.add(this.add.image(containerX + 312, _0x3e9c79, "GJ_WebSheet", "chain_01_001.png").setOrigin(0.5, 1).setDepth(210));
+    
+    const closeBtn = this.add.image(containerX - 535, 30, "GJ_GameSheet03", "GJ_arrow_03_001.png").setInteractive().setDepth(210);
+    this._songslayer.add(closeBtn);
+    this._makeBouncyButton(closeBtn, 1, () => this._hideSongsPopup());
+  }
+
+  _hideSongsPopup() {
+    if (this._songsoverlay) {
+      this._songsoverlay.destroy();
+      this._songsoverlay = null;
+    }
+    if (this._songslayer) {
+      this._songslayer.destroy();
+      this._songslayer = null;
+    }
+    this._songpopupclose = false;
+    if (this._pauseBtn) {
+      this.tweens.add({ targets: this._pauseBtn, alpha: 1, duration: 300 });
+    }
+  }
+
+        _redirectRate() {
+window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
+
   _showSettingsScreen() {
     this._settingsScreenClosing = false;
     if (this._pauseBtn) {
@@ -9180,17 +9816,17 @@ _applyMirrorEffect() {
     _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
     _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
     _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
-    _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, false, null);
-    _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, false, null);
-    _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, false, null);
+    _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, true, () => { this._redirectRate(); });
+    _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, true, () => { this._hideSettingsScreen(() => this.time.delayedCall(150, () => this._buildsongspopup())); });
+    _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, true, () => { this._hideSettingsScreen(() => this.time.delayedCall(150, () => this._buildhelppopup())); });
 
-    const lockIcon = this.add.image(containerX + 535, 30, "GJ_GameSheet03", "GJ_lock_open_001.png").setFlipX(false).setFlipY(false);
+    const lockIcon = this.add.image(containerX + 535, 30, "GJ_GameSheet03", "GJ_lockGray_001.png").setFlipX(false).setFlipY(false);
     lockIcon.setScale(0.9);
     lockIcon.setInteractive();
     this._expandHitArea(lockIcon, 1.5);
     this._makeBouncyButton(lockIcon, 0.9, () => { this._openVaultMenu(); });
     this._settingsLayerInternal.add(lockIcon);
-    
+
     const _0x45b6e4 = 0.8;
     let _0xe44f6d = 250;
     const sliderStartY = 430;
@@ -9216,7 +9852,7 @@ _applyMirrorEffect() {
             setter(pct < 0.03 ? 0 : pct);
         });
     };
-
+    
     createSlider(sliderStartY - 15, "Music", this._audio.getUserMusicVolume(), v => this._audio.setUserMusicVolume(v));
     createSlider(sliderStartY + 60, "SFX", this._sfxVolume, v => {
         this._sfxVolume = v;
@@ -9278,7 +9914,7 @@ _applyMirrorEffect() {
       ease: "Bounce.Out"
     });
   }
-  _hideSettingsScreen() {
+  _hideSettingsScreen(closeCallback) {
     if (!this._settingsLayerInternal || this._settingsScreenClosing) {
       return;
     }
@@ -9301,11 +9937,15 @@ _applyMirrorEffect() {
           duration: 300
         });
       }
+
+      if (typeof closeCallback === "function") {
+        closeCallback();
+      }
     };
     this.tweens.add({
       targets: this._settingsLayerOverlay,
       alpha: 0,
-      duration: 500,
+      duration: 250,
       ease: "Linear"
     });
 
@@ -9315,10 +9955,105 @@ _applyMirrorEffect() {
     this.tweens.add({
       targets: _0x59b9ab,
       p: 0,
-      duration: 500,
+      duration: 450,
       ease: "Quad.In",
       onUpdate: () => {
         this._settingsLayerInternal.y = _0x59b9ab.p * 650 - 640;
+      },
+      onComplete: _0x272eb1
+    });
+  }
+  _hideHelpPopup() {
+    if (!this._helplayer || this._helpclose) {
+      return;
+    }
+    this._helpclose = true;
+    const _0x272eb1 = () => {
+      this._helpclose = false;
+      if (this._helpoverlay) {
+        this._helpoverlay.destroy();
+        this._helpoverlay = null;
+      }
+      if (this._helplayer) {
+        this._helplayer.destroy();
+        this._helplayer = null;
+      }
+
+      if (this._pauseBtn) {
+        this.tweens.add({
+          targets: this._pauseBtn,
+          alpha: 1,
+          duration: 300
+        });
+      }
+    };
+    this.tweens.add({
+      targets: this._helpoverlay,
+      alpha: 0,
+      duration: 250,
+      ease: "Linear"
+    });
+
+    const _0x59b9ab = {
+      p: 1
+    };
+    this.tweens.add({
+      targets: _0x59b9ab,
+      p: 0,
+      duration: 450,
+      ease: "Quad.In",
+      onUpdate: () => {
+        this._helplayer.y = _0x59b9ab.p * 650 - 640;
+      },
+      onComplete: _0x272eb1
+    });
+  }
+
+  _hideSongsPopup() {
+    if (!this._songslayer || this._songpopupclose) {
+      return;
+    }
+    this._songpopupclose = true;
+    const _0x272eb1 = () => {
+      this._songpopupclose = false;
+      if (this._songScrollCleanup) {
+        this._songScrollCleanup();
+        this._songScrollCleanup = null;
+      }
+      if (this._songsoverlay) {
+        this._songsoverlay.destroy();
+        this._songsoverlay = null;
+      }
+      if (this._songslayer) {
+        this._songslayer.destroy();
+        this._songslayer = null;
+      }
+
+      if (this._pauseBtn) {
+        this.tweens.add({
+          targets: this._pauseBtn,
+          alpha: 1,
+          duration: 300
+        });
+      }
+    };
+    this.tweens.add({
+      targets: this._songsoverlay,
+      alpha: 0,
+      duration: 250,
+      ease: "Linear"
+    });
+
+    const _0x59b9ab = {
+      p: 1
+    };
+    this.tweens.add({
+      targets: _0x59b9ab,
+      p: 0,
+      duration: 450,
+      ease: "Quad.In",
+      onUpdate: () => {
+        this._songslayer.y = _0x59b9ab.p * 650 - 640;
       },
       onComplete: _0x272eb1
     });
@@ -9372,7 +10107,7 @@ _applyMirrorEffect() {
     const _rowLeft = _0x2a115c + 7.8;
     const _rowRight = _0x2a115c + _0x595215 - 7.8;
     const _rowWidth = _rowRight - _rowLeft;
-    const _rowCount = 6;
+    const _rowCount = 7;
     const _rowH = (_rowPanelBottom - _rowPanelTop) / _rowCount;
 
     const rows = [
@@ -9380,7 +10115,8 @@ _applyMirrorEffect() {
       { label: "Total Attempts:",       value: String(this._attempts || 1) },
       { label: "Completed Levels:",     value: String(window._completedLevels || 0) },
       { label: "Total Deaths:",      value: String(this._totalDeaths || 0) },
-      { label: "???:",   value: String(window._totalDiamonds || '?') },
+      { label: "Total Secret Coins:",   value: String(window._totalsecretcoins || 0) },
+      { label: "Total User Coins:",   value: String(window._totalusercoins || 0) },
       { label: "???:", value: String(window._totalOrbs || '?') },
       
     ];
@@ -9470,8 +10206,8 @@ _applyMirrorEffect() {
       delay: 0,
       ease: "Bounce.Out"
     });
-    this.time.delayedCall(100, () => {
-      this._audio.playEffect("highscoreGet02");
+    this.time.delayedCall(125, () => {
+      this._audio.playEffect("gold02");
       const _0x1204d3 = _0x4edc03;
       const _0x96e3b2 = _0x5a0e9 + this._endLayerInternal.y;
       this.add.particles(_0x1204d3, _0x96e3b2, "GJ_WebSheet", {
@@ -9516,6 +10252,133 @@ _applyMirrorEffect() {
           _0x43203f.fillCircle(_0x1204d3, _0x96e3b2, 20 + _0x403316.t * 200);
         },
         onComplete: () => _0x43203f.destroy()
+      });
+    });
+  }
+  _playsecretcoinanimation() {
+    if (!this._endLayerInternal || !this._endsecretcoinPositions || this._practicedMode.practiceMode) return;
+    this._endcoinAwardTimer = [];
+    const collectedSlot = new Set();
+    if (this._level?._editorEndSecretCoinSlots) {
+      for (const slot of this._level._editorEndSecretCoinSlots) collectedSlot.add(slot);
+    }
+    for (const sprite of this._level?._coinSprites || []) {
+      if (!sprite || sprite._secretCoinSlot === undefined) continue;
+      if (this._level._secretCoinRunCollected?.has(String(sprite._secretCoinId))) {
+        collectedSlot.add(sprite._secretCoinSlot);
+      }
+    }
+
+    [...collectedSlot].sort((a, b) => a - b).forEach((slot, index) => {
+      const position = this._endsecretcoinPositions[slot];
+      if (!position) return;
+      const cointimer = this.time.delayedCall(index * 375, () => {
+        if (!this._endLayerInternal || !this._endLayerInternal.active) return;
+        const coin = this.add.image(position.x, position.y, "GJ_GameSheet03", "secretCoinUI_001.png")
+          .setOrigin(0.5)
+          .setScale(3)
+          .setAlpha(0);
+        this._endLayerInternal.add(coin);
+        this._audio.playEffect("highscoreGet02");
+        this.tweens.add({
+          targets: coin,
+          scale: 1.1,
+          alpha: 1,
+          duration: 300,
+          ease: "Bounce.Out"
+        });
+        const effecttimer = this.time.delayedCall(100, () => {
+          if (!this._endLayerInternal || !this._endLayerInternal.active) return;
+          const effectY = position.y + this._endLayerInternal.y;
+          this.add.particles(position.x, effectY, "GJ_WebSheet", {
+            frame: "square.png",
+            speed: { min: 200, max: 600 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 0.35, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: { min: 200, max: 600 },
+            quantity: 30,
+            stopAfter: 30,
+            blendMode: S,
+            tint: 0xd0d0d0
+          }).setScrollFactor(0).setDepth(202);
+
+          const glow = this.add.graphics().setScrollFactor(0).setDepth(202).setBlendMode(S);
+          const glowState = { progress: 0 };
+          this.tweens.add({
+            targets: glowState,
+            progress: 1,
+            duration: 400,
+            ease: "Quad.Out",
+            onUpdate: () => {
+              glow.clear();
+              glow.fillStyle(0xd0d0d0, 1 - glowState.progress);
+              glow.fillCircle(position.x, effectY, 12 + glowState.progress * 130);
+            },
+            onComplete: () => glow.destroy()
+          });
+        });
+        this._endcoinAwardTimer.push(effecttimer);
+      });
+      this._endcoinAwardTimer.push(cointimer);
+    });
+  }
+  _playusercoinanimation() {
+    if (!this._endLayerInternal || !this._endusercoinPosition) return;
+    this._endcoinAwardTimer = [];
+    const collectedSlot = new Set();
+    if (this._level?._editorEndUserCoinSlots) {
+      for (const slot of this._level._editorEndUserCoinSlots) collectedSlot.add(slot);
+    }
+    for (const sprite of this._level?._coinSprites || []) {
+      if (sprite?._userCoinSlot === undefined) continue;
+      if (this._level._userCoinRunCollected?.has(String(sprite._userCoinId))) {
+        collectedSlot.add(sprite._userCoinSlot);
+      }
+    }
+
+    [...collectedSlot].sort((a, b) => a - b).forEach((slot, index) => {
+      const position = this._endusercoinPosition[slot];
+      if (!position) return;
+      const cointimer = this.time.delayedCall(index * 375, () => {
+        if (!this._endLayerInternal || !this._endLayerInternal.active) return;
+        const coin = this.add.image(position.x, position.y, "GJ_GameSheet03", "secretCoinUI2_001.png")
+          .setOrigin(0.5).setScale(3).setAlpha(0);
+        this._endLayerInternal.add(coin);
+        this._audio.playEffect("highscoreGet02");
+        this.tweens.add({ targets: coin, scale: 1.1, alpha: 1, duration: 300, ease: "Bounce.Out" });
+        const effecttimer = this.time.delayedCall(100, () => {
+          if (!this._endLayerInternal || !this._endLayerInternal.active) return;
+          const effectY = position.y + this._endLayerInternal.y;
+          this.add.particles(position.x, effectY, "GJ_WebSheet", {
+            frame: "square.png",
+            speed: { min: 200, max: 600 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 0.35, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: { min: 200, max: 600 },
+            quantity: 30,
+            stopAfter: 30,
+            blendMode: S,
+            tint: 0xd0d0d0
+          }).setScrollFactor(0).setDepth(202);
+          const glow = this.add.graphics().setScrollFactor(0).setDepth(202).setBlendMode(S);
+          const glowState = { progress: 0 };
+          this.tweens.add({
+            targets: glowState,
+            progress: 1,
+            duration: 400,
+            ease: "Quad.Out",
+            onUpdate: () => {
+              glow.clear();
+              glow.fillStyle(0xd0d0d0, 1 - glowState.progress);
+              glow.fillCircle(position.x, effectY, 12 + glowState.progress * 130);
+            },
+            onComplete: () => glow.destroy()
+          });
+          this._endcoinAwardTimer.push(effecttimer);
+        });
+        this._endcoinAwardTimer.push(cointimer);
       });
     });
   }
@@ -10981,6 +11844,12 @@ _applyMirrorEffect() {
   }
 
   _hideEndLayer(_0x272eb1) {
+    if (this._endcoinAwardTimer) {
+      for (const timer of this._endcoinAwardTimer) {
+        timer?.remove?.(false);
+      }
+      this._endcoinAwardTimer = null;
+    }
     if (!this._endLayerInternal) {
       if (_0x272eb1) {
         _0x272eb1();

@@ -80,6 +80,7 @@ class LevelEditor {
 
 
   _initEditorLogic() {
+        this._level?.resetUserCoinsForEditor?.();
     if (this._editorGridGraphics) this._editorGridGraphics.destroy();
     this._editorGridGraphics = this.add.graphics().setDepth(5);
     const allObj = window.allobjects();
@@ -1886,8 +1887,9 @@ class LevelEditor {
             return framesToCheck.some(frame => typeof frame === "string" && frame.toLowerCase().includes("slope"));
         };
 
-        for (let i = 1; i <= this._totalIds; i++) {
+        for (let i = 1; i <= Math.max(this._totalIds, 1329); i++) {
             if (i === 749) continue;
+            if (this._currentBuildCategory === "orbs" && i === 142) continue;
             const def = getObjectFromId(i);
             const rawDef = allObjectsData[String(i)]; 
             
@@ -2484,6 +2486,8 @@ class LevelEditor {
         if (!src) continue;
 
         const clone = JSON.parse(JSON.stringify(src));
+        const cloneObjectId = parseInt(clone.id ?? 0, 10);
+        if (cloneObjectId === 142 && !this._canPlaceSecretCoin(142)) continue;
         delete clone._eeObjectId;
 
         window.levelObjects.push(clone);
@@ -2817,7 +2821,13 @@ class LevelEditor {
     return true;
   }
 
-  _placeObject() {
+    _canPlaceSecretCoin(objectId = 142) {
+        if (!Array.isArray(window.levelObjects)) return true;
+        const secretCoinCount = window.levelObjects.filter(obj => obj && parseInt(obj.id ?? 0, 10) === objectId).length;
+        return secretCoinCount < 3;
+    }
+
+    _placeObject() {
     const pointer = this.input.activePointer;
 
     const worldX = (this.input.activePointer.x + this._cameraX) / this._editorZoom;
@@ -2830,9 +2840,11 @@ class LevelEditor {
     const transformedY = -(snapY / 2) + 225;
 
     const objId = window.selectedObjId;
+    const numericObjectId = parseInt(objId ?? 0, 10);
     const objectDef = getObjectFromId(objId);
 
     if (!objectDef) return;
+    if (numericObjectId === 142 && !this._canPlaceSecretCoin(142)) return;
 
     const offsetX = Number.parseFloat(objectDef.editorOffsetX ?? objectDef.offsetX ?? 0);
     const offsetY = Number.parseFloat(objectDef.editorOffsetY ?? objectDef.offsetY ?? 0);

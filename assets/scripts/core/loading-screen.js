@@ -187,7 +187,10 @@ class BootScene extends Phaser.Scene {
       "It is only game...",
       "Unlock new icons and colors by completing achievements",
       "y=mx+b",
-      "Nicest game ever!"
+      "Nicest game ever!",
+      "S-slopes!~",
+      "Anything but slopes",
+      "Laggiest game ever."
     ];
     const sliderOriginX = cx - 105;
     const sliderOriginY = cy + 110;
@@ -196,6 +199,8 @@ class BootScene extends Phaser.Scene {
     this.load.image("game_bg_01", "assets/game-bg/game_bg_01_001-hd.png");
     this.load.image("sliderBar", "assets/sprites/sliderBar.png");
     this.load.image("GJ_MenuBeta", "assets/sprites/GJ_MenuBeta.png");
+    this.load.image("Phaserlogo", "assets/sprites/Phaserlogo.png");
+    this.load.image("gravityLine_001", "assets/sprites/gravityLine_001.png");
     this.load.atlas("GJ_WebSheet", "assets/sheets/GJ_WebSheet.png", "assets/sheets/GJ_WebSheet.json");
     this.load.atlas("GJ_LaunchSheet", "assets/sheets/GJ_LaunchSheet.png", "assets/sheets/GJ_LaunchSheet.json");
     this.load.image("goldFont", "assets/fonts/goldFont.png");
@@ -217,8 +222,10 @@ class BootScene extends Phaser.Scene {
       this.add.bitmapText(cx, cy + 187, "goldFont", msg, 30).setOrigin(0.5);
       const robtopLogo = this.add.image(cx, cy - 120, "GJ_LaunchSheet", "RobTopLogoBig_001.png").setOrigin(0.5).setScale(0.8);
       const gjLogo = this.add.image(cx, cy, "GJ_WebSheet", "gj_logo.png").setOrigin(0.5);
+      const Logo = this.add.image(1015, 610, "Phaserlogo").setScale(0.115).setInteractive();
       this.children.bringToTop(robtopLogo);
       this.children.bringToTop(gjLogo);
+      this.children.bringToTop(Logo);
       if (window.gameCache) {
         const originalXhr = this.load.xhrLoader;
         this.load.xhrLoader = (file) => {
@@ -320,6 +327,7 @@ class BootScene extends Phaser.Scene {
 
       this.load.audio("explode_11", "assets/sfx/explode_11.ogg");
       this.load.audio("endStart_02", "assets/sfx/endStart_02.ogg");
+      this.load.audio("gold02", "assets/sfx/gold02.ogg");
       this.load.audio("playSound_01", "assets/sfx/playSound_01.ogg");
       this.load.audio("quitSound_01", "assets/sfx/quitSound_01.ogg");
       this.load.audio("highscoreGet02", "assets/sfx/highscoreGet02.ogg");
