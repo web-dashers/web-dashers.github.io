@@ -4032,6 +4032,15 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const bgHex = LEVEL_COLORS[index % LEVEL_COLORS.length];
     return { bgHex, groundHex: bgHex };
   }
+
+  _getLevelCoinRequirement(levelId) {
+    const levelCoinRequirements = {
+      "level_14": 10,
+      "level_18": 20,
+      "level_20": 30
+    };
+    return levelCoinRequirements[levelId] || 0;
+  }
   _openLevelSelect() {
     if (this._levelSelectOverlay) return;
     const sw = screenWidth;
@@ -4059,12 +4068,6 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
     };
     const isEveryEnd = (levelId) => levelId === "level_99";
-    const levelCoinRequirements = {
-      "level_14": 10,
-      "level_18": 20,
-      "level_20": 30
-    };
-    const getLevelCoinRequirement = (levelId) => levelCoinRequirements[levelId] || 0;
     const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
     fadeIn.fillStyle(0x000000, 1);
     fadeIn.fillRect(0, 0, sw, sh);
@@ -4231,7 +4234,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       onDragStart(ptr);
       if (isComingSoonPage()) return;
       const levelId = window.currentlevel?.[2];
-      if (getLevelCoinRequirement(levelId) > (Number(window._totalsecretcoins) || 0)) return;
+      if (this._getLevelCoinRequirement(levelId) > (Number(window._totalsecretcoins) || 0)) return;
       this.tweens.killTweensOf(cardBounceContainer, "scale");
       this.tweens.add({ targets: cardBounceContainer, scale: 1.26, duration: 300, ease: "Bounce.Out" });
     });
@@ -4293,7 +4296,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               return;
             }
 
-            const requiredCoins = getLevelCoinRequirement(window.currentlevel?.[2]);
+            const requiredCoins = this._getLevelCoinRequirement(window.currentlevel?.[2]);
             const collectedCoins = Number(window._totalsecretcoins) || 0;
             if (requiredCoins > collectedCoins) {
               return;
@@ -4356,7 +4359,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       const lvl = window.currentlevel;
       const levelId = lvl[2] || "level_1";
-      const requiredCoins = getLevelCoinRequirement(levelId);
+      const requiredCoins = this._getLevelCoinRequirement(levelId);
       const collectedCoins = Number(window._totalsecretcoins) || 0;
       const levellocked = requiredCoins > collectedCoins;
       const levelDifficultyMap = {
@@ -8101,6 +8104,9 @@ _showwippopup() {
         this._spaceWasDown = true;
         if (this._levelSelectOverlay) {
         if (this._levelSelectIsComingSoonPage) {
+          return;
+        }
+        if (this._getLevelCoinRequirement(window.currentlevel?.[2]) > (Number(window._totalsecretcoins) || 0)) {
           return;
         }
         this._creatorMenuOpen;
