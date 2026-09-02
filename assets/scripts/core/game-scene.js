@@ -9126,7 +9126,7 @@ _applyMirrorEffect() {
       if (this._updatePracticeHUDBar) this._updatePracticeHUDBar();
     }
 
-    const _0x356782 = this._level.endXPos - this._cameraX;
+    const _0x356782 = this._getMirrorXOffset(this._level.endXPos - this._cameraX);
     const _0x2d967b = b(this._endPortalGameY) + this._cameraY;
     for (let _0x481f7c = 0; _0x481f7c < 5; _0x481f7c++) {
       this.time.delayedCall(_0x481f7c * 50, () => circleEffect(this, _0x356782, _0x2d967b, 10, screenWidth, 500, false, true, window.mainColor));
@@ -9170,7 +9170,7 @@ _applyMirrorEffect() {
         const _0x2e9531 = _0x1c105b + _0x586720 * (Math.random() * 2 - 1);
         const _0x28e7b3 = Math.min(1, Math.max(0, _0x4da54f + _0x20decf * (Math.random() * 2 - 1)));
         const _0x34147c = _0x44369e[_0x104cbb] + _0x323ded * Math.random() + 180;
-        const containerY = _0x3f5321.add.graphics().setScrollFactor(0).setDepth(-1).setBlendMode(S).setPosition(_0x8f5267, _0x2f1e2d).setAngle(_0x34147c).setAlpha(_0x28e7b3).setVisible(false);
+        const containerY = _0x3f5321.add.graphics().setScrollFactor(0).setDepth(-1).setBlendMode(S).setPosition(_0x8f5267, _0x2f1e2d).setAngle(_0x3f5321._state.mirrored ? -_0x34147c : _0x34147c).setAlpha(_0x28e7b3).setVisible(false);
         const _0x496d96 = {
           h: 1,
           w: _0x2cc21f
@@ -9215,7 +9215,7 @@ _applyMirrorEffect() {
           });
         }
       });
-    })(this, this._level.endXPos - this._cameraX + 60, b(this._endPortalGameY) + this._cameraY, window.mainColor);
+    })(this, this._getMirrorXOffset(this._level.endXPos - this._cameraX + 60), b(this._endPortalGameY) + this._cameraY, window.mainColor);
     this.cameras.main.shake(1950, 0.004);
     this.time.delayedCall(1950, () => this._showCompleteText());
   }
@@ -9278,7 +9278,7 @@ _applyMirrorEffect() {
         }
       }).setScrollFactor(0).setDepth(59);
     }
-    const _0x2eadf2 = this._level.endXPos - this._cameraX;
+    const _0x2eadf2 = this._getMirrorXOffset(this._level.endXPos - this._cameraX);
     const _0x380b24 = b(this._endPortalGameY) + this._cameraY;
     circleEffect(this, _0x2eadf2, _0x380b24, 10, screenWidth, 800, true, false, window.mainColor);
     circleEffect(this, _0x56628c, 250, 10, 1000, 800, true, false, window.mainColor);
