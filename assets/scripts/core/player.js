@@ -1816,7 +1816,8 @@ class PlayerObject {
 if (this.p.isFlying || this.p.isUfo) {
       const _0x3904f8 = 10;
       const _miniS = this.p.isMini ? 0.6 : 1;
-      const playerOffset = this.p.gravityFlipped ? (-30 * _miniS) : (10 * _miniS);  
+      const _miniCubeOffset = this.p.isMini ? (8 * _miniS) : 0;
+      const playerOffset = (this.p.gravityFlipped ? (-30 * _miniS) : (10 * _miniS)) - _miniCubeOffset;
       const cosRotation = Math.cos(playerRotation);
       const sinRotation = Math.sin(playerRotation);
 	    const mirrored = this.p.mirrored ? -1 : 1;
@@ -1855,7 +1856,7 @@ if (this.p.isFlying || this.p.isUfo) {
         if (playerLayerItem) {
           const _miniS = this.p.isMini ? 0.6 : 1;
           playerLayerItem.sprite.x = _0x7f0705 + _0x562424;
-          playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9) + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
+          playerLayerItem.sprite.y = (_0x1a433c + _0x3011c9) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
           playerLayerItem.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
           const _shipCubeS = _miniS * 0.55;
           playerLayerItem.sprite.scaleY = this.p.gravityFlipped ? -_shipCubeS : _shipCubeS;
@@ -1874,7 +1875,7 @@ if (this.p.isFlying || this.p.isUfo) {
         const birdX = _0x7f0705 + _0x1b1d28;
         const birdY = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? -15 : 5);
         const cubeX = _0x7f0705 + _0x562424;
-        const cubeY = (_0x1a433c + _0x3011c9) + (this.p.isMini ? (8 * _miniS) : 0) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
+        const cubeY = (_0x1a433c + _0x3011c9) + (this.p.gravityFlipped ? (-20 * _miniS) : 0);
         const offsetX = cubeX - birdX;
         const offsetY = cubeY - birdY;
         const rotationDelta = uforotation - currentRotation;
@@ -3462,14 +3463,23 @@ if (this.p.isFlying || this.p.isUfo) {
     const miniRollScale = this.p.isMini ? 1 / 0.8 : 1;
     this._rotation += _0x1dd8af / (g / 2) * rollDir * speedFactor * bidenblast* miniRollScale;
   }
-  updateShipRotation(_0x217ad3) {
-    let _0x48f422 = -(this.p.y - this.p.lastY);
-    let _0x58cb3a = _0x217ad3 * 10.3860036;
-    if (_0x58cb3a * _0x58cb3a + _0x48f422 * _0x48f422 >= _0x217ad3 * 0.6) {
-      let _0x5e6a2b = Math.atan2(_0x48f422, _0x58cb3a);
-      let _0x2371ed = 0.15;
-      let _0x1857d4 = Math.min(_0x217ad3 * 1, _0x2371ed * _0x217ad3);
-      this._rotation = this.slerp2D(this._rotation, _0x5e6a2b, _0x1857d4);
+  updateShipRotation(delta) {
+    const isMini = this.p.isMini;
+    const deltaY = -(this.p.y - this.p.lastY);
+    const deltaX = delta * (isMini ? 16.5 : 8);
+    
+    const speedSquared = deltaX * deltaX + deltaY * deltaY;
+    const movementThreshold = delta * 0.4;
+
+    if (speedSquared >= movementThreshold) {
+      let targetRotation = Math.atan2(deltaY, deltaX);
+      
+      const maxPitch = isMini ? 0.66 : 0.70;
+      targetRotation = Phaser.Math.Clamp(targetRotation, -maxPitch, maxPitch);
+
+      const turnRate = isMini ? 0.20 : 0.15;
+      const turnStep = Math.min(delta, turnRate * delta);
+      this._rotation = this.slerp2D(this._rotation, targetRotation, turnStep);
     }
   }
   breakabletheblock(gameObj) {
