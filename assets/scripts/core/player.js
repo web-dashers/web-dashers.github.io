@@ -1605,8 +1605,14 @@ class PlayerObject {
       this._shipDragActive = false;
       this._streak.stop();
       this._streak.reset();
-      this._waveTrail.stop();
-      this._waveTrail.reset();
+      if (window.noWaveTrail || this.p.isDead) {
+        this._waveTrail.stop();
+        this._waveTrail.reset();
+      } else {
+        this._waveTrail.setPosition(this._scene._playerWorldX, b(this.p.y));
+        this._waveTrail.setMiniScale(this.p.isMini);
+        this._waveTrail.update(_0x5af874);
+      }
       return;
     }
 
@@ -1641,8 +1647,13 @@ class PlayerObject {
       this._waveTrail.setPosition(_0x119eb7, _0x519d38);
     }
     this._streak.update(_0x5af874);
-    this._waveTrail.setMiniScale(this.p.isMini);
-    this._waveTrail.update(_0x5af874);
+    if (window.noWaveTrail) {
+      this._waveTrail.stop();
+      this._waveTrail.reset();
+    } else {
+      this._waveTrail.setMiniScale(this.p.isMini);
+      this._waveTrail.update(_0x5af874);
+    }
     const _0x3d69d2 = this.p.isFlying || this.p.isUfo;
     if (_0x3d69d2 && !this._flyParticleActive) {
       this._flyParticleEmitter.start();
@@ -3809,8 +3820,8 @@ if (this.p.isFlying || this.p.isUfo) {
   _updateUfoJump(_dt) {
     const _ufoJump = this.p.isMini ? 13.296 : 13.742;
     const _ufoMini = window.ufoMiniDiv !== undefined ? window.ufoMiniDiv : 0.85;
-    const _ufoFastBase = window.ufoFastGrav !== undefined ? window.ufoFastGrav : 0.525;
-    const _ufoSlowBase = window.ufoSlowGrav !== undefined ? window.ufoSlowGrav : 0.425;
+    const _ufoFastBase = window.ufoFastGrav !== undefined ? window.ufoFastGrav : 0.540121;
+    const _ufoSlowBase = window.ufoSlowGrav !== undefined ? window.ufoSlowGrav : 0.450101;
     const _ufoThreshold = 3.832796;
     const _ufoFastGrav = this.p.isMini ? _ufoFastBase / _ufoMini : _ufoFastBase;
     const _ufoSlowGrav = this.p.isMini ? _ufoSlowBase / _ufoMini : _ufoSlowBase;

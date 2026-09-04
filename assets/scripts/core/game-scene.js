@@ -4231,7 +4231,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       onDragStart(ptr);
       if (isComingSoonPage()) return;
       const levelId = window.currentlevel?.[2];
-      if (getLevelCoinRequirement(levelId) > (Number(window._totalsecretcoins) || 0)) return;
+      if (!window.unlockAllLevels && getLevelCoinRequirement(levelId) > (Number(window._totalsecretcoins) || 0)) return;
       this.tweens.killTweensOf(cardBounceContainer, "scale");
       this.tweens.add({ targets: cardBounceContainer, scale: 1.26, duration: 300, ease: "Bounce.Out" });
     });
@@ -4295,7 +4295,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
             const requiredCoins = getLevelCoinRequirement(window.currentlevel?.[2]);
             const collectedCoins = Number(window._totalsecretcoins) || 0;
-            if (requiredCoins > collectedCoins) {
+            if (!window.unlockAllLevels && requiredCoins > collectedCoins) {
               return;
             }
             
@@ -4358,7 +4358,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const levelId = lvl[2] || "level_1";
       const requiredCoins = getLevelCoinRequirement(levelId);
       const collectedCoins = Number(window._totalsecretcoins) || 0;
-      const levellocked = requiredCoins > collectedCoins;
+      const levellocked = !window.unlockAllLevels && requiredCoins > collectedCoins;
       const levelDifficultyMap = {
         "level_1":         "diffIcon_01_btn_001",
         "level_2":         "diffIcon_01_btn_001",
@@ -5097,6 +5097,9 @@ _buildSettingsPopup() {
     }
 
     var infotextstrings = {
+        "Unlock All Levels": "Lets you play every main level without collecting the secret coins first.",
+        "No Wave Trail": "Hides the trail behind the wave. Was previously tied to Low Detail Mode.",
+        "Static Colors": "Skips recoloring objects on frames where their color has not changed. Speeds up busy levels, but colors may lag behind on levels that use pulse triggers.",
         "Enable Portal Guide": "Enables extra indicators on portals.",
         "Enable Orb Guide": "Enables extra indicators on orbs.",
         "Practice Music Bypass": "Plays normal mode music in practice mode.",
@@ -5343,6 +5346,14 @@ _buildSettingsPopup() {
           false
         );
 
+        createToggle(container, column2X, startY, "Unlock All Levels",
+          () => window.unlockAllLevels,
+          (v) => window.unlockAllLevels = v,
+          null,
+          25,
+          true,
+            "Unlock All Levels"
+        );
         createToggle(container, column2X, startY + spacingY, "Practice Music Sync",
             () => window.practiceMusicSync,
             (v) => {
@@ -5487,6 +5498,30 @@ _buildSettingsPopup() {
     };
 
         const buildPerformancePage = (container) => {
+        createToggle(container, column1X, startY + spacingY, "Low Detail Mode",
+          () => window.enableLDM,
+          (v) => window.enableLDM = v,
+          null,
+          25,
+          true,
+          "Low Detail Mode"
+        );
+        createToggle(container, column1X, startY + (spacingY * 2), "Static Colors",
+          () => window.optimizeColors,
+          (v) => window.optimizeColors = v,
+          null,
+          25,
+          true,
+          "Static Colors"
+        );
+        createToggle(container, column1X, startY + (spacingY * 3), "No Wave Trail",
+          () => window.noWaveTrail,
+          (v) => window.noWaveTrail = v,
+          null,
+          25,
+          true,
+          "No Wave Trail"
+        );
         createNumberInput(container, column1X, startY, "Cull Distance",
           () => (typeof window.cullDistance !== 'undefined' ? window.cullDistance : 3),
           (v) => window.cullDistance = v,
@@ -5556,6 +5591,9 @@ _buildSettingsPopup() {
         cullDistance: window.cullDistance,
         settingInfoText: window.settingInfoText || {},
         enableLDM: window.enableLDM,
+        optimizeColors: !!window.optimizeColors,
+        noWaveTrail: !!window.noWaveTrail,
+        unlockAllLevels: !!window.unlockAllLevels,
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
     localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
@@ -5586,6 +5624,9 @@ _buildSettingsPopup() {
         enableOrbGuide: false,
         enableMiniIcon: false,
         enableLDM: false,
+        optimizeColors: false,
+        noWaveTrail: false,
+        unlockAllLevels: false,
         cullDistance: 3
     };
 
@@ -5617,6 +5658,9 @@ _buildSettingsPopup() {
     window.useDirectInternet = !!data.useDirectInternet;
     localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
     window.enableLDM = !!data.enableLDM;
+    window.optimizeColors = !!data.optimizeColors;
+    window.noWaveTrail = !!data.noWaveTrail;
+    window.unlockAllLevels = !!data.unlockAllLevels;
   }
   _buildMacroPopup() {
       if (this._macroPopup) return;
@@ -9599,26 +9643,6 @@ _applyMirrorEffect() {
       this._showwippopup();
     });
 
-    const ldmX = _0x2a115c + 160;
-    const ldmY = 495;
-    const ldmCheckOffset = -120;
-    const ldmTextOffset = -80;
-    
-    var ldmIsOn = window.enableLDM;
-    var ldmCheckTexture = ldmIsOn ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
-    var ldmCheck = this.add.image(ldmX + ldmCheckOffset, ldmY, "GJ_GameSheet03", ldmCheckTexture).setScale(0.8).setInteractive();
-    var ldmTxt = this.add.bitmapText(ldmX + ldmTextOffset, ldmY, "bigFont", "Low Detail Mode", 25).setOrigin(0, 0.5);
-    this._helplayer.add([ldmCheck, ldmTxt]);
-
-    this._makeBouncyButton(ldmCheck, 0.8, () => {
-        var current = window.enableLDM;
-        window.enableLDM = !current;
-        var newTexture = window.enableLDM ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
-        ldmCheck.setTexture("GJ_GameSheet03", newTexture);
-        if (this._saveSettings) {
-            this._saveSettings();
-        }
-    });
 
     const reqbtnX = _0x2a115c + 655;
     const reqbtnY = 495;
