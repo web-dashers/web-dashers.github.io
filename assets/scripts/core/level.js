@@ -1393,7 +1393,9 @@ window.LevelObject = class LevelObject {
         maxWorldX = groundTile._worldX;
         this._maxGroundWorldX = maxWorldX;
       }
-      let tileScreenX = groundTile._worldX - cameraX;
+      const isMirrored = this._scene._mirrorAnim ? (this._scene._mirrorAnim.p >= 0.5) : this._scene._state.mirrored;
+      const normalX = groundTile._worldX - cameraX;
+      const tileScreenX = isMirrored ? (screenWidth - normalX - tileWidth) : normalX;
       groundTile.x = tileScreenX;
       groundTile.y = leftTileIndex;
       const ground2Tile = this._ground2Tiles?.[i];
