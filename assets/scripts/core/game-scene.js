@@ -5343,6 +5343,14 @@ _buildSettingsPopup() {
           false
         );
 
+        createToggle(container, column2X, startY + (spacingY * 2), "Unlock All Levels",
+          () => window.unlockAllLevels,
+          (v) => window.unlockAllLevels = v,
+          null,
+          25,
+          true,
+            "Unlock All Levels"
+        );
         createToggle(container, column2X, startY + spacingY, "Practice Music Sync",
             () => window.practiceMusicSync,
             (v) => {
