@@ -5050,7 +5050,7 @@ _buildSettingsPopup() {
         this._settingsPopup = null;
     });
 
-    const pages = ["Gameplay", "Visual", "Advanced", "Performance"];
+    const pages = ["Gameplay", "Visual", "Visual", "Advanced", "Performance"];
     let currentPage = 0;
     const pageTitle = this.add.bitmapText(0, -(panelHeight / 2) + 45, "bigFont", pages[currentPage], 40).setOrigin(0.5);
     innerContainer.add(pageTitle);
@@ -5125,7 +5125,8 @@ _buildSettingsPopup() {
         "Use Proxy (for schools)": "Enables a proxy for a better chance to see online levels when blocked.",
         "Cull Distance": "Changes how many objects are shown. [DOES NOT SAVE!!]",
         "Default Mini Icon": "Sets player icon in min mode to default.",
-        "Safe Mode": "Enables when Noclip or Speedhack are on. Disables level Completion when enabled."
+        "Safe Mode": "Enables when Noclip or Speedhack are on. Disables level Completion when enabled.",
+        "Switch Wave Trail Color": "Toggles between main and secondary color for the trail in wave mode.  "
     };
 
     const createInfoButton = (container, x, y, infoTextOrKey, scale) => {
@@ -5472,6 +5473,20 @@ _buildSettingsPopup() {
             true,
             "Default Mini Icon"
         );
+        
+    };
+
+    const buildVisual2Page = (container) => {
+
+      createToggle(container, column1X, startY, "Switch Wave Trail Color",
+          () => window.toggleWaveTrailCol,
+          (v) => window.toggleWaveTrailCol = v,
+          null,
+          17,
+          true,
+          "Switch Wave Trail Color"
+      );
+
     };
 
     const buildAdvancedPage = (container) => {
@@ -5495,8 +5510,8 @@ _buildSettingsPopup() {
         */
     };
 
-        const buildPerformancePage = (container) => {
-        createNumberInput(container, column1X, startY, "Cull Distance",
+    const buildPerformancePage = (container) => {
+      createNumberInput(container, column1X, startY, "Cull Distance",
           () => (typeof window.cullDistance !== 'undefined' ? window.cullDistance : 3),
           (v) => window.cullDistance = v,
           0,
@@ -5515,8 +5530,9 @@ _buildSettingsPopup() {
         
         if (idx === 0) buildGameplayPage(pageContainer);
         else if (idx === 1) buildVisualPage(pageContainer);
-        else if (idx === 2) buildAdvancedPage(pageContainer);
-        else if (idx === 3) buildPerformancePage(pageContainer);
+        else if (idx === 2) buildVisual2Page(pageContainer);
+        else if (idx === 3) buildAdvancedPage(pageContainer);
+        else if (idx === 4) buildPerformancePage(pageContainer);
     };
 
     buildPage(0);
