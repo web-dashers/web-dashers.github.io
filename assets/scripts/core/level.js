@@ -99,6 +99,10 @@ function parseObject(objectString) {
   }
   let objectId = parseInt(objectData[1] || "0", 10);
   const rawGroupValues = [];
+  const readFloat = (key, fallback) => {
+    const value = parseFloat(objectData[key]);
+    return Number.isFinite(value) ? value : fallback;
+  };
   const addRawGroups = (rawValue) => {
     String(rawValue ?? "")
       .split(".")
@@ -109,6 +113,18 @@ function parseObject(objectString) {
   addRawGroups(objectData[33]);
   addRawGroups(objectData[57]);
   const groupString = [...new Set(rawGroupValues)].join(".");
+
+  const legacyScale = readFloat(32, 1);
+  const scaleX = readFloat(128, legacyScale);
+  const scaleY = readFloat(129, legacyScale);
+
+  const baseRotation = readFloat(6, 0);
+  const rotationX = readFloat(131, baseRotation);
+  const rotationY = readFloat(132, baseRotation);
+
+  const warp = ((rotationY - rotationX) % 360 + 540) % 360 - 180;
+  const rotation = rotationX + warp / 2;
+
   if (objectId === 0) {
     return null;
   } else {
@@ -118,8 +134,11 @@ function parseObject(objectString) {
       y: parseFloat(objectData[3] || "0"),
       flipX: objectData[4] === "1",
       flipY: objectData[5] === "1",
-      rot: parseFloat(objectData[6] || "0"),
-      scale: parseFloat(objectData[32] || "1"),
+      rot: rotation,
+      scale: legacyScale,
+      scaleX: scaleX,
+      scaleY: scaleY,
+      warp: warp,
       editorLayer: parseInt(objectData[20] || "0", 10),
       zLayer: parseInt(objectData[24] || "0", 10),
       zOrder: parseInt(objectData[25] || "0", 10),
@@ -206,6 +225,7 @@ const ringType = "ring";
 const triggerType = "trigger";
 const speedType = "speed";
 const slopeType = "slope";
+const dBlockType = "dblock";
 const _SLOPE_DATA = {
   289:{gw:1,gh:1,angle:45,sq:false,dir:1}, 291:{gw:2,gh:1,angle:22.5,sq:false,dir:-1},
   294:{gw:1,gh:1,angle:45,sq:false},295:{gw:2,gh:1,angle:22.5,sq:false},
@@ -396,6 +416,107 @@ function _isDecorationSlopeId(id) {
   return false;
 }
 
+function gdObjectScale(levelObj) {
+  const uniform = Number(levelObj?.scale);
+  const fallback = Number.isFinite(uniform) ? uniform : 1;
+  const scaleX = Number(levelObj?.scaleX);
+  const scaleY = Number(levelObj?.scaleY);
+  return {
+    x: Number.isFinite(scaleX) ? scaleX : fallback,
+    y: Number.isFinite(scaleY) ? scaleY : fallback
+  };
+}
+
+function gdObjectWarp(levelObj) {
+  const warp = Number(levelObj?.warp);
+  return Number.isFinite(warp) ? warp : 0;
+}
+
+function gdWarpAxes(rotationDeg, warpDeg) {
+  const toRad = Math.PI / 180;
+  return {
+    rotX: (rotationDeg - warpDeg / 2) * toRad,
+    rotY: (rotationDeg + warpDeg / 2) * toRad
+  };
+}
+
+function gdTransformLocalPoint(x, y, rotationDeg, scaleX, scaleY, warpDeg) {
+  const { rotX, rotY } = gdWarpAxes(rotationDeg, warpDeg);
+  return {
+    x: Math.cos(rotY) * scaleX * x - Math.sin(rotX) * scaleY * y,
+    y: Math.sin(rotY) * scaleX * x + Math.cos(rotX) * scaleY * y
+  };
+}
+
+const _gdWarpLinear = new Phaser.GameObjects.Components.TransformMatrix();
+const _gdWarpParent = new Phaser.GameObjects.Components.TransformMatrix();
+
+function _gdWarpParentMatrix(sprite, camera, parentMatrix) {
+  const warp = sprite._gdWarp;
+  const rotX = warp.rotationX;
+  const rotY = warp.rotationY;
+
+  _gdWarpLinear.setTransform(
+    Math.cos(rotY) * warp.scaleX, Math.sin(rotY) * warp.scaleX,
+    -Math.sin(rotX) * warp.scaleY, Math.cos(rotX) * warp.scaleY,
+    0, 0
+  );
+
+  let originX = sprite.x;
+  let originY = sprite.y;
+  if (camera.roundPixels) {
+    originX = Math.floor(originX);
+    originY = Math.floor(originY);
+  }
+
+  if (parentMatrix) _gdWarpParent.copyFrom(parentMatrix);
+  else _gdWarpParent.loadIdentity();
+
+  _gdWarpParent.translate(originX, originY);
+  _gdWarpParent.multiply(_gdWarpLinear, _gdWarpParent);
+  _gdWarpParent.translate(-originX, -originY);
+  return _gdWarpParent;
+}
+
+function gdApplyEffectScale(sprite, factor) {
+  const nextX = factor * (sprite._eeBaseScaleX ?? 1);
+  const nextY = factor * (sprite._eeBaseScaleY ?? 1);
+  if (sprite.scaleX !== nextX || sprite.scaleY !== nextY) sprite.setScale(nextX, nextY);
+}
+
+function applyGDObjectTransform(sprite, rotationDeg, scaleX, scaleY, warpDeg) {
+  if (!sprite) return sprite;
+
+  if (!warpDeg) {
+    if (rotationDeg) sprite.setAngle(rotationDeg);
+    if (scaleX !== 1 || scaleY !== 1) sprite.setScale(scaleX, scaleY);
+    sprite._eeBaseScaleX = scaleX;
+    sprite._eeBaseScaleY = scaleY;
+    return sprite;
+  }
+
+  sprite._eeBaseScaleX = 1;
+  sprite._eeBaseScaleY = 1;
+
+  const { rotX, rotY } = gdWarpAxes(rotationDeg, warpDeg);
+  sprite._gdWarp = { rotationX: rotX, rotationY: rotY, scaleX: scaleX, scaleY: scaleY };
+
+  if (sprite._gdWarpHooked) return sprite;
+  sprite._gdWarpHooked = true;
+
+  const drawWebGL = sprite.renderWebGL;
+  const drawCanvas = sprite.renderCanvas;
+
+  sprite.renderWebGL = function (renderer, src, camera, parentMatrix) {
+    drawWebGL.call(this, renderer, src, camera, _gdWarpParentMatrix(src, camera, parentMatrix));
+  };
+  sprite.renderCanvas = function (renderer, src, camera, parentMatrix) {
+    drawCanvas.call(this, renderer, src, camera, _gdWarpParentMatrix(src, camera, parentMatrix));
+  };
+
+  return sprite;
+}
+
 function rotateSlopePoint(localX, localY, rotDeg) {
   const theta = -rotDeg * Math.PI / 180;
   const cosT = Math.cos(theta), sinT = Math.sin(theta);
@@ -407,10 +528,11 @@ function _createSlopeCollider(levelObj, objectDef, worldX, worldY) {
   if (!slopeData) return null;
   if (slopeData.sq) return null;
   if (_isDecorationSlopeId(levelObj.id)) return null;
-  const _scaleRaw = Number(levelObj.scale);
-  const _scale = Number.isFinite(_scaleRaw) && _scaleRaw > 0 ? _scaleRaw : 1;
-  const hw0 = (slopeData.gw * a * _scale) / 2;
-  const hh0 = (slopeData.gh * a * _scale) / 2;
+  const _scale = gdObjectScale(levelObj);
+  const _scaleX = Math.abs(_scale.x) > 0 ? Math.abs(_scale.x) : 1;
+  const _scaleY = Math.abs(_scale.y) > 0 ? Math.abs(_scale.y) : 1;
+  const hw0 = (slopeData.gw * a * _scaleX) / 2;
+  const hh0 = (slopeData.gh * a * _scaleY) / 2;
   let vRight = { x: hw0, y: -hh0 };
   let vLo = { x: -hw0, y: -hh0 };
   let vHi = { x: hw0, y: hh0 };
@@ -1608,21 +1730,18 @@ window.LevelObject = class LevelObject {
       offsetY = -offsetY;
     }
     let totalRotation = (sprite.getData("gjBaseRotationDeg") || 0) + objectData.rot;
-    if (totalRotation !== 0) {
-      sprite.setAngle(totalRotation);
-      let rad = totalRotation * Math.PI / 180;
-      let cosR = Math.cos(rad);
-      let sinR = Math.sin(rad);
-      let rx = offsetX * cosR - offsetY * sinR;
-      let ry = offsetX * sinR + offsetY * cosR;
-      offsetX = rx;
-      offsetY = ry;
+    const objectScale = gdObjectScale(objectData);
+    const objectWarp = gdObjectWarp(objectData);
+    if (totalRotation !== 0 || objectScale.x !== 1 || objectScale.y !== 1 || objectWarp !== 0) {
+      const placed = gdTransformLocalPoint(
+        offsetX, offsetY, totalRotation, objectScale.x, objectScale.y, objectWarp
+      );
+      offsetX = placed.x;
+      offsetY = placed.y;
     }
     sprite.x += offsetX;
     sprite.y += offsetY;
-    if (objectData.scale !== 1) {
-      sprite.setScale(objectData.scale);
-    }
+    applyGDObjectTransform(sprite, totalRotation, objectScale.x, objectScale.y, objectWarp);
     if (colorData) {
       const blackDefault = colorData.black === true || colorData.tint === 0;
       if (colorData.tint !== undefined) {
@@ -1952,9 +2071,14 @@ window.LevelObject = class LevelObject {
       }).setOrigin(0.5);
     }
 
-    const scale = Number.isFinite(Number(levelObj.scale)) ? Number(levelObj.scale) : 1;
-    textSprite.setScale(scale * (levelObj.flipX ? -1 : 1), scale * (levelObj.flipY ? -1 : 1));
-    textSprite.setAngle(levelObj.rot || 0);
+    const textScale = gdObjectScale(levelObj);
+    applyGDObjectTransform(
+      textSprite,
+      levelObj.rot || 0,
+      textScale.x * (levelObj.flipX ? -1 : 1),
+      textScale.y * (levelObj.flipY ? -1 : 1),
+      gdObjectWarp(levelObj)
+    );
 
     const depthBase = { "-5": -12, "-3": -9, "-1": -6, 0: 0, 1: 3, 3: 6, 5: 9, 7: 10.5, 9: 12, 11: 13.5 };
     const zLayer = parseInt(levelObj.zLayer ?? objectDef?.default_z_layer ?? 3, 10) || 0;
@@ -2422,6 +2546,10 @@ window.LevelObject = class LevelObject {
       sprite._eeBaseY = baseY;
       sprite._eeZDepth = objZDepth;
       sprite._eeOrigAlpha = 1;
+      if (objectDef?.type === dBlockType) {
+        sprite._eeEditorOnly = true;
+        sprite.setVisible(!!window.isEditor);
+      }
       if (isSawObjectId) {
         sprite._isSaw = true;
         const isDecorativeSaw = objectDef?.type === decoType && frameName?.includes("sawblade");
@@ -2457,7 +2585,7 @@ window.LevelObject = class LevelObject {
       }
 
       if (objectDef && objectDef.type === ringType) {
-        sprite.setScale(0.75);
+        gdApplyEffectScale(sprite, 0.75);
         sprite._eeAudioScale = true;
         sprite._orbId = levelObj.id;
         this._orbSprites.push(sprite);
@@ -2468,7 +2596,7 @@ window.LevelObject = class LevelObject {
         }
 
         if (orbGlow) {
-          orbGlow.setScale(0.75);
+          gdApplyEffectScale(orbGlow, 0.75);
           orbGlow._eeAudioScale = true;
           orbGlow._orbId = levelObj.id;
           this._orbSprites.push(orbGlow);
@@ -2598,9 +2726,13 @@ window.LevelObject = class LevelObject {
             localDy = -localDy;
           }
 
-          const rot = (levelObj.rot || 0) * Math.PI / 180;
-          childDx = localDx * Math.cos(rot) - localDy * Math.sin(rot);
-          childDy = localDx * Math.sin(rot) + localDy * Math.cos(rot);
+          const childScale = gdObjectScale(levelObj);
+          const placed = gdTransformLocalPoint(
+            localDx, localDy, levelObj.rot || 0,
+            childScale.x, childScale.y, gdObjectWarp(levelObj)
+          );
+          childDx = placed.x;
+          childDy = placed.y;
         }
 
         const childWorldX = worldX + childDx;
@@ -2867,6 +2999,11 @@ window.LevelObject = class LevelObject {
       }
     };
 
+    const hitScale = gdObjectScale(levelObj);
+    const hitScaleX = Math.abs(hitScale.x);
+    const hitScaleY = Math.abs(hitScale.y);
+    const hitScaleMean = (hitScaleX + hitScaleY) / 2;
+
     const slopeCollider = _createSlopeCollider(levelObj, objectDef, worldX, worldY);
     if (slopeCollider) {
       registerCollider(slopeCollider);
@@ -2874,9 +3011,18 @@ window.LevelObject = class LevelObject {
       hasCollisionEntry = true;
       this._addCollisionToSection(slopeCollider);
     } else if (objectDef.type === solidType && objectDef.gridW > 0 && objectDef.gridH > 0) {
-      const w = objectDef.gridW * a;
-      const h = objectDef.gridH * a;
+      const w = objectDef.gridW * a * hitScaleX;
+      const h = objectDef.gridH * a * hitScaleY;
       const collider = new Collider(solidType, worldX, worldY, w, h, levelObj.rot || 0);
+      collider.objid = levelObj.id;
+      registerCollider(collider);
+      this.objects.push(collider);
+      hasCollisionEntry = true;
+      this._addCollisionToSection(collider);
+    } else if (objectDef.type === dBlockType && objectDef.gridW > 0 && objectDef.gridH > 0) {
+      const w = objectDef.gridW * a * hitScaleX;
+      const h = objectDef.gridH * a * hitScaleY;
+      const collider = new Collider(dBlockType, worldX, worldY, w, h, levelObj.rot || 0);
       collider.objid = levelObj.id;
       registerCollider(collider);
       this.objects.push(collider);
@@ -2892,15 +3038,15 @@ window.LevelObject = class LevelObject {
         objectDef.hitboxScaleX !== undefined &&
         objectDef.hitboxScaleY !== undefined
       ) {
-        hitW = objectDef.spriteW * objectDef.hitboxScaleX * 2;
-        hitH = objectDef.spriteH * objectDef.hitboxScaleY * 2;
+        hitW = objectDef.spriteW * objectDef.hitboxScaleX * 2 * hitScaleX;
+        hitH = objectDef.spriteH * objectDef.hitboxScaleY * 2 * hitScaleY;
       } else if (objectDef.gridW > 0 && objectDef.gridH > 0) {
-        hitW = objectDef.gridW * 12;
-        hitH = objectDef.gridH * 24;
+        hitW = objectDef.gridW * 12 * hitScaleX;
+        hitH = objectDef.gridH * 24 * hitScaleY;
       }
 
       const hasHitboxRadius = objectDef.hitbox_radius !== undefined && objectDef.hitbox_radius !== null;
-      const worldHitboxRadius = hasHitboxRadius ? objectDef.hitbox_radius * 2 : 0;
+      const worldHitboxRadius = hasHitboxRadius ? objectDef.hitbox_radius * 2 * hitScaleMean : 0;
 
       if (hasHitboxRadius && hitW === 0) {
         hitW = worldHitboxRadius * 2;
@@ -2916,8 +3062,8 @@ window.LevelObject = class LevelObject {
         this._addCollisionToSection(collider);
       }
     } else if (objectDef.type === portalType) {
-      const portalW = objectDef.gridW * a;
-      const portalH = objectDef.gridH * a;
+      const portalW = objectDef.gridW * a * hitScaleX;
+      const portalH = objectDef.gridH * a * hitScaleY;
       const portalSub = objectDef.sub || {
         10: "gravity_flip",
         11: "gravity_normal",
@@ -2980,8 +3126,8 @@ window.LevelObject = class LevelObject {
         this._addCollisionToSection(collider);
       }
     } else if (objectDef.type === padType) {
-      const padW = objectDef.gridW * a;
-      const padH = objectDef.gridH * a;
+      const padW = objectDef.gridW * a * hitScaleX;
+      const padH = objectDef.gridH * a * hitScaleY;
       const padObj = new Collider(jumpPadType, worldX, worldY, padW, padH, levelObj.rot || 0);
       padObj.padId = levelObj.id;
       registerCollider(padObj);
@@ -3063,8 +3209,8 @@ window.LevelObject = class LevelObject {
         this.topContainer.add(_padEmitter);
       }
     } else if (objectDef.type === ringType) {
-      const orbW = objectDef.gridW * a;
-      const orbH = objectDef.gridH * a;
+      const orbW = objectDef.gridW * a * hitScaleX;
+      const orbH = objectDef.gridH * a * hitScaleY;
       const orbObj = new Collider(jumpRingType, worldX, worldY, orbW, orbH, levelObj.rot || 0);
       orbObj.orbId = levelObj.id;
       orbObj.orbRotation = levelObj.rot || 0;
@@ -3074,8 +3220,8 @@ window.LevelObject = class LevelObject {
       hasCollisionEntry = true;
       this._addCollisionToSection(orbObj);
     } else if (objectDef.type === coinType) {
-      const coinW = (objectDef.gridW || 1) * a;
-      const coinH = (objectDef.gridH || 1) * a;
+      const coinW = (objectDef.gridW || 1) * a * hitScaleX;
+      const coinH = (objectDef.gridH || 1) * a * hitScaleY;
       const coinObj = new Collider(coinType, worldX, worldY, coinW, coinH, levelObj.rot || 0);
       coinObj.coinId = levelObj.id;
       if (objectId === SECRET_COIN_OBJECT_ID) {
@@ -3093,8 +3239,8 @@ window.LevelObject = class LevelObject {
       hasCollisionEntry = true;
       this._addCollisionToSection(coinObj);
     } else if (objectDef.type === speedType) {
-      const speedW = (objectDef.gridW || 1) * a;
-      const speedH = (objectDef.gridH || 1) * a;
+      const speedW = (objectDef.gridW || 1) * a * hitScaleX;
+      const speedH = (objectDef.gridH || 1) * a * hitScaleY;
       const speedObj = new Collider(speedType, worldX, worldY, speedW, speedH, levelObj.rot || 0);
       speedObj.portalY = worldY;
 
@@ -4297,11 +4443,12 @@ window.LevelObject = class LevelObject {
           visMinSection._eeActive = false;
           const showtheportalthing = !visMinSection._eePortalGuide || (!window.isEditor && window.enablePortalGuide !== false);
           const showtheorbthing = !visMinSection._eeOrbGuide || (!window.isEditor && window.enableOrbGuide !== false);
-          visMinSection.visible = showtheportalthing && showtheorbthing;
+          const showeditoronly = !visMinSection._eeEditorOnly || !!window.isEditor;
+          visMinSection.visible = showtheportalthing && showtheorbthing && showeditoronly;
           visMinSection.x = visMinSection._eeWorldX;
           visMinSection.y = visMinSection._eeBaseY;
           if (!visMinSection._eeAudioScale) {
-            visMinSection.setScale(1);
+            gdApplyEffectScale(visMinSection, 1);
           }
           visMinSection.setAlpha(this._getGroupOpacityForSprite(visMinSection));
         }
@@ -4347,7 +4494,7 @@ window.LevelObject = class LevelObject {
             effectSprite.y = effectSprite._eeBaseY;
             effectSprite.x = effectSprite._eeWorldX;
             if (!effectSprite._eeAudioScale) {
-              effectSprite.setScale(1);
+              gdApplyEffectScale(effectSprite, 1);
             }
             effectSprite.setAlpha(this._getGroupOpacityForSprite(effectSprite));
           }
@@ -4363,7 +4510,7 @@ window.LevelObject = class LevelObject {
             effectSprite.y = effectSprite._eeBaseY;
             effectSprite.x = effectSprite._eeWorldX;
             if (!effectSprite._eeAudioScale) {
-              effectSprite.setScale(1);
+              gdApplyEffectScale(effectSprite, 1);
             }
             effectSprite.setAlpha(this._getGroupOpacityForSprite(effectSprite));
           }
@@ -4411,8 +4558,8 @@ window.LevelObject = class LevelObject {
         if (effectSprite.alpha !== _eeFinalAlpha) {
           effectSprite.alpha = _eeFinalAlpha;
         }
-        if (!effectSprite._eeAudioScale && effectSprite.scaleX !== _0x127ace) {
-          effectSprite.setScale(_0x127ace);
+        if (!effectSprite._eeAudioScale) {
+          gdApplyEffectScale(effectSprite, _0x127ace);
         }
       }
     }
@@ -4447,7 +4594,7 @@ window.LevelObject = class LevelObject {
       const _worldX = _0x24afdb._eeWorldX;
       if (Number.isFinite(_worldX) && (_worldX < _minVisibleX || _worldX > _maxVisibleX)) continue;
       if (_0x24afdb._eeLastAudioScale !== _targetAudioScale) {
-        _0x24afdb.setScale(_targetAudioScale);
+        gdApplyEffectScale(_0x24afdb, _targetAudioScale);
         _0x24afdb._eeLastAudioScale = _targetAudioScale;
       }
     }
@@ -4474,7 +4621,7 @@ window.LevelObject = class LevelObject {
         }
       }
       if (_0xOrbSpr._eeLastOrbScale !== _targetScale) {
-        _0xOrbSpr.setScale(_targetScale);
+        gdApplyEffectScale(_0xOrbSpr, _targetScale);
         _0xOrbSpr._eeLastOrbScale = _targetScale;
       }
     }
@@ -4534,7 +4681,7 @@ window.LevelObject = class LevelObject {
     this._secretCoinRunCollected.clear();
     this._userCoinRunCollected.clear();
     for (let _0x5c5d9a of this._audioScaleSprites) {
-      _0x5c5d9a.setScale(0.1);
+      gdApplyEffectScale(_0x5c5d9a, 0.1);
     }
         for (const objectSpriteList of this.objectSprites || []) {
       if (!objectSpriteList) continue;
