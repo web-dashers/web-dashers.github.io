@@ -641,6 +641,7 @@ window.LevelObject = class LevelObject {
     this._touchColorTriggerActivated = new Set();
     this._touchSpawnTriggerActivated = new Set();
     this._touchMoveTriggerActivated = new Set();
+    this._touchAlphaTriggerActivated = new Set();
     this._audioScaleSprites = [];
     this._editorTriggerVisuals = [];
     this._orbSprites = [];
@@ -666,6 +667,45 @@ window.LevelObject = class LevelObject {
     this._rotateTriggers = [];
     this._rotateTriggerIdx = 0;
     this._activeRotateTweens = [];
+    this._stopTriggers = [];
+    this._stopTriggerIdx = 0;
+    this._touchStopTriggerActivated = new Set();
+    this._followPlayerYTriggers = [];
+    this._followPlayerYTriggerIdx = 0;
+    this._activeFollowPlayerYTweens = [];
+    this._touchFollowPlayerYTriggerActivated = new Set();
+    this._followTriggers = [];
+    this._followTriggerIdx = 0;
+    this._activeFollowTweens = [];
+    this._touchFollowTriggerActivated = new Set();
+    this._toggleTriggers = [];
+    this._toggleTriggerIdx = 0;
+    this._touchToggleTriggerActivated = new Set();
+    this._groupToggledOff = {};
+    this._shakeTriggers = [];
+    this._shakeTriggerIdx = 0;
+    this._touchShakeTriggerActivated = new Set();
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+    this._onDeathTriggers = [];
+    this._onDeathTriggerIdx = 0;
+    this._armedOnDeathTriggers = [];
+    this._touchOnDeathTriggerActivated = new Set();
+    this._touchTriggers = [];
+    this._touchTriggerIdx = 0;
+    this._activeTouchTriggers = [];
+    this._touchTouchTriggerActivated = new Set();
+    this._pickupTriggers = [];
+    this._pickupTriggerIdx = 0;
+    this._touchPickupTriggerActivated = new Set();
+    this._countTriggers = [];
+    this._countTriggerIdx = 0;
+    this._activeCountTriggers = [];
+    this._touchCountTriggerActivated = new Set();
+    this._instantCountTriggers = [];
+    this._instantCountTriggerIdx = 0;
+    this._touchInstantCountTriggerActivated = new Set();
+    this._itemCounts = {};
     this._pulseTriggers = [];
     this._pulseTriggerIdx = 0;
     this._activePulses = [];
@@ -678,6 +718,7 @@ window.LevelObject = class LevelObject {
     this._resetobject = {};
     this._resetremovedobject = {};
     this._groupOffsets = {};
+    this._groupRotations = {};
     this._groupOpacity = {};
     this._groupColliders = {};
     this._sections = [];
@@ -915,6 +956,33 @@ window.LevelObject = class LevelObject {
         break;
       }
     }
+
+    if (Array.isArray(this._toggleTriggers)) {
+      for (let trigger of this._toggleTriggers) {
+        if (trigger.touchTriggered || trigger.spawnTriggered || !this._isTriggerSaveObjectLive(trigger.uid)) continue;
+        if (trigger.x <= targetX) {
+          this._executeToggleTrigger(trigger);
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (Array.isArray(this._pickupTriggers)) {
+      this.checkPickupTriggers(targetX, colorManager);
+    }
+    if (Array.isArray(this._countTriggers)) {
+      this.checkCountTriggers(targetX, colorManager);
+    }
+    if (Array.isArray(this._instantCountTriggers)) {
+      this.checkInstantCountTriggers(targetX, colorManager);
+    }
+    if (Array.isArray(this._onDeathTriggers)) {
+      this.checkOnDeathTriggers(targetX);
+    }
+    if (Array.isArray(this._touchTriggers)) {
+      this.checkTouchTriggers(targetX);
+    }
   }
   loadLevel(levelData) {
     let {
@@ -949,6 +1017,12 @@ window.LevelObject = class LevelObject {
     this._sourceLevelObjects = levelObjects;
     this._spawnLevelObjects(levelObjects);
     this._setUpSettings(settingslist);
+    this.checkToggleTriggers?.(0);
+    this.checkPickupTriggers?.(0);
+    this.checkCountTriggers?.(0);
+    this.checkInstantCountTriggers?.(0);
+    this.checkOnDeathTriggers?.(0);
+    this.checkTouchTriggers?.(0);
     window.levelObjects = levelObjects;
     window.settingslist = settingslist;
   }
@@ -2162,6 +2236,7 @@ window.LevelObject = class LevelObject {
       this._alphaTriggers.push({
         ...triggerBase,
         x: levelObj.x * 2,
+        y: levelObj.y * 2,
         duration: parseFloat(_raw[10] ?? 0),
         targetGroup: parseInt(_raw[51] ?? 0, 10),
         targetOpacity: Math.max(0, Math.min(1, parseFloat(_raw[35] ?? 1)))
@@ -2238,6 +2313,141 @@ window.LevelObject = class LevelObject {
         targetGroup: parseInt(_raw[51] ?? 0, 10),
         delay: Math.max(0, parseFloat(_raw[63] ?? 0) || 0),
         randomDelay: Math.max(0, parseFloat(_raw[556] ?? _raw["556"] ?? 0) || 0)
+      });
+    }
+
+    if (levelObj.id === 1616) {
+      const _raw = levelObj._raw;
+      this._stopTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10)
+      });
+    }
+
+    if (levelObj.id === 1814) {
+      const _raw = levelObj._raw;
+      this._followPlayerYTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        speed: Math.max(0, parseFloat(_raw[72] ?? 1)),
+        delay: Math.max(0, parseFloat(_raw[73] ?? 0)),
+        offset: parseFloat(_raw[74] ?? 0) * 2,
+        maxSpeed: Math.max(0, parseFloat(_raw[75] ?? 0)) * 2,
+        duration: Math.max(0, parseFloat(_raw[10] ?? 0))
+      });
+    }
+
+    if (levelObj.id === 1347 || levelObj.id === 1817) {
+      const _raw = levelObj._raw;
+      this._followTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        followGroup: parseInt(_raw[71] ?? 0, 10),
+        xMod: parseFloat(_raw[72] ?? 1),
+        yMod: parseFloat(_raw[73] ?? 1),
+        duration: Math.max(0, parseFloat(_raw[10] ?? 0))
+      });
+    }
+
+    if (levelObj.id === 1049) {
+      const _raw = levelObj._raw;
+      this._toggleTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        activate: String(_raw[56] ?? "0") === "1"
+      });
+    }
+
+    if (levelObj.id === 1520) {
+      const _raw = levelObj._raw;
+      this._shakeTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        duration: Math.max(0, parseFloat(_raw[10] ?? 0)),
+        strength: Math.max(0, parseFloat(_raw[75] ?? _raw[84] ?? 1)),
+        interval: Math.max(0, parseFloat(_raw[84] ?? _raw[85] ?? 0))
+      });
+    }
+
+    if (levelObj.id === 1812) {
+      const _raw = levelObj._raw;
+      this._onDeathTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        activate: String(_raw[56] ?? "1") === "1"
+      });
+    }
+
+    if (levelObj.id === 1595) {
+      const _raw = levelObj._raw;
+      this._touchTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        toggleType: parseInt(_raw[56] ?? 0, 10),
+        dualTouch: String(_raw[81] ?? "0") === "1",
+        holdMode: String(_raw[82] ?? "0") === "1"
+      });
+    }
+
+    if (levelObj.id === 1817 && (levelObj._raw?.[80] !== undefined || levelObj._raw?.["80"] !== undefined)) {
+      const _raw = levelObj._raw;
+      this._pickupTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        itemId: parseInt(_raw[80] ?? 0, 10),
+        count: parseInt(_raw[77] ?? 1, 10)
+      });
+    }
+
+    if (levelObj.id === 1611) {
+      const _raw = levelObj._raw;
+      this._countTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        itemId: parseInt(_raw[80] ?? 0, 10),
+        targetCount: parseInt(_raw[77] ?? 0, 10),
+        activate: String(_raw[56] ?? "1") === "1",
+        multiActivate: String(_raw?.[104] ?? _raw?.["104"] ?? "0") === "1"
+      });
+    }
+
+    if (levelObj.id === 1811) {
+      const _raw = levelObj._raw;
+      this._instantCountTriggers.push({
+        ...triggerBase,
+        x: levelObj.x * 2,
+        y: levelObj.y * 2,
+        touchTriggered: String(_raw?.[11] ?? _raw?.["11"] ?? "0") === "1",
+        targetGroup: parseInt(_raw[51] ?? 0, 10),
+        itemId: parseInt(_raw[80] ?? 0, 10),
+        targetCount: parseInt(_raw[77] ?? 0, 10),
+        activate: String(_raw[56] ?? "1") === "1",
+        comparison: parseInt(_raw[88] ?? 0, 10)
       });
     }
 
@@ -2457,7 +2667,8 @@ window.LevelObject = class LevelObject {
       }
 
       if (objectDef && objectDef.type === ringType) {
-        sprite.setScale(0.75);
+        sprite.setScale(0.75 * (Number(levelObj.scale) || 1));
+        sprite._eeBaseScale = 0.75 * (Number(levelObj.scale) || 1);
         sprite._eeAudioScale = true;
         sprite._orbId = levelObj.id;
         this._orbSprites.push(sprite);
@@ -2468,7 +2679,8 @@ window.LevelObject = class LevelObject {
         }
 
         if (orbGlow) {
-          orbGlow.setScale(0.75);
+          orbGlow.setScale(0.75 * (Number(levelObj.scale) || 1));
+          orbGlow._eeBaseScale = 0.75 * (Number(levelObj.scale) || 1);
           orbGlow._eeAudioScale = true;
           orbGlow._orbId = levelObj.id;
           this._orbSprites.push(orbGlow);
@@ -2720,7 +2932,8 @@ window.LevelObject = class LevelObject {
           }
 
           if (objectDef && objectDef.type === ringType && childDef.orbGuide) {
-            childSprite.setScale(0.75);
+            childSprite.setScale(0.75 * (Number(levelObj.scale) || 1));
+            childSprite._eeBaseScale = 0.75 * (Number(levelObj.scale) || 1);
             childSprite._orbId = levelObj.id;
             childSprite._eeOrbGuide = true;
             childSprite._OrbGuideGrav = !!(childDef.frame && /grav(?:ring|JumpRing)/.test(childDef.frame));
@@ -3153,6 +3366,16 @@ window.LevelObject = class LevelObject {
     this._moveTriggers.sort((a, b) => a.x - b.x);
     this._alphaTriggers.sort((a, b) => a.x - b.x);
     this._rotateTriggers.sort((a, b) => a.x - b.x);
+    this._stopTriggers.sort((a, b) => a.x - b.x);
+    this._followPlayerYTriggers.sort((a, b) => a.x - b.x);
+    this._followTriggers.sort((a, b) => a.x - b.x);
+    this._toggleTriggers.sort((a, b) => a.x - b.x);
+    this._shakeTriggers.sort((a, b) => a.x - b.x);
+    this._onDeathTriggers.sort((a, b) => a.x - b.x);
+    this._touchTriggers.sort((a, b) => a.x - b.x);
+    this._pickupTriggers.sort((a, b) => a.x - b.x);
+    this._countTriggers.sort((a, b) => a.x - b.x);
+    this._instantCountTriggers.sort((a, b) => a.x - b.x);
     this._pulseTriggers.sort((a, b) => a.x - b.x);
 
     for (let si = 0; si < this._sectionContainers.length; si++) {
@@ -3565,7 +3788,10 @@ window.LevelObject = class LevelObject {
       const _0x2171db = this._collisionSections[_0xe2cbfa];
       if (_0x2171db) {
         for (let _0x5cdca9 = 0; _0x5cdca9 < _0x2171db.length; _0x5cdca9++) {
-          _0x28a7c0.push(_0x2171db[_0x5cdca9]);
+          const col = _0x2171db[_0x5cdca9];
+          if (col && !col.disabled && col.active !== false) {
+            _0x28a7c0.push(col);
+          }
         }
       }
     }
@@ -3600,6 +3826,12 @@ window.LevelObject = class LevelObject {
     return [...new Set(sprites)].filter(spr => spr && spr.active);
   }
 
+  _getAllGroupSprites(groupId) {
+    const sprites = this._groupSprites?.[groupId];
+    if (!sprites || !sprites.length) return [];
+    return [...new Set(sprites)].filter(Boolean);
+  }
+
   _getUniqueGroupColliders(groupId) {
     const colliders = this._groupColliders?.[groupId];
     if (!colliders || !colliders.length) return [];
@@ -3611,6 +3843,7 @@ window.LevelObject = class LevelObject {
     return [...new Set(groups.map(gid => parseInt(gid, 10)).filter(gid => Number.isFinite(gid) && gid > 0))];
   }
 
+
   _getCombinedGroupOffset(obj) {
     const result = { x: 0, y: 0 };
     for (const gid of this._getObjectGroupIds(obj)) {
@@ -3620,6 +3853,92 @@ window.LevelObject = class LevelObject {
       result.y += Number(off.y) || 0;
     }
     return result;
+  }
+
+  _getGroupCenter(groupId) {
+    const sprites = this._getUniqueGroupSprites(groupId);
+    let cx = 0, cy = 0, n = 0;
+    for (const cs of sprites) {
+      if (!cs || !cs.active) continue;
+      const off = this._getCombinedGroupOffset(cs);
+      cx += (cs._eeInitialWorldX !== undefined ? cs._eeInitialWorldX : (cs._eeWorldX ?? cs.x)) + off.x;
+      cy += (cs._eeInitialBaseY !== undefined ? cs._eeInitialBaseY : (cs._eeBaseY ?? cs.y)) + off.y;
+      n++;
+    }
+    return n > 0 ? { cx: cx / n, cy: cy / n } : { cx: 0, cy: 0 };
+  }
+
+  _applyGroupedSpriteTransform(spr) {
+    if (!spr || !spr.active) return;
+    const initialX = spr._eeInitialWorldX !== undefined ? spr._eeInitialWorldX : (spr._origWorldX ?? spr.x);
+    const initialY = spr._eeInitialBaseY !== undefined ? spr._eeInitialBaseY : (spr._origBaseY ?? spr.y);
+    const moveOff = this._getCombinedGroupOffset(spr);
+    let finalX = initialX + moveOff.x;
+    let finalY = initialY + moveOff.y;
+    let hasRotation = false;
+    let finalRot = spr._eeInitialRotationRad !== undefined ? spr._eeInitialRotationRad : 0;
+    for (const gid of this._getObjectGroupIds(spr)) {
+      const rotData = this._groupRotations?.[gid];
+      if (!rotData || rotData.totalRad === 0) continue;
+      hasRotation = true;
+      if (!rotData.lockRotation) finalRot += rotData.totalRad;
+      if (rotData.centerGroupId > 0) {
+        const { cx, cy } = this._getGroupCenter(rotData.centerGroupId);
+        const dx = finalX - cx;
+        const dy = finalY - cy;
+        const cosR = Math.cos(rotData.totalRad);
+        const sinR = Math.sin(rotData.totalRad);
+        finalX = cx + dx * cosR - dy * sinR;
+        finalY = cy + dx * sinR + dy * cosR;
+      }
+    }
+    spr.x = finalX;
+    spr.y = finalY;
+    if (hasRotation) spr.rotation = finalRot;
+    spr._eeWorldX = finalX;
+    spr._eeBaseY = finalY;
+    this._refreshSpriteSection(spr);
+    if (spr._coinWorldX !== undefined) spr._coinWorldX = spr.x / 2;
+    if (spr._coinWorldY !== undefined) spr._coinWorldY = (460 - spr.y) / 2;
+  }
+
+  _applyGroupedColliderTransform(col) {
+    if (!col) return;
+    const initialX = col._eeInitialBaseX !== undefined ? col._eeInitialBaseX : (col._origBaseX ?? col.x);
+    const initialY = col._eeInitialBaseY !== undefined ? col._eeInitialBaseY : (col._origBaseY ?? col.y);
+    const initialRotDeg = col._eeInitialRotationDegrees !== undefined ? col._eeInitialRotationDegrees : 0;
+    const moveOff = this._getCombinedGroupOffset(col);
+    let finalX = initialX + moveOff.x;
+    let finalY = initialY - moveOff.y;
+    let hasRotation = false;
+    let finalRotDeg = initialRotDeg;
+    for (const gid of this._getObjectGroupIds(col)) {
+      const rotData = this._groupRotations?.[gid];
+      if (!rotData || rotData.totalRad === 0) continue;
+      hasRotation = true;
+      if (!rotData.lockRotation) finalRotDeg += rotData.totalRad * 180 / Math.PI;
+      if (rotData.centerGroupId > 0) {
+        const { cx, cy } = this._getGroupCenter(rotData.centerGroupId);
+        const collisionCy = this._screenYToCollisionY(cy);
+        const dx = finalX - cx;
+        const dy = finalY - collisionCy;
+        const collisionRot = -rotData.totalRad;
+        const cosR = Math.cos(collisionRot);
+        const sinR = Math.sin(collisionRot);
+        finalX = cx + dx * cosR - dy * sinR;
+        finalY = collisionCy + dx * sinR + dy * cosR;
+      }
+    }
+    col.x = finalX;
+    col.y = finalY;
+    col._baseX = finalX;
+    col._baseY = finalY;
+    if (hasRotation) {
+      col.rotationDegrees = finalRotDeg;
+      col._baseRotationDegrees = finalRotDeg;
+      if (col._origRotationDegrees !== undefined) col._origRotationDegrees = finalRotDeg;
+    }
+    this._refreshCollisionSection(col);
   }
 
   _ensureSpriteMoveBase(spr) {
@@ -3635,32 +3954,10 @@ window.LevelObject = class LevelObject {
   }
 
   _applyGroupedSpriteMoveOffset(spr) {
-    if (!spr || !spr.active) return;
-    this._ensureSpriteMoveBase(spr);
-    const off = this._getCombinedGroupOffset(spr);
-    spr.x = spr._eeMoveBaseWorldX + off.x;
-    spr.y = spr._eeMoveBaseBaseY + off.y;
-    spr._eeWorldX = spr.x;
-    spr._eeBaseY = spr.y;
-    this._refreshSpriteSection(spr);
-    if (spr._coinWorldX !== undefined) {
-      spr._coinWorldX = spr.x / 2;
-    }
-    if (spr._coinWorldY !== undefined) {
-      spr._coinWorldY = (460 - spr.y) / 2;
-    }
+    this._applyGroupedSpriteTransform(spr);
   }
 
-  _syncSpriteMoveBaseFromCurrent(spr) {
-    if (!spr || !spr.active) return;
-    const off = this._getCombinedGroupOffset(spr);
-    const wx = spr._eeWorldX !== undefined ? spr._eeWorldX : spr.x;
-    const wy = spr._eeBaseY !== undefined ? spr._eeBaseY : spr.y;
-    spr._eeMoveBaseWorldX = wx - off.x;
-    spr._eeMoveBaseBaseY = wy - off.y;
-    spr._origWorldX = spr._eeMoveBaseWorldX;
-    spr._origBaseY = spr._eeMoveBaseBaseY;
-  }
+  _syncSpriteMoveBaseFromCurrent(spr) {}
 
   _ensureColliderMoveBase(col) {
     if (!col) return;
@@ -3675,24 +3972,10 @@ window.LevelObject = class LevelObject {
   }
 
   _applyGroupedColliderMoveOffset(col) {
-    if (!col) return;
-    this._ensureColliderMoveBase(col);
-    const off = this._getCombinedGroupOffset(col);
-    col.x = col._eeMoveBaseX + off.x;
-    col.y = col._eeMoveBaseY - off.y;
-    col._baseX = col.x;
-    col._baseY = col.y;
-    this._refreshCollisionSection(col);
+    this._applyGroupedColliderTransform(col);
   }
 
-  _syncColliderMoveBaseFromCurrent(col) {
-    if (!col) return;
-    const off = this._getCombinedGroupOffset(col);
-    col._eeMoveBaseX = col.x - off.x;
-    col._eeMoveBaseY = col.y + off.y;
-    col._origBaseX = col._eeMoveBaseX;
-    col._origBaseY = col._eeMoveBaseY;
-  }
+  _syncColliderMoveBaseFromCurrent(col) {}
 
   _startMoveTriggerTween(trig) {
     if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
@@ -3799,11 +4082,12 @@ window.LevelObject = class LevelObject {
     this._activeMoveTweens = [];
     this._touchMoveTriggerActivated = new Set();
     this._groupOffsets = {};
+    this._groupRotations = {};
 
     const seenSprites = new Set();
     for (const gid in this._groupSprites) {
       for (const spr of this._groupSprites[gid]) {
-        if (!spr || !spr.active || seenSprites.has(spr)) continue;
+        if (!spr || seenSprites.has(spr)) continue;
         seenSprites.add(spr);
         const baseX = spr._eeInitialWorldX !== undefined ? spr._eeInitialWorldX : (spr._origWorldX ?? spr.x);
         const baseY = spr._eeInitialBaseY !== undefined ? spr._eeInitialBaseY : (spr._origBaseY ?? spr.y);
@@ -3943,8 +4227,18 @@ window.LevelObject = class LevelObject {
     for (const trig of spawnMatches(this._moveTriggers)) this._startMoveTriggerTween(trig);
     for (const trig of spawnMatches(this._alphaTriggers)) this._startAlphaTriggerTween(trig);
     for (const trig of spawnMatches(this._rotateTriggers)) this._startRotateTriggerTween(trig);
+    for (const trig of spawnMatches(this._stopTriggers)) this._executeStopTrigger(trig);
+    for (const trig of spawnMatches(this._followPlayerYTriggers)) this._startFollowPlayerYTween(trig);
+    for (const trig of spawnMatches(this._followTriggers)) this._startFollowTriggerTween(trig);
+    for (const trig of spawnMatches(this._toggleTriggers)) this._executeToggleTrigger(trig);
+    for (const trig of spawnMatches(this._shakeTriggers)) this._executeShakeTrigger(trig);
     for (const trig of spawnMatches(this._pulseTriggers)) this._startPulseTrigger(trig);
     for (const trig of spawnMatches(this._spawnTriggers)) this._queueSpawnTrigger(trig);
+    for (const trig of spawnMatches(this._onDeathTriggers)) this._armOnDeathTrigger(trig);
+    for (const trig of spawnMatches(this._touchTriggers)) this._armTouchTrigger(trig);
+    for (const trig of spawnMatches(this._pickupTriggers)) this._executePickupTrigger(trig, colorManager);
+    for (const trig of spawnMatches(this._countTriggers)) this._armCountTrigger(trig, colorManager);
+    for (const trig of spawnMatches(this._instantCountTriggers)) this._executeInstantCountTrigger(trig, colorManager);
   }
 
   checkTouchSpawnTriggers(playerX, playerY) {
@@ -3994,8 +4288,27 @@ window.LevelObject = class LevelObject {
     while (this._alphaTriggerIdx < this._alphaTriggers.length) {
       const trig = this._alphaTriggers[this._alphaTriggerIdx];
       if (trig.x > playerX) break;
-      if (!trig.spawnTriggered) this._startAlphaTriggerTween(trig);
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._startAlphaTriggerTween(trig);
       this._alphaTriggerIdx++;
+    }
+  }
+
+  checkTouchAlphaTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchAlphaTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._alphaTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchAlphaTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchAlphaTriggerActivated.add(uid);
+        this._startAlphaTriggerTween(trig);
+      }
     }
   }
 
@@ -4040,6 +4353,7 @@ window.LevelObject = class LevelObject {
   resetAlphaTriggers() {
     this._alphaTriggerIdx = 0;
     this._activeAlphaTweens = [];
+    this._touchAlphaTriggerActivated = new Set();
     this._groupOpacity = {};
     for (const gid in this._groupSprites) {
       for (const spr of this._groupSprites[gid]) {
@@ -4077,67 +4391,770 @@ window.LevelObject = class LevelObject {
       const prevSample = Easing.sample(trig.easingType, trig.easingRate, anim.prevProgress);
       const deltaRot = (curSample - prevSample) * anim.totalRad;
       anim.prevProgress = progress;
+
+      if (!this._groupRotations[trig.targetGroup]) {
+        this._groupRotations[trig.targetGroup] = { totalRad: 0, centerGroupId: trig.centerGroup || 0, lockRotation: !!trig.lockRotation };
+      }
+      const rotState = this._groupRotations[trig.targetGroup];
+      rotState.totalRad += deltaRot;
+      rotState.centerGroupId = trig.centerGroup || 0;
+      rotState.lockRotation = !!trig.lockRotation;
+
       const sprites = this._getUniqueGroupSprites(trig.targetGroup);
       const colliders = this._getUniqueGroupColliders(trig.targetGroup);
-      if (trig.centerGroup > 0) {
-        const centerSprites = this._getUniqueGroupSprites(trig.centerGroup);
-        if (centerSprites && centerSprites.length > 0) {
-          let cx = 0, cy = 0, cn = 0;
-          for (const cs of centerSprites) {
-            if (!cs || !cs.active) continue;
-            cx += cs._eeWorldX !== undefined ? cs._eeWorldX : cs.x;
-            cy += cs._eeBaseY !== undefined ? cs._eeBaseY : cs.y;
-            cn++;
+      for (const spr of sprites) {
+        this._applyGroupedSpriteTransform(spr);
+      }
+      for (const col of colliders) {
+        this._applyGroupedColliderTransform(col);
+      }
+
+      if (progress >= 1) {
+        this._activeRotateTweens.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+  }
+
+  _executeStopTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const targetGroup = parseInt(trig.targetGroup ?? 0, 10);
+    if (!Number.isFinite(targetGroup) || targetGroup <= 0) return;
+
+    this._activeMoveTweens = this._activeMoveTweens.filter(anim => anim?.trig?.targetGroup !== targetGroup);
+    this._activeRotateTweens = this._activeRotateTweens.filter(anim => anim?.trig?.targetGroup !== targetGroup);
+    this._activeFollowPlayerYTweens = this._activeFollowPlayerYTweens.filter(anim => anim?.trig?.targetGroup !== targetGroup);
+    this._activeFollowTweens = this._activeFollowTweens.filter(anim => anim?.trig?.targetGroup !== targetGroup);
+  }
+
+  checkStopTriggers(playerX) {
+    while (this._stopTriggerIdx < this._stopTriggers.length) {
+      const trig = this._stopTriggers[this._stopTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._executeStopTrigger(trig);
+      this._stopTriggerIdx++;
+    }
+  }
+
+  checkTouchStopTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchStopTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._stopTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchStopTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchStopTriggerActivated.add(uid);
+        this._executeStopTrigger(trig);
+      }
+    }
+  }
+
+  resetStopTriggers() {
+    this._stopTriggerIdx = 0;
+    this._touchStopTriggerActivated = new Set();
+  }
+
+  _startFollowPlayerYTween(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const targetGroup = parseInt(trig.targetGroup ?? 0, 10);
+    if (!Number.isFinite(targetGroup) || targetGroup <= 0) return;
+    if (!this._groupOffsets[targetGroup]) {
+      this._groupOffsets[targetGroup] = { x: 0, y: 0 };
+    }
+    const sprites = this._getUniqueGroupSprites(targetGroup);
+    let groupInitialGDY = 0, n = 0;
+    for (const spr of sprites) {
+      if (!spr) continue;
+      const initialScreenY = spr._eeInitialBaseY !== undefined ? spr._eeInitialBaseY : (spr._origBaseY ?? spr.y);
+      groupInitialGDY += (typeof b === "function" ? b(initialScreenY) : (460 - initialScreenY));
+      n++;
+    }
+    if (n === 0) {
+      const colliders = this._getUniqueGroupColliders(targetGroup);
+      for (const col of colliders) {
+        if (!col) continue;
+        const initialWorldY = col._eeInitialBaseY !== undefined ? col._eeInitialBaseY : (col._origBaseY ?? col.y);
+        groupInitialGDY += Number(initialWorldY) || 0;
+        n++;
+      }
+    }
+    groupInitialGDY = n > 0 ? groupInitialGDY / n : 0;
+    this._activeFollowPlayerYTweens.push({
+      trig,
+      elapsed: 0,
+      history: [],
+      groupInitialGDY
+    });
+  }
+
+  checkFollowPlayerYTriggers(playerX) {
+    while (this._followPlayerYTriggerIdx < this._followPlayerYTriggers.length) {
+      const trig = this._followPlayerYTriggers[this._followPlayerYTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._startFollowPlayerYTween(trig);
+      this._followPlayerYTriggerIdx++;
+    }
+  }
+
+  checkTouchFollowPlayerYTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchFollowPlayerYTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._followPlayerYTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchFollowPlayerYTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchFollowPlayerYTriggerActivated.add(uid);
+        this._startFollowPlayerYTween(trig);
+      }
+    }
+  }
+
+  stepFollowPlayerYTriggers(dt) {
+    if (!this._activeFollowPlayerYTweens || !this._activeFollowPlayerYTweens.length) return;
+    const pos = this._getMoveTriggerPlayerPosition();
+    const currentPy = pos.playerY;
+
+    let i = 0;
+    while (i < this._activeFollowPlayerYTweens.length) {
+      const anim = this._activeFollowPlayerYTweens[i];
+      const { trig } = anim;
+      anim.elapsed += dt;
+
+      anim.history.push({ time: anim.elapsed, y: currentPy });
+      const targetTime = anim.elapsed - trig.delay;
+      while (anim.history.length > 2 && anim.history[1].time <= targetTime) {
+        anim.history.shift();
+      }
+      let targetPlayerY = anim.history[0]?.y ?? currentPy;
+      if (anim.history.length >= 2 && anim.history[0].time <= targetTime && targetTime <= anim.history[1].time) {
+        const t0 = anim.history[0].time;
+        const t1 = anim.history[1].time;
+        const span = t1 - t0;
+        const alpha = span > 0 ? (targetTime - t0) / span : 0;
+        targetPlayerY = anim.history[0].y + (anim.history[1].y - anim.history[0].y) * alpha;
+      }
+
+      if (!this._groupOffsets[trig.targetGroup]) {
+        this._groupOffsets[trig.targetGroup] = { x: 0, y: 0 };
+      }
+      const off = this._groupOffsets[trig.targetGroup];
+
+      const currentGDY = anim.groupInitialGDY - off.y;
+      const targetGDY = targetPlayerY + trig.offset;
+      const diffGD = targetGDY - currentGDY;
+
+      const rate = Math.min(1.0, Math.max(0.0, dt * 60.0 * trig.speed));
+      let stepGD = diffGD * rate;
+      if (trig.maxSpeed > 0) {
+        const maxStep = trig.maxSpeed * dt * 60.0;
+        if (Math.abs(stepGD) > maxStep) {
+          stepGD = Math.sign(stepGD) * maxStep;
+        }
+      }
+
+      off.y -= stepGD;
+
+      const sprites = this._getUniqueGroupSprites(trig.targetGroup);
+      const colliders = this._getUniqueGroupColliders(trig.targetGroup);
+      for (const spr of sprites) {
+        this._applyGroupedSpriteMoveOffset(spr);
+      }
+      for (const col of colliders) {
+        this._applyGroupedColliderMoveOffset(col);
+      }
+
+      if (trig.duration > 0 && anim.elapsed >= trig.duration) {
+        this._activeFollowPlayerYTweens.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+  }
+
+  resetFollowPlayerYTriggers() {
+    this._followPlayerYTriggerIdx = 0;
+    this._activeFollowPlayerYTweens = [];
+    this._touchFollowPlayerYTriggerActivated = new Set();
+  }
+
+  _startFollowTriggerTween(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const targetGroup = parseInt(trig.targetGroup ?? 0, 10);
+    const followGroup = parseInt(trig.followGroup ?? 0, 10);
+    if (!Number.isFinite(targetGroup) || targetGroup <= 0 || !Number.isFinite(followGroup) || followGroup <= 0) return;
+
+    const baseFollowOff = this._groupOffsets[followGroup] ? { ...this._groupOffsets[followGroup] } : { x: 0, y: 0 };
+    this._activeFollowTweens.push({
+      trig,
+      elapsed: 0,
+      lastFollowX: baseFollowOff.x,
+      lastFollowY: baseFollowOff.y
+    });
+    if (!this._groupOffsets[targetGroup]) {
+      this._groupOffsets[targetGroup] = { x: 0, y: 0 };
+    }
+  }
+
+  checkFollowTriggers(playerX) {
+    while (this._followTriggerIdx < this._followTriggers.length) {
+      const trig = this._followTriggers[this._followTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._startFollowTriggerTween(trig);
+      this._followTriggerIdx++;
+    }
+  }
+
+  checkTouchFollowTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchFollowTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._followTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup},${trig.followGroup}`;
+      if (this._touchFollowTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchFollowTriggerActivated.add(uid);
+        this._startFollowTriggerTween(trig);
+      }
+    }
+  }
+
+  stepFollowTriggers(dt) {
+    if (!this._activeFollowTweens || !this._activeFollowTweens.length) return;
+
+    let i = 0;
+    while (i < this._activeFollowTweens.length) {
+      const anim = this._activeFollowTweens[i];
+      const { trig } = anim;
+      anim.elapsed += dt;
+
+      const curFollowOff = this._groupOffsets[trig.followGroup] || { x: 0, y: 0 };
+      const deltaX = (curFollowOff.x - anim.lastFollowX) * trig.xMod;
+      const deltaY = (curFollowOff.y - anim.lastFollowY) * trig.yMod;
+
+      anim.lastFollowX = curFollowOff.x;
+      anim.lastFollowY = curFollowOff.y;
+
+      if (!this._groupOffsets[trig.targetGroup]) {
+        this._groupOffsets[trig.targetGroup] = { x: 0, y: 0 };
+      }
+      const off = this._groupOffsets[trig.targetGroup];
+      off.x += deltaX;
+      off.y += deltaY;
+
+      const sprites = this._getUniqueGroupSprites(trig.targetGroup);
+      const colliders = this._getUniqueGroupColliders(trig.targetGroup);
+      for (const spr of sprites) {
+        this._applyGroupedSpriteMoveOffset(spr);
+      }
+      for (const col of colliders) {
+        this._applyGroupedColliderMoveOffset(col);
+      }
+
+      if (trig.duration > 0 && anim.elapsed >= trig.duration) {
+        this._activeFollowTweens.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+  }
+
+  resetFollowTriggers() {
+    this._followTriggerIdx = 0;
+    this._activeFollowTweens = [];
+    this._touchFollowTriggerActivated = new Set();
+  }
+
+  _executeToggleTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const targetGroup = parseInt(trig.targetGroup ?? 0, 10);
+    if (!Number.isFinite(targetGroup) || targetGroup <= 0) return;
+    const activate = !!trig.activate;
+    this._groupToggledOff ||= {};
+    if (activate) {
+      delete this._groupToggledOff[targetGroup];
+    } else {
+      this._groupToggledOff[targetGroup] = true;
+    }
+
+    const sprites = this._getAllGroupSprites(targetGroup);
+    const colliders = this._getUniqueGroupColliders(targetGroup);
+
+    for (const spr of sprites) {
+      if (!spr) continue;
+      spr._eeToggledOffGroups ||= new Set();
+      if (activate) {
+        spr._eeToggledOffGroups.delete(targetGroup);
+      } else {
+        spr._eeToggledOffGroups.add(targetGroup);
+      }
+      const isVisible = spr._eeToggledOffGroups.size === 0;
+      if (typeof spr.setVisible === "function") spr.setVisible(isVisible);
+      spr.active = isVisible;
+    }
+
+    for (const col of colliders) {
+      if (!col) continue;
+      col._eeToggledOffGroups ||= new Set();
+      if (activate) {
+        col._eeToggledOffGroups.delete(targetGroup);
+      } else {
+        col._eeToggledOffGroups.add(targetGroup);
+      }
+      const isEnabled = col._eeToggledOffGroups.size === 0;
+      col.disabled = !isEnabled;
+      col.active = isEnabled;
+    }
+  }
+
+  checkToggleTriggers(playerX) {
+    while (this._toggleTriggerIdx < this._toggleTriggers.length) {
+      const trig = this._toggleTriggers[this._toggleTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._executeToggleTrigger(trig);
+      this._toggleTriggerIdx++;
+    }
+  }
+
+  checkTouchToggleTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchToggleTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._toggleTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchToggleTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchToggleTriggerActivated.add(uid);
+        this._executeToggleTrigger(trig);
+      }
+    }
+  }
+
+  resetToggleTriggers() {
+    this._toggleTriggerIdx = 0;
+    this._touchToggleTriggerActivated = new Set();
+    this._groupToggledOff = {};
+
+    const seenSprites = new Set();
+    for (const gid in this._groupSprites) {
+      for (const spr of this._groupSprites[gid]) {
+        if (!spr || seenSprites.has(spr)) continue;
+        seenSprites.add(spr);
+        if (spr._eeToggledOffGroups) spr._eeToggledOffGroups.clear();
+        if (typeof spr.setVisible === "function") spr.setVisible(true);
+        spr.active = true;
+      }
+    }
+
+    const seenColliders = new Set();
+    for (const gid in this._groupColliders) {
+      for (const col of this._groupColliders[gid]) {
+        if (!col || seenColliders.has(col)) continue;
+        seenColliders.add(col);
+        if (col._eeToggledOffGroups) col._eeToggledOffGroups.clear();
+        col.disabled = false;
+        col.active = true;
+      }
+    }
+  }
+
+  _executeShakeTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const dur = Math.max(0.05, Number(trig.duration) || 0.2);
+    const str = Math.max(0.1, Number(trig.strength) || 1);
+    const durationMs = Math.round(dur * 1000);
+    const amplitude = Math.max(1, Math.min(40, str * 4));
+    const scene = this._scene;
+    if (!scene?.time) return;
+    const steps = Math.max(4, Math.round(dur * 30));
+    const stepMs = Math.round(durationMs / steps);
+    let remaining = steps;
+    const self = this;
+    const doStep = () => {
+      if (remaining <= 0) { self.shakeOffsetX = 0; self.shakeOffsetY = 0; return; }
+      const t = remaining / steps;
+      const mag = amplitude * t;
+      self.shakeOffsetX = (Math.random() * 2 - 1) * mag;
+      self.shakeOffsetY = (Math.random() * 2 - 1) * mag;
+      remaining--;
+      scene.time.delayedCall(stepMs, doStep);
+    };
+    doStep();
+  }
+
+  checkShakeTriggers(playerX) {
+    while (this._shakeTriggerIdx < this._shakeTriggers.length) {
+      const trig = this._shakeTriggers[this._shakeTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) this._executeShakeTrigger(trig);
+      this._shakeTriggerIdx++;
+    }
+  }
+
+  checkTouchShakeTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchShakeTriggerActivated ||= new Set();
+
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._shakeTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.duration}`;
+      if (this._touchShakeTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchShakeTriggerActivated.add(uid);
+        this._executeShakeTrigger(trig);
+      }
+    }
+  }
+
+  resetShakeTriggers() {
+    this._shakeTriggerIdx = 0;
+    this._touchShakeTriggerActivated = new Set();
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
+  }
+
+  isGroupToggledOff(groupId) {
+    const targetGroup = parseInt(groupId ?? 0, 10);
+    return targetGroup > 0 && Boolean(this._groupToggledOff?.[targetGroup]);
+  }
+
+  _armOnDeathTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    if (!this._armedOnDeathTriggers.includes(trig)) {
+      this._armedOnDeathTriggers.push(trig);
+    }
+  }
+
+  _executeOnDeathTrigger(trig, colorManager) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    if (trig.activate) {
+      this._activateSpawnedGroup(trig.targetGroup, colorManager);
+      this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
+    } else {
+      this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
+    }
+  }
+
+  triggerOnDeath(colorManager) {
+    for (const trig of this._armedOnDeathTriggers) {
+      this._executeOnDeathTrigger(trig, colorManager);
+    }
+  }
+
+  checkOnDeathTriggers(playerX) {
+    while (this._onDeathTriggerIdx < this._onDeathTriggers.length) {
+      const trig = this._onDeathTriggers[this._onDeathTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) {
+        this._armOnDeathTrigger(trig);
+      }
+      this._onDeathTriggerIdx++;
+    }
+  }
+
+  checkTouchOnDeathTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchOnDeathTriggerActivated ||= new Set();
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+    for (const trig of this._onDeathTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchOnDeathTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchOnDeathTriggerActivated.add(uid);
+        this._armOnDeathTrigger(trig);
+      }
+    }
+  }
+
+  resetOnDeathTriggers() {
+    this._onDeathTriggerIdx = 0;
+    this._armedOnDeathTriggers = [];
+    this._touchOnDeathTriggerActivated = new Set();
+  }
+
+  _armTouchTrigger(trig) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    if (!this._activeTouchTriggers.includes(trig)) {
+      this._activeTouchTriggers.push(trig);
+    }
+  }
+
+  checkTouchTriggers(playerX) {
+    while (this._touchTriggerIdx < this._touchTriggers.length) {
+      const trig = this._touchTriggers[this._touchTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) {
+        this._armTouchTrigger(trig);
+      }
+      this._touchTriggerIdx++;
+    }
+  }
+
+  checkTouchTouchTriggers(playerX, playerY) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchTouchTriggerActivated ||= new Set();
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+    for (const trig of this._touchTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchTouchTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchTouchTriggerActivated.add(uid);
+        this._armTouchTrigger(trig);
+      }
+    }
+  }
+
+  stepTouchTriggers(isHolding, isPressed, colorManager) {
+    for (const trig of this._activeTouchTriggers) {
+      if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      if (trig.holdMode) {
+        if (isHolding && !trig._holding) {
+          trig._holding = true;
+          if (trig.toggleType === 2) {
+            this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
+          } else {
+            this._activateSpawnedGroup(trig.targetGroup, colorManager);
+            this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
           }
-          if (cn > 0) {
-            cx /= cn; cy /= cn;
-            const cosD = Math.cos(deltaRot), sinD = Math.sin(deltaRot);
-            if (sprites) {
-              for (const spr of sprites) {
-                if (!spr || !spr.active) continue;
-                const bx = spr._eeWorldX !== undefined ? spr._eeWorldX : spr.x;
-                const by = spr._eeBaseY !== undefined ? spr._eeBaseY : spr.y;
-                const dx = bx - cx, dy = by - cy;
-                spr._eeWorldX = cx + dx * cosD - dy * sinD;
-                spr._eeBaseY = cy + dx * sinD + dy * cosD;
-                spr.x = spr._eeWorldX;
-                spr.y = spr._eeBaseY;
-                this._syncSpriteMoveBaseFromCurrent(spr);
-                if (!trig.lockRotation) spr.rotation += deltaRot;
-                this._refreshSpriteSection(spr);
-              }
-            }
-            if (colliders) {
-              for (const col of colliders) {
-                this._applyRotateTriggerColliderDelta(col, deltaRot, cx, cy, !!trig.lockRotation);
-              }
-            }
+        } else if (!isHolding && trig._holding) {
+          trig._holding = false;
+          if (trig.toggleType === 2) {
+            this._activateSpawnedGroup(trig.targetGroup, colorManager);
+            this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
+          } else {
+            this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
           }
         }
       } else {
-        if (sprites && !trig.lockRotation) {
-          for (const spr of sprites) {
-            if (!spr || !spr.active) continue;
-            spr.rotation += deltaRot;
+        if (isPressed) {
+          if (trig.toggleType === 1) {
+            this._activateSpawnedGroup(trig.targetGroup, colorManager);
+            this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
+          } else if (trig.toggleType === 2) {
+            this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
+          } else {
+            const isCurrentlyOff = Boolean(this._groupToggledOff?.[trig.targetGroup]);
+            if (isCurrentlyOff) {
+              this._activateSpawnedGroup(trig.targetGroup, colorManager);
+              this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
+            } else {
+              this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
+            }
           }
         }
-        if (colliders) {
-          for (const col of colliders) {
-            this._applyRotateTriggerColliderDelta(col, deltaRot, null, null, !!trig.lockRotation);
-          }
-        }
-      }
-      if (progress >= 1) { 
-        this._activeRotateTweens.splice(i, 1); 
-      } else { 
-        i++; 
       }
     }
+  }
+
+  resetTouchTriggers() {
+    this._touchTriggerIdx = 0;
+    for (const trig of this._activeTouchTriggers) {
+      if (trig) trig._holding = false;
+    }
+    this._activeTouchTriggers = [];
+    this._touchTouchTriggerActivated = new Set();
+  }
+
+  _executePickupTrigger(trig, colorManager) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const itemId = parseInt(trig.itemId ?? 0, 10);
+    if (!itemId) return;
+    const count = parseInt(trig.count ?? 1, 10);
+    this._itemCounts[itemId] = (this._itemCounts[itemId] || 0) + count;
+    this._checkCountTriggers(itemId, colorManager);
+  }
+
+  checkPickupTriggers(playerX, colorManager) {
+    while (this._pickupTriggerIdx < this._pickupTriggers.length) {
+      const trig = this._pickupTriggers[this._pickupTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) {
+        this._executePickupTrigger(trig, colorManager);
+      }
+      this._pickupTriggerIdx++;
+    }
+  }
+
+  checkTouchPickupTriggers(playerX, playerY, colorManager) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchPickupTriggerActivated ||= new Set();
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+    for (const trig of this._pickupTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.itemId}`;
+      if (this._touchPickupTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchPickupTriggerActivated.add(uid);
+        this._executePickupTrigger(trig, colorManager);
+      }
+    }
+  }
+
+  resetPickupTriggers() {
+    this._pickupTriggerIdx = 0;
+    this._touchPickupTriggerActivated = new Set();
+    this._itemCounts = {};
+  }
+
+  _armCountTrigger(trig, colorManager) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    if (!this._activeCountTriggers.includes(trig)) {
+      this._activeCountTriggers.push(trig);
+    }
+    this._evaluateCountTrigger(trig, colorManager);
+  }
+
+  _evaluateCountTrigger(trig, colorManager) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const current = this._itemCounts[trig.itemId] || 0;
+    if (current >= trig.targetCount) {
+      if (trig.activate) {
+        this._activateSpawnedGroup(trig.targetGroup, colorManager);
+        this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
+      } else {
+        this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
+      }
+      if (!trig.multiActivate) {
+        const idx = this._activeCountTriggers.indexOf(trig);
+        if (idx !== -1) this._activeCountTriggers.splice(idx, 1);
+      }
+    }
+  }
+
+  _checkCountTriggers(itemId, colorManager) {
+    for (let i = this._activeCountTriggers.length - 1; i >= 0; i--) {
+      const trig = this._activeCountTriggers[i];
+      if (!trig || (itemId !== undefined && trig.itemId !== itemId)) continue;
+      this._evaluateCountTrigger(trig, colorManager);
+    }
+  }
+
+  checkCountTriggers(playerX, colorManager) {
+    while (this._countTriggerIdx < this._countTriggers.length) {
+      const trig = this._countTriggers[this._countTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) {
+        this._armCountTrigger(trig, colorManager);
+      }
+      this._countTriggerIdx++;
+    }
+  }
+
+  checkTouchCountTriggers(playerX, playerY, colorManager) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchCountTriggerActivated ||= new Set();
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+    for (const trig of this._countTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchCountTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchCountTriggerActivated.add(uid);
+        this._armCountTrigger(trig, colorManager);
+      }
+    }
+  }
+
+  resetCountTriggers() {
+    this._countTriggerIdx = 0;
+    this._activeCountTriggers = [];
+    this._touchCountTriggerActivated = new Set();
+  }
+
+  _executeInstantCountTrigger(trig, colorManager) {
+    if (!trig || !this._isTriggerSaveObjectLive(trig.uid)) return;
+    const current = this._itemCounts[trig.itemId] || 0;
+    let matched = false;
+    if (trig.comparison === 1) {
+      matched = current > trig.targetCount;
+    } else if (trig.comparison === 2) {
+      matched = current < trig.targetCount;
+    } else {
+      matched = current === trig.targetCount;
+    }
+    if (matched) {
+      if (trig.activate) {
+        this._activateSpawnedGroup(trig.targetGroup, colorManager);
+        this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: true });
+      } else {
+        this._executeToggleTrigger({ targetGroup: trig.targetGroup, activate: false });
+      }
+    }
+  }
+
+  checkInstantCountTriggers(playerX, colorManager) {
+    while (this._instantCountTriggerIdx < this._instantCountTriggers.length) {
+      const trig = this._instantCountTriggers[this._instantCountTriggerIdx];
+      if (trig.x > playerX) break;
+      if (!trig.spawnTriggered && !trig.touchTriggered) {
+        this._executeInstantCountTrigger(trig, colorManager);
+      }
+      this._instantCountTriggerIdx++;
+    }
+  }
+
+  checkTouchInstantCountTriggers(playerX, playerY, colorManager) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    this._touchInstantCountTriggerActivated ||= new Set();
+    const playerHalfSize = (typeof playerSize === "number" ? playerSize : 20);
+    const halfHitbox = 30 + playerHalfSize;
+    for (const trig of this._instantCountTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.targetGroup}`;
+      if (this._touchInstantCountTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchInstantCountTriggerActivated.add(uid);
+        this._executeInstantCountTrigger(trig, colorManager);
+      }
+    }
+  }
+
+  resetInstantCountTriggers() {
+    this._instantCountTriggerIdx = 0;
+    this._touchInstantCountTriggerActivated = new Set();
   }
 
   resetRotateTriggers() {
     this._rotateTriggerIdx = 0;
     this._activeRotateTweens = [];
+    this._groupRotations = {};
     const seenSprites = new Set();
     for (const gid in this._groupSprites) {
       for (const spr of this._groupSprites[gid]) {
@@ -4260,6 +5277,13 @@ window.LevelObject = class LevelObject {
   resetPulseTriggers() {
     this._pulseTriggerIdx = 0;
     this._activePulses = [];
+    for (const gid in this._groupSprites || {}) {
+      for (const spr of this._groupSprites[gid] || []) {
+        if (!spr || !spr._eePulsed) continue;
+        if (typeof spr.clearTint === "function") spr.clearTint();
+        spr._eePulsed = false;
+      }
+    }
   }
 
   applyColorChannels(colorManager) {
@@ -4454,11 +5478,13 @@ window.LevelObject = class LevelObject {
     const _now = Date.now();
     const _clickMult = window.orbClickScale || 2.0;
     const _shrinkMs = window.orbClickShrinkTime || 250;
-    const _baseScale = Math.min(_maxaudioScale, 0.75 + _meterValue * 0.15);
+    const _pulseMult = Math.min(2.0, 1 + _meterValue * 0.2);
     for (let _0xOrbSpr of this._orbSprites) {
       if (!_0xOrbSpr || !_0xOrbSpr.active) continue;
       const _worldX = _0xOrbSpr._eeWorldX;
       if (Number.isFinite(_worldX) && (_worldX < _minVisibleX || _worldX > _maxVisibleX)) continue;
+      const _orbBase = Number(_0xOrbSpr._eeBaseScale) > 0 ? Number(_0xOrbSpr._eeBaseScale) : 0.75;
+      const _baseScale = Math.min(_maxaudioScale, _orbBase * _pulseMult);
       let _targetScale = _baseScale;
       if (_0xOrbSpr._hitTime) {
         const _elapsed = _now - _0xOrbSpr._hitTime;

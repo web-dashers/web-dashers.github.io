@@ -39,9 +39,9 @@
         (function () {
             var GD_PROXY_HOSTS = [
                 "https://gd-proxy.webdashers.workers.dev",
-                "https://webdashers.webdashersdevelopement.workers.dev/",
-                "fallbackgdproxy.webdashers.workers.dev",
-                "fallback2.webdashers.workers.dev"
+                "https://webdashers.webdashersdevelopement.workers.dev",
+                "https://fallbackgdproxy.webdashers.workers.dev",
+                "https://fallback2.webdashers.workers.dev"
             ];
             window._gdProxyUrl = GD_PROXY_HOSTS[0];
             window._gdProxyHosts = GD_PROXY_HOSTS;
@@ -49,12 +49,17 @@
             var nativeFetch = window.fetch.bind(window);
             function matchingHost(url) {
                 for (var i = 0; i < GD_PROXY_HOSTS.length; i++) {
-                    if (url.indexOf(GD_PROXY_HOSTS[i]) === 0) return GD_PROXY_HOSTS[i];
+                    var h = GD_PROXY_HOSTS[i].replace(/\/$/, "");
+                    if (url.indexOf(h) === 0) return GD_PROXY_HOSTS[i];
                 }
                 return null;
             }
             function withHost(url, oldHost, newHost) {
-                return newHost + url.slice(oldHost.length);
+                var cleanOld = oldHost.replace(/\/$/, "");
+                var cleanNew = newHost.replace(/\/$/, "");
+                var path = url.slice(cleanOld.length);
+                if (path.indexOf('/') !== 0) path = '/' + path;
+                return cleanNew + path;
             }
             window.fetch = function (input, init) {
                 var isRequestObj = (typeof Request !== "undefined") && (input instanceof Request);

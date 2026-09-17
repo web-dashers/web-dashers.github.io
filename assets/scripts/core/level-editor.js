@@ -640,6 +640,22 @@ class LevelEditor {
     this._level.resetEnterEffectTriggers();
     this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
+    this._level.resetStopTriggers?.();
+    this._level.resetFollowPlayerYTriggers?.();
+    this._level.resetFollowTriggers?.();
+    this._level.resetToggleTriggers?.();
+    this._level.resetShakeTriggers?.();
+    this._level.resetOnDeathTriggers?.();
+    this._level.resetTouchTriggers?.();
+    this._level.resetPickupTriggers?.();
+    this._level.resetCountTriggers?.();
+    this._level.resetInstantCountTriggers?.();
+    this._level.checkToggleTriggers?.(0);
+    this._level.checkPickupTriggers?.(0, this._colorManager);
+    this._level.checkCountTriggers?.(0, this._colorManager);
+    this._level.checkInstantCountTriggers?.(0, this._colorManager);
+    this._level.checkOnDeathTriggers?.(0);
+    this._level.checkTouchTriggers?.(0);
     this._level.resetVisibility();
 
     this._colorManager.reset();
@@ -1411,6 +1427,7 @@ class LevelEditor {
     }
 
     if (this._state.isDead) {
+        this._level.triggerOnDeath?.(this._colorManager);
         this._drawEditorPlaytestTrailPoint();
         this._stopEditorPlaytest(true);
         return;
@@ -1471,6 +1488,81 @@ class LevelEditor {
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);
     this._level.stepRotateTriggers(deltaTime / 1000);
+    this._level.checkStopTriggers?.(playerX);
+    if (this._level.checkTouchStopTriggers) {
+        this._level.checkTouchStopTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchStopTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkFollowPlayerYTriggers?.(playerX);
+    if (this._level.checkTouchFollowPlayerYTriggers) {
+        this._level.checkTouchFollowPlayerYTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchFollowPlayerYTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.stepFollowPlayerYTriggers?.(deltaTime / 1000);
+    this._level.checkFollowTriggers?.(playerX);
+    if (this._level.checkTouchFollowTriggers) {
+        this._level.checkTouchFollowTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchFollowTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.stepFollowTriggers?.(deltaTime / 1000);
+    this._level.checkToggleTriggers?.(playerX);
+    if (this._level.checkTouchToggleTriggers) {
+        this._level.checkTouchToggleTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchToggleTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkShakeTriggers?.(playerX);
+    if (this._level.checkTouchShakeTriggers) {
+        this._level.checkTouchShakeTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchShakeTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkOnDeathTriggers?.(playerX);
+    if (this._level.checkTouchOnDeathTriggers) {
+        this._level.checkTouchOnDeathTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchOnDeathTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkTouchTriggers?.(playerX);
+    if (this._level.checkTouchTouchTriggers) {
+        this._level.checkTouchTouchTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchTouchTriggers(playerX, this._state2.y);
+        }
+    }
+    const isHoldingInput = Boolean(this._state?.upKeyDown || (this._isDual && !this._state2?.isDead && this._state2?.upKeyDown));
+    const isPressedInput = Boolean(this._state?.upKeyPressed || (this._isDual && !this._state2?.isDead && this._state2?.upKeyPressed));
+    this._level.stepTouchTriggers?.(isHoldingInput, isPressedInput, this._colorManager);
+    this._level.checkPickupTriggers?.(playerX, this._colorManager);
+    if (this._level.checkTouchPickupTriggers) {
+        this._level.checkTouchPickupTriggers(playerX, this._state.y, this._colorManager);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchPickupTriggers(playerX, this._state2.y, this._colorManager);
+        }
+    }
+    this._level.checkCountTriggers?.(playerX, this._colorManager);
+    if (this._level.checkTouchCountTriggers) {
+        this._level.checkTouchCountTriggers(playerX, this._state.y, this._colorManager);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchCountTriggers(playerX, this._state2.y, this._colorManager);
+        }
+    }
+    this._level.checkInstantCountTriggers?.(playerX, this._colorManager);
+    if (this._level.checkTouchInstantCountTriggers) {
+        this._level.checkTouchInstantCountTriggers(playerX, this._state.y, this._colorManager);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchInstantCountTriggers(playerX, this._state2.y, this._colorManager);
+        }
+    }
     this._level.checkPulseTriggers(playerX);
     this._level.stepPulseTriggers(deltaTime / 1000, this._colorManager);
     this._colorManager.step(deltaTime / 1000);

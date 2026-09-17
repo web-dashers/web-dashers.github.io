@@ -1133,7 +1133,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
 
               if (songName && typeof songNameText !== "undefined" && songNameText) {
                 songNameText.setText(songName);
-                this._fitBitmapText(songTitleText, songBoxW - 100);
+                this._fitBitmapText(songNameText, songBoxW - 100);
               }
             })
             .catch(err => {
@@ -7133,6 +7133,7 @@ _showwippopup() {
     }
 
     this._applyLevelStartOptions();
+    this._level.checkToggleTriggers?.(0);
   }
   _pushButton(ignoreMacro = false) {
     const objectsUnderPointer = this.input.manager.hitTest(
@@ -7458,6 +7459,22 @@ _showwippopup() {
     this._level.resetEnterEffectTriggers();
     this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
+    this._level.resetStopTriggers?.();
+    this._level.resetFollowPlayerYTriggers?.();
+    this._level.resetFollowTriggers?.();
+    this._level.resetToggleTriggers?.();
+    this._level.resetShakeTriggers?.();
+    this._level.resetOnDeathTriggers?.();
+    this._level.resetTouchTriggers?.();
+    this._level.resetPickupTriggers?.();
+    this._level.resetCountTriggers?.();
+    this._level.resetInstantCountTriggers?.();
+    this._level.checkToggleTriggers?.(0);
+    this._level.checkPickupTriggers?.(0, this._colorManager);
+    this._level.checkCountTriggers?.(0, this._colorManager);
+    this._level.checkInstantCountTriggers?.(0, this._colorManager);
+    this._level.checkOnDeathTriggers?.(0);
+    this._level.checkTouchTriggers?.(0);
     this._level.resetVisibility();
     if (this._orbGfx) { this._orbGfx.clear(); }
     this._colorManager.reset();
@@ -7771,13 +7788,29 @@ _showwippopup() {
     this._level.resetEnterEffectTriggers();
     this._level.resetSpawnTriggers();
     this._level.resetMoveTriggers();
+    this._level.resetStopTriggers?.();
+    this._level.resetFollowPlayerYTriggers?.();
+    this._level.resetFollowTriggers?.();
+    this._level.resetToggleTriggers?.();
+    this._level.resetShakeTriggers?.();
+    this._level.resetOnDeathTriggers?.();
+    this._level.resetTouchTriggers?.();
+    this._level.resetPickupTriggers?.();
+    this._level.resetCountTriggers?.();
+    this._level.resetInstantCountTriggers?.();
+    this._level.checkToggleTriggers?.(checkpoint.x);
+    this._level.checkPickupTriggers?.(checkpoint.x, this._colorManager);
+    this._level.checkCountTriggers?.(checkpoint.x, this._colorManager);
+    this._level.checkInstantCountTriggers?.(checkpoint.x, this._colorManager);
+    this._level.checkOnDeathTriggers?.(checkpoint.x);
+    this._level.checkTouchTriggers?.(checkpoint.x);
     this._level.resetVisibility();
-    this._level.additiveContainer.x = -this._cameraX;
-    this._level.additiveContainer.y = this._cameraY;
-    this._level.container.x = -this._cameraX;
-    this._level.container.y = this._cameraY;
-    this._level.topContainer.x = -this._cameraX;
-    this._level.topContainer.y = this._cameraY;
+    this._level.additiveContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+    this._level.additiveContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
+    this._level.container.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+    this._level.container.y = this._cameraY + (this._level.shakeOffsetY || 0);
+    this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+    this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
     this._level.updateVisibility(this._cameraX);
     this._level.updateObjectDebugIds();
     this._updateBackground();
@@ -7836,12 +7869,12 @@ _showwippopup() {
       const _0x56287b = this._cameraX;
       this._cameraX = this._playerWorldX - centerX;
       this._cameraXRef._v = this._cameraX;
-      this._level.additiveContainer.x = -this._cameraX;
-      this._level.additiveContainer.y = this._cameraY;
-      this._level.container.x = -this._cameraX;
-      this._level.container.y = this._cameraY;
-      this._level.topContainer.x = -this._cameraX;
-      this._level.topContainer.y = this._cameraY;
+      this._level.additiveContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.additiveContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
+      this._level.container.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.container.y = this._cameraY + (this._level.shakeOffsetY || 0);
+      this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
       this._level.shiftGroundTiles(this._cameraX - _0x56287b);
       this._level.updateGroundTiles(this._cameraY);
       this._level.updateVisibility(this._cameraX);
@@ -8148,12 +8181,12 @@ _showwippopup() {
       const slidePlayerScreenX = this._playerWorldX - this._cameraX;
       this._player.updateGroundRotation(slideDelta * d);
       this._player.syncSprites(this._cameraX, this._cameraY, deltaTime / 1000, this._getMirrorXOffset(slidePlayerScreenX));
-      this._level.additiveContainer.x = -this._cameraX;
-      this._level.additiveContainer.y = this._cameraY;
-      this._level.container.x = -this._cameraX;
-      this._level.container.y = this._cameraY;
-      this._level.topContainer.x = -this._cameraX;
-      this._level.topContainer.y = this._cameraY;
+      this._level.additiveContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.additiveContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
+      this._level.container.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.container.y = this._cameraY + (this._level.shakeOffsetY || 0);
+      this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
       this._level.updateVisibility(this._cameraX);
       this._level.updateObjectDebugIds();
       this._updateBackground();
@@ -8231,12 +8264,12 @@ _showwippopup() {
         this._cameraY = visMaxSection.fromY + (visMaxSection.toY - visMaxSection.fromY) * visMaxSection.p;
       }
       this._cameraXRef._v = this._cameraX;
-      this._level.additiveContainer.x = -this._cameraX;
-      this._level.additiveContainer.y = this._cameraY;
-      this._level.container.x = -this._cameraX;
-      this._level.container.y = this._cameraY;
-      this._level.topContainer.x = -this._cameraX;
-      this._level.topContainer.y = this._cameraY;
+      this._level.additiveContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.additiveContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
+      this._level.container.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.container.y = this._cameraY + (this._level.shakeOffsetY || 0);
+      this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+      this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
       this._updateBackground();
       this._level.stepGroundAnimation(deltaTime / 1000);
       this._level.updateGroundTiles(this._cameraY);
@@ -8245,6 +8278,7 @@ _showwippopup() {
     }
     if (this._state.isDead) {
       if (!this._deathSoundPlayed) {
+        this._level.triggerOnDeath?.(this._colorManager);
         if (!this._audio._shouldUsePracticeSong()) {
           this._audio.stopMusic();
         }
@@ -8553,12 +8587,12 @@ _showwippopup() {
     if (!this._endCameraOverride) {
       this._updateCameraY(quantizedDelta);
     }
-    this._level.additiveContainer.x = -this._cameraX;
-    this._level.additiveContainer.y = this._cameraY;
-    this._level.container.x = -this._cameraX;
-    this._level.container.y = this._cameraY;
-    this._level.topContainer.x = -this._cameraX;
-    this._level.topContainer.y = this._cameraY;
+    this._level.additiveContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+    this._level.additiveContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
+    this._level.container.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+    this._level.container.y = this._cameraY + (this._level.shakeOffsetY || 0);
+    this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
+    this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
     let playerX = this._playerWorldX;
     const applyColorTrigger = (colorTrigger) => {
       this._colorManager.triggerColor(colorTrigger.index, colorTrigger.color, colorTrigger.duration);
@@ -8596,9 +8630,90 @@ _showwippopup() {
     this._level.stepMoveTriggers(deltaTime / 1000);
     this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
     this._level.checkAlphaTriggers(playerX);
+    if (this._level.checkTouchAlphaTriggers) {
+        this._level.checkTouchAlphaTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchAlphaTriggers(playerX, this._state2.y);
+        }
+    }
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);
     this._level.stepRotateTriggers(deltaTime / 1000);
+    this._level.checkStopTriggers?.(playerX);
+    if (this._level.checkTouchStopTriggers) {
+        this._level.checkTouchStopTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchStopTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkFollowPlayerYTriggers?.(playerX);
+    if (this._level.checkTouchFollowPlayerYTriggers) {
+        this._level.checkTouchFollowPlayerYTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchFollowPlayerYTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.stepFollowPlayerYTriggers?.(deltaTime / 1000);
+    this._level.checkFollowTriggers?.(playerX);
+    if (this._level.checkTouchFollowTriggers) {
+        this._level.checkTouchFollowTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchFollowTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.stepFollowTriggers?.(deltaTime / 1000);
+    this._level.checkToggleTriggers?.(playerX);
+    if (this._level.checkTouchToggleTriggers) {
+        this._level.checkTouchToggleTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchToggleTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkShakeTriggers?.(playerX);
+    if (this._level.checkTouchShakeTriggers) {
+        this._level.checkTouchShakeTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchShakeTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkOnDeathTriggers?.(playerX);
+    if (this._level.checkTouchOnDeathTriggers) {
+        this._level.checkTouchOnDeathTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchOnDeathTriggers(playerX, this._state2.y);
+        }
+    }
+    this._level.checkTouchTriggers?.(playerX);
+    if (this._level.checkTouchTouchTriggers) {
+        this._level.checkTouchTouchTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchTouchTriggers(playerX, this._state2.y);
+        }
+    }
+    const isHoldingInput = Boolean(this._state?.upKeyDown || (this._isDual && !this._state2?.isDead && this._state2?.upKeyDown));
+    const isPressedInput = Boolean(this._state?.upKeyPressed || (this._isDual && !this._state2?.isDead && this._state2?.upKeyPressed));
+    this._level.stepTouchTriggers?.(isHoldingInput, isPressedInput, this._colorManager);
+    this._level.checkPickupTriggers?.(playerX, this._colorManager);
+    if (this._level.checkTouchPickupTriggers) {
+        this._level.checkTouchPickupTriggers(playerX, this._state.y, this._colorManager);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchPickupTriggers(playerX, this._state2.y, this._colorManager);
+        }
+    }
+    this._level.checkCountTriggers?.(playerX, this._colorManager);
+    if (this._level.checkTouchCountTriggers) {
+        this._level.checkTouchCountTriggers(playerX, this._state.y, this._colorManager);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchCountTriggers(playerX, this._state2.y, this._colorManager);
+        }
+    }
+    this._level.checkInstantCountTriggers?.(playerX, this._colorManager);
+    if (this._level.checkTouchInstantCountTriggers) {
+        this._level.checkTouchInstantCountTriggers(playerX, this._state.y, this._colorManager);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchInstantCountTriggers(playerX, this._state2.y, this._colorManager);
+        }
+    }
     this._level.checkPulseTriggers(playerX);
     this._level.stepPulseTriggers(deltaTime / 1000, this._colorManager);
     this._colorManager.step(deltaTime / 1000);

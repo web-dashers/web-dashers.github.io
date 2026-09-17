@@ -4174,6 +4174,7 @@ if (this.p.isFlying || this.p.isUfo) {
 
   checkCollisions(_0x2f5078) {
     this.noclipStats.totalFrames++;
+    this._touchEdgeStep = (this._touchEdgeStep || 0) + 1;
     this.p.diedThisFrame = false;
     if (this.p._spiderTeleportNoclipDeathPending) {
       this.p.diedThisFrame = true;
@@ -4465,19 +4466,23 @@ if (this.p.isFlying || this.p.isUfo) {
 		if (makeportalguide) {
           this._makeportalguide(gameObj);
         } else if (_colType === jumpPadType) {
-          if (!this._isObjectActivated(gameObj)) {
-            this._setObjectActivated(gameObj, true);
+          // Pads fire on every distinct touch (GD bumpPlayer has no used
+          // flag). Touch-edge per player so resting on a pad does not spam.
+          if (!gameObj._padTouchStepByPlayer) gameObj._padTouchStepByPlayer = {};
+          const _padKey = this._getActivationKey();
+          const _lastPadTouch = gameObj._padTouchStepByPlayer[_padKey];
+          gameObj._padTouchStepByPlayer[_padKey] = this._touchEdgeStep;
+          if (_lastPadTouch === undefined || _lastPadTouch < this._touchEdgeStep - 1) {
             this._orbpadHitEffect(gameObj);
             const _padId = gameObj.padId;
             if (_padId === 67) {
               const now = Date.now();
-              if (!window.lastbluepad) {
-                window.lastbluepad = 0;
-              }
-              if (now - window.lastbluepad < 20) {
+              const _bluePadKey = this._getActivationKey();
+              this._lastBluePadHit ||= {};
+              if (this._lastBluePadHit[_bluePadKey] && now - this._lastBluePadHit[_bluePadKey] < 20) {
                 continue;
               }
-              window.lastbluepad = now;
+              this._lastBluePadHit[_bluePadKey] = now;
             }
             const _grav = 2;
             const _fm = this.flipMod();
