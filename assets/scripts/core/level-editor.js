@@ -1837,7 +1837,7 @@ class LevelEditor {
     if (this._categoryContainer) this._categoryContainer.destroy();
 
     const OBJECT_CATEGORIES = [
-        { id: "blocks",  icon: "tab1", types: ["solid", "soliddeco"] },
+        { id: "blocks",  icon: "tab1", types: ["solid", "soliddeco", "dblock"] },
         { id: "slopes",  icon: "tab6", types: ["slope"] },
         { id: "hazards", icon: "tab2", types: ["hazard", "spike"] },
         { id: "orbs",    icon: "tab3", types: ["ring", "pad", "portal", "speed", "coin"] },
@@ -8607,9 +8607,42 @@ _serializeObject(object) {
   objectData[3] = String(object.y ?? 0);
   objectData[4] = object.flipX ? "1" : "0";
   objectData[5] = object.flipY ? "1" : "0";
-  objectData[6] = String(object.rot ?? 0);
 
-  objectData[32] = String(object.scale ?? 1);
+  const dropKey = (key) => {
+    delete objectData[key];
+    delete objectData[String(key)];
+  };
+  const numberOr = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const rotation = numberOr(object.rot, 0);
+  const warp = numberOr(object.warp, 0);
+  if (warp) {
+    dropKey(6);
+    objectData[131] = String(rotation - warp / 2);
+    objectData[132] = String(rotation + warp / 2);
+  } else {
+    objectData[6] = String(rotation);
+    dropKey(131);
+    dropKey(132);
+  }
+
+  const uniformScale = numberOr(object.scale, 1);
+  const scaleX = numberOr(object.scaleX, uniformScale);
+  const scaleY = numberOr(object.scaleY, uniformScale);
+  const hadAxisScale = object._raw?.[128] !== undefined || object._raw?.["128"] !== undefined
+    || object._raw?.[129] !== undefined || object._raw?.["129"] !== undefined;
+  if (scaleX !== scaleY || hadAxisScale) {
+    dropKey(32);
+    objectData[128] = String(scaleX);
+    objectData[129] = String(scaleY);
+  } else {
+    objectData[32] = String(scaleX);
+    dropKey(128);
+    dropKey(129);
+  }
 
   objectData[20] = String(object.editorLayer ?? object._raw?.[20] ?? object._raw?.["20"] ?? 0);
   objectData[24] = String(object.zLayer ?? 0);
