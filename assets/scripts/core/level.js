@@ -644,6 +644,7 @@ window.LevelObject = class LevelObject {
     this._audioScaleSprites = [];
     this._editorTriggerVisuals = [];
     this._orbSprites = [];
+    this._levelParticleEmitters = [];
     this._coinSprites = [];
     this._secretCoinRunCollected = new Set();
     this._secretCoinCompleted = new Set();
@@ -673,12 +674,14 @@ window.LevelObject = class LevelObject {
     this._spawnTriggerIdx = 0;
     this._activeSpawnDelays = [];
     this._colorChannelSprites = {};
+    this._colorChannelCache = new Map();
     this._ground2Tint = 0xffffff;
     this._groupSprites = {};
     this._resetobject = {};
     this._resetremovedobject = {};
     this._groupOffsets = {};
     this._groupOpacity = {};
+    this._groupAlphaCache = new Map();
     this._groupColliders = {};
     this._sections = [];
     this._sectionContainers = [];
@@ -939,6 +942,7 @@ window.LevelObject = class LevelObject {
       secretCoinCount++;
       return true;
     });
+    this._colorChannelCache.clear();
     window._animatedSprites.length = 0;
     this._secretCoinRunCollected.clear();
     this._secretCoinCompleted = this._loadSecretCoinProgress();
@@ -1914,6 +1918,9 @@ window.LevelObject = class LevelObject {
   updateTriggerEditorVisuals() {
     const visible = !!window.isEditor;
     if (!this._editorTriggerVisuals) return;
+    // These visuals are created hidden outside the editor.
+    if (!visible && !this._triggerVisualsWereVisible) return;
+    this._triggerVisualsWereVisible = visible;
     for (const visual of this._editorTriggerVisuals) {
       const saveObj = visual?.saveObj;
       const isTouchTrigger = saveObj && String(saveObj?._raw?.[11] ?? saveObj?._raw?.["11"] ?? "0") === "1";
@@ -1975,9 +1982,7 @@ window.LevelObject = class LevelObject {
 
     const colorChannel = parseInt(levelObj.color1 || objectDef?.default_base_color_channel || 0, 10) || 0;
     if (colorChannel > 0 && objectDef?.can_color !== false) {
-      textSprite._eeColorChannel = colorChannel;
-      if (!this._colorChannelSprites[colorChannel]) this._colorChannelSprites[colorChannel] = [];
-      this._colorChannelSprites[colorChannel].push(textSprite);
+      this._registerColorChannelSprite(textSprite, colorChannel);
     }
 
     if (levelObj.groups) {
@@ -2348,9 +2353,7 @@ window.LevelObject = class LevelObject {
     const registerColor = (spr, ch, forceParentColor = false) => {
       if (!spr || spr._cantColor || (spr._isBlack && !spr._canColor)) return;
       if (ch > 0 && (canColor || spr._canColor) && spr) {
-        spr._eeColorChannel = ch;
-        if (!this._colorChannelSprites[ch]) this._colorChannelSprites[ch] = [];
-        this._colorChannelSprites[ch].push(spr);
+        this._registerColorChannelSprite(spr, ch);
         if (forceParentColor && spr._SawColor === undefined) {
           spr._SawColor = ch;
         }
@@ -2829,6 +2832,7 @@ window.LevelObject = class LevelObject {
       }
     });
 
+    this._registerLevelParticleEmitter(particles, worldX);
     particles.setDepth(14);
     particles._eeLayer = 2;
     particles._eeWorldX = worldX;
@@ -3046,11 +3050,11 @@ window.LevelObject = class LevelObject {
         });
         _padEmitter.setDepth(12);
         _padEmitter.setScrollFactor(0);
+        this._registerLevelParticleEmitter(_padEmitter, worldX, padObj);
         padObj._padParticleEmitter = _padEmitter;
         padObj.emitters = [_padEmitter];
         if (levelObj.color1 > 0) {
-          if (!this._colorChannelSprites[levelObj.color1]) this._colorChannelSprites[levelObj.color1] = [];
-          this._colorChannelSprites[levelObj.color1].push(_padEmitter);
+          this._registerColorChannelSprite(_padEmitter, levelObj.color1);
         }
         const objGids = levelObj.groups ? String(levelObj.groups).split(".").map(Number).filter(n => n > 0) : null;
         if (objGids && objGids.length) {
@@ -3275,6 +3279,7 @@ window.LevelObject = class LevelObject {
         _0x2daff4.velocityY = _0x17ba71 / _0x3c5c52 * _0x279521;
       }
     });
+    this._registerLevelParticleEmitter(this._endPortalEmitter, _0x58cedb);
     this._endPortalEmitter.setDepth(14);
     this.topContainer.add(this._endPortalEmitter);
     this._endPortalGameY = 240;
@@ -3455,33 +3460,46 @@ window.LevelObject = class LevelObject {
       _0x141e9c.normal.visible = _0x488507;
     }
   }
+  isVisualSpriteNearCamera(sprite, cameraX, viewportWidth = screenWidth) {
+    const x = sprite._eeWorldX ?? sprite.x;
+    if (!Number.isFinite(x)) return true;
+    const margin = Math.max(200, ((sprite.displayWidth || 0) + (sprite.displayHeight || 0)) / 2);
+    return x >= cameraX - margin && x <= cameraX + viewportWidth + margin;
+  }
+  _registerLevelParticleEmitter(emitter, worldX, owner = null) {
+    emitter._eeParticleWorldX = worldX;
+    emitter._eeParticleOwner = owner;
+    this._levelParticleEmitters.push(emitter);
+  }
+  _updateLevelParticleVisibility(cameraX) {
+    for (const emitter of this._levelParticleEmitters) {
+      if (!emitter.scene) continue;
+      const x = emitter._eeParticleOwner?.x ?? emitter._eeParticleWorldX;
+      // A generous margin includes the end portal's 400px particle ring.
+      const culled = this.topContainer?.visible === false || !!window.enableLDM || x < cameraX - 500 || x > cameraX + screenWidth + 500;
+      if (culled && !emitter._eeParticleCulled) {
+        emitter._eeParticleCulled = true;
+        emitter._eeParticleWasActive = emitter.active;
+        emitter.pause();
+      } else if (!culled && emitter._eeParticleCulled) {
+        emitter._eeParticleCulled = false;
+        if (emitter._eeParticleWasActive) emitter.resume();
+      }
+      // Alpha triggers may update visibility while the emitter is culled.
+      emitter.setVisible(!culled && emitter.alpha > 0.01);
+    }
+  }
   updateVisibility(_0xa5f1e1) {
     this.updateTriggerEditorVisuals();
-    if (window.enableLDM) {
-      try {
-        if (this._endPortalEmitter && typeof this._endPortalEmitter.stop === 'function') {
-          this._endPortalEmitter.stop();
-        }
-      } catch (e) {}
-      try {
-        if (Array.isArray(this._sections)) {
-          for (const sec of this._sections) {
-            if (!Array.isArray(sec)) continue;
-            for (const obj of sec) {
-              if (!obj) continue;
-              try {
-                if (typeof obj.stop === 'function') obj.stop();
-                if (obj.emitters && Array.isArray(obj.emitters)) {
-                  for (const em of obj.emitters) {
-                    try { if (typeof em.stop === 'function') em.stop(); } catch (e) {}
-                  }
-                }
-              } catch (e) {}
-            }
-          }
-        }
-      } catch (e) {}
-      try { if (this._glowSprites) for (const g of this._glowSprites) g.setVisible(false); } catch(e) {}
+    this._updateLevelParticleVisibility(_0xa5f1e1);
+    const ldm = !!window.enableLDM;
+    const glowCount = this._glowSprites?.length || 0;
+    if (this._lastVisibilityLDM !== ldm || this._lastVisibilityGlowCount !== glowCount) {
+      if (ldm || this._lastVisibilityLDM === true) {
+        for (const glow of this._glowSprites || []) glow.setVisible(this._isGlowVisible());
+      }
+      this._lastVisibilityLDM = ldm;
+      this._lastVisibilityGlowCount = glowCount;
     }
     const _0x1dce22 = this._sectionContainers.length - 1;
     if (_0x1dce22 < 0) {
@@ -4019,25 +4037,40 @@ window.LevelObject = class LevelObject {
       }
     }
 
+    const glowAlpha = this._getGlowAlphaMultiplier();
+    let changed = this._lastGroupGlowAlpha !== glowAlpha;
+    for (const gid in this._groupOpacity) {
+      const sprites = this._groupSprites[gid];
+      const cached = this._groupAlphaCache.get(gid);
+      if (!cached || cached.opacity !== this._groupOpacity[gid] || cached.count !== (sprites?.length || 0)) changed = true;
+    }
+    if (!changed) return;
+    this._lastGroupGlowAlpha = glowAlpha;
+    let pending = false;
     for (const gid in this._groupOpacity) {
       const sprites = this._groupSprites[gid];
       if (!sprites) continue;
       const op = this._groupOpacity[gid];
       for (const spr of sprites) {
-        if (!spr || !spr.active) continue;
+        if (!spr) continue;
+        if (!spr.active && !spr._eeParticleCulled) { if (spr.scene) pending = true; continue; }
         if (spr._eeActive) continue;
         const baseAlpha = spr._eeOrigAlpha ?? 1;
-        const targetAlpha = baseAlpha * op * (spr._eeIsGlowSprite ? this._getGlowAlphaMultiplier() : 1);
+        const targetAlpha = baseAlpha * op * (spr._eeIsGlowSprite ? glowAlpha : 1);
         if (typeof spr.setAlpha === "function") spr.setAlpha(targetAlpha);
         if (spr._padParticleEmitter) {
           if (typeof spr._padParticleEmitter.setAlpha === "function") spr._padParticleEmitter.setAlpha(targetAlpha);
           if (typeof spr._padParticleEmitter.setVisible === "function") spr._padParticleEmitter.setVisible(targetAlpha > 0.01);
         }
       }
+      this._groupAlphaCache.set(gid, { opacity: op, count: sprites.length });
     }
+    if (pending) this._groupAlphaCache.clear();
   }
 
   resetAlphaTriggers() {
+    this._groupAlphaCache.clear();
+    this._lastGroupGlowAlpha = undefined;
     this._alphaTriggerIdx = 0;
     this._activeAlphaTweens = [];
     this._groupOpacity = {};
@@ -4219,6 +4252,7 @@ window.LevelObject = class LevelObject {
           for (const spr of sprites) {
             if (!spr || !spr.active) continue;
             if (typeof spr.setTint === "function") {
+              this._invalidateSpriteColorChannel(spr);
               if (intensity > 0.01) { spr.setTint(pulseHex); spr._eePulsed = true; }
               else if (typeof spr.clearTint === "function") { spr.clearTint(); spr._eePulsed = false; }
             }
@@ -4238,6 +4272,7 @@ window.LevelObject = class LevelObject {
             for (const spr of chSprites) {
               if (!spr || !spr.active) continue;
               if (typeof spr.setTint === "function") {
+                this._invalidateSpriteColorChannel(spr);
                 spr.setTint(pulseHex); spr._eePulsed = true;
               }
             }
@@ -4247,11 +4282,11 @@ window.LevelObject = class LevelObject {
       if (pulse.elapsed >= pulse.totalDuration) {
         if (trig.targetType === 1 && trig.targetGroup > 0) {
           const sprites = this._groupSprites[trig.targetGroup];
-          if (sprites) for (const spr of sprites) { if (spr && spr.active && typeof spr.clearTint === "function") { spr.clearTint(); spr._eePulsed = false; } }
+          if (sprites) for (const spr of sprites) { if (spr && spr.active && typeof spr.clearTint === "function") { spr.clearTint(); spr._eePulsed = false; this._invalidateSpriteColorChannel(spr); } }
         }
         if (trig.targetType === 0 && trig.targetChannel > 0) {
           const chSprites = this._colorChannelSprites[trig.targetChannel];
-          if (chSprites) for (const spr of chSprites) { if (spr && spr.active) spr._eePulsed = false; }
+          if (chSprites) for (const spr of chSprites) { if (spr && spr.active) { spr._eePulsed = false; this._invalidateSpriteColorChannel(spr); } }
         }
         this._activePulses.splice(i, 1);
       } else { i++; }
@@ -4260,6 +4295,23 @@ window.LevelObject = class LevelObject {
   resetPulseTriggers() {
     this._pulseTriggerIdx = 0;
     this._activePulses = [];
+    this._colorChannelCache.clear();
+    for (const sprites of Object.values(this._colorChannelSprites)) {
+      for (const spr of sprites) {
+        if (spr) spr._eePulsed = false;
+      }
+    }
+  }
+
+  _registerColorChannelSprite(sprite, channel) {
+    sprite._eeColorChannel = channel;
+    this._colorChannelSprites[channel] ||= [];
+    this._colorChannelSprites[channel].push(sprite);
+    this._colorChannelCache.delete(String(channel));
+  }
+
+  _invalidateSpriteColorChannel(sprite) {
+    this._colorChannelCache.delete(String(sprite._eeColorChannel));
   }
 
   applyColorChannels(colorManager) {
@@ -4267,10 +4319,17 @@ window.LevelObject = class LevelObject {
       const sprites = this._colorChannelSprites[chId];
       if (!sprites || !sprites.length) continue;
       const hex = colorManager.getHex(parseInt(chId, 10));
+      const hasColor = typeof colorManager.hasColor === "function" ? colorManager.hasColor(chId) : true;
+      const cached = this._colorChannelCache.get(chId);
+      // Registration and pulses invalidate the cache even if the base color is unchanged.
+      if (cached && cached.hex === hex && cached.hasColor === hasColor && cached.count === sprites.length) continue;
+      let pending = false;
       for (const spr of sprites) {
-        if (!spr || !spr.active) continue;
+        if (!spr) continue;
+        // Destroyed sprites remain in some channel lists; only live inactive sprites need a retry.
+        if (!spr.active && !spr._eeParticleCulled) { if (spr.scene) pending = true; continue; }
+        if (spr._eePulsed) { pending = true; continue; }
         if (spr._cantColor) continue;
-        if (spr._eePulsed) continue;
         if (spr._eeAudioScale) continue;
         if (spr._isSaw && spr._SawColor !== undefined) {
           const sawHex = colorManager.getHex(spr._SawColor);
@@ -4279,9 +4338,11 @@ window.LevelObject = class LevelObject {
         }
         if (spr._isSaw) continue;
         if (spr._isBlack && !spr._canColor) continue;
-        if (spr._blackDefault && typeof colorManager.hasColor === "function" && !colorManager.hasColor(chId)) continue;
+        if (spr._blackDefault && !hasColor) continue;
         if (typeof spr.setTint === "function") spr.setTint(hex);
       }
+      if (pending) this._colorChannelCache.delete(chId);
+      else this._colorChannelCache.set(chId, { hex, hasColor, count: sprites.length });
     }
   }
   resetEnterEffectTriggers() {

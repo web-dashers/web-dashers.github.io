@@ -392,7 +392,43 @@ class GameScene extends Phaser.Scene {
       key: "GameScene"
     });
   }
+  preload() {
+    const levelKey = window.currentlevel?.[2];
+    const hasLevel = this.cache.text.exists(levelKey) ||
+      (window._onlineLevelString && window._onlineLevelId === levelKey);
+    if (!hasLevel && !window.isEditor && !this.game.registry.get("autoStartGame")) return;
+
+    //gameplay effects are unnecessary for the initial menu. phaser waits for
+    //these files before create(), so level objs always find their textures
+    let queuedAssets = false;
+    for (const [key, file] of [
+      ["PixelSheet_01-hd", "PixelSheet_01"],
+      ["FireSheet_01-hd", "FireSheet_01-hd"],
+      ["GJ_ParticleSheet-uhd", "GJ_ParticleSheet"]
+    ]) {
+      if (!this.textures.exists(key)) {
+        queuedAssets = true;
+        this.load.atlas(key, `assets/sheets/${file}.png`, `assets/sheets/${file}.json`);
+      }
+    }
+    if (!this.cache.audio.exists("StayInsideMe")) {
+      queuedAssets = true;
+      this.load.audio("StayInsideMe", "assets/music/StayInsideMe.mp3");
+    }
+    if (queuedAssets) {
+      const label = this.add.bitmapText(screenWidth-100, screenHeight-30, "bigFont", "Loading...", 30).setOrigin(0.5);
+      const cleanup = () => {
+        label.destroy();
+        this.load.off("complete", cleanup);
+        this.events.off("shutdown", cleanup);
+      };
+      this.load.once("complete", cleanup);
+      this.events.once("shutdown", cleanup);
+    }
+  }
+
   create() {
+    this._startAfterBackgroundLoad = false;
     this._bgSpeedX = 0.1;
     this._bgSpeedY = 0.1;
     this._menuCameraX = -centerX;
@@ -457,9 +493,7 @@ class GameScene extends Phaser.Scene {
     window._groundId = getGroundTextureId(_groundRaw);
 
     const _bgKey = "game_bg_" + getBackgroundTextureIndex(_bgGdId);
-    if (this.textures.exists(_bgKey)) {
-      this._applyMirroredBackgroundTexture(_bgKey);
-    }
+    this._applyMirroredBackgroundTexture(_bgKey);
     this._level.applyGroundTexture();
     if (this._level._initialColors) {
       for (let chId in this._level._initialColors) {
@@ -501,6 +535,7 @@ class GameScene extends Phaser.Scene {
     this._level.additiveContainer.setVisible(false);
     this._level.container.setVisible(false);
     this._level.topContainer.setVisible(false);
+    this._level._updateLevelParticleVisibility(this._cameraX);
     this._attempts = parseInt(localStorage.getItem("gd_totalAttempts") || "1", 10);
     this._bestPercent = 0;
     this._lastPercent = 0;
@@ -552,25 +587,33 @@ class GameScene extends Phaser.Scene {
     ];
     const _socialScale = 0.75;
     this._socialIcons = _socialIconDefs.map((def, index) => {
-    const icon = this.add.image(0, 0, "GJ_GameSheet03", def.frame)
-      .setScrollFactor(0)
-      .setDepth(30)
-      .setScale(_socialScale)
-      .setAngle(def.angle)
-      .setFlipX(!!def.flipX);
+      const icon = this.add.image(0, 0, "GJ_GameSheet03", def.frame)
+        .setScrollFactor(0)
+        .setDepth(30)
+        .setScale(_socialScale)
+        .setAngle(def.angle)
+        .setFlipX(!!def.flipX);
 
-    if (!def.frame || def.frame.trim() === "") {
-      icon.setVisible(false);
-      icon.setActive(false);
-      return icon; 
-    }
-    icon.setInteractive();
-    this._makeBouncyButton(icon, _socialScale, () => {
-      window.open(def.url, "_blank");
-    }, () => this._menuActive);
+      if (!def.frame || def.frame.trim() === "") {
+        icon.setVisible(false);
+        icon.setActive(false);
+        return icon; 
+      }
+      icon.setInteractive();
+      this._makeBouncyButton(icon, _socialScale, () => {
+        window.open(def.url, "_blank");
+      }, () => this._menuActive);
 
-    return icon;
-  });
+      return icon;
+    });
+  
+    this._handleEditorPointerDown = pointer => {
+      if (!window.isEditor || window.isEditorPause) return;
+
+      this._hitObjects = this.input.hitTestPointer(pointer);
+    };
+
+    this.input.on("pointerdown",this._handleEditorPointerDown,this);
 
     this._copyrightText = this.add.text(0, 630, "© 2026 RobTop Games · geometrydash.com", {
       fontSize: "14px",
@@ -1355,6 +1398,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const rawData = localStorage.getItem("created_levels");
         const createdLevels = rawData ? JSON.parse(rawData) : [];
 
+        //add side art
+        const sideArtBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png")
+            .setScrollFactor(0).setOrigin(0, 1);
+        const sideArtBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png")
+            .setScrollFactor(0).setOrigin(1, 1).setFlipX(true);
+
+        container.add([sideArtBL,sideArtBR]);
+
         createdLevels.sort((a, b) => {
             const idA = parseInt(a.createdId.replace("local_", "")) || 0;
             const idB = parseInt(b.createdId.replace("local_", "")) || 0;
@@ -1426,7 +1477,27 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             listContainer.add([bgStripe, separator, nameTxt, revText, lenIcon, lenTxt, songIcon, songTxt, statusIcon, statusTxt, viewBtn, viewTxt]);
         });
         if (createdLevels.length === 0) {
-            container.add(this.add.bitmapText(centerX, tableY + (tableH/2), "bigFont", "No Levels", 30).setOrigin(0.5).setAlpha(0.5));
+            const promptParts = [
+                { text: "Tap ", tint: 0xffffff },
+                { text: "New", tint: 0x42e33d },
+                { text: " to create ", tint: 0xffffff },
+                { text: "a level!", tint: 0x66b8ff }
+            ];
+            const promptContainer = this.add.container(centerX, tableY + (tableH / 2));
+            const promptItems = promptParts.map(part => {
+                const item = this.add.bitmapText(0, 0, "bigFont", part.text, 34)
+                    .setOrigin(0, 0.5)
+                    .setTint(part.tint);
+                promptContainer.add(item);
+                return item;
+            });
+            const promptWidth = promptItems.reduce((total, item) => total + item.displayWidth, 0);
+            let promptX = -promptWidth / 2;
+            promptItems.forEach(item => {
+                item.x = promptX;
+                promptX += item.displayWidth;
+            });
+            container.add(promptContainer);
         }
         const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
         const sideScaleY = tableH / sideFrame.height;
@@ -1514,8 +1585,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         });
         container.add(importBtn);
 
-        const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
-            .setScrollFactor(0).setDepth(104).setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
+        const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_01_001.png")
+            .setScrollFactor(0).setDepth(104).setInteractive();
         
         this._makeBouncyButton(backBtn, 1, () => {
           this._closeEditorMenu();
@@ -4142,7 +4213,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
     });
 
-    const downloadsoundtrack = this.add.bitmapText(cx, 585, "bigFont", "Download the soundtracks", 56).setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5).setScale(0.52).setInteractive();
+    const downloadsoundtrack = this.add.bitmapText(cx, 585, "bigFont", "Download the soundtrack", 56).setScrollFactor(0).setDepth(155).setOrigin(0.5, 0.5).setScale(0.52).setInteractive();
         this._makeBouncyButton(downloadsoundtrack, 0.52, () => { this._buildsongspopup(1); }); 
 
     const arrowL = this.add.image(55, cy - 25, "GJ_GameSheet03", "navArrowBtn_001.png").setScrollFactor(0).setDepth(154).setScale(1.1).setFlipX(true).setInteractive();
@@ -5566,10 +5637,118 @@ _buildSettingsPopup() {
         cullDistance: window.cullDistance,
         settingInfoText: window.settingInfoText || {},
         enableLDM: window.enableLDM,
+        graphicsQuality: window.graphicsQuality || "smooth",
     };
     localStorage.setItem("gd_settings", JSON.stringify(settings));
     localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
+    localStorage.setItem("gd_graphics_quality", window.graphicsQuality || "smooth");
   }
+  _buildGraphicsPopup() {
+    if (this._graphicsPopup) return;
+
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight / 2;
+    const panelWidth = 700;
+    const panelHeight = 450;
+    const qualityOptions = [
+      { id: "smooth", label: "SMOOTH" },
+      { id: "sharp", label: "SHARP" }
+    ];
+
+    this._graphicsPopup = this.add.container(0, 0).setScrollFactor(0).setDepth(260);
+    const dim = this.add.rectangle(centerX, centerY, screenWidth, screenHeight, 0, 100 / 255).setInteractive().setAlpha(0);
+    const inner = this.add.container(centerX, centerY).setScale(0);
+    this._graphicsPopup.add([dim, inner]);
+
+    const corner = 0.325 * this.textures.get("GJ_square01").source[0].width;
+    inner.add(this.add.nineslice(0, 0, "GJ_square01", null, panelWidth, panelHeight, corner, corner, corner, corner).setOrigin(0.5));
+
+    const close = this.add.image(-panelWidth / 2 + 10, -panelHeight / 2 + 10, "GJ_WebSheet", "GJ_closeBtn_001.png")
+      .setScale(0.8)
+      .setInteractive();
+    inner.add(close);
+
+    const title = this.add.bitmapText(0, -panelHeight / 2 + 40, "bigFont", "Graphics", 58).setOrigin(0.5);
+    const label = this.add.bitmapText(0, -110, "goldFont", "Texture Quality", 34).setOrigin(0.5);
+    const value = this.add.bitmapText(0, -60, "bigFont", "", 43).setOrigin(0.5);
+    inner.add([title, label, value]);
+
+    let selectedIndex = qualityOptions.findIndex(option => option.id === window.graphicsQuality);
+    if (selectedIndex < 0) selectedIndex = 0;
+    const updateValue = () => value.setText(qualityOptions[selectedIndex].label);
+    updateValue();
+
+    const leftArrow = this.add.image(-200, -60, "GJ_GameSheet03", "GJ_arrow_01_001.png").setInteractive().setScale(0.8);
+    const rightArrow = this.add.image(200, -60, "GJ_GameSheet03", "GJ_arrow_01_001.png").setFlipX(true).setInteractive().setScale(0.8);
+    inner.add([leftArrow, rightArrow]);
+
+    const resolutions = [0.3, 0.5, 0.75, 1, 1.5, 2];
+    let resolutionIndex = resolutions.indexOf(window.renderScale);
+    if (resolutionIndex < 0) resolutionIndex = 0;
+    const resolutionLabel = this.add.bitmapText(0, 5, "goldFont", "Resolution", 34).setOrigin(0.5);
+    const resolutionValue = this.add.bitmapText(0, 65, "bigFont", "", 43).setOrigin(0.5);
+    const updateResolution = () => {
+      const scale = resolutions[resolutionIndex];
+      resolutionValue.setText(`${Math.round(screenWidth * scale)}x${Math.round(screenHeight * scale)}`);
+    };
+    updateResolution();
+    const resolutionLeft = this.add.image(-200, 65, "GJ_GameSheet03", "GJ_arrow_01_001.png").setInteractive().setScale(0.8);
+    const resolutionRight = this.add.image(200, 65, "GJ_GameSheet03", "GJ_arrow_01_001.png").setFlipX(true).setInteractive().setScale(0.8);
+    inner.add([resolutionLabel, resolutionValue, resolutionLeft, resolutionRight]);
+    this._makeBouncyButton(resolutionLeft, 0.8, () => {
+      resolutionIndex = (resolutionIndex - 1 + resolutions.length) % resolutions.length;
+      updateResolution();
+    });
+    this._makeBouncyButton(resolutionRight, 0.8, () => {
+      resolutionIndex = (resolutionIndex + 1) % resolutions.length;
+      updateResolution();
+    });
+
+    const makeButton = (x, text, action) => {
+      const button = this.add.nineslice(x, panelHeight / 2 - 45, "GJ_button01", null, 210, 60, 28, 28, 28, 28)
+        .setInteractive();
+      const buttonText = this.add.bitmapText(x, panelHeight / 2 - 50, "goldFont", text, 48).setOrigin(0.5);
+      inner.add([button, buttonText]);
+      this._makeCompositeBouncyButton(button, [button, buttonText], 1, action);
+    };
+
+    const closePopup = () => {
+      if (!this._graphicsPopup) return;
+      this.tweens.killTweensOf(inner);
+      this.tweens.killTweensOf(dim);
+      this._graphicsPopup.destroy();
+      this._graphicsPopup = null;
+    };
+
+    this._makeBouncyButton(close, 0.75, closePopup);
+    this._makeBouncyButton(leftArrow, 0.8, () => {
+      selectedIndex = (selectedIndex - 1 + qualityOptions.length) % qualityOptions.length;
+      updateValue();
+    });
+    this._makeBouncyButton(rightArrow, 0.8, () => {
+      selectedIndex = (selectedIndex + 1) % qualityOptions.length;
+      updateValue();
+    });
+
+    makeButton(-120, "BACK", closePopup);
+    makeButton(120, "APPLY", () => {
+      window.graphicsQuality = qualityOptions[selectedIndex].id;
+      localStorage.setItem("gd_graphics_quality", window.graphicsQuality);
+      localStorage.setItem("gd_render_scale", String(resolutions[resolutionIndex]));
+      this._saveSettings();
+      window.location.reload();
+    });
+
+    this.tweens.add({ targets: dim, alpha: 1, duration: 250, ease: "Linear" });
+    this.tweens.add({
+      targets: inner,
+      scale: { from: 0, to: 1 },
+      duration: 660,
+      ease: "Elastic.Out",
+      easeParams: [1, 0.6]
+    });
+  }
+
   _loadSettings() {
     const saved = localStorage.getItem("gd_settings");
     const defaults = {
@@ -6486,9 +6665,14 @@ _showwippopup() {
     */
     const updateEntries = [
       { text: "Update Log", scale: 1, font: "goldFont" },
-      { text: "Sorry for the 10 hour downtime\ni forgot to change the proxy\nurl because i changed the\nsubdomain - rohanis0000", scale: 0.7, color: 0xaaddff },
-      { text: "To anyone who is wondering\nwhy online features don't work,\nthe worker is constantly being\nused and its request limit\nis hit daily in a short time\ndue to many users using\nthe online levels feature.\nThis has hopefully been\nfixed now with this update.\n- rohanis0000", scale: 0.7, color: 0xaaddff },
-      { text: "Added 2 new proxies to fall back\nto when ones request limit is\n hit to allow you to still\nbe able to use online features.", scale: 0.65 }
+      { text: "- Improved alpha & color updates", scale: 0.62, color: 0xaaddff },
+      { text: "- Faster background loading", scale: 0.7, color: 0xaaddff },
+      { text: "- Faster initial loading", scale: 0.7, color: 0xaaddff },
+      { text: "- Added level culling", scale: 0.7, color: 0xaaddff },
+      { text: "- Added Graphics quality settings", scale: 0.62, color: 0xaaddff },
+      { text: "- Made Create menu more accurate", scale: 0.62, color: 0xaaddff },
+      { text: "- Small editor optimizations", scale: 0.7, color: 0xaaddff },
+      { text: "=== t0nchi7 ===", scale: 0.7, color: 0xffffff },
     ]; 
     let yPos = 0;
     const lineItems = [];
@@ -6951,6 +7135,11 @@ _showwippopup() {
     if (!this._menuActive) {
       return;
     }
+    if (this._requestedBackgroundKey && !this.textures.exists(this._requestedBackgroundKey) &&
+        this._pendingBackgroundLoads?.has(this._requestedBackgroundKey)) {
+      this._startAfterBackgroundLoad = true;
+      return;
+    }
     const _instant = !!this._instantLevelStart;
     this._instantLevelStart = false;
     const _dismiss = (target, tweenProps, cleanup) => {
@@ -6972,6 +7161,11 @@ _showwippopup() {
     this._practiceBestPercent = parseFloat(localStorage.getItem("practiceBestPercent_" + (window.currentlevel[2] || "level_1")) || "0");
     
     this._menuActive = false;
+    //the menu may have changed tints while the bg was loading
+    //restore them before slide in, which doesnt run the gameplay color update
+    this._bg.setTint(this._colorManager.getHex(fs));
+    this._level.setGroundColor(this._colorManager.getHex(gs));
+    this._level.setGround2Color?.(this._colorManager.getHex(1009));
     this._practiceBypassPending = false;
     this._slideIn = true;
     if (this._menuGlitter) {
@@ -7886,7 +8080,53 @@ _showwippopup() {
     }
   }
 
+  _loadBackgroundTexture(textureKey) {
+    const match = /^game_bg_(\d+)$/.exec(textureKey);
+    const index = match ? Number(match[1]) : -1;
+    if (index < 0 || index > 58) return;
+    this._pendingBackgroundLoads ||= new Set();
+    if (this._pendingBackgroundLoads.has(textureKey)) return;
+    this._pendingBackgroundLoads.add(textureKey);
+    const completeEvent = "filecomplete-image-" + textureKey;
+    const cleanup = () => {
+      this.load.off(completeEvent, onComplete);
+      this.load.off("loaderror", onError);
+      this.events.off("shutdown", cleanup);
+      this._pendingBackgroundLoads.delete(textureKey);
+    };
+    const onComplete = () => {
+      cleanup();
+      //fast editor selections must not let an older request replace the newest one
+      if (this._requestedBackgroundKey !== textureKey || !this._bg?.scene) return;
+      this._applyMirroredBackgroundTexture(textureKey);
+      if (this._startAfterBackgroundLoad) {
+        this._startAfterBackgroundLoad = false;
+        this._startGame();
+      }
+    };
+    const onError = (file) => {
+      if (file.key !== textureKey) return;
+      cleanup();
+      if (this._requestedBackgroundKey === textureKey && this._startAfterBackgroundLoad) {
+        this._startAfterBackgroundLoad = false;
+        this._requestedBackgroundKey = null;
+        this._startGame();
+      }
+    };
+    this.load.once(completeEvent, onComplete);
+    this.load.on("loaderror", onError);
+    this.events.once("shutdown", cleanup);
+    const id = String(index + 1).padStart(2, "0");
+    this.load.image(textureKey, "assets/game-bg/game_bg_" + id + "_001-hd.png");
+    if (!this.load.isLoading()) this.load.start();
+  }
+
   _applyMirroredBackgroundTexture(textureKey) {
+    this._requestedBackgroundKey = textureKey;
+    if (!this.textures.exists(textureKey)) {
+      this._loadBackgroundTexture(textureKey);
+      return;
+    }
     const texture = this.textures.get(textureKey);
     const source = texture?.source?.[0];
     const sourceHeight = source?.height || source?.image?.height || source?.image?.naturalHeight || 0;
@@ -7957,6 +8197,11 @@ _showwippopup() {
     return _0xd8019e * 60;
   }
   update(_0x54fa47, deltaTime) {
+    //requested level start must not run the menu's rainbow animation while loading
+    if (this._startAfterBackgroundLoad) {
+      this._deltaBuffer = 0;
+      return;
+    }
     if (window.isEditor) {
         if (this._editorPlaytestActive && !this._editorPlaytestPaused) {
             this._levelEditor._updateEditorPlaytest(deltaTime);
@@ -7967,7 +8212,6 @@ _showwippopup() {
 
         if (window.isEditorPause) return;
         const pointer = this.input.activePointer;
-        this._hitObjects = this.input.hitTestPointer(pointer);
         this._levelEditor._handleEditorCamera(deltaTime); 
         this._levelEditor._updateEditorGrid(); 
         if (pointer.isDown && !this._isDraggingSlider) {
@@ -8312,7 +8556,7 @@ _showwippopup() {
     if (!window.enableLDM) {
       window._animTimer += deltaTime;
       for (let _as of window._animatedSprites) {
-        if (!_as || !_as.active || !_as.visible) continue;
+        if (!_as || !_as.active || !_as.visible || !this._level.isVisualSpriteNearCamera(_as, this._cameraX)) continue;
         if (window._animTimer - (_as._lastAnimSwap || 0) >= _as._animInterval) {
           _as._lastAnimSwap = window._animTimer;
           _as._animIdx = (_as._animIdx + 1) % _as._animFrames.length;
@@ -8330,7 +8574,7 @@ _showwippopup() {
     if (this._level && this._level._sawSprites && !window.enableLDM) {
       const sawTimer = (window._animTimer || 0) / 1000;
       for (let _saw of this._level._sawSprites) {
-        if (!_saw || !_saw.active || !_saw.visible) continue;
+        if (!_saw || !_saw.active || !_saw.visible || !this._level.isVisualSpriteNearCamera(_saw, this._cameraX)) continue;
         const baseSpeed = _saw._Sawrotationspeed ?? 0.0034;
         let sawRotationSpeed = baseSpeed;
         if (_saw._SawRandom1 !== undefined) {
@@ -8342,12 +8586,12 @@ _showwippopup() {
     if (this._level && this._level._orbSprites) {
       const gravityGuideRotation = (this._state?.gravityFlipped ? Math.PI : 0);
       for (let _oSpr of this._level._orbSprites) {
-        if (!_oSpr || !_oSpr.active || !_oSpr._eeOrbGuide || !_oSpr._OrbGuideGrav) continue;
+        if (!_oSpr || !_oSpr.active || !_oSpr._eeOrbGuide || !_oSpr._OrbGuideGrav || !this._level.isVisualSpriteNearCamera(_oSpr, this._cameraX)) continue;
         const baseRotation = Number.isFinite(_oSpr._OrbGuideRotation) ? _oSpr._OrbGuideRotation : 0;
         _oSpr.rotation = baseRotation + gravityGuideRotation;
       }
     }
-    this._level.updateAudioScale(this._audio.getMeteringValue());
+    this._level.updateAudioScale(this._audio.getMeteringValue(), this._cameraX, screenWidth);
     if (!this._orbGfx) {
       this._orbGfx = this.add.graphics().setDepth(54).setBlendMode(S);
     }
@@ -9793,7 +10037,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
     _makeSettingsBtn(_sColL, _sRow1Y, "Account",    _sBtnW2, false, null);
     _makeSettingsBtn(_sColR, _sRow1Y, "How To Play", _sBtnW2, true, () => { this._buildHowToPlayPopup(); });
     _makeSettingsBtn(_sColL, _sRow2Y, "Options",    _sBtnW2, true,  () => { this._buildSettingsPopup(); });
-    _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, false, null);
+    _makeSettingsBtn(_sColR, _sRow2Y, "Graphics",   _sBtnW2, true,  () => { this._buildGraphicsPopup(); });
     _makeSettingsBtn(_sCol3L, _sRow3Y, "Rate",      _sBtnW3, true, () => { this._redirectRate(); });
     _makeSettingsBtn(_sCol3M, _sRow3Y, "Songs",     _sBtnW3, true, () => { this._hideSettingsScreen(() => this.time.delayedCall(150, () => this._buildsongspopup())); });
     _makeSettingsBtn(_sCol3R, _sRow3Y, "Help",      _sBtnW3, true, () => { this._hideSettingsScreen(() => this.time.delayedCall(150, () => this._buildhelppopup())); });

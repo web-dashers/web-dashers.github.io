@@ -169,7 +169,7 @@ class BootScene extends Phaser.Scene {
       "Loading will be finished... soon",
       "This seems like a good place to hide a secret...",
       "The vault Keeper's name is 'Spooky'...",
-      "Hop the big guy doesn't wakt up...",
+      "Hope the big guy doesn't wake up...",
       "Shhhh! You're gonna wake the big one!",
       "I have been expecting you.",
       "A wild WebDasher appeared!",
