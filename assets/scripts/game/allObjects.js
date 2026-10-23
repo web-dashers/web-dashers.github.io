@@ -1914,9 +1914,54 @@ window.allobjects = function() {
     "default_z_layer": 3,
     "default_z_order": 1
   },
+  "123": {
+    "type": "deco",
+    "frame": "d_thorn_01_001.png",
+    "gridW": 0,
+    "gridH": 0,
+    "default_detail_color_channel": -1,
+    "default_z_layer": 3,
+    "default_z_order": 1
+  },
+  "124": {
+    "type": "deco",
+    "frame": "d_thorn_02_001.png",
+    "gridW": 0,
+    "gridH": 0,
+    "default_detail_color_channel": -1,
+    "default_z_layer": 3,
+    "default_z_order": 1
+  },
+  "125": {
+    "type": "deco",
+    "frame": "d_thorn_03_001.png",
+    "gridW": 0,
+    "gridH": 0,
+    "default_detail_color_channel": -1,
+    "default_z_layer": 3,
+    "default_z_order": 1
+  },
+  "126": {
+    "type": "deco",
+    "frame": "d_thorn_04_001.png",
+    "gridW": 0,
+    "gridH": 0,
+    "default_detail_color_channel": -1,
+    "default_z_layer": 3,
+    "default_z_order": 1
+  },
+  "127": {
+    "type": "deco",
+    "frame": "d_thorn_05_001.png",
+    "gridW": 0,
+    "gridH": 0,
+    "default_detail_color_channel": -1,
+    "default_z_layer": 3,
+    "default_z_order": 1
+  },
   "128": {
     "type": "deco",
-    "frame": "d_smallBall_04_001.png",
+    "frame": "d_thorn_06_001.png",
     "gridW": 0,
     "gridH": 0,
     "default_detail_color_channel": -1,
@@ -1978,14 +2023,22 @@ window.allobjects = function() {
     "default_z_order": 9
   },
   "135": {
-    "type": "deco",
-    "frame": "fakeSpike_01_001.png",
+    "type": "hazard",
+    "frame": "pit_b_01_001.png",
     "gridW": 0,
     "gridH": 0,
     "black": true,
-    "default_detail_color_channel": -1,
-    "default_z_layer": 5,
-    "default_z_order": 2
+    "can_color": false,
+    "spriteW": 30,
+    "spriteH": 27,
+    "hitboxScaleX": 0.3,
+    "hitboxScaleY": 0.4,
+    "randomFrames": [
+      "pit_b_01_001.png",
+      "pit_b_02_001.png",
+      "pit_b_03_001.png",
+      "pit_b_04_001.png"
+    ],
   },
   "136": {
     "type": "deco",

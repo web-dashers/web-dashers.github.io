@@ -1866,7 +1866,7 @@ if (this.p.isFlying || this.p.isUfo) {
         const _ufotilt = Math.max(-0.1, Math.min(3, (this.p.y - this.p.lastY) * 0.015));
         const targetuforotation = this.p.mirrored ? -_ufotilt : _ufotilt;
         if (!Number.isFinite(this._uforotation)) this._uforotation = targetuforotation;
-        const rotationmix = Math.min(1, Math.max(0, (_0x3afedf || 0) * 8.5));
+        const rotationmix = 0.15
         this._uforotation += (targetuforotation - this._uforotation) * rotationmix;
         this._uforotation = Math.max(-0.11, Math.min(3, this._uforotation));
         const uforotation = this._uforotation;

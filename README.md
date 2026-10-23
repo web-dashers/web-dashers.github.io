@@ -47,8 +47,6 @@
 - **Level Editor** - We wish to add a fully working level editor, with all of the objects in Geometry Dash to choose from, and more! Currently, the editor is very run down and still needs a big amount of it's features to be added.
 - **Slopes** - Slopes are almost done, but we need to get their physics correct with other speed portals. 
 
-<sub> beg pinkdev to please finish slopes faster he is taking too long<sub>
-
 ## What we hope to see added in the future:
 - **All Gamemodes** - Currently, every gamemode except the Swing has been implemented. There is a chance it will, and will not be added.
 - **All Objects Working** - In the current state of Web Dashers, you might notice some objects seem to be bugged, such as a lack of animations, and coloring being incorrect.

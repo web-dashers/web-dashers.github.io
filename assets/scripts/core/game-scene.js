@@ -1415,8 +1415,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
             }
             const statusTxt = this.add.bitmapText(statusIcon.x + 22, infoY, "bigFont", level.status, 18).setOrigin(0, 0.5);
             
-            const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY, "GJ_button01", null, 120, 60, 24, 24, 24, 24 ).setScale(0.75).setInteractive();
-            const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 32).setOrigin(0.5).setScale(0.8);
+            const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY, "GJ_button01", null, 115, 55, 24, 24, 24, 24 ).setScale(0.75).setInteractive().setScale(1.05);
+            const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 32).setOrigin(0.5).setScale(1.1);
             
             this._makeCompositeBouncyButton(viewBtn, [viewBtn, viewTxt], 0.75, () => {
                 this._closeEditorMenu(false);
@@ -1466,6 +1466,11 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
                 listContainer.y = Phaser.Math.Clamp(listContainer.y, minY, maxY);
             }
         });
+
+      const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setOrigin(1, 1).setFlipX(true);
+      const cornerBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setOrigin(0, 1);
+container.add(cornerBR);
+container.add(cornerBL);
 
         const newBtnX = sw - 60;
         const newBtnY = sh - 55;
@@ -1861,6 +1866,14 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         this._levelViewOverlay = overlay;
         this._closeLevelView = () => { cleanup(); this._openEditorMenu(); };
 
+        const fadeIn = this.add.graphics().setScrollFactor(0).setDepth(200);
+        fadeIn.fillStyle(0x000000, 1);
+        fadeIn.fillRect(0, 0, sw, sh);
+        this.tweens.add({ targets: fadeIn, alpha: 0, duration: 350, ease: "Linear", onComplete: () => fadeIn.destroy() });
+
+        const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(1, 1).setFlipX(true);
+        const cornerBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(152).setOrigin(0, 1);
+
         const btnY = sh * 0.58;
         const editBtn = this.add.image(centerX - 220, btnY, "GJ_GameSheet03", "GJ_editBtn_001.png").setInteractive().setScale(1.1);
         this._makeBouncyButton(editBtn, 1.1, () => { cleanup(); this._startCreatedLevel(level, true); });
@@ -1911,7 +1924,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const versionText = this.add.bitmapText(centerX - 180, subFooterY, "goldFont", `Version: ${level.version || 1}`, 30).setOrigin(0.5).setDepth(152);
         const idText = this.add.bitmapText(centerX + 180, subFooterY, "goldFont", `ID: ${level.levelId || "na"}`, 30).setOrigin(0.5).setDepth(152);
 
-        container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText]);
+        container.add([nameBox, titleText, titleCursor, descBox, descText, descCursor, playBtn, editBtn, shareBtn, backBtn, deleteBtn, lengthIcon, lengthLabel, songIcon, songLabel, statusIcon, statusLabel, versionText, idText, cornerBR, cornerBL]);
     };
     this._startCreatedLevel = async (level, isEditor, onBeforeRestart = null) => {
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");

@@ -584,7 +584,7 @@ function calculateSongOffsetForX(targetX, startSpeedKey = 0, sourceObjects = nul
 
 window.calculateGeometryDashSongOffsetForX = calculateSongOffsetForX;
 
-const objsWithGlow = [1, 2, 3, 4, 6, 7, 83, 84, 1332, 67, 8, 39, 103, 392, 35, 36, 40, 140, 141, 62, 65, 66, 68, 195, 196, 1022, 1594];
+const objsWithGlow = [1, 2, 3, 4, 6, 7, 83, 84, 1332, 67, 8, 39, 103, 392, 35, 36, 40, 140, 141, 62, 65, 66, 68, 195, 196, 1022, 1594, 91, 122, 116, 118, 117, 119, 121, 162,];
 for (let obj of objsWithGlow) {
   if (allObjects[obj]) {
     allObjects[obj].glow = true;
