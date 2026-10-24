@@ -3043,6 +3043,7 @@ if (this.p.isFlying || this.p.isUfo) {
       }
       pieceSize.setBlendMode(S);
       pieceSize.setAlpha(0);
+      pieceSize._eeMirrorFollow = true;
       shineDef.container.add(pieceSize);
       _0x4ed8ff.tweens.add({
         targets: pieceSize,
@@ -3061,6 +3062,34 @@ if (this.p.isFlying || this.p.isUfo) {
         }
       });
     }
+  }
+  spawnPortalCircle(color, portalObj) {
+    const scene = this._scene;
+    if (!scene || window.enableLDM || !portalObj) return;
+    const portalX = Number(portalObj.portalX);
+    const portalY = Number(portalObj.portalY);
+    const x = Number.isFinite(portalX) ? portalX : portalObj.x;
+    const y = b(Number.isFinite(portalY) ? portalY : portalObj.y);
+    const circle = scene.add.graphics().setBlendMode(S);
+    circle._eeMirrorFollow = true;
+    circle.setPosition(x, y);
+    this._gameLayer.topContainer.add(circle);
+    const state = { t: 0 };
+    const draw = () => {
+      const radius = 100 + (10 - 100) * state.t;
+      const alpha = state.t < 0.5 ? state.t * 2 : (1 - state.t) * 2;
+      circle.clear();
+      circle.fillStyle(color, Math.max(0, Math.min(1, alpha)));
+      circle.fillCircle(0, 0, radius);
+    };
+    draw();
+    scene.tweens.add({
+      targets: state,
+      t: 1,
+      duration: 300,
+      onUpdate: draw,
+      onComplete: () => circle.destroy()
+    });
   }
   _getSlopeHitSize(playerSize, waveHitSize) {
     return this.p.isWave ? waveHitSize : playerSize;
@@ -4418,7 +4447,11 @@ if (this.p.isFlying || this.p.isUfo) {
             this._setObjectActivated(gameObj, true);
             this._playPortalShine(gameObj);
             if (!this._scene?._editorPlaytestActive) {
-              this.p.mirrored = true;
+              if (this._scene?.toggleMirror) {
+                if (this._scene.toggleMirror(true)) this.spawnPortalCircle(0xff9600, gameObj);
+              } else {
+                this.p.mirrored = true;
+              }
             }
           }
         } else if (_colType === "portal_mirror_off") {
@@ -4426,7 +4459,11 @@ if (this.p.isFlying || this.p.isUfo) {
             this._setObjectActivated(gameObj, true);
             this._playPortalShine(gameObj);
             if (!this._scene?._editorPlaytestActive) {
-              this.p.mirrored = false;
+              if (this._scene?.toggleMirror) {
+                if (this._scene.toggleMirror(false)) this.spawnPortalCircle(0x00ffff, gameObj);
+              } else {
+                this.p.mirrored = false;
+              }
             }
           }
         } else if (_colType === "portal_mini_on") {
