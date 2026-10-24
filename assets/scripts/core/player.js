@@ -157,8 +157,15 @@ class StreakManager {
 }
 class WaveTrail {
   constructor(scene, color, glowColor) {
-    this._color = color;
-    this._glowColor = glowColor;
+    
+    if (!window.toggleWaveTrailCol) {
+      this._color = color;
+      this._glowColor = glowColor;
+    } else {
+      this._color = secondaryColor;
+      this._glowColor = secondaryColor;
+    }
+    
     this._pts = [];
     this._active = false;
     this._posInit = false;
@@ -174,14 +181,16 @@ class WaveTrail {
     this._glowGfx = scene.add.graphics();
     this._glowGfx.setBlendMode(Phaser.BlendModes.ADD);
   }
+
   addToContainer(container, depth) {
     container.add(this._glowGfx);
     this._glowGfx.setDepth(depth - 1);
     container.add(this._gfx);
     this._gfx.setDepth(depth);
   }
+
   setPosition(x, y) { this._pos.x = x; this._pos.y = y; this._posInit = true; }
-  setColor(color, glowColor = color) { this._color = color; this._glowColor = glowColor; }
+  setColor(color, glowColor) { color = this._color; glowColor = this._glowColor; }
   setMiniScale(isMini) {
     const scale = isMini ? 0.6 : 1;
     this._halfW = this._baseHalfW * scale;
