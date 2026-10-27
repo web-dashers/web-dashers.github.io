@@ -1,0 +1,56 @@
+# Base44 sandbox runbook for Web Dashers.
+#
+# Web Dashers is a client-side static site: index.html + assets/ (Phaser, levels,
+# sprites, music). There is no build step and no package dependencies, so the app
+# is served straight from the bind-mounted clone and every edit to a file on disk
+# is visible on the next page load.
+#
+# Not in this compose file on purpose:
+#   * The account/cloud-save API (/api/auth/*, /api/saves) is a separate service
+#     whose source is not part of this repository (git-ignored /server.js, see
+#     db/schema.sql). It is not started here; in the sandbox the dev server answers
+#     those routes with a same-origin stub (preview mode only).
+#   * No credentials are required to boot; all other outbound traffic (GD proxy
+#     workers, boomlings.com, gdbrowser.com) is public and unauthenticated.
+
+services:
+  web:
+    # Plain runtime base image on purpose: the app is served from the cloned
+    # source, never from a prebuilt image, so edits stay visible.
+    image: python:3.12-slim
+    working_dir: /app
+    # Threaded static server reading files from disk per request, plus a
+    # same-origin stub for the app's account API. Both the stub and the
+    # __previewLocalApi flag it injects into index.html are switched on only when
+    # BASE44_PREVIEW_MODE is exactly "1" (see .base44/dev_server.py and AGENTS.md);
+    # otherwise it is a plain static server. The platform sets that variable in
+    # the sandbox environment; the bare entry below passes it through unchanged.
+    command: ["python3", "/app/.base44/dev_server.py"]
+    ports:
+      - "3000:3000"
+    environment:
+      - BASE44_PREVIEW_MODE
+    volumes:
+      - ./:/app
+    labels:
+      base44.project: "Web Dashers"
+      base44.kind: "web"
+      base44.port: "3000"
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - |
+          import sys, urllib.request
+          try:
+              r = urllib.request.urlopen("http://127.0.0.1:3000/index.html", timeout=3)
+              sys.exit(0 if r.status == 200 and b"<title>Web Dashers</title>" in r.read() else 1)
+          except Exception as e:
+              print("web check failed:", e)
+              sys.exit(1)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: on-failure

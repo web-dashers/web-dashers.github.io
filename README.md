@@ -10,16 +10,12 @@
   <p>
   <strong>A modded Geometry Dash demo with extra features added!</strong>
   </p>
-  <a 
-  href="https://web-dashers.github.io/" 
-  target="_blank">
-    <img 
+  <img 
     width="279" 
     height="89" 
     alt="PlayOnline" 
     src="https://github.com/user-attachments/assets/830fc500-f289-4b96-9686-4fbb5b9af3f5" 
     />
-  </a>
   &nbsp;
   <a 
   href="https://discord.gg/h6xYNUBFnq" 
@@ -54,7 +50,54 @@
 - **All Objects Working** - In the current state of Web Dashers, you might notice some objects seem to be bugged, such as a lack of animations, and coloring being incorrect.
 
 ### Come try out the WIP Web Dashers demo at:
-**[web-dashers.github.io](https://web-dashers.github.io/)**
+**Web Dashers on Base44** — open the app in your Base44 workspace and play it from its preview link (the app is served on port 3000).
+
+## Hosting
+
+Web Dashers is hosted on **Base44**. The platform runs this repository through
+[`docker-compose.base44.yml`](./docker-compose.base44.yml), a static development
+server on port 3000 that reads the clone from disk (see [`AGENTS.md`](./AGENTS.md)),
+and exposes it as the app's preview link. There is no GitHub Pages deployment any
+more: the embed metadata in `index.html` is relative, and the game's scripts talk to
+their own origin instead of a hardcoded hosted backend.
+
+### Firebase Hosting (public site)
+
+The repository is also configured for [Firebase Hosting](https://firebase.google.com/docs/hosting)
+so the game can be published as a real public site: [`firebase.json`](./firebase.json)
+serves the repository root (`index.html` + `assets/`) with the same caching policy as
+the Base44 dev server — media cached for a few minutes, scripts and level data
+revalidated, markup never cached — and keeps the repo's own tooling files out of the
+upload. [`.firebaserc`](./.firebaserc) holds the project id (`web-dashers` by default;
+change it to your own project, since Firebase project ids are globally unique).
+
+```sh
+npx firebase-tools login
+npx firebase-tools use --add          # create or pick the project
+npx firebase-tools deploy --only hosting
+```
+
+The site is then served at `https://<project-id>.web.app`. Three things to know:
+
+- Hosting serves static files only: there is no `/api`, so `/api/auth/*` and
+  `/api/saves` do not exist on it and the game runs signed out with local saves, the
+  same way it behaves in the preview. A real account backend has to be deployed
+  separately and pointed at from `assets/scripts/utils/api-config.js`.
+- A cold load pulls ~27 MB of textures and music. Firebase's free Spark plan caps
+  transfer (about 360 MB/day when this was written), which is roughly a dozen full
+  loads, so busy periods need Blaze (pay as you go) or lighter assets.
+- Once the public address is settled, update the anti-clone notice in
+  `assets/scripts/core/loading-screen.js` (see [`AGENTS.md`](./AGENTS.md)).
+
+Two `web-dashers.github.io` references remain and are not hosting dependencies: the
+GitHub repository link in the game's social footer (the repository is actually named
+that) and the anti-clone notice in `assets/scripts/core/loading-screen.js`, which
+tells players framed by a clone site where the official game lives. Update that
+notice with the project's final public address when it is settled.
+
+The account / cloud-save API (`/api/auth/*`, `/api/saves`) is a separate service and
+is **not** part of this repository. Where it is not deployed, the preview answers
+those routes locally and the game runs fully, signed out, with local saves.
 
 <sub> Last updated: 8/7/2026
 

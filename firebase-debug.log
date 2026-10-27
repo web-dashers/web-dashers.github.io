@@ -1,0 +1,66 @@
+[debug] [2026-10-27T11:16:39.442Z] ----------------------------------------------------------------------
+[debug] [2026-10-27T11:16:39.444Z] Command:       /usr/local/bin/node /root/.npm/_npx/ba4f1959e38407b5/node_modules/.bin/firebase emulators:start --only hosting --project demo-webdashers
+[debug] [2026-10-27T11:16:39.444Z] CLI Version:   15.34.1
+[debug] [2026-10-27T11:16:39.445Z] Platform:      linux
+[debug] [2026-10-27T11:16:39.445Z] Node Version:  v22.23.4
+[debug] [2026-10-27T11:16:39.445Z] Detected Agent: unknown
+[debug] [2026-10-27T11:16:39.445Z] Time:          Tue Oct 27 2026 11:16:39 GMT+0000 (Coordinated Universal Time)
+[debug] [2026-10-27T11:16:39.445Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-10-27T11:16:39.457Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[info] i  emulators: Starting emulators: hosting {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: hosting"}}
+[info] i  emulators: Detected demo project ID "demo-webdashers", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail. {"metadata":{"emulator":{"name":"hub"},"message":"Detected demo project ID \"demo-webdashers\", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail."}}
+[debug] [2026-10-27T11:16:40.073Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-10-27T11:16:40.073Z] [hosting] Hosting Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-10-27T11:16:40.073Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5000}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-10-27T11:16:40.076Z] Write emulator hub locator at /tmp/hub-demo-webdashers.json
+[debug] [2026-10-27T11:16:40.084Z] No OAuth tokens found
+[debug] [2026-10-27T11:16:40.084Z] No OAuth tokens found
+[debug] [2026-10-27T11:16:40.084Z] Unable to refresh auth: not yet authenticated.
+[info] ✔  hosting[demo-webdashers]: Local server: http://127.0.0.1:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: http://127.0.0.1:5000"}}
+[warn] ⚠  emulators: The Emulator UI is not starting because none of the running emulators have a UI component. {"metadata":{"emulator":{"name":"hub"},"message":"The Emulator UI is not starting because none of the running emulators have a UI component."}}
+[debug] [2026-10-27T11:16:40.108Z] Could not find VSCode notification endpoint: TypeError: fetch failed. If you are not running the Firebase SQL Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+└─────────────────────────────────────────────────────────────┘
+
+┌──────────┬────────────────┐
+│ Emulator │ Host:Port      │
+├──────────┼────────────────┤
+│ Hosting  │ 127.0.0.1:5000 │
+└──────────┴────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+[debug] [2026-10-27T11:16:40.185Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-10-27T11:16:40.185Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET / HTTP/1.1" 200 6205 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET / HTTP/1.1\" 200 6205 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET / HTTP/1.1" 200 6205 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET / HTTP/1.1\" 200 6205 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /index.html HTTP/1.1" 200 6205 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /index.html HTTP/1.1\" 200 6205 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/style.css HTTP/1.1" 200 131 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/style.css HTTP/1.1\" 200 131 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/scripts/core/main.js HTTP/1.1" 200 2096 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/scripts/core/main.js HTTP/1.1\" 200 2096 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/scripts/libs/phaser.min.js HTTP/1.1" 200 1196123 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/scripts/libs/phaser.min.js HTTP/1.1\" 200 1196123 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /README.md HTTP/1.1" 200 5754 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /README.md HTTP/1.1\" 200 5754 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /AGENTS.md HTTP/1.1" 200 6460 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /AGENTS.md HTTP/1.1\" 200 6460 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /.git/config HTTP/1.1" 200 463 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /.git/config HTTP/1.1\" 200 463 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /.base44/dev_server.py HTTP/1.1" 200 9362 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /.base44/dev_server.py HTTP/1.1\" 200 9362 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /docker-compose.base44.yml HTTP/1.1" 200 2303 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /docker-compose.base44.yml HTTP/1.1\" 200 2303 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /db/schema.sql HTTP/1.1" 200 782 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /db/schema.sql HTTP/1.1\" 200 782 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/style.css HTTP/1.1" 200 131 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/style.css HTTP/1.1\" 200 131 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /assets/style.css HTTP/1.1" 200 131 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /assets/style.css HTTP/1.1\" 200 131 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/music/Fingerdash.mp3 HTTP/1.1" 200 2838061 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/music/Fingerdash.mp3 HTTP/1.1\" 200 2838061 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /assets/music/Fingerdash.mp3 HTTP/1.1" 200 2838061 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /assets/music/Fingerdash.mp3 HTTP/1.1\" 200 2838061 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/music/Cycles.mp3 HTTP/1.1" 200 1323794 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/music/Cycles.mp3 HTTP/1.1\" 200 1323794 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /assets/music/Cycles.mp3 HTTP/1.1" 200 1323794 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /assets/music/Cycles.mp3 HTTP/1.1\" 200 1323794 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/music/xStep.mp3 HTTP/1.1" 200 1368098 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/music/xStep.mp3 HTTP/1.1\" 200 1368098 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /assets/music/xStep.mp3 HTTP/1.1" 200 1368098 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /assets/music/xStep.mp3 HTTP/1.1\" 200 1368098 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/music/Dash.mp3 HTTP/1.1" 200 2257608 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/music/Dash.mp3 HTTP/1.1\" 200 2257608 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /assets/music/Dash.mp3 HTTP/1.1" 200 2257608 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /assets/music/Dash.mp3 HTTP/1.1\" 200 2257608 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET /assets/music/Jumper.mp3 HTTP/1.1" 200 1403323 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET /assets/music/Jumper.mp3 HTTP/1.1\" 200 1403323 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /assets/music/Jumper.mp3 HTTP/1.1" 200 1403323 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /assets/music/Jumper.mp3 HTTP/1.1\" 200 1403323 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD / HTTP/1.1" 200 6205 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD / HTTP/1.1\" 200 6205 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "HEAD /index.html HTTP/1.1" 200 6205 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"HEAD /index.html HTTP/1.1\" 200 6205 \"-\" \"curl/8.5.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] "GET / HTTP/1.1" 200 6205 "-" "curl/8.5.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Oct/2026:11:16:41 +0000] \"GET / HTTP/1.1\" 200 6205 \"-\" \"curl/8.5.0\""}}
