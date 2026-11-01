@@ -10536,7 +10536,7 @@ _applyMirrorEffect() {
   }
 
         _redirectRate() {
-window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
+window.open("https://docs.google.com/forms/d/e/1FAIpQLSdYEHhuq6NwEiPFiQsULijJ2NhL4vWXJVvjFnkPD2rEInHiGg/viewform", "_blank"); }
 
   _showSettingsScreen() {
     this._settingsScreenClosing = false;
