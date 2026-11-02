@@ -155,11 +155,31 @@ class GameCacheManager {
         }
         return bytes.buffer;
     }
+    initOSFolder(folderName) {
+        try {
+            const os = window.parent; 
+            if (typeof os.getFS === 'function' && typeof os.saveFS === 'function') {
+                let fs = os.getFS(); 
+                if (fs['AppData'] && !fs['AppData'][folderName]) {
+                    fs['AppData'][folderName] = {}; 
+                    os.saveFS(fs); 
+                    console.log(`Created ${folderName} in OS AppData.`);
+                }
+            } else {
+                console.log("OS not detected. Falling back to standard browser cache.");
+            }
+        } catch (e) {
+            console.warn("Could not check OS environment due to cross-origin or other errors:", e);
+        }
+    }
     init() {
         if (!this.isCacheValid()) {
             this.clearCache();
             localStorage.setItem(this.CACHE_VERSION_KEY, this.CACHE_VERSION);
         }
+        
+        // Initialize a folder in the host OS AppData if running in the Web OS environment
+        this.initOSFolder('WebDashCache');
     }
     getCacheStats() {
         const keys = Object.keys(localStorage).filter(key => key.startsWith(this.CACHE_PREFIX));
@@ -188,3 +208,5 @@ class GameCacheManager {
     }
 }
 window.gameCache = new GameCacheManager();
+// Call init on load so the OS folder is created right away
+window.gameCache.init();
