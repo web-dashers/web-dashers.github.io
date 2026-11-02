@@ -144,8 +144,8 @@ window.allLevels = [
         ["Creator", "Artist"]
     ],
     [
-        "sonion_wave_challenge",
-        "Sonion Wave Challenge",
+        "web_dashers_next_lev",
+        "Web Dashers Next Lev",
         "level_1234",
         ["sirmircowave", "F-777"]
     ],
