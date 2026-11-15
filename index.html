@@ -26,7 +26,7 @@
     <meta property="twitter:image" content="https://web-dashers.github.io/wd_assets/thumbnail_1024.png" />
 
     <!-- Libraries and stuff -->
-    <script src="assets/scripts/game/allObjects.js?latest"></script>
+    <script src="assets/scripts/game/allObjects.js?v=13"></script>
     <script src="assets/scripts/game/allLevels.js"></script>
     <script src="assets/scripts/libs/phaser.min.js"></script>
     <script src="assets/scripts/libs/pako.min.js"></script>
@@ -41,6 +41,9 @@
                 "https://gd-proxy.webdashers.workers.dev",
                 "https://cold-grass-d871.gn-math-business.workers.dev",
                 "https://webd.ktrio839.workers.dev",
+                "https://webdashers.webdashersdevelopement.workers.dev",
+                "https://fallbackgdproxy.webdashers.workers.dev",
+                "https://fallback2.webdashers.workers.dev"
             ];
             window._gdProxyUrl = GD_PROXY_HOSTS[0];
             window._gdProxyHosts = GD_PROXY_HOSTS;
@@ -48,12 +51,17 @@
             var nativeFetch = window.fetch.bind(window);
             function matchingHost(url) {
                 for (var i = 0; i < GD_PROXY_HOSTS.length; i++) {
-                    if (url.indexOf(GD_PROXY_HOSTS[i]) === 0) return GD_PROXY_HOSTS[i];
+                    var h = GD_PROXY_HOSTS[i].replace(/\/$/, "");
+                    if (url.indexOf(h) === 0) return GD_PROXY_HOSTS[i];
                 }
                 return null;
             }
             function withHost(url, oldHost, newHost) {
-                return newHost + url.slice(oldHost.length);
+                var cleanOld = oldHost.replace(/\/$/, "");
+                var cleanNew = newHost.replace(/\/$/, "");
+                var path = url.slice(cleanOld.length);
+                if (path.indexOf('/') !== 0) path = '/' + path;
+                return cleanNew + path;
             }
             window.fetch = function (input, init) {
                 var isRequestObj = (typeof Request !== "undefined") && (input instanceof Request);
@@ -95,15 +103,16 @@
             };
         })();
     </script>
-    <script defer src="assets/scripts/utils/config.js"></script>
-    <script defer src="assets/scripts/core/triggers.js"></script>
-    <script defer src="assets/scripts/core/level.js?latest"></script>
-    <script defer src="assets/scripts/core/player.js?latehkjthykhst"></script>
-    <script defer src="assets/scripts/core/audio.js"></script>
-    <script defer src="assets/scripts/core/loading-screen.js"></script>
-    <script defer src="assets/scripts/core/level-editor.js?latest"></script>
-    <script defer src="assets/scripts/core/game-scene.js?latest3"></script>
-    <script defer src="assets/scripts/core/main.js"></script>
+    <script defer src="assets/scripts/utils/config.js?v=6"></script>
+    <script defer src="assets/scripts/core/animations.js?v=2"></script>
+    <script defer src="assets/scripts/core/triggers.js?v=3"></script>
+    <script defer src="assets/scripts/core/level.js?v=65"></script>
+    <script defer src="assets/scripts/core/player.js?v=50"></script>
+    <script defer src="assets/scripts/core/audio.js?v=2"></script>
+    <script defer src="assets/scripts/core/loading-screen.js?v=7"></script>
+    <script defer src="assets/scripts/core/level-editor.js?v=6"></script>
+    <script defer src="assets/scripts/core/game-scene.js?latest48"></script>
+    <script defer src="assets/scripts/core/main.js?v=3"></script>
     <script>
         new ResizeObserver(() => {
             window.dispatchEvent(new Event('resize'));

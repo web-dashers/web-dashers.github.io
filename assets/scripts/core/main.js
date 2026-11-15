@@ -38,6 +38,7 @@ if (window.gameCache) {
     }, 3000);
   }
 }
+l(getDynamicScreenWidth());
 const phaserConfig = {
   type: Phaser.AUTO,
   width: screenWidth,
@@ -52,7 +53,8 @@ const phaserConfig = {
     windowEvents: false
   },
   render: {
-    powerPreference: "default"
+    powerPreference: "default",
+    roundPixels: true
   },
   scale: {
     mode: Phaser.Scale.FIT,
@@ -60,6 +62,31 @@ const phaserConfig = {
   },
   scene: [BootScene, GameScene]
 };
+(() => {
+  const frameProto = Phaser.Textures.Frame.prototype;
+  const insetFrameUVs = frame => {
+    const src = frame.source;
+    if (!src || !src.width || !src.height || frame.name === "__BASE") return;
+    if (frame.width >= src.width && frame.height >= src.height) return;
+    const du = 0.5 / src.width;
+    const dv = 0.5 / src.height;
+    const cu = (frame.u0 + frame.u1) / 2;
+    const cv = (frame.v0 + frame.v1) / 2;
+    frame.u0 += frame.u0 < cu ? du : -du;
+    frame.u1 += frame.u1 < cu ? du : -du;
+    frame.v0 += frame.v0 < cv ? dv : -dv;
+    frame.v1 += frame.v1 < cv ? dv : -dv;
+  };
+  for (const method of ["updateUVs", "updateUVsInverted"]) {
+    const original = frameProto[method];
+    if (typeof original !== "function") continue;
+    frameProto[method] = function (...args) {
+      const result = original.apply(this, args);
+      insetFrameUVs(this);
+      return result;
+    };
+  }
+})();
 new Phaser.Game(phaserConfig);
 
 window.clearGameCache = () => {

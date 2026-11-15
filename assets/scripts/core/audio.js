@@ -289,7 +289,7 @@ class AudioManager {
       return;
     }
     if (!this._scene.cache.audio.exists(_songKey)) {
-      if (this._loadMissingOnlineSong(_songKey, StartPosOffset) || this._loadMissingOfficialSong(_songKey, StartPosOffset)) {
+      if (/^ng_song_\d+$/.test(String(_songKey)) ? this._loadMissingOnlineSong(_songKey, StartPosOffset) : this._loadMissingOfficialSong(_songKey, StartPosOffset)) {
         this._setupAnalyser();
         return;
       }
@@ -324,6 +324,10 @@ class AudioManager {
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
     source.loop = true;
+    const currentSpeed = window.speedHack ? Math.sqrt(window.speedHack) : 1;
+    if (source && source.playbackRate) {
+    source.playbackRate.setValueAtTime(currentSpeed, ctx.currentTime);
+    }
     source.connect(gainNode);
     source.start(0, safeOffset);
     this._onlineSource = source;
@@ -462,7 +466,7 @@ class AudioManager {
     }
 
     if (!this._scene.cache.audio.exists(songKey)) {
-      if (this._loadMissingOnlineSong(songKey, 0, durationMillis) || this._loadMissingOfficialSong(songKey, 0, durationMillis)) {
+      if (/^ng_song_\d+$/.test(String(songKey)) ? this._loadMissingOnlineSong(songKey, 0, durationMillis) : this._loadMissingOfficialSong(songKey, 0, durationMillis)) {
         this._setupAnalyser();
         return;
       }
