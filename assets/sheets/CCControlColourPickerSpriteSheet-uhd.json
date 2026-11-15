@@ -1,0 +1,235 @@
+{
+  "frames": {
+    "colourPicker.png": {
+      "frame": {
+        "x": 1,
+        "y": 1591,
+        "w": 52,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 52,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 52
+      }
+    },
+    "colourPickerBackground.png": {
+      "frame": {
+        "x": 698,
+        "y": 325,
+        "w": 440,
+        "h": 440
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 440,
+        "h": 440
+      },
+      "sourceSize": {
+        "w": 440,
+        "h": 440
+      }
+    },
+    "colourPickerOverlay.png": {
+      "frame": {
+        "x": 698,
+        "y": 766,
+        "w": 440,
+        "h": 440
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 440,
+        "h": 440
+      },
+      "sourceSize": {
+        "w": 440,
+        "h": 440
+      }
+    },
+    "colourPickerShadow.png": {
+      "frame": {
+        "x": 602,
+        "y": 1207,
+        "w": 440,
+        "h": 440
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 440,
+        "h": 440
+      },
+      "sourceSize": {
+        "w": 440,
+        "h": 440
+      }
+    },
+    "hueBar.png": {
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 80,
+        "h": 1168
+      },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 1168
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 1168
+      }
+    },
+    "huePickerBackground.png": {
+      "frame": {
+        "x": 1,
+        "y": 990,
+        "w": 600,
+        "h": 600
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 600,
+        "h": 600
+      },
+      "sourceSize": {
+        "w": 600,
+        "h": 600
+      }
+    },
+    "lightnessBar.png": {
+      "frame": {
+        "x": 1,
+        "y": 82,
+        "w": 80,
+        "h": 1168
+      },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 1168
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 1168
+      }
+    },
+    "menuCircleWhite.png": {
+      "frame": {
+        "x": 1043,
+        "y": 1207,
+        "w": 120,
+        "h": 120
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 120,
+        "h": 120
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 120
+      }
+    },
+    "menuColourPanelBackground.png": {
+      "frame": {
+        "x": 1,
+        "y": 325,
+        "w": 696,
+        "h": 664
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 24,
+        "y": 0,
+        "w": 696,
+        "h": 664
+      },
+      "sourceSize": {
+        "w": 720,
+        "h": 664
+      }
+    },
+    "saturationBarBottom.png": {
+      "frame": {
+        "x": 1,
+        "y": 163,
+        "w": 80,
+        "h": 1168
+      },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 1168
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 1168
+      }
+    },
+    "saturationBarTop.png": {
+      "frame": {
+        "x": 1,
+        "y": 244,
+        "w": 80,
+        "h": 1168
+      },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 1168
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 1168
+      }
+    }
+  },
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.0",
+    "image": "CCControlColourPickerSpriteSheet-uhd.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1170,
+      "h": 1648
+    },
+    "scale": "1"
+  }
+}

@@ -1,0 +1,1296 @@
+{
+    "textures": [
+        {
+            "image": "GJ_GameSheet04-hd.png",
+            "format": "RGBA8888",
+            "size": {
+                "w": 1151,
+                "h": 1151
+            },
+            "scale": 1.0,
+            "frames": [
+                {
+                    "filename": "GJ_challengeBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 557,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_createBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 757,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_creatorBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 140,
+                        "h": 140
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 6,
+                        "w": 134,
+                        "h": 134
+                    },
+                    "frame": {
+                        "x": 432,
+                        "y": 242,
+                        "w": 134,
+                        "h": 134
+                    }
+                },
+                {
+                    "filename": "GJ_dailyBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 232,
+                        "y": 119,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_eventBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 567,
+                        "y": 83,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_featuredBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 767,
+                        "y": 83,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_freeLevelsBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 133,
+                        "h": 131
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 6,
+                        "w": 133,
+                        "h": 125
+                    },
+                    "frame": {
+                        "x": 968,
+                        "y": 471,
+                        "w": 133,
+                        "h": 125
+                    }
+                },
+                {
+                    "filename": "GJ_fullBtn_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 161,
+                        "h": 140
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 6,
+                        "w": 161,
+                        "h": 134
+                    },
+                    "frame": {
+                        "x": 432,
+                        "y": 80,
+                        "w": 161,
+                        "h": 134
+                    }
+                },
+                {
+                    "filename": "GJ_gauntletsBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 567,
+                        "y": 283,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_highscoreBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 767,
+                        "y": 283,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_listsBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 232,
+                        "y": 319,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_mapBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 201,
+                        "y": 557,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_mapPacksBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 201,
+                        "y": 757,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_moreGamesBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 165,
+                        "h": 140
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 6,
+                        "w": 165,
+                        "h": 134
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 957,
+                        "w": 165,
+                        "h": 134
+                    }
+                },
+                {
+                    "filename": "GJ_pathsBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 401,
+                        "y": 556,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_playBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 219,
+                        "h": 219
+                    },
+                    "spriteSourceSize": {
+                        "x": 8,
+                        "y": 10,
+                        "w": 211,
+                        "h": 209
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 347,
+                        "w": 211,
+                        "h": 209
+                    }
+                },
+                {
+                    "filename": "GJ_safeBtn_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 87,
+                        "h": 98
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 2,
+                        "w": 87,
+                        "h": 96
+                    },
+                    "frame": {
+                        "x": 1031,
+                        "y": 982,
+                        "w": 87,
+                        "h": 96
+                    }
+                },
+                {
+                    "filename": "GJ_savedBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 401,
+                        "y": 756,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_searchBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 601,
+                        "y": 522,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_versusBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 601,
+                        "y": 722,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "GJ_weeklyBtn_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 209,
+                        "h": 209
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 10,
+                        "w": 199,
+                        "h": 199
+                    },
+                    "frame": {
+                        "x": 601,
+                        "y": 922,
+                        "w": 199,
+                        "h": 199
+                    }
+                },
+                {
+                    "filename": "boost_01_shine_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 64,
+                        "h": 82
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 64,
+                        "h": 82
+                    },
+                    "frame": {
+                        "x": 910,
+                        "y": 1038,
+                        "w": 64,
+                        "h": 82
+                    }
+                },
+                {
+                    "filename": "boost_02_shine_001.png",
+                    "rotated": true,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 61,
+                        "h": 108
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 61,
+                        "h": 108
+                    },
+                    "frame": {
+                        "x": 325,
+                        "y": 1083,
+                        "w": 61,
+                        "h": 108
+                    }
+                },
+                {
+                    "filename": "boost_03_shine_001.png",
+                    "rotated": true,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 96,
+                        "h": 108
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 96,
+                        "h": 108
+                    },
+                    "frame": {
+                        "x": 801,
+                        "y": 1052,
+                        "w": 96,
+                        "h": 108
+                    }
+                },
+                {
+                    "filename": "boost_04_shine_001.png",
+                    "rotated": true,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 125,
+                        "h": 108
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 125,
+                        "h": 108
+                    },
+                    "frame": {
+                        "x": 332,
+                        "y": 957,
+                        "w": 125,
+                        "h": 108
+                    }
+                },
+                {
+                    "filename": "boost_05_shine_001.png",
+                    "rotated": true,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 128,
+                        "h": 103
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 128,
+                        "h": 103
+                    },
+                    "frame": {
+                        "x": 937,
+                        "y": 742,
+                        "w": 128,
+                        "h": 103
+                    }
+                },
+                {
+                    "filename": "gj_dailyCrown_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 166,
+                        "h": 119
+                    },
+                    "spriteSourceSize": {
+                        "x": 1,
+                        "y": 7,
+                        "w": 164,
+                        "h": 111
+                    },
+                    "frame": {
+                        "x": 167,
+                        "y": 957,
+                        "w": 164,
+                        "h": 111
+                    }
+                },
+                {
+                    "filename": "gj_eventCrown_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 161,
+                        "h": 126
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 7,
+                        "w": 161,
+                        "h": 118
+                    },
+                    "frame": {
+                        "x": 967,
+                        "y": 74,
+                        "w": 161,
+                        "h": 118
+                    }
+                },
+                {
+                    "filename": "gj_weeklyCrown_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 166,
+                        "h": 119
+                    },
+                    "spriteSourceSize": {
+                        "x": 1,
+                        "y": 8,
+                        "w": 164,
+                        "h": 111
+                    },
+                    "frame": {
+                        "x": 803,
+                        "y": 483,
+                        "w": 164,
+                        "h": 111
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 23,
+                        "y": 27,
+                        "w": 89,
+                        "h": 88
+                    },
+                    "frame": {
+                        "x": 1041,
+                        "y": 758,
+                        "w": 89,
+                        "h": 88
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_002.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 9,
+                        "y": 13,
+                        "w": 119,
+                        "h": 110
+                    },
+                    "frame": {
+                        "x": 1031,
+                        "y": 871,
+                        "w": 119,
+                        "h": 110
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_003.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 6,
+                        "w": 125,
+                        "h": 122
+                    },
+                    "frame": {
+                        "x": 441,
+                        "y": 956,
+                        "w": 125,
+                        "h": 122
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_004.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 4,
+                        "w": 127,
+                        "h": 128
+                    },
+                    "frame": {
+                        "x": 941,
+                        "y": 597,
+                        "w": 127,
+                        "h": 128
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_005.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 3,
+                        "y": 3,
+                        "w": 131,
+                        "h": 130
+                    },
+                    "frame": {
+                        "x": 432,
+                        "y": 377,
+                        "w": 131,
+                        "h": 130
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_006.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 1,
+                        "y": 0,
+                        "w": 135,
+                        "h": 136
+                    },
+                    "frame": {
+                        "x": 801,
+                        "y": 734,
+                        "w": 135,
+                        "h": 136
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_007.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 139,
+                        "h": 138
+                    },
+                    "frame": {
+                        "x": 967,
+                        "y": 332,
+                        "w": 139,
+                        "h": 138
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_008.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 141,
+                        "h": 138
+                    },
+                    "frame": {
+                        "x": 967,
+                        "y": 193,
+                        "w": 141,
+                        "h": 138
+                    }
+                },
+                {
+                    "filename": "playerDash2_boom2_009.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 141,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 139,
+                        "h": 138
+                    },
+                    "frame": {
+                        "x": 801,
+                        "y": 595,
+                        "w": 139,
+                        "h": 138
+                    }
+                },
+                {
+                    "filename": "portalshine_01_back_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 75,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 33,
+                        "h": 144
+                    },
+                    "frame": {
+                        "x": 567,
+                        "y": 956,
+                        "w": 33,
+                        "h": 144
+                    }
+                },
+                {
+                    "filename": "portalshine_01_front_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 31,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 31,
+                        "h": 144
+                    },
+                    "frame": {
+                        "x": 1069,
+                        "y": 597,
+                        "w": 31,
+                        "h": 144
+                    }
+                },
+                {
+                    "filename": "portalshine_02_back_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 86,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 40,
+                        "h": 144
+                    },
+                    "frame": {
+                        "x": 1109,
+                        "y": 193,
+                        "w": 40,
+                        "h": 144
+                    }
+                },
+                {
+                    "filename": "portalshine_02_front_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 72,
+                        "h": 166
+                    },
+                    "spriteSourceSize": {
+                        "x": 12,
+                        "y": 0,
+                        "w": 60,
+                        "h": 166
+                    },
+                    "frame": {
+                        "x": 886,
+                        "y": 871,
+                        "w": 60,
+                        "h": 166
+                    }
+                },
+                {
+                    "filename": "portalshine_03_back_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 99,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 83,
+                        "h": 144
+                    },
+                    "frame": {
+                        "x": 947,
+                        "y": 871,
+                        "w": 83,
+                        "h": 144
+                    }
+                },
+                {
+                    "filename": "portalshine_03_front_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 88,
+                        "h": 178
+                    },
+                    "spriteSourceSize": {
+                        "x": 16,
+                        "y": 0,
+                        "w": 72,
+                        "h": 178
+                    },
+                    "frame": {
+                        "x": 971,
+                        "y": 1,
+                        "w": 72,
+                        "h": 178
+                    }
+                },
+                {
+                    "filename": "portalshine_04_back_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 89,
+                        "h": 151
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 1,
+                        "w": 47,
+                        "h": 149
+                    },
+                    "frame": {
+                        "x": 1101,
+                        "y": 608,
+                        "w": 47,
+                        "h": 149
+                    }
+                },
+                {
+                    "filename": "portalshine_04_front_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 50,
+                        "h": 174
+                    },
+                    "spriteSourceSize": {
+                        "x": 10,
+                        "y": 0,
+                        "w": 40,
+                        "h": 174
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 1092,
+                        "w": 40,
+                        "h": 174
+                    }
+                },
+                {
+                    "filename": "portalshine_05_back_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 66,
+                        "h": 140
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 4,
+                        "w": 48,
+                        "h": 136
+                    },
+                    "frame": {
+                        "x": 1102,
+                        "y": 471,
+                        "w": 48,
+                        "h": 136
+                    }
+                },
+                {
+                    "filename": "portalshine_05_front_001.png",
+                    "rotated": true,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 66,
+                        "h": 148
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 66,
+                        "h": 148
+                    },
+                    "frame": {
+                        "x": 176,
+                        "y": 1069,
+                        "w": 66,
+                        "h": 148
+                    }
+                },
+                {
+                    "filename": "portalshine_06_back_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 86,
+                        "h": 144
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 40,
+                        "h": 144
+                    },
+                    "frame": {
+                        "x": 975,
+                        "y": 1070,
+                        "w": 40,
+                        "h": 144
+                    }
+                },
+                {
+                    "filename": "portalshine_06_front_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 43,
+                        "h": 175
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 33,
+                        "h": 175
+                    },
+                    "frame": {
+                        "x": 424,
+                        "y": 522,
+                        "w": 33,
+                        "h": 175
+                    }
+                },
+                {
+                    "filename": "spiderDash_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 13,
+                        "y": 1,
+                        "w": 426,
+                        "h": 38
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 80,
+                        "w": 426,
+                        "h": 38
+                    }
+                },
+                {
+                    "filename": "spiderDash_002.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 15,
+                        "y": 0,
+                        "w": 396,
+                        "h": 42
+                    },
+                    "frame": {
+                        "x": 574,
+                        "y": 1,
+                        "w": 396,
+                        "h": 42
+                    }
+                },
+                {
+                    "filename": "spiderDash_003.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 11,
+                        "y": 1,
+                        "w": 300,
+                        "h": 38
+                    },
+                    "frame": {
+                        "x": 574,
+                        "y": 44,
+                        "w": 300,
+                        "h": 38
+                    }
+                },
+                {
+                    "filename": "spiderDash_004.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 9,
+                        "y": 0,
+                        "w": 238,
+                        "h": 38
+                    },
+                    "frame": {
+                        "x": 564,
+                        "y": 483,
+                        "w": 238,
+                        "h": 38
+                    }
+                },
+                {
+                    "filename": "spiderDash_005.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 7,
+                        "y": 2,
+                        "w": 210,
+                        "h": 36
+                    },
+                    "frame": {
+                        "x": 213,
+                        "y": 519,
+                        "w": 210,
+                        "h": 36
+                    }
+                },
+                {
+                    "filename": "spiderDash_006.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 7,
+                        "y": 2,
+                        "w": 142,
+                        "h": 34
+                    },
+                    "frame": {
+                        "x": 975,
+                        "y": 1111,
+                        "w": 142,
+                        "h": 34
+                    }
+                },
+                {
+                    "filename": "spiderDash_007.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 4,
+                        "y": 2,
+                        "w": 118,
+                        "h": 34
+                    },
+                    "frame": {
+                        "x": 1107,
+                        "y": 338,
+                        "w": 118,
+                        "h": 34
+                    }
+                },
+                {
+                    "filename": "spiderDash_008.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 442,
+                        "h": 42
+                    },
+                    "spriteSourceSize": {
+                        "x": 3,
+                        "y": 1,
+                        "w": 44,
+                        "h": 32
+                    },
+                    "frame": {
+                        "x": 875,
+                        "y": 44,
+                        "w": 44,
+                        "h": 32
+                    }
+                },
+                {
+                    "filename": "theTowerDoor_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 232,
+                        "h": 229
+                    },
+                    "spriteSourceSize": {
+                        "x": 2,
+                        "y": 2,
+                        "w": 230,
+                        "h": 227
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 119,
+                        "w": 230,
+                        "h": 227
+                    }
+                },
+                {
+                    "filename": "theTowerLabel_001.png",
+                    "rotated": true,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 184,
+                        "h": 88
+                    },
+                    "spriteSourceSize": {
+                        "x": 4,
+                        "y": 4,
+                        "w": 180,
+                        "h": 84
+                    },
+                    "frame": {
+                        "x": 801,
+                        "y": 871,
+                        "w": 180,
+                        "h": 84
+                    }
+                },
+                {
+                    "filename": "weeklyLevelsLabel_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 576,
+                        "h": 80
+                    },
+                    "spriteSourceSize": {
+                        "x": 4,
+                        "y": 2,
+                        "w": 572,
+                        "h": 78
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 1,
+                        "w": 572,
+                        "h": 78
+                    }
+                }
+            ]
+        }
+    ]
+}

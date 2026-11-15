@@ -1,0 +1,82 @@
+{
+    "textures": [
+        {
+            "image": "player_dart_00.png",
+            "format": "RGBA8888",
+            "size": {
+                "w": 330,
+                "h": 89
+            },
+            "scale": 1.0,
+            "frames": [
+                {
+                    "filename": "player_dart_00_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 110,
+                        "h": 89
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 110,
+                        "h": 89
+                    },
+                    "frame": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 110,
+                        "h": 89
+                    }
+                },
+                {
+                    "filename": "player_dart_00_2_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 110,
+                        "h": 89
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 110,
+                        "h": 89
+                    },
+                    "frame": {
+                        "x": 110,
+                        "y": 0,
+                        "w": 110,
+                        "h": 89
+                    }
+                },
+                {
+                    "filename": "player_dart_00_glow_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 110,
+                        "h": 89
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 110,
+                        "h": 89
+                    },
+                    "frame": {
+                        "x": 220,
+                        "y": 0,
+                        "w": 110,
+                        "h": 89
+                    }
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "app": "codex",
+        "version": "1.0"
+    }
+}
