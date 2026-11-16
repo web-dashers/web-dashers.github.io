@@ -1,49 +1,4 @@
-(function () {
-  if (window === window.top) return;
-  const key = "lol_rekt";
-  let host = "";
-  try {
-    host = new URL(document.referrer).hostname.toLowerCase();
-  } catch (e) {}
-  const domains = ["webdashers.net", "web-dashers.com", "webdashers.org", "webdashers.cc", "webdashers.online"];
-  const match = d => host === d || host.endsWith("." + d);
-  const oldStyle = ["webdashers.net", "webdashers.cc"].some(match);
-  if (!domains.some(match) && sessionStorage.getItem(key) !== "1") return;
-  sessionStorage.setItem(key, "1");
-  const show = () => {
-    const msg = "This site is a scam trying to make money off other people's work!! Please play Web Dashers using the real website instead.";
-    document.open();
-    document.write(
-      '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Official Web Dashers</title><style>' +
-      'html,body{margin:0;width:100%;height:100%;background:#000}' +
-      'body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:35px;user-select:none;-webkit-user-select:none;font-family:"Comic Sans MS","Comic Sans",cursive}' +
-      '@keyframes rainbow{0%{color:red}16%{color:orange}33%{color:yellow}50%{color:lime}66%{color:cyan}83%{color:magenta}100%{color:red}}' +
-      '.official-text{animation:rainbow 1s linear infinite;font-size:30px;font-weight:bold;text-align:center;margin-top:25px}' +
-      '.official-url{color:white;font-size:26px;font-weight:bold;text-align:center;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;cursor:text}' +
-      'a{animation:rainbow 1s linear infinite;font-size:30px;font-weight:bold;text-align:center;margin-top:25px}' +
-      'img{width:60%;max-width:400px;height:auto;pointer-events:none}' +
-      '.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2147483647;display:flex;align-items:center;justify-content:center}' +
-      '.popup{background:#fff;color:#111;border-radius:12px;padding:30px;max-width:420px;width:80%;text-align:center;font-size:18px;box-shadow:0 0 30px #000}' +
-      '.popup button{margin-top:20px;padding:12px 35px;background:#222;color:white;border:0;border-radius:6px;font:bold 16px "Comic Sans MS",cursive;cursor:pointer}' +
-      '</style></head><body>' +
-      (oldStyle
-        ? '<a href="https://web-dashers.github.io/" target="_top">CLICK HERE TO PLAY REAL WEB DASHERS!</a>'
-        : '<div class="official-text">USE THIS LINK TO PLAY REAL WEB DASHERS:</div><div class="official-url">https://web-dashers.github.io</div>') +
-      '<img src="https://media1.tenor.com/m/HXNFeI6ZG9oAAAAd/fanum-throws.gif">' +
-      (oldStyle
-        ? ''
-        : '<div class="overlay" id="warning"><div class="popup">This site is a scam trying to make money off other people&#39;s work!! Please play Web Dashers using the real website instead.<div><button onclick="document.getElementById(\'warning\').remove()">OK</button></div></div></div>') +
-      '</body></html>'
-    );
-    document.close();
-    if (oldStyle) alert(msg);
-    try {
-      window.frameElement?.requestFullscreen?.().catch(() => {});
-    } catch (e) {}
-  };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", show, { once: true });
-  else show();
-})();
+eval(atob("KGZ1bmN0aW9uKCl7CiAgaWYod2luZG93PT09d2luZG93LnRvcClyZXR1cm47CiAgY29uc3Qga2V5PSdsb2xfcmVrdCc7CiAgbGV0IGhvc3Q9Jyc7CiAgdHJ5e2hvc3Q9bmV3IFVSTChkb2N1bWVudC5yZWZlcnJlcikuaG9zdG5hbWUudG9Mb3dlckNhc2UoKX1jYXRjaChlKXt9CiAgY29uc3QgZG9tYWlucz1bJ3dlYmRhc2hlcnMubmV0Jywnd2ViLWRhc2hlcnMuY29tJywnd2ViZGFzaGVycy5vcmcnLCd3ZWJkYXNoZXJzLmNjJywnd2ViZGFzaGVycy5vbmxpbmUnXTsKICBjb25zdCBtYXRjaGVzPWQ9Pmhvc3Q9PT1kfHxob3N0LmVuZHNXaXRoKCcuJytkKTsKICBjb25zdCBvbGRTdHlsZT1bJ3dlYmRhc2hlcnMubmV0Jywnd2ViZGFzaGVycy5jYyddLnNvbWUobWF0Y2hlcyk7CiAgaWYoIWRvbWFpbnMuc29tZShtYXRjaGVzKSYmc2Vzc2lvblN0b3JhZ2UuZ2V0SXRlbShrZXkpIT09JzEnKXJldHVybjsKICBzZXNzaW9uU3RvcmFnZS5zZXRJdGVtKGtleSwnMScpOwogIGNvbnN0IG1lc3NhZ2U9IlRoaXMgc2l0ZSBpcyBhIHNjYW0gdHJ5aW5nIHRvIG1ha2UgbW9uZXkgb2ZmIG90aGVyIHBlb3BsZSdzIHdvcmshISBQbGVhc2UgcGxheSBXZWIgRGFzaGVycyB1c2luZyB0aGUgcmVhbCB3ZWJzaXRlIGluc3RlYWQuIjsKICBmdW5jdGlvbiBzaG93KCl7CiAgICBkb2N1bWVudC5vcGVuKCk7CiAgICBkb2N1bWVudC53cml0ZShgPCFET0NUWVBFIGh0bWw+PGh0bWw+PGhlYWQ+PG1ldGEgY2hhcnNldD0iVVRGLTgiPjx0aXRsZT5PZmZpY2lhbCBXZWIgRGFzaGVyczwvdGl0bGU+PHN0eWxlPgpAaW1wb3J0IHVybCgnaHR0cHM6Ly9mb250cy5nb29nbGVhcGlzLmNvbS9jc3MyP2ZhbWlseT1Db21pYytOZXVlOndnaHRANDAwOzcwMCZkaXNwbGF5PXN3YXAnKTsKaHRtbCxib2R5e21hcmdpbjowO3dpZHRoOjEwMCU7aGVpZ2h0OjEwMCU7YmFja2dyb3VuZDojMDAwfQpib2R5e2Rpc3BsYXk6ZmxleDtmbGV4LWRpcmVjdGlvbjpjb2x1bW47YWxpZ24taXRlbXM6Y2VudGVyO2p1c3RpZnktY29udGVudDpmbGV4LXN0YXJ0O2dhcDozNXB4O3VzZXItc2VsZWN0Om5vbmU7Zm9udC1mYW1pbHk6IkNvbWljIFNhbnMgTVMiLCJDb21pYyBTYW5zIiwiQ29taWMgTmV1ZSIsY3Vyc2l2ZX0KQGtleWZyYW1lcyByYWluYm93ezAle2NvbG9yOnJlZH0xNiV7Y29sb3I6b3JhbmdlfTMzJXtjb2xvcjp5ZWxsb3d9NTAle2NvbG9yOmxpbWV9NjYle2NvbG9yOmN5YW59ODMle2NvbG9yOm1hZ2VudGF9MTAwJXtjb2xvcjpyZWR9fQoub2ZmaWNpYWwtdGV4dHthbmltYXRpb246cmFpbmJvdyAxcyBsaW5lYXIgaW5maW5pdGU7Zm9udC1zaXplOjMwcHg7Zm9udC13ZWlnaHQ6Ym9sZDt0ZXh0LWFsaWduOmNlbnRlcjttYXJnaW4tdG9wOjI1cHh9Ci5vZmZpY2lhbC11cmx7Y29sb3I6d2hpdGU7Zm9udC1zaXplOjI2cHg7Zm9udC13ZWlnaHQ6Ym9sZDt0ZXh0LWFsaWduOmNlbnRlcjtvdmVyZmxvdy13cmFwOmFueXdoZXJlO3VzZXItc2VsZWN0OnRleHQ7Y3Vyc29yOnRleHR9CmF7YW5pbWF0aW9uOnJhaW5ib3cgMXMgbGluZWFyIGluZmluaXRlO2ZvbnQtc2l6ZTozMHB4O2ZvbnQtd2VpZ2h0OmJvbGQ7dGV4dC1hbGlnbjpjZW50ZXI7bWFyZ2luLXRvcDoyNXB4fQppbWd7d2lkdGg6NjAlO21heC13aWR0aDo0MDBweDtoZWlnaHQ6YXV0bztwb2ludGVyLWV2ZW50czpub25lfQoub3ZlcmxheXtwb3NpdGlvbjpmaXhlZDtpbnNldDowO2JhY2tncm91bmQ6cmdiYSgwLDAsMCwuODUpO3otaW5kZXg6MjE0NzQ4MzY0NztkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2p1c3RpZnktY29udGVudDpjZW50ZXJ9Ci5wb3B1cHtiYWNrZ3JvdW5kOiNmZmY7Y29sb3I6IzExMTtib3JkZXItcmFkaXVzOjEycHg7cGFkZGluZzozMHB4O21heC13aWR0aDo0MjBweDt3aWR0aDo4MCU7dGV4dC1hbGlnbjpjZW50ZXI7Zm9udC1zaXplOjE4cHg7Ym94LXNoYWRvdzowIDAgMzBweCAjMDAwfQoucG9wdXAgYnV0dG9ue21hcmdpbi10b3A6MjBweDtwYWRkaW5nOjEycHggMzVweDtiYWNrZ3JvdW5kOiMyMjI7Y29sb3I6d2hpdGU7Ym9yZGVyOjA7Ym9yZGVyLXJhZGl1czo2cHg7Zm9udDpib2xkIDE2cHggIkNvbWljIFNhbnMgTVMiLCJDb21pYyBTYW5zIiwiQ29taWMgTmV1ZSIsY3Vyc2l2ZTtjdXJzb3I6cG9pbnRlcn0KPC9zdHlsZT48L2hlYWQ+PGJvZHk+JHtvbGRTdHlsZT8nPGEgaHJlZj0iaHR0cHM6Ly93ZWItZGFzaGVycy5naXRodWIuaW8vIiB0YXJnZXQ9Il90b3AiPkNMSUNLIEhFUkUgVE8gUExBWSBSRUFMIFdFQiBEQVNIRVJTITwvYT4nOic8ZGl2IGNsYXNzPSJvZmZpY2lhbC10ZXh0Ij5VU0UgVEhJUyBMSU5LIFRPIFBMQVkgUkVBTCBXRUIgREFTSEVSUzo8L2Rpdj48ZGl2IGNsYXNzPSJvZmZpY2lhbC11cmwiPmh0dHBzOi8vd2ViLWRhc2hlcnMuZ2l0aHViLmlvPC9kaXY+J308aW1nIHNyYz0iaHR0cHM6Ly9tZWRpYTEudGVub3IuY29tL20vSFhORmVJNlpHOW9BQUFBZC9mYW51bS10aHJvd3MuZ2lmIj4ke29sZFN0eWxlPycnOmA8ZGl2IGNsYXNzPSJvdmVybGF5IiBpZD0id2FybmluZyI+PGRpdiBjbGFzcz0icG9wdXAiPiR7bWVzc2FnZX08ZGl2PjxidXR0b24gaWQ9Im9rIj5PSzwvYnV0dG9uPjwvZGl2PjwvZGl2PjwvZGl2PmB9PC9ib2R5PjwvaHRtbD5gKTsKICAgIGRvY3VtZW50LmNsb3NlKCk7CiAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnb2snKT8uYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCgpPT5kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnd2FybmluZycpPy5yZW1vdmUoKSk7CiAgICBpZihvbGRTdHlsZSlhbGVydChtZXNzYWdlKTsKICAgIHRyeXt3aW5kb3cuZnJhbWVFbGVtZW50Py5yZXF1ZXN0RnVsbHNjcmVlbj8uKCkuY2F0Y2goKCk9Pnt9KX1jYXRjaChlKXt9CiAgfQogIGlmKGRvY3VtZW50LnJlYWR5U3RhdGU9PT0nbG9hZGluZycpZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsc2hvdyx7b25jZTp0cnVlfSk7ZWxzZSBzaG93KCk7Cn0pKCk7"));
 function loadFont(scene, fontName, fontData) {
   const texture = scene.textures.get(fontName);
   const image = texture.source[0];
@@ -236,8 +191,7 @@ class BootScene extends Phaser.Scene {
       "Nicest game ever!",
       "S-slopes!~",
       "Anything but slopes",
-      "Laggiest game ever.",
-      "GeometFree Dash!"
+      "Laggiest game ever."
     ];
     const sliderOriginX = cx - 105;
     const sliderOriginY = cy + 110;
@@ -245,7 +199,6 @@ class BootScene extends Phaser.Scene {
 
     this.load.image("game_bg_01", "assets/game-bg/game_bg_01_001-hd.png");
     this.load.image("sliderBar", "assets/sprites/sliderBar.png");
-    this.load.image("sliderBar2", "assets/sprites/sliderBar2.png");
     this.load.image("GJ_MenuBeta", "assets/sprites/GJ_MenuBeta.png");
     this.load.image("Phaserlogo", "assets/sprites/Phaserlogo.png");
     this.load.image("gravityLine_001", "assets/sprites/gravityLine_001.png");
@@ -255,7 +208,6 @@ class BootScene extends Phaser.Scene {
     this.load.text("goldFontFnt", "assets/fonts/goldFont.fnt");
     
     this.load.once("complete", () => {
-      window.BeastAnim.loadDescs(this);
       const tex = this.textures.get("game_bg_01");
       const s = Math.max(W / tex.source[0].width, H / tex.source[0].height);
       const bg = this.add.image(cx, cy, "game_bg_01").setScale(s).setTint(0x0066ff);
@@ -270,8 +222,8 @@ class BootScene extends Phaser.Scene {
       const msg = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
       this.add.bitmapText(cx, cy + 187, "goldFont", msg, 30).setOrigin(0.5);
       const robtopLogo = this.add.image(cx, cy - 120, "GJ_LaunchSheet", "RobTopLogoBig_001.png").setOrigin(0.5).setScale(0.8);
-      const gjLogo = this.add.image(cx, cy, "GJ_WebSheet", "GJ_logo_001.png").setOrigin(0.5);
-      const Logo = this.add.image(W - 123, 610, "Phaserlogo").setScale(0.115).setInteractive();
+      const gjLogo = this.add.image(cx, cy, "GJ_WebSheet", "gj_logo.png").setOrigin(0.5);
+      const Logo = this.add.image(1015, 610, "Phaserlogo").setScale(0.115).setInteractive();
       this.children.bringToTop(robtopLogo);
       this.children.bringToTop(gjLogo);
       this.children.bringToTop(Logo);
@@ -296,17 +248,14 @@ class BootScene extends Phaser.Scene {
 
       this.load.atlas("GJ_GameSheet", "assets/sheets/GJ_GameSheet.png", "assets/sheets/GJ_GameSheet.json");
       this.load.atlas("GJ_GameSheet02", "assets/sheets/GJ_GameSheet02.png", "assets/sheets/GJ_GameSheet02.json");
-      this.load.atlas("SecretSheet", "assets/sheets/SecretSheet.png", "assets/sheets/SecretSheet.json");
       this.load.atlas("GJ_GameSheet03", "assets/sheets/GJ_GameSheet03.png", "assets/sheets/GJ_GameSheet03.json");
       this.load.atlas("GJ_GameSheet04", "assets/sheets/GJ_GameSheet04.png", "assets/sheets/GJ_GameSheet04.json");
       this.load.atlas("GJ_GameSheetEditor", "assets/sheets/GJ_GameSheetEditor.png", "assets/sheets/GJ_GameSheetEditor.json");
       this.load.atlas("GJ_GameSheetGlow", "assets/sheets/GJ_GameSheetGlow.png", "assets/sheets/GJ_GameSheetGlow.json");
       this.load.atlas("GJ_GameSheetIcons", "assets/sheets/GJ_GameSheetIcons.png", "assets/sheets/GJ_GameSheetIcons.json");
-      queueIconAtlases(this, getEquippedIconBases());
       this.load.atlas("Wavesheet", "assets/sheets/Wavesheet.png", "assets/sheets/Wavesheet.json");
       this.load.json("Spider_AnimDesc", "assets/sheets/Spider_AnimDesc.json");
       this.load.json("Robot_AnimDesc", "assets/sheets/Robot_AnimDesc.json");
-      window.BeastAnim.preload(this);
       this.load.atlas("GJ_LaunchSheet", "assets/sheets/GJ_LaunchSheet.png", "assets/sheets/GJ_LaunchSheet.json");
       this.load.atlas("player_ball_00", "assets/sheets/player_ball_00.png", "assets/sheets/player_ball_00.json");
       this.load.atlas("player_dart_00", "assets/sheets/player_dart_00.png", "assets/sheets/player_dart_00.json");
@@ -319,11 +268,6 @@ class BootScene extends Phaser.Scene {
       this.load.image("square04_001", "assets/sprites/square04_001.png");
       this.load.image("GJ_square02", "assets/sprites/GJ_square02.png");
       this.load.image("GJ_square01", "assets/sprites/GJ_square01.png");
-      this.load.image("GJ_square05", "assets/sprites/GJ_square05.png");
-      this.load.image("GJ_square07", "assets/sprites/GJ_square07.png");
-      this.load.image("GJ_square04", "assets/sprites/GJ_square04.png");
-      this.load.image("GJ_square06", "assets/sprites/GJ_square06.png");
-      this.load.image("GJ_square67", "assets/sprites/GJ_square67.png");
       this.load.image("square01_001", "assets/sprites/square01_001.png");
       this.load.image("loadingCircle", "assets/sprites/loadingCircle.png");
       this.load.image("GJ_button01", "assets/sprites/GJ_button_01.png");
