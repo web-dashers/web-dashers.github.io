@@ -1,0 +1,183 @@
+{
+    "textures": [
+        {
+            "image": "GJ_LaunchSheet-hd.png",
+            "format": "RGBA8888",
+            "size": {
+                "w": 934,
+                "h": 255
+            },
+            "scale": 1.0,
+            "frames": [
+                {
+                    "filename": "GJ_lite_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 180,
+                        "h": 62
+                    },
+                    "spriteSourceSize": {
+                        "x": 2,
+                        "y": 2,
+                        "w": 178,
+                        "h": 60
+                    },
+                    "frame": {
+                        "x": 692,
+                        "y": 181,
+                        "w": 178,
+                        "h": 60
+                    }
+                },
+                {
+                    "filename": "GJ_logo_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 858,
+                        "h": 104
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 6,
+                        "w": 852,
+                        "h": 98
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 1,
+                        "w": 852,
+                        "h": 98
+                    }
+                },
+                {
+                    "filename": "GJ_md_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 374,
+                        "h": 77
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 6,
+                        "w": 368,
+                        "h": 71
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 101,
+                        "w": 368,
+                        "h": 71
+                    }
+                },
+                {
+                    "filename": "RobTopLogoBig_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 296,
+                        "h": 111
+                    },
+                    "spriteSourceSize": {
+                        "x": 2,
+                        "y": 5,
+                        "w": 292,
+                        "h": 103
+                    },
+                    "frame": {
+                        "x": 371,
+                        "y": 101,
+                        "w": 292,
+                        "h": 103
+                    }
+                },
+                {
+                    "filename": "cocos2DxLogo.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 180,
+                        "h": 48
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 180,
+                        "h": 48
+                    },
+                    "frame": {
+                        "x": 328,
+                        "y": 206,
+                        "w": 180,
+                        "h": 48
+                    }
+                },
+                {
+                    "filename": "fmodLogo.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 180,
+                        "h": 48
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 180,
+                        "h": 48
+                    },
+                    "frame": {
+                        "x": 510,
+                        "y": 206,
+                        "w": 180,
+                        "h": 48
+                    }
+                },
+                {
+                    "filename": "gj_subzeroLogo_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 331,
+                        "h": 85
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 6,
+                        "w": 325,
+                        "h": 79
+                    },
+                    "frame": {
+                        "x": 1,
+                        "y": 174,
+                        "w": 325,
+                        "h": 79
+                    }
+                },
+                {
+                    "filename": "gj_worldLogo_001.png",
+                    "rotated": false,
+                    "trimmed": true,
+                    "sourceSize": {
+                        "w": 274,
+                        "h": 84
+                    },
+                    "spriteSourceSize": {
+                        "x": 6,
+                        "y": 6,
+                        "w": 268,
+                        "h": 78
+                    },
+                    "frame": {
+                        "x": 665,
+                        "y": 101,
+                        "w": 268,
+                        "h": 78
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,655 @@
+{
+  "frames": {
+    "animWave_01_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_002.png": {
+      "frame": {
+        "x": 0,
+        "y": 53,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_003.png": {
+      "frame": {
+        "x": 61,
+        "y": 0,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_004.png": {
+      "frame": {
+        "x": 61,
+        "y": 53,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_005.png": {
+      "frame": {
+        "x": 0,
+        "y": 106,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_006.png": {
+      "frame": {
+        "x": 61,
+        "y": 106,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_007.png": {
+      "frame": {
+        "x": 122,
+        "y": 0,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_008.png": {
+      "frame": {
+        "x": 122,
+        "y": 53,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_009.png": {
+      "frame": {
+        "x": 122,
+        "y": 106,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_01_base_001.png": {
+      "frame": {
+        "x": 0,
+        "y": 159,
+        "w": 60,
+        "h": 30
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 11,
+        "w": 60,
+        "h": 30
+      },
+      "sourceSize": {
+        "w": 60,
+        "h": 52
+      }
+    },
+    "animWave_02_001.png": {
+      "frame": {
+        "x": 183,
+        "y": 0,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_002.png": {
+      "frame": {
+        "x": 183,
+        "y": 53,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_003.png": {
+      "frame": {
+        "x": 183,
+        "y": 106,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_004.png": {
+      "frame": {
+        "x": 0,
+        "y": 190,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_005.png": {
+      "frame": {
+        "x": 61,
+        "y": 159,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_006.png": {
+      "frame": {
+        "x": 122,
+        "y": 159,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_007.png": {
+      "frame": {
+        "x": 183,
+        "y": 159,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_008.png": {
+      "frame": {
+        "x": 0,
+        "y": 243,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_009.png": {
+      "frame": {
+        "x": 61,
+        "y": 212,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_010.png": {
+      "frame": {
+        "x": 122,
+        "y": 212,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_02_base_001.png": {
+      "frame": {
+        "x": 61,
+        "y": 265,
+        "w": 60,
+        "h": 30
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 11,
+        "w": 60,
+        "h": 30
+      },
+      "sourceSize": {
+        "w": 60,
+        "h": 52
+      }
+    },
+    "animWave_03_001.png": {
+      "frame": {
+        "x": 183,
+        "y": 212,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_002.png": {
+      "frame": {
+        "x": 244,
+        "y": 0,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_003.png": {
+      "frame": {
+        "x": 244,
+        "y": 53,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_004.png": {
+      "frame": {
+        "x": 244,
+        "y": 106,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_005.png": {
+      "frame": {
+        "x": 244,
+        "y": 159,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_006.png": {
+      "frame": {
+        "x": 244,
+        "y": 212,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_007.png": {
+      "frame": {
+        "x": 0,
+        "y": 296,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_008.png": {
+      "frame": {
+        "x": 61,
+        "y": 296,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_009.png": {
+      "frame": {
+        "x": 122,
+        "y": 265,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_010.png": {
+      "frame": {
+        "x": 183,
+        "y": 265,
+        "w": 60,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 290,
+        "y": 294,
+        "w": 60,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 640,
+        "h": 640
+      }
+    },
+    "animWave_03_base_001.png": {
+      "frame": {
+        "x": 122,
+        "y": 318,
+        "w": 60,
+        "h": 30
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 11,
+        "w": 60,
+        "h": 30
+      },
+      "sourceSize": {
+        "w": 60,
+        "h": 52
+      }
+    }
+  },
+  "meta": {
+    "app": "https://gdcolon.com/gdsplitter/",
+    "version": "1.0",
+    "image": "Wavesheet-hd.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 304,
+      "h": 348
+    },
+    "scale": 1
+  }
+}

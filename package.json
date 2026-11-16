@@ -1,0 +1,8 @@
+{
+    "name": "webdashers-client",
+    "version": "1.0.0",
+    "description": "Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and a level search to play online levels. The project is actively in development, with more features and updates planned.",
+    "scripts": {
+        "start": "npx serve ."
+    }
+}

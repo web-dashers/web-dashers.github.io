@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Web Dashers</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="stylesheet" href="assets/style.css">
+    <meta name="description" content="Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and a level search to play online levels. The project is actively in development, with more features and updates planned.">
+    <meta name="theme-color" content="#C1FB3D">
+
+    <!-- - Embeds - -->
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://web-dashers.github.io/" />
+    <meta property="og:title" content="Web Dashers" />
+    <meta property="og:description" content="Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and a level search to play online levels. The project is actively in development, with more features and updates planned." />
+    <meta property="og:image" content="https://web-dashers.github.io/wd_assets/thumbnail_1024.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://web-dashers.github.io/" />
+    <meta property="twitter:title" content="Web Dashers" />
+    <meta property="twitter:description" content="Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and an evel search to play online levels. The project is actively in development, with more features and updates planned." />
+    <meta property="twitter:image" content="https://web-dashers.github.io/wd_assets/thumbnail_1024.png" />
+
+    <!-- Libraries and stuff -->
+    <script src="assets/scripts/game/allObjects.js?v=13"></script>
+    <script src="assets/scripts/game/allLevels.js"></script>
+    <script src="assets/scripts/libs/phaser.min.js"></script>
+    <script src="assets/scripts/libs/pako.min.js"></script>
+    <script src="assets/scripts/utils/cache-manager.js"></script>
+    <script src="assets/scripts/api/GDapiWrapper.js"></script>
+    <script src="assets/scripts/utils/api-config.js"></script>
+    <script src="assets/scripts/api/account-api.js"></script>
+    <!-- workerssdsss nwo-->
+    <script>
+        (function () {
+            var GD_PROXY_HOSTS = [
+                "https://gd-proxy.webdashers.workers.dev",
+                "https://cold-grass-d871.gn-math-business.workers.dev",
+                "https://webd.ktrio839.workers.dev",
+                "https://webdashers.webdashersdevelopement.workers.dev",
+                "https://fallbackgdproxy.webdashers.workers.dev",
+                "https://fallback2.webdashers.workers.dev"
+            ];
+            window._gdProxyUrl = GD_PROXY_HOSTS[0];
+            window._gdProxyHosts = GD_PROXY_HOSTS;
+            var activeIndex = 0;
+            var nativeFetch = window.fetch.bind(window);
+            function matchingHost(url) {
+                for (var i = 0; i < GD_PROXY_HOSTS.length; i++) {
+                    var h = GD_PROXY_HOSTS[i].replace(/\/$/, "");
+                    if (url.indexOf(h) === 0) return GD_PROXY_HOSTS[i];
+                }
+                return null;
+            }
+            function withHost(url, oldHost, newHost) {
+                var cleanOld = oldHost.replace(/\/$/, "");
+                var cleanNew = newHost.replace(/\/$/, "");
+                var path = url.slice(cleanOld.length);
+                if (path.indexOf('/') !== 0) path = '/' + path;
+                return cleanNew + path;
+            }
+            window.fetch = function (input, init) {
+                var isRequestObj = (typeof Request !== "undefined") && (input instanceof Request);
+                var url = isRequestObj ? input.url : input;
+                if (typeof url !== "string") {
+                    return nativeFetch(input, init);
+                }
+            var oldHost = matchingHost(url);
+                if (!oldHost) {
+                    return nativeFetch(input, init);
+                }
+                var attempts = 0;
+                var lastError = null;
+                function tryHost(hostIndex) {
+                    var host = GD_PROXY_HOSTS[hostIndex];
+                    var attemptUrl = withHost(url, oldHost, host);
+                    var attemptInput = isRequestObj ? new Request(attemptUrl, input) : attemptUrl;
+
+                    return nativeFetch(attemptInput, init).then(function (res) {
+                        if ((res.status === 429 || res.status === 503) && attempts < GD_PROXY_HOSTS.length - 1) {
+                            attempts++;
+                            var nextIndex = (hostIndex + 1) % GD_PROXY_HOSTS.length;
+                            return tryHost(nextIndex);
+                        }
+                        activeIndex = hostIndex;
+                        window._gdProxyUrl = host;
+                        return res;
+                    }, function (err) {
+                        lastError = err;
+                        if (attempts < GD_PROXY_HOSTS.length - 1) {
+                            attempts++;
+                            var nextIndex = (hostIndex + 1) % GD_PROXY_HOSTS.length;
+                            return tryHost(nextIndex);
+                        }
+                        throw lastError;
+                    });
+                }
+                return tryHost(activeIndex);
+            };
+        })();
+    </script>
+    <script defer src="assets/scripts/utils/config.js?v=6"></script>
+    <script defer src="assets/scripts/core/animations.js?v=2"></script>
+    <script defer src="assets/scripts/core/triggers.js?v=3"></script>
+    <script defer src="assets/scripts/core/level.js?v=65"></script>
+    <script defer src="assets/scripts/core/player.js?v=50"></script>
+    <script defer src="assets/scripts/core/audio.js?v=2"></script>
+    <script defer src="assets/scripts/core/loading-screen.js?v=7"></script>
+    <script defer src="assets/scripts/core/level-editor.js?v=6"></script>
+    <script defer src="assets/scripts/core/game-scene.js?latest48"></script>
+    <script defer src="assets/scripts/core/main.js?v=3"></script>
+    <script>
+        new ResizeObserver(() => {
+            window.dispatchEvent(new Event('resize'));
+        }).observe(document.documentElement);
+
+        document.oncontextmenu = (event) => {
+            event.preventDefault();
+        };
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>

@@ -1,0 +1,83 @@
+{
+    "textures": [
+        {
+            "image": "icons/player_ball_00-hd.png",
+            "format": "RGBA4444",
+            "size": {
+                "w": 184,
+                "h": 80
+            },
+            "scale": 1.0,
+            "frames": [
+                {
+                    "filename": "player_ball_00_001.png",
+                    "rotated": true,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 71,
+                        "h": 70
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 71,
+                        "h": 70
+                    },
+                    "frame": {
+                        "x": 81,
+                        "y": 2,
+                        "w": 71,
+                        "h": 70
+                    }
+                },
+                {
+                    "filename": "player_ball_00_2_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 29,
+                        "h": 29
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 29,
+                        "h": 29
+                    },
+                    "frame": {
+                        "x": 153,
+                        "y": 2,
+                        "w": 29,
+                        "h": 29
+                    }
+                },
+                {
+                    "filename": "player_ball_00_glow_001.png",
+                    "rotated": false,
+                    "trimmed": false,
+                    "sourceSize": {
+                        "w": 77,
+                        "h": 76
+                    },
+                    "spriteSourceSize": {
+                        "x": 0,
+                        "y": 0,
+                        "w": 77,
+                        "h": 76
+                    },
+                    "frame": {
+                        "x": 2,
+                        "y": 2,
+                        "w": 77,
+                        "h": 76
+                    }
+                }
+            ]
+        }
+    ],
+	"meta": {
+		"app": "https://www.codeandweb.com/texturepacker",
+		"version": "3.0",
+		"smartupdate": "$TexturePacker:SmartUpdate:1b40684820a3ceef00e88c50145d31db:dae3fb832c4d5ef561838aa4967873c9:20b44f09621f99cc36f58c8d4637638f$"
+	}
+}
