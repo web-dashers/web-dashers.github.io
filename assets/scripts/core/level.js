@@ -6786,11 +6786,11 @@ window.LevelObject = class LevelObject {
           if (effectSprite.y !== _0x50e6d9) {
             effectSprite.y = _0x50e6d9;
           }
-          if (!effectSprite._eeAudioScale) {
+          if (!effectSprite._eeAudioScale && (_0x127ace !== 1 || effectSprite._eeEffectMult !== 1)) {
             this._setEffectScale(effectSprite, _0x127ace);
           }
         }
-        const _eeFinalAlpha = _0x2128bf * this._getGroupOpacityForSprite(effectSprite);
+        const _eeFinalAlpha = _0x2128bf === 0 ? 0 : _0x2128bf * this._getGroupOpacityForSprite(effectSprite);
         if (effectSprite.alpha !== _eeFinalAlpha) {
           effectSprite.alpha = _eeFinalAlpha;
         }
@@ -6810,6 +6810,7 @@ window.LevelObject = class LevelObject {
   }
   setGround2Color(_0x3958eb) {
     if (window.isEditor) return; // not dealing with ts rn
+    if (this._ground2Tint === _0x3958eb) return;
     this._ground2Tint = _0x3958eb;
     for (let _0x46c21a of this._ground2Tiles || []) {
       _0x46c21a.setTint(_0x3958eb);
