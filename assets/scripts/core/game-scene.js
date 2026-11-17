@@ -487,6 +487,12 @@ class GameScene extends Phaser.Scene {
  create() {
  window.kbResetHandlers();
  this.events.once("shutdown", () => window.kbResetHandlers());
+ const returningFromSecretChallenge = window._mainLevelReturnToSelect && window.currentlevel?.[2] === "level_67";
+ if (returningFromSecretChallenge) {
+ this.game.registry.remove("autoStartGame");
+ this._secretVaultReturnCover = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000)
+ .setScrollFactor(0).setDepth(10000);
+ }
  this._bgSpeedX = 0.1;
  this._bgSpeedY = 0.1;
  this._menuCameraX = -centerX;
@@ -510,7 +516,8 @@ class GameScene extends Phaser.Scene {
  this._player._activationKey = "main";
  window._gameScene = this;
  if (window.customCubeIconSrc) {
- window.setCustomCubeIcon(window.customCubeIconSrc).catch(() => {});
+ window.setCustomCubeIcon(window.customCubeIconSrc)
+ .catch(error => console.warn("Could not restore the custom icon", error));
  }
  this._state2 = new PlayerState();
  this._player2 = new PlayerObject(this, this._state2, this._level);
@@ -541,7 +548,7 @@ class GameScene extends Phaser.Scene {
  if (!_0x591888 && window._onlineLevelString && window.currentlevel[2] === window._onlineLevelId) {
  _0x591888 = window._onlineLevelString;
  }
- if (_0x591888) {
+ if (_0x591888 && !returningFromSecretChallenge) {
  this._level.loadLevel(_0x591888);
  }
  const _resolveGdArtId = (key, fallback = 1) => {
@@ -704,9 +711,9 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  this._expandHitArea(this._menuFsBtn, 1.5);
  this._toggleFullscreen();
  }, () => this._menuActive);
- this._menuInfoBtn = this.add.image(screenWidth + 20, 33, "GJ_GameSheet03", "communityCreditsBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.64).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
+ this._menuInfoBtn = this.add.image(screenWidth + 20, 35, "GJ_GameSheet03", "communityCreditsBtn_001.png").setScrollFactor(0).setDepth(30).setScale(0.73).setTint(Phaser.Display.Color.GetColor(255, 255, 255)).setInteractive();
  this._expandHitArea(this._menuInfoBtn, 1.5);
- this._makeBouncyButton(this._menuInfoBtn, 0.64, () => {
+ this._makeBouncyButton(this._menuInfoBtn, 0.73, () => {
  this._buildInfoPopup();
  }, () => this._menuActive && !this._infoPopup);
  this._menuSettingsBtn = this.add.image(centerX + 92, screenHeight - 90, "GJ_GameSheet03", "GJ_optionsBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
@@ -719,7 +726,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  this._makeBouncyButton(this._menuStatsBtn, 1, () => {
  this._showStatsScreen();
  }, () => this._menuActive);
- this._menuAchievementsBtn = this.add.image(centerX - 12, screenHeight - 90, "GJ_GameSheet03", "GJ_achBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
+ this._menuAchievementsBtn = this.add.image(centerX - 19, screenHeight - 90, "GJ_GameSheet03", "GJ_achBtn_001.png").setScrollFactor(0).setDepth(30).setInteractive();
  this._applyLockedGray(this._menuAchievementsBtn);
  this._expandHitArea(this._menuAchievementsBtn, 1);
  this._makeBouncyButton(this._menuAchievementsBtn, 1, () => {
@@ -1623,7 +1630,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  listContainer.add([bgStripe, separator, nameTxt, revText, lenIcon, lenTxt, songIcon, songTxt, statusIcon, statusTxt, viewBtn, viewTxt]);
  });
  if (createdLevels.length === 0) {
- container.add(this.add.bitmapText(centerX, tableY + (tableH/2), "bigFont", "No Levels", 30).setOrigin(0.5).setAlpha(0.5));
+ container.add(this.add.bitmapText(centerX, tableY + (tableH/2), "bigFont", "Tap New to create a level", 38).setOrigin(0.5));
  }
  const sideFrame = this.textures.getFrame("GJ_WebSheet", "GJ_table_side_001.png");
  const sideScaleY = tableH / sideFrame.height;
@@ -1672,10 +1679,10 @@ container.add(cornerBL);
  const newBtnX = sw - 60;
  const newBtnY = sh - 55;
  const newBtn = this.add.image(newBtnX, newBtnY, "GJ_GameSheet03", "GJ_newBtn_001.png")
- .setScale(0.9)
+ .setScale(0.95)
  .setInteractive();
 
- this._makeBouncyButton(newBtn, 0.9, () => {
+ this._makeBouncyButton(newBtn, 0.95, () => {
  const rawData = localStorage.getItem("created_levels");
  let createdLevels = rawData ? JSON.parse(rawData) : [];
 
@@ -1710,11 +1717,16 @@ container.add(cornerBL);
  });
  container.add(newBtn);
 
- const importBtn = this.add.image(newBtnX, newBtnY - 90, "import").setScale(0.3).setInteractive();
- this._makeBouncyButton(importBtn, 0.3, () => {
+ const importBtn = this.add.image(60, newBtnY - 115, "GJ_GameSheet04", "GJ_importBtn_001.png").setScale(0.95).setInteractive();
+ this._makeBouncyButton(importBtn, 0.95, () => {
  this._importGMD();
  });
  container.add(importBtn);
+
+const uploadedlvls = this.add.image(60, newBtnY - 5, "GJ_GameSheet03", "GJ_myServerBtn_001.png").setScale(0.95);
+this._applyLockedGray(uploadedlvls
+);
+ container.add(uploadedlvls);
 
  const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
  .setScrollFactor(0).setDepth(104).setFlipX(true).setFlipY(true).setRotation(Math.PI).setInteractive();
@@ -2431,39 +2443,13 @@ container.add(cornerBL);
  const btnCX = panelLeft + qsPadX + col * (btnW + qsGapX) + btnW / 2;
  const btnCY = qsPanelY + qsPadY + row * (btnH + qsGapY) + btnH / 2;
 
- const atlas = this.textures.get("GJ_GameSheet03");
- const frameX = lbFrame.cutX;
- const frameY = lbFrame.cutY;
- const frameW = lbFrame.cutWidth;
- const frameH = lbFrame.cutHeight;
- const midW = btnW - lbBorder * 2;
- const midH = btnH - lbBorder * 2;
- const tag = `_lbqs_${row}_${col}`;
-
- const pieces = [
- { sx: frameX, sy: frameY, sw: lbBorder, sh: lbBorder, dx: -btnW/2, dy: -btnH/2, dw: lbBorder, dh: lbBorder },
- { sx: frameX + lbBorder, sy: frameY, sw: frameW-lbBorder*2, sh: lbBorder, dx: -btnW/2 + lbBorder, dy: -btnH/2, dw: midW, dh: lbBorder },
- { sx: frameX + frameW - lbBorder, sy: frameY, sw: lbBorder, sh: lbBorder, dx: btnW/2 - lbBorder, dy: -btnH/2, dw: lbBorder, dh: lbBorder },
- { sx: frameX, sy: frameY + lbBorder, sw: lbBorder, sh: frameH-lbBorder*2, dx: -btnW/2, dy: -btnH/2 + lbBorder, dw: lbBorder, dh: midH },
- { sx: frameX + lbBorder, sy: frameY + lbBorder, sw: frameW-lbBorder*2, sh: frameH-lbBorder*2, dx: -btnW/2 + lbBorder, dy: -btnH/2 + lbBorder, dw: midW, dh: midH },
- { sx: frameX + frameW - lbBorder, sy: frameY + lbBorder, sw: lbBorder, sh: frameH-lbBorder*2, dx: btnW/2 - lbBorder, dy: -btnH/2 + lbBorder, dw: lbBorder, dh: midH },
- { sx: frameX, sy: frameY + frameH - lbBorder, sw: lbBorder, sh: lbBorder, dx: -btnW/2, dy: btnH/2 - lbBorder, dw: lbBorder, dh: lbBorder },
- { sx: frameX + lbBorder, sy: frameY + frameH - lbBorder, sw: frameW-lbBorder*2, sh: lbBorder, dx: -btnW/2 + lbBorder, dy: btnH/2 - lbBorder, dw: midW, dh: lbBorder },
- { sx: frameX + frameW - lbBorder, sy: frameY + frameH - lbBorder, sw: lbBorder, sh: lbBorder, dx: btnW/2 - lbBorder, dy: btnH/2 - lbBorder, dw: lbBorder, dh: lbBorder },
- ];
-
  const btnContainer = this.add.container(btnCX, btnCY).setScrollFactor(0).setDepth(105);
- const bgPieces = [];
- pieces.forEach((p, i) => {
- const frameKey = `${tag}_p${i}`;
- if (!atlas.has(frameKey)) {
- atlas.add(frameKey, 0, p.sx, p.sy, p.sw, p.sh);
- }
- const bgPiece = this.add.image(p.dx, p.dy, "GJ_GameSheet03", frameKey)
- .setOrigin(0, 0).setDisplaySize(p.dw, p.dh);
- bgPieces.push(bgPiece);
- btnContainer.add(bgPiece);
- });
+ const borderSize = Math.min(lbBorder, btnW / 2, btnH / 2);
+ const buttonBg = this.add.nineslice(
+ 0, 0, "GJ_GameSheet03", "GJ_longBtn01_001.png", btnW, btnH,
+ borderSize, borderSize, borderSize, borderSize
+ ).setOrigin(0.5);
+ btnContainer.add(buttonBg);
 
  const hitZone = this.add.zone(0, 0, btnW, btnH).setInteractive();
  btnContainer.add(hitZone);
@@ -2482,18 +2468,10 @@ container.add(cornerBL);
  const iconFrame = qsIcons[row][col];
  const fontSize = labelStr === "Downloads" ? 26 : 32;
 
- const iconSize = btnH * 0.54;
  const gap = 10;
  const tmpLbl = this.add.bitmapText(0, -9999, "bigFont", labelStr, fontSize).setOrigin(0, 0.5);
  const measuredW = tmpLbl.width;
  tmpLbl.destroy();
-
- const groupW = measuredW + gap + iconSize;
- const groupLeft = -groupW / 2;
-
- const lbl = this.add.bitmapText(groupLeft, -1, "bigFont", labelStr, fontSize)
- .setOrigin(0, 0.5).setScrollFactor(0).setDepth(106);
- btnContainer.add(lbl);
 
  const qsIconSizes = {
  "GJ_sDownloadIcon_001.png": { w: 30, h: 30, scale: 1 },
@@ -2507,10 +2485,16 @@ container.add(cornerBL);
  "GJ_sFriendsIcon_001.png": { w: 35, h: 29, scale: 1 },
  };
  const iconConfig = qsIconSizes[iconFrame];
- const iconScale = iconConfig.scale;
+ const iconScale = Math.min(iconConfig.scale, Math.max(0, btnH - 12) / Math.max(iconConfig.w, iconConfig.h));
  const iconW = iconConfig.w * iconScale;
- const iconH = iconConfig.h * iconScale;
- const iconCX = groupLeft + measuredW + gap + iconW / 2 + 5;
+ const labelScale = Math.max(0, Math.min(1, (btnW - 24 - iconW - gap) / measuredW));
+ const labelW = measuredW * labelScale;
+ const groupW = labelW + gap + iconW;
+ const groupLeft = -groupW / 2;
+ const lbl = this.add.bitmapText(groupLeft, -1, "bigFont", labelStr, fontSize)
+ .setOrigin(0, 0.5).setScale(labelScale).setScrollFactor(0).setDepth(106);
+ btnContainer.add(lbl);
+ const iconCX = groupLeft + labelW + gap + iconW / 2;
  const iconY = iconFrame === "GJ_sLikeIcon_001.png" ? 2 : (labelStr === "Downloads" ? -2 : -1);
  const icon = this.add.image(iconCX, iconY, "GJ_GameSheet03", iconFrame)
  .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(106)
@@ -2528,7 +2512,7 @@ container.add(cornerBL);
  if (!type) {
  this._applyLockedGray(lbl);
  this._applyLockedGray(icon);
- bgPieces.forEach(p => this._applyLockedGray(p));
+ this._applyLockedGray(buttonBg);
  }
  if (type) {
  const baseScale = 1;
@@ -3121,8 +3105,8 @@ container.add(cornerBL);
  .setInteractive();
  this._applyLockedGray(Pathicon);
  this._iconOverlayObjects.push(Pathicon);
- this._makeBouncyButton(Pathicon, 1, () => this.openshardmenu());
-
+ /*this._makeBouncyButton(Pathicon, 1, () => this.openshardmenu());
+*/
  const topBarHeight = 110;
  const lineY = topBarHeight + 100;
  const linePadding = 230;
@@ -3749,6 +3733,101 @@ const startY = containerY + marginY + iconSize / 2;
  };
 
  let customIconBaseScale = _fitImageToBox(customIconBtn, customIconSize * 0.7);
+ let _iconImportPreviewSize = 0;
+
+ const _closeCustomIconImportMenu = () => {
+ if (!this._iconImportMenuObjects) return;
+ this._iconImportMenuObjects.forEach(obj => obj.destroy());
+ this._iconImportMenuObjects = null;
+ this._iconImportPreview = null;
+ this._iconImportClearBtn = null;
+ };
+ this._closeIconImportMenu = _closeCustomIconImportMenu;
+
+ const _refreshCustomIconImportPreview = () => {
+ const preview = this._iconImportPreview;
+ if (!preview?.scene) return;
+ const hasCustomIcon = !!(window.customCubeIconSrc && this.textures.exists("custom_cube_icon"));
+ if (hasCustomIcon) {
+ preview.setTexture(this.textures.exists("custom_cube_icon_hd") ? "custom_cube_icon_hd" : "custom_cube_icon");
+ _fitImageToBox(preview, _iconImportPreviewSize * 0.68);
+ } else {
+ preview.setTexture("GJ_GameSheet03", "GJ_deleteIcon_001.png");
+ _fitImageToBox(preview, _iconImportPreviewSize * 0.5);
+ }
+ this._iconImportClearBtn?.setVisible(hasCustomIcon);
+ };
+
+ const _openCustomIconImportMenu = () => {
+ if (this._iconImportMenuObjects) return;
+ const cx = screenWidth / 2;
+ const cy = screenHeight / 2;
+ const popupW = Math.min(560, screenWidth * 0.88);
+ const popupH = Math.min(300, screenHeight * 0.72);
+ const backdrop = this.add.rectangle(cx, cy, screenWidth, screenHeight, 0x000000, 0.65)
+ .setScrollFactor(0).setDepth(150).setInteractive();
+ const popup = this.add.container(cx - screenWidth, cy).setScrollFactor(0).setDepth(151);
+ const corner = this.textures.get("GJ_square01").source[0].width * 0.325;
+ const panel = this.add.nineslice(0, 0, "GJ_square01", null, popupW, popupH,
+ corner, corner, corner, corner).setOrigin(0.5).setInteractive();
+ panel.on("pointerdown", () => {});
+ const panelCorners = [
+ this.add.image(-popupW / 2, -popupH / 2, "GJ_GameSheet03", "dailyLevelCorner_001.png").setOrigin(0, 0).setFlipY(true),
+ this.add.image(popupW / 2, -popupH / 2, "GJ_GameSheet03", "dailyLevelCorner_001.png").setOrigin(1, 0).setFlipY(true).setFlipX(true),
+ this.add.image(-popupW / 2, popupH / 2, "GJ_GameSheet03", "dailyLevelCorner_001.png").setOrigin(0, 1),
+ this.add.image(popupW / 2, popupH / 2, "GJ_GameSheet03", "dailyLevelCorner_001.png").setOrigin(1, 1).setFlipX(true)
+ ];
+
+ const title = this.add.bitmapText(0, -popupH / 2 + 38, "bigFont", "Import Icon", 42).setOrigin(0.5);
+ const importX = -popupW * 0.22;
+ const contentY = 8;
+ const importW = Math.min(180, popupW * 0.38);
+ const importH = Math.min(64, popupH * 0.26);
+ const importBorder = Math.min(this.textures.get("GJ_button01").source[0].width * 0.3, importH / 2 - 2);
+ const importBg = this.add.nineslice(importX, contentY, "GJ_button01", null, importW, importH,
+ importBorder, importBorder, importBorder, importBorder).setOrigin(0.5).setInteractive();
+ const importLabel = this.add.bitmapText(importX, contentY - 2, "goldFont", "Import", 38).setOrigin(0.5);
+
+ const previewX = popupW * 0.22;
+ const previewY = contentY;
+ const previewSize = Math.min(112, popupW * 0.24, popupH * 0.4);
+ _iconImportPreviewSize = previewSize;
+ const previewBorder = Math.min(this.textures.get("GJ_square02").source[0].width * 0.325, previewSize / 2);
+ const previewBg = this.add.nineslice(previewX, previewY, "GJ_square02", null, previewSize, previewSize,
+ previewBorder, previewBorder, previewBorder, previewBorder).setOrigin(0.5);
+ const preview = this.add.image(previewX, previewY, "GJ_GameSheet03", "GJ_plusBtn_001.png").setOrigin(0.5);
+ const chooseIconLabel = this.add.image(previewX + 12, previewY -10 + previewSize / 2 + 18, "ImportanIcon")
+ .setOrigin(0.5).setScale(0.75);
+ const closeBtn = this.add.image(popupW / 2 - 19, -popupH / 2 + 19, "GJ_WebSheet", "GJ_closeBtn_001.png")
+ .setOrigin(0.5).setScale(0.8).setInteractive();
+ const clearBtnScale = 1.05;
+ const clearBtn = this.add.image(previewX + previewSize * 0.4 + 4, previewY - previewSize * 0.4 - 4,
+ "GJ_GameSheet03", "edit_delBtnSmall_001.png").setOrigin(0.5).setScale(clearBtnScale).setInteractive();
+
+ popup.add([panel, ...panelCorners, title, importBg, importLabel, previewBg, preview, chooseIconLabel, closeBtn, clearBtn]);
+ this._iconImportPreview = preview;
+ this._iconImportClearBtn = clearBtn;
+ this._iconImportMenuObjects = [backdrop, popup];
+ backdrop.on("pointerdown", _closeCustomIconImportMenu);
+ this._makeCompositeBouncyButton(importBg, [importBg, importLabel], 1, () => _ensureCustomFileInput().click());
+ this._makeBouncyButton(closeBtn, 0.8, _closeCustomIconImportMenu);
+ this._makeBouncyButton(clearBtn, clearBtnScale, () => {
+ window.clearCustomCubeIcon();
+ _refreshCustomIconUI();
+ _refreshPreview("icon", _getPreviewFrame("icon"));
+ _refreshCustomIconImportPreview();
+ }, () => !!window.customCubeIconSrc);
+ this._expandHitArea(closeBtn, 2);
+ this._expandHitArea(clearBtn, 2);
+ _refreshCustomIconImportPreview();
+ this.tweens.add({
+ targets: popup,
+ x: cx,
+ duration: 600,
+ ease: "Elastic.Out",
+ easeParams: [1, 0.9]
+ });
+ };
 
  const _ensureCustomFileInput = () => {
  if (this._iconCustomFileInput) return this._iconCustomFileInput;
@@ -3782,11 +3861,16 @@ const startY = containerY + marginY + iconSize / 2;
  window.setCustomCubeIcon(finalSrc).then(() => {
  _refreshCustomIconUI();
  _refreshPreview("icon", _getPreviewFrame("icon"));
- }).catch(() => {});
+ _refreshCustomIconImportPreview();
+ }).catch(error => {
+ console.warn("Could not apply the custom icon", error);
+ alert("Could not import that image. Please try another file.");
+ });
  };
- img.onerror = () => {};
+ img.onerror = () => alert("Could not read that image. Please try another file.");
  img.src = reader.result;
  };
+ reader.onerror = () => alert("Could not read that file. Please try another one.");
  reader.readAsDataURL(file);
  });
  this._iconCustomFileInput = input;
@@ -3812,7 +3896,7 @@ const startY = containerY + marginY + iconSize / 2;
  customIconBtn.on("pointerup", () => {
  this.tweens.killTweensOf(customIconBtn, "scale");
  customIconBtn.setScale(customIconBaseScale);
- _ensureCustomFileInput().click();
+ _openCustomIconImportMenu();
  });
 
  let _currentTab = startTab;
@@ -3849,6 +3933,10 @@ const startY = containerY + marginY + iconSize / 2;
  this._closeIconSelector = (silent = false) => {
  if (!this._iconOverlay) return;
  const destroy = () => {
+ if (this._closeIconImportMenu) {
+ this._closeIconImportMenu();
+ this._closeIconImportMenu = null;
+ }
  if (this._iconGridObjects) {
  for (const obj of this._iconGridObjects) {
  if (obj && obj.destroy) obj.destroy();
@@ -3939,7 +4027,7 @@ const startY = containerY + marginY + iconSize / 2;
  this._percentageLabel.setVisible(false);
  this._percentageLabel.setDepth(100);
 
- this._noclipIndicator = this.add.bitmapText(10, 10, "bigFont", "Noclip", 20)
+ this._noclipIndicator = this.add.bitmapText(10, 10, "bigFont", "Ignore Damage", 20)
  .setOrigin(0, 0)
  .setAlpha(0.4)
  .setDepth(100)
@@ -4117,7 +4205,7 @@ const startY = containerY + marginY + iconSize / 2;
  if (this._paused) {
  this._audio.playEffect("quitSound_01");
  this._queueGameplayLevelViewReturn();
- if (this._isMainLevelForCoinDisplay()) {
+ if (this._isMainLevelForCoinDisplay() || window.currentlevel?.[2] === "level_67") {
  window._mainLevelReturnToSelect = true;
  }
  this.game.registry.remove("autoStartGame");
@@ -5292,7 +5380,7 @@ _buildPauseOverlay() {
  { frame: "GJ_menuBtn_001.png", atlas: "GJ_WebSheet", action: () => {
  this._audio.playEffect("quitSound_01");
  this._queueGameplayLevelViewReturn();
- if (this._isMainLevelForCoinDisplay()) {
+ if (this._isMainLevelForCoinDisplay() || window.currentlevel?.[2] === "level_67") {
  window._mainLevelReturnToSelect = true;
  }
  this.game.registry.remove("autoStartGame");
@@ -5493,8 +5581,8 @@ _buildSettingsPopup() {
  "Startpos Switcher": "Switches between start positions in a level.",
  "Progress Bar": "Shows a progress bar at the top of the screen.",
  "Smart StartPos": "Sets the mode, size, speed and gravity of start positions to match the level.",
- "Noclip": "Allows you to phase throught mostly anything that would kill you normally.",
- "Noclip Accuracy": "Flashes your screen red when you would've died with noclip.",
+ "Ignore Damage": "Allows you to phase throught mostly anything that would kill you normally.",
+ "Ignore Damage Accuracy": "Flashes your screen red when you would've died with noclip.",
  "Macro Bot": "Lets you record and replay your inputs for a level.",
  "Show Hitboxes": "Shows you the hitboxes for objects and your player.",
  "Hitbox Trail": "Shows the hitbox of exactly where your hitbox has been.",
@@ -5739,22 +5827,22 @@ _buildSettingsPopup() {
  "Progress Bar"
  );
 
- createToggle(container, column1X, startY + (spacingY * 3), "Noclip",
+ createToggle(container, column1X, startY + (spacingY * 3), "Ignore Damage",
  () => window.noClip,
  (v) => window.noClip = v,
  (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); },
  undefined,
  25,
- "Noclip"
+ "Ignore Damage"
  );
 
- createToggle(container, column1X, startY + (spacingY * 4), "Noclip Accuracy",
+ createToggle(container, column1X, startY + (spacingY * 4), "Ignore Damage Accuracy",
  () => window.noClipAccuracy,
  (v) => window.noClipAccuracy = v,
  null,
- 25,
+ 22,
  true,
- "Noclip Accuracy"
+ "Ignore Damage Accuracy"
  );
 
  createToggle(container, column1X, startY + (spacingY * 5), "Macro Bot",
@@ -6414,6 +6502,9 @@ _buildSettingsPopup() {
  { text: "t0nchi7, Itzar, zainojdaf,", scale: 0.7, font: "goldFont" },
  { text: "Ameth7st, and CoraBitz", scale: 0.7, font: "goldFont" },
  { text: "we love you cora <3", scale: 0.4, font: "bigFont" },
+ { text: "Playtesters:", scale: 0.9, font: "bigFont" },
+ { text: "Ameth7st, Altruist,", scale: 0.7, font: "goldFont" },
+ { text: "and ", scale: 0.7, font: "goldFont" },
  { text: "© 2026 RobTop Games. All rights reserved.", scale: 0.4, font: "Arial", color: 0x000000 },
  ];
  let yPos = 0;
@@ -6633,7 +6724,7 @@ _buildSettingsPopup() {
  const xPos = screenWidth / 2;
  const centerY = screenHeight / 2;
  const popupWidth = 500;
- const popupContentHeight = 250;
+ let popupContentHeight = 250;
  this._reqpopup = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
 
  const background = this.add.rectangle(xPos, centerY, screenWidth, screenHeight, 0, 100 / 255).setInteractive();
@@ -6643,15 +6734,12 @@ _buildSettingsPopup() {
  this._reqpopup.add(bounceContainer);
 
  const cornerRadius = this.textures.get("GJ_square02").source[0].width * 0.325;
- const popupBg = this._drawScale9(0, 0, popupWidth, popupContentHeight, "GJ_square02", cornerRadius, 16777215, 1);
+ let popupBg = this._drawScale9(0, 0, popupWidth, popupContentHeight, "GJ_square02", cornerRadius, 16777215, 1);
  bounceContainer.add(popupBg);
 
  const closeBtn = this.add.image(-(popupWidth / 2) + 20, -(popupContentHeight / 2) + 20, "GJ_WebSheet", "GJ_closeBtn_001.png").setScale(1).setInteractive();
  bounceContainer.add(closeBtn);
  this._makeBouncyButton(closeBtn, 1, () => this._closeReqPopup());
-
- const lock = this.add.image(0, 110, "GJ_GameSheet03", "GJ_lockGray_001.png").setOrigin(0.5).setSize(1.5);
- bounceContainer.add(lock);
 
  const statusText = this.add.text(0, popupContentHeight / 2 - 90, "Or, call 480-957-8838 for more info.", {
  fontFamily: "Arial",
@@ -6692,6 +6780,45 @@ _buildSettingsPopup() {
  align: "center"
  }).setOrigin(0.5, 0.5);
  bounceContainer.add(statusText5);
+
+ const statusText6 = this.add.text(0, 25, "...because I created this menu.", {
+ fontFamily: "Arial",
+ fontSize: "17px",
+ color: "#92a7c0",
+ align: "center"
+ }).setOrigin(0.5, 0.5).setVisible(false);
+ bounceContainer.add(statusText6);
+
+ const lock = this.add.image(0, 110, "GJ_GameSheet03", "GJ_lockGray_001.png").setOrigin(0.5).setInteractive();
+ this._expandHitArea(lock, 1.5);
+ bounceContainer.add(lock);
+ let isMessageShown = false;
+ this._makeBouncyButton(lock, 1, () => {
+ isMessageShown = !isMessageShown;
+ if (isMessageShown) {
+ statusText.setText("Orrrr... Message ameth7st_nya!").setPosition(0, -10);
+ statusText2.setVisible(false);
+ statusText3.setVisible(false);
+ statusText4.setVisible(false);
+ statusText5.setVisible(false);
+ statusText6.setVisible(true);
+ popupContentHeight = 190;
+ lock.setY(80);
+ } else {
+ statusText.setText("Or, call 480-957-8838 for more info.").setPosition(0, 35);
+ statusText2.setVisible(true);
+ statusText3.setVisible(true);
+ statusText4.setVisible(true);
+ statusText5.setVisible(true);
+ statusText6.setVisible(false);
+ popupContentHeight = 250;
+ lock.setY(110);
+ }
+ popupBg.destroy();
+ popupBg = this._drawScale9(0, 0, popupWidth, popupContentHeight, "GJ_square02", cornerRadius, 16777215, 1);
+ bounceContainer.addAt(popupBg, 0);
+ closeBtn.setPosition(-(popupWidth / 2) + 20, -(popupContentHeight / 2) + 20);
+ });
 
  this.tweens.add({
  targets: bounceContainer,
@@ -6842,8 +6969,9 @@ _showwippopup() {
  this.tweens.add({
  targets: box,
  scale: { from: 0, to: 1 },
- duration: 280,
- ease: "Back.Out"
+ duration: 660,
+ ease: "Elastic.Out",
+ easeParams: [1, 0.6]
  });
  }
  InfoBoxStopAThing() {
@@ -6905,7 +7033,7 @@ _showwippopup() {
  _0x249eb7.setInteractive();
  this._howToPlayPopup.add(_0x249eb7);
  const _0x14e46f = this.textures.get("GJ_square01").source[0].width * 0.325;
- const panelContainer = this.add.container(xPos, _0x4c3182);
+ const panelContainer = this.add.container(xPos, _0x4c3182).setScrollFactor(0).setScale(0);
  this._howToPlayPopup.add(panelContainer);
  const _0x2c64c2 = this._drawScale9(0, 0, 830, 530, "GJ_square01", _0x14e46f, 16777215, 1);
  panelContainer.add(_0x2c64c2);
@@ -7005,7 +7133,6 @@ _showwippopup() {
  nextLabel.setText(currentPage >= TOTAL_PAGES - 1 ? "Exit" : "Next");
  }
  });
- panelContainer.setScale(0);
  this.tweens.add({
  targets: panelContainer,
  scale: 1,
@@ -7357,7 +7484,7 @@ _showwippopup() {
  }
  _buildSpecialLevelPopup(kind) {
  const S = this._specialLevelStyles()[kind];
- const popupKey = `_${kind}LevelPopup`, spinKey = `_${kind}SpinTween`;
+ const popupKey = `_${kind}LevelPopup`, spinKey = `_${kind}SpinTween`, slideKey = `_${kind}SlideTween`;
  if (this[popupKey]) return;
  const xPos = screenWidth / 2;
  const centerY = screenHeight / 2;
@@ -7368,7 +7495,7 @@ _showwippopup() {
  const background = this.add.rectangle(xPos, centerY, screenWidth, screenHeight, 0, 100 / 255);
  background.setInteractive();
  this[popupKey].add(background);
- const panelGroup = this.add.container(0, 0);
+ const panelGroup = this.add.container(-screenWidth, 0).setScrollFactor(0);
  this[popupKey].add(panelGroup);
  const cornerRadius = this.textures.get("GJ_square01").source[0].width * 0.325;
  const panelBg = this.add.nineslice(xPos, centerY, S.panelTex, null, panelW, panelH, cornerRadius, cornerRadius, cornerRadius, cornerRadius).setOrigin(0.5);
@@ -7420,6 +7547,13 @@ _showwippopup() {
  panelGroup.add(closeBtn);
  this._expandHitArea(closeBtn, 2);
  this._makeBouncyButton(closeBtn, 1, () => this._closeSpecialLevelPopup(kind));
+ this[slideKey] = this.tweens.add({
+ targets: panelGroup,
+ x: 0,
+ duration: 600,
+ ease: "Elastic.Out",
+ easeParams: [1, 0.9]
+ });
  const cellW = 720, cellH = 220;
  const cellCX = xPos, cellCY = centerY + 25;
  const cl = cellCX - cellW / 2, ct = cellCY - cellH / 2;
@@ -7597,8 +7731,9 @@ _showwippopup() {
  };
  }
  _closeSpecialLevelPopup(kind) {
- const popupKey = `_${kind}LevelPopup`, spinKey = `_${kind}SpinTween`;
+ const popupKey = `_${kind}LevelPopup`, spinKey = `_${kind}SpinTween`, slideKey = `_${kind}SlideTween`;
  if (this[spinKey]) { this[spinKey].stop(); this[spinKey] = null; }
+ if (this[slideKey]) { this[slideKey].stop(); this[slideKey] = null; }
  if (this[popupKey]) {
  this[popupKey].destroy();
  this[popupKey] = null;
@@ -10695,7 +10830,7 @@ _mirrorProgress() {
  action: () => {
  this._audio.playEffect("quitSound_01");
  this._audio.stopMusic();
- if (this._isMainLevelForCoinDisplay()) {
+ if (this._isMainLevelForCoinDisplay() || window.currentlevel?.[2] === "level_67") {
  window._mainLevelReturnToSelect = true;
  }
  this.game.registry.set("fadeInFromBlack", true);
@@ -10990,7 +11125,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  if (this._startPosGui) this._startPosGui.setVisible(v && this._startPosCount > 0);
  if (this._startPosText) this._startPosText.setText(`0/${this._startPosCount || 0}`);
  });
- addToggle(-65, "Smart StartPos", "auto sets startpos settings",
+ addToggle(-65, "Smart StartPos", "This is the info message",
  () => !!window.smartStartPos,
  (v) => { window.smartStartPos = v; });
 
@@ -11133,7 +11268,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  { id: "jump2", label: "Jump P2", cat: "gameplay" },
  { id: "pause", label: "Pause", cat: "gameplay" },
  { id: "restart", label: "Restart", cat: "gameplay" },
- { id: "noclip", label: "Noclip", cat: "gameplay" },
+ { id: "Ignore Damage", label: "Ignore Damage", cat: "gameplay" },
  { id: "showHitboxes", label: "Show Hitboxes", cat: "gameplay" },
  { id: "practice", label: "Practice Mode", cat: "practice" },
  { id: "startPosPrev", label: "StartPos Prev", cat: "practice" },
@@ -11676,6 +11811,12 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  inner.setScale(1);
  }
 
+ _stopVaultMusic() {
+ if (!this._vaultMusic) return;
+ this._vaultMusic.stop();
+ this._vaultMusic.destroy();
+ this._vaultMusic = null;
+ }
  _openVaultMenu() {
  if (this._vaultOverlayObjects || this._vaultTransitioning) return;
  this._vaultTransitioning = true;
@@ -11686,6 +11827,13 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  fade.fillRect(0, 0, sw, sh);
 
  const build = () => {
+ this._audio.stopMusic();
+ this._vaultMusic = this.sound.add("secretLoop", {
+ loop: true,
+ volume: this._audio.getUserMusicVolume() * 0.8
+ });
+ this._vaultMusic.play();
+
  const overlay = this.add.graphics().setScrollFactor(0).setDepth(300);
  const baseR = 0x00, baseG = 0x4c, baseB = 0x66;
  const darken = 0.445;
@@ -11774,6 +11922,13 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
 "Really, still here?",
 "Fine, press the button"
  ];
+ const openingMessages = [
+ "I should have hid this room better...",
+ "RubRub won't like this...",
+ "Don't you have better things to do?",
+ vaultMessages[0]
+ ];
+ const openingMessage = openingMessages[Math.floor(Math.random() * openingMessages.length)];
  const vaultAltColor = 0x00ffc5;
  const vaultAltChance = 0.15;
  const vaultAltSequences = [
@@ -11790,8 +11945,8 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  let altSeq = null;
  let altPos = 0;
  let lastAltIdx = -1;
- let msgIndex = 0;
- const msgLabel = this.add.bitmapText(barCX, msgCY, "bigFont", vaultMessages[0], msgSize)
+ let msgIndex = vaultMessages.indexOf(openingMessage);
+ const msgLabel = this.add.bitmapText(barCX, msgCY, "bigFont", openingMessage, msgSize)
  .setScrollFactor(0).setDepth(305).setOrigin(0.5, 0.5);
  const _fitMessage = () => {
  msgLabel.setScale(1);
@@ -11946,11 +12101,19 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  for (const obj of this._vaultOverlayObjects) {
  if (obj && obj.destroy) obj.destroy();
  }
+ this._stopVaultMusic();
+ this._audio.startMenuMusic();
  this._vaultOverlayObjects = null;
  this._vaultTransitioning = false;
  this.tweens.add({ targets: fade, alpha: 0, duration: 150, ease: "Linear", onComplete: () => fade.destroy() });
  }
  });
+ }
+ _stopSecretVaultMusic() {
+ if (!this._secretVaultMusic) return;
+ this._secretVaultMusic.stop();
+ this._secretVaultMusic.destroy();
+ this._secretVaultMusic = null;
  }
  _openSecretVault() {
  if (this._secretVaultOverlayObjects || this._secretVaultTransitioning) return;
@@ -11962,6 +12125,13 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  fade.fillRect(0, 0, sw, sh);
 
  const build = () => {
+ this._audio.stopMusic();
+ this._secretVaultMusic = this.sound.add("secretLoop2", {
+ loop: true,
+ volume: this._audio.getUserMusicVolume() * 0.8
+ });
+ this._secretVaultMusic.play();
+
  const overlay = this.add.graphics().setScrollFactor(0).setDepth(300);
  const baseR = 0x52, baseG = 0x00, baseB = 0x67;
  const darken = 0.445;
@@ -12035,6 +12205,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  "RubRub won't like this...",
  "zzzZZZZ...",
  "Don't touch that!",
+ "I have heard about you.",
  "Why you touch my stuff?",
  "RubRub better not find you in here...",
  "Can't you just leave?",
@@ -12056,6 +12227,8 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  "Really, still here?",
  "Fine, press the button"
  ];
+ const openingMessages = [vaultMessages[0], "Don't touch that!", "I have heard about you."];
+ const openingMessage = openingMessages[Math.floor(Math.random() * openingMessages.length)];
  const vaultAltColor = 0x00ffc5;
  const vaultAltChance = 0.15;
  const vaultAltSequences = [
@@ -12071,8 +12244,8 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  let altSeq = null;
  let altPos = 0;
  let lastAltIdx = -1;
- let msgIndex = 0;
- const msgLabel = this.add.bitmapText(barCX, msgCY, "bigFont", vaultMessages[0], msgSize)
+ let msgIndex = vaultMessages.indexOf(openingMessage);
+ const msgLabel = this.add.bitmapText(barCX, msgCY, "bigFont", openingMessage, msgSize)
  .setScrollFactor(0).setDepth(305).setOrigin(0.5, 0.5);
  const _fitMessage = () => {
  msgLabel.setScale(1);
@@ -12200,9 +12373,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  };
 
  const _doorFrame = "secretDoor_closed_001.png";
- const _doorSheet = ["SecretSheet"]
- .find(k => this.textures.exists(k) && this.textures.get(k).has(_doorFrame)) || "SecretSheet";
- const secretDoor = this.add.image(sw - 40, sh - 30, _doorSheet, _doorFrame)
+ const secretDoor = this.add.image(sw - 40, sh - 20, "SecretSheet", _doorFrame)
  .setScrollFactor(0).setDepth(304).setOrigin(1, 1);
  secretDoor.postFX.addColorMatrix().grayscale(1);
  secretDoor.setTint(0xafafaf);
@@ -12214,6 +12385,10 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  this._makeBouncyButton(challengeBtn, 0.55, () => {
  if (challengeLoading) return;
  challengeLoading = true;
+ this._secretVaultTransitioning = true;
+ if (this._secretVaultInput) { this._secretVaultInput.remove(); this._secretVaultInput = null; }
+ this.input.enabled = false;
+ this._stopSecretVaultMusic();
  challengeBtn.setTint(0x666666);
  challengeBtn.disableInteractive();
  const challengeLevelFile = "level_67";
@@ -12224,10 +12399,9 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  const songID = challengeLvl[0];
  const songFileName = challengeLvl[4] ? challengeLvl[4] : String(challengeLvl[1]).replaceAll(" ", "");
 
- const loadingText = this.add.bitmapText(sw / 2, sh / 2, "goldFont", "Downloading Level Assets...", 20)
+ const loadingText = this.add.bitmapText(sw / 2, sh - 30, "goldFont", "Downloading Level Assets...", 20)
  .setScrollFactor(0).setOrigin(0.5).setDepth(700);
 
- this.input.enabled = false;
  this.load.text(challengeLevelFile, "assets/levels/67.txt");
  if (known && !this.cache.audio.exists(songID)) this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
 
@@ -12236,6 +12410,11 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  if (this._secretVaultInput) { this._secretVaultInput.remove(); this._secretVaultInput = null; }
  this._audio.playEffect("playSound_01", { volume: 1 });
  this._audio.stopMusic();
+ for (const obj of this._secretVaultOverlayObjects || []) {
+ if (obj && obj.destroy) obj.destroy();
+ }
+ this._secretVaultOverlayObjects = null;
+ this._secretVaultTransitioning = false;
  this.input.enabled = true;
  this.game.registry.set("autoStartGame", true);
  this.scene.restart();
@@ -12256,6 +12435,10 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  targets: fade, alpha: 1, duration: 150, ease: "Linear",
  onComplete: () => {
  build();
+ if (this._secretVaultReturnCover) {
+ this._secretVaultReturnCover.destroy();
+ this._secretVaultReturnCover = null;
+ }
  this._secretVaultTransitioning = false;
  this.tweens.add({ targets: fade, alpha: 0, duration: 150, ease: "Linear", onComplete: () => fade.destroy() });
  }
@@ -12276,6 +12459,8 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  for (const obj of this._secretVaultOverlayObjects) {
  if (obj && obj.destroy) obj.destroy();
  }
+ this._stopSecretVaultMusic();
+ this._audio.startMenuMusic();
  this._secretVaultOverlayObjects = null;
  this._secretVaultTransitioning = false;
  this.tweens.add({ targets: fade, alpha: 0, duration: 150, ease: "Linear", onComplete: () => fade.destroy() });
@@ -13841,10 +14026,14 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  _updateSavedNav();
  if (_emptyTxt) {
  _emptyTxt.setVisible(true);
+ _emptyTxt2.setVisible(true);
  } else {
- _emptyTxt = this.add.bitmapText(panelCX, panelCY + 10, "bigFont", "You have not downloaded any\n levels yet!", 32)
+ _emptyTxt = this.add.bitmapText(panelCX, panelCY + 0, "bigFont", "You have not downloaded any ", 38)
  .setScrollFactor(0).setDepth(204).setOrigin(0.5);
  objects.push(_emptyTxt);
+  _emptyTxt2 = this.add.bitmapText(panelCX + 20, panelCY + 40, "bigFont", "levels yet! ", 38)
+ .setScrollFactor(0).setDepth(204).setOrigin(0.5);
+ objects.push(_emptyTxt2);
  }
  }, () => true);
 
@@ -13858,7 +14047,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  let scrollOffsetY = 0;
  let activeCellObjs = [];
  let savedLevelData = [];
- let _emptyTxt = null;
+ let _emptyTxt = null, _emptyTxt2 = null;
  const diffFrames = [
  "difficulty_00_btn_001.png",
  "difficulty_01_btn_001.png",
@@ -14097,10 +14286,12 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  } catch(_e) { savedLevelData = []; }
 
  if (savedLevelData.length === 0) {
- const emptyTxt = this.add.bitmapText(panelCX, panelCY + 10, "bigFont", "You have not downloaded any\n levels yet!", 38)
+ _emptyTxt = this.add.bitmapText(panelCX, panelCY + 0, "bigFont", "You have not downloaded any ", 38)
  .setScrollFactor(0).setDepth(204).setOrigin(0.5);
- objects.push(emptyTxt);
- _emptyTxt = emptyTxt;
+ objects.push(_emptyTxt);
+  _emptyTxt2 = this.add.bitmapText(panelCX + 20, panelCY + 40, "bigFont", "levels yet! ", 38)
+ .setScrollFactor(0).setDepth(204).setOrigin(0.5);
+ objects.push(_emptyTxt2);
  _updateSavedNav();
  } else {
  const _needsFetch = savedLevelData.filter(ld => {
