@@ -8971,7 +8971,7 @@ _showwippopup() {
  const currentSpeed = window.speedHack ? Math.sqrt(window.speedHack) : 1;
  const music = this._audio._music;
  try {
- if (music && music.source && typeof music.setRate === "function") music.setRate(currentSpeed);
+ if (music && music.source && typeof music.setRate === "function" && music.rate !== currentSpeed) music.setRate(currentSpeed);
  if (this.sound && this.sound.rate !== currentSpeed) this.sound.rate = currentSpeed;
  } catch (e) {}
  }
@@ -9543,7 +9543,7 @@ _showwippopup() {
  }
  }
 
- if (!this._player._scene._slideIn){
+ if (window.showHitboxTrail && !this._player._scene._slideIn){
  if (!this._player._hitboxTrail) this._player._hitboxTrail = [];
  if (!this._player.p.isDead) {
  const _trailSize = this._player.p.isMini ? 18 : 30;
@@ -11094,7 +11094,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  const barOn = !!window.progressBar && !this._menuActive;
  this._gwProgressBar.setVisible(barOn);
  const pct = Phaser.Math.Clamp(percent, 0, 100);
- this._gwProgressFill.setSize(Math.max(1, 412 * pct / 100), 16).setVisible(pct > 0).setTint(window.mainColor);
+ if (barOn) this._gwProgressFill.setSize(Math.max(1, 412 * pct / 100), 16).setVisible(pct > 0).setTint(window.mainColor);
  label.setOrigin(barOn ? 0 : 0.5, 0.5);
  label.setPosition(screenWidth / 2 + (barOn ? 220 : 0), 16);
  }

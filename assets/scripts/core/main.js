@@ -54,6 +54,7 @@ const phaserConfig = {
   },
   render: {
     powerPreference: "default",
+    antialiasGL: false,
     roundPixels: true
   },
   scale: {
