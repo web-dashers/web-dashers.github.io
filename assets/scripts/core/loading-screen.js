@@ -237,7 +237,10 @@ class BootScene extends Phaser.Scene {
       "S-slopes!~",
       "Anything but slopes",
       "Laggiest game ever.",
-      "GeometFree Dash!"
+      "GeometFree Dash!",
+      "I AM a fricking dasher.",
+      "web dash is steal all your level",
+      "Have you ever wanted levels free?"
     ];
     const sliderOriginX = cx - 105;
     const sliderOriginY = cy + 110;
@@ -270,7 +273,7 @@ class BootScene extends Phaser.Scene {
       const msg = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
       this.add.bitmapText(cx, cy + 187, "goldFont", msg, 30).setOrigin(0.5);
       const robtopLogo = this.add.image(cx, cy - 120, "GJ_LaunchSheet", "RobTopLogoBig_001.png").setOrigin(0.5).setScale(0.8);
-      const gjLogo = this.add.image(cx, cy, "GJ_WebSheet", "GJ_logo_001.png").setOrigin(0.5);
+      const gjLogo = this.add.image(cx, cy, "GJ_WebSheet", "GJ_logo_001.png").setOrigin(0.5).setScale(1.1);
       const Logo = this.add.image(W - 123, 610, "Phaserlogo").setScale(0.115).setInteractive();
       this.children.bringToTop(robtopLogo);
       this.children.bringToTop(gjLogo);
@@ -332,8 +335,7 @@ class BootScene extends Phaser.Scene {
       this.load.image("GJ_button04", "assets/sprites/GJ_button_04.png");
       this.load.image("GJ_button05", "assets/sprites/GJ_button_05.png");
       this.load.image("GJ_button06", "assets/sprites/GJ_button_06.png");
-      this.load.image("import", "assets/sprites/import.png");
-      this.load.image("export", "assets/sprites/export.png");
+      this.load.image("ImportanIcon", "assets/sprites/ImportanIcon.png");
       this.load.image("tutorial_01", "assets/sprites/tutorial_01.png");
       this.load.image("tutorial_02", "assets/sprites/tutorial_02.png");
       this.load.image("tutorial_03", "assets/sprites/tutorial_03.png");
@@ -376,6 +378,8 @@ class BootScene extends Phaser.Scene {
 
       this.load.audio("menu_music", "assets/music/menuLoop.mp3");
       this.load.audio("StayInsideMe", "assets/music/StayInsideMe.mp3");
+      this.load.audio("secretLoop", "assets/music/secretLoop.mp3");
+      this.load.audio("secretLoop2", "assets/music/secretLoop02.mp3");
 
       /*for (const lvlarray of window.allLevels) {
         this.load.text(lvlarray[2], "assets/levels/" + lvlarray[2].split("_")[1] + ".txt");

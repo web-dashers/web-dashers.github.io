@@ -154,6 +154,7 @@ function parseObject(objectString) {
   const baseRotation = readFloat(6, 0);
   const rotationX = readFloat(131, baseRotation);
   const rotationY = readFloat(132, baseRotation);
+  
 
   const warp = ((rotationY - rotationX) % 360 + 540) % 360 - 180;
   const rotation = rotationX + warp / 2;
@@ -1925,11 +1926,12 @@ window.LevelObject = class LevelObject {
     if (!sprite) {
       return;
     }
+    const textureInfo = getAtlasFrame(scene, frameName);
+    const pixelSheetScale = textureInfo?.atlas === "PixelSheet_01-hd" ? 0.5 : 1;
     let {
       dx: offsetX,
       dy: offsetY
     } = function (scene, frameName) {
-      let textureInfo = getAtlasFrame(scene, frameName);
       if (!textureInfo) {
         return {
           dx: 0,
@@ -1984,6 +1986,8 @@ window.LevelObject = class LevelObject {
     }
     let totalRotation = (sprite.getData("gjBaseRotationDeg") || 0) + objectData.rot;
     const objectScale = gdObjectScale(objectData);
+    objectScale.x *= pixelSheetScale;
+    objectScale.y *= pixelSheetScale;
     const objectWarp = gdObjectWarp(objectData);
     if (totalRotation !== 0 || objectScale.x !== 1 || objectScale.y !== 1 || objectWarp !== 0) {
       const placed = gdTransformLocalPoint(
@@ -3338,6 +3342,9 @@ window.LevelObject = class LevelObject {
             if (childDef.can_color === true) childSprite._eeAudioTintable = true;
             this._audioScaleSprites.push(childSprite);
           }
+          if (childDef.audioPulse) {
+            this._audioPulseSprites.push(childSprite);
+          }
 
           const childVisualSource = { ...childDef };
           if (childDef.portalGuide) {
@@ -3415,6 +3422,9 @@ window.LevelObject = class LevelObject {
               registerColor(childGlowSprite, childColorChannel, !!isSawObjectId);
               registerToGroups(childGlowSprite, childWorldX, childBaseY);
               registerObjectSprite(childGlowSprite);
+              if (childDef.audioPulse) {
+                this._audioPulseSprites.push(childGlowSprite);
+              }
             }
           }
 
@@ -6709,7 +6719,7 @@ window.LevelObject = class LevelObject {
             } else {
               effectSprite.y = effectSprite._eeBaseY + (effectSprite._eeVisOffY || 0);
               effectSprite.x = effectSprite._eeWorldX + (effectSprite._eeVisOffX || 0);
-              if (!effectSprite._eeAudioScale) {
+              if (!effectSprite._eeAudioScale && (_0x127ace !== 1 || effectSprite._eeEffectMult !== 1)) {
                 this._setEffectScale(effectSprite, 1);
               }
             }
@@ -6786,7 +6796,7 @@ window.LevelObject = class LevelObject {
           if (effectSprite.y !== _0x50e6d9) {
             effectSprite.y = _0x50e6d9;
           }
-          if (!effectSprite._eeAudioScale && (_0x127ace !== 1 || effectSprite._eeEffectMult !== 1)) {
+          if (!effectSprite._eeAudioScale) {
             this._setEffectScale(effectSprite, _0x127ace);
           }
         }
@@ -6799,6 +6809,7 @@ window.LevelObject = class LevelObject {
   }
   setGroundColor(_0x3958eb) {
     if (window.isEditor) return; // not dealing with ts rn
+    if (this._ground2Tint === _0x3958eb) return;
     if (this._groundTint === _0x3958eb) return;
     this._groundTint = _0x3958eb;
     for (let _0x46c21a of this._groundTiles) {
@@ -6810,7 +6821,6 @@ window.LevelObject = class LevelObject {
   }
   setGround2Color(_0x3958eb) {
     if (window.isEditor) return; // not dealing with ts rn
-    if (this._ground2Tint === _0x3958eb) return;
     this._ground2Tint = _0x3958eb;
     for (let _0x46c21a of this._ground2Tiles || []) {
       _0x46c21a.setTint(_0x3958eb);
