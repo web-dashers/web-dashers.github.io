@@ -6719,7 +6719,7 @@ window.LevelObject = class LevelObject {
             } else {
               effectSprite.y = effectSprite._eeBaseY + (effectSprite._eeVisOffY || 0);
               effectSprite.x = effectSprite._eeWorldX + (effectSprite._eeVisOffX || 0);
-              if (!effectSprite._eeAudioScale && (_0x127ace !== 1 || effectSprite._eeEffectMult !== 1)) {
+              if (!effectSprite._eeAudioScale && effectSprite._eeEffectMult !== 1) {
                 this._setEffectScale(effectSprite, 1);
               }
             }
