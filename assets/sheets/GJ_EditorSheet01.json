@@ -1,0 +1,175 @@
+{
+  "frames": {
+    "buildBtnOff.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "buildBtnOn.png": {
+      "frame": {
+        "x": 79,
+        "y": 0,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "deleteBtnOff.png": {
+      "frame": {
+        "x": 0,
+        "y": 79,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "deleteBtnOn.png": {
+      "frame": {
+        "x": 79,
+        "y": 79,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "editBtnOff.png": {
+      "frame": {
+        "x": 158,
+        "y": 0,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "editBtnOn.png": {
+      "frame": {
+        "x": 158,
+        "y": 79,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "viewBtnOff.png": {
+      "frame": {
+        "x": 0,
+        "y": 158,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    },
+    "viewBtnOn.png": {
+      "frame": {
+        "x": 79,
+        "y": 158,
+        "w": 78,
+        "h": 78
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 2,
+        "w": 78,
+        "h": 78
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 81
+      }
+    }
+  },
+  "meta": {
+    "app": "https://gdcolon.com/gdsplitter/",
+    "version": "1.0",
+    "image": "GJ_editorsheet01-hd.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 236,
+      "h": 236
+    },
+    "scale": 1
+  }
+}
