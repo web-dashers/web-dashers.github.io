@@ -1224,6 +1224,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  console.log('Download cancelled.');
  } else {
  console.warn("Failed to download song:", err);
+ this._showServerErrorPopup();
  }
  } finally {
  isDownloading = false;
@@ -1353,7 +1354,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  }
 
  const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
- if (!PROXY_BASE) { console.warn("Play online level: window._gdProxyUrl is not configured"); return false; }
+ if (!PROXY_BASE) { console.warn("Play online level: window._gdProxyUrl is not configured"); this._showServerErrorPopup(); return false; }
  try {
  const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
  method: "POST",
@@ -1452,13 +1453,14 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  return true;
  } catch (err) {
  console.warn("Failed to start online level", err);
+ this._showServerErrorPopup();
  return false;
  }
  };
  this._duplicateOnlineLevelToEditor = async (lvl) => {
  if (!lvl || !lvl.id) return;
  const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
- if (!PROXY_BASE) { console.warn("Duplicate level: window._gdProxyUrl is not configured"); return; }
+ if (!PROXY_BASE) { console.warn("Duplicate level: window._gdProxyUrl is not configured"); this._showServerErrorPopup(); return; }
  try {
  const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
  method: "POST",
@@ -1515,6 +1517,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  this._closePlayMenu(false, () => this._openLevelView(newLevel));
  } catch (err) {
  console.warn("Failed to duplicate level to editor:", err);
+ this._showServerErrorPopup();
  }
  };
  this._openEditorMenu = () => {
@@ -2695,6 +2698,7 @@ container.add(cornerBL);
  try {
  await _doSearchInner(levelId);
  } catch (err) {
+ this._showServerErrorPopup();
  } finally {
  _loading = false;
  }
@@ -2716,7 +2720,7 @@ container.add(cornerBL);
  };
  const _doSearchInner = async (levelId) => {
  const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
- if (!PROXY_BASE) { console.warn("Level search: window._gdProxyUrl is not configured"); return; }
+ if (!PROXY_BASE) { console.warn("Level search: window._gdProxyUrl is not configured"); this._showServerErrorPopup(); return; }
  const formBody = `levelID=${levelId}&secret=Wmfd2893gb7`;
  const res = await fetch(`${PROXY_BASE}/downloadGJLevel22.php`, {
  method: "POST",
@@ -6773,6 +6777,46 @@ _showwippopup() {
  this._reqpopup = null;
  }
  }
+ _showServerErrorPopup(message) {
+ if (!this.sys.isActive()) return;
+ const W = 450, H = 130;
+ if (this._serverErrorPopup && this._serverErrorPopup.scene) {
+ this._serverErrorTimer.remove(false);
+ this._serverErrorTimer = this.time.delayedCall(4000, () => this._hideServerErrorPopup());
+ return;
+ }
+ const box = this.add.container(screenWidth + W / 2 + 15, 15 + H / 2).setScrollFactor(0).setDepth(2000);
+ this._serverErrorPopup = box;
+ const corner = 0.325 * this.textures.get("GJ_square02").source[0].width;
+ const bg = this.add.nineslice(0, 0, "GJ_square02", null, W, H, corner, corner, corner, corner).setOrigin(0.5);
+ const icon = this.add.image(-W / 2 + 60, -2, "GJ_GameSheet03", "exMark_001.png");
+ icon.setScale(80 / Math.max(icon.width, icon.height));
+ const title = this.add.bitmapText(-105, -26, "goldFont", "Server Error", 30).setOrigin(0, 0.5);
+ const body = this.add.text(-105, 14, message || "The servers quota has been reached\nfor today. Please try again later.", {
+ fontFamily: "Arial",
+ fontSize: "18px",
+ color: "#ffffff"
+ }).setOrigin(0, 0.5);
+ box.add([bg, icon, title, body]);
+ this.tweens.add({ targets: box, x: screenWidth - W / 2 - 15, duration: 450, ease: "Cubic.Out" });
+ this._serverErrorTimer = this.time.delayedCall(4000, () => this._hideServerErrorPopup());
+ }
+ _hideServerErrorPopup() {
+ const box = this._serverErrorPopup;
+ if (!box || !box.scene) return;
+ this._serverErrorTimer.remove(false);
+ this.tweens.killTweensOf(box);
+ this.tweens.add({
+ targets: box,
+ x: screenWidth + 300,
+ duration: 400,
+ ease: "Cubic.In",
+ onComplete: () => {
+ box.destroy();
+ this._serverErrorPopup = null;
+ }
+ });
+ }
  InfoBoxDoAThing(displayText) {
  if (this.EditInfoText) {
  this.InfoBoxStopAThing();
@@ -7441,6 +7485,7 @@ _showwippopup() {
  const showError = () => {
  if (!alive()) return;
  stopSpin();
+ this._showServerErrorPopup();
  };
 
  const _diffFrames = [
@@ -13553,6 +13598,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  } catch (err) {
  spinSprite.setVisible(false);
  refreshBtn.setVisible(true);
+ if (!(err && err.message === "no results")) this._showServerErrorPopup();
  }
  _loading = false;
  };
