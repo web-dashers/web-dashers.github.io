@@ -6919,7 +6919,7 @@ _showwippopup() {
  const icon = this.add.image(-W / 2 + 60, -2, "GJ_GameSheet03", "exMark_001.png");
  icon.setScale(80 / Math.max(icon.width, icon.height));
  const title = this.add.bitmapText(-105, -26, "goldFont", "Server Error", 30).setOrigin(0, 0.5);
- const body = this.add.text(-105, 14, message || "The servers quota has been reached\nfor today. Please try again later.", {
+ const body = this.add.text(-105, 14, message || "The servers quota has been reached\nfor today. Please try again later.", { // DO YOU UNDERSTAND NOW? DO YOU? DO YOU? STOP MAKING ISSUES ABOUT THE SERVERS NOT WORKING IN THE DISCORD AND GITHUB - SINCERELY, ROOOOOHNANIS
  fontFamily: "Arial",
  fontSize: "18px",
  color: "#ffffff"
