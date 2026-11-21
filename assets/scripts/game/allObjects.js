@@ -1,13 +1,7 @@
 // -1: No color
-// 1: P Color
-// 2: P Color 2
-// 1000: Background Color
-// 1001: Ground Color
-// 1002: Line Color
-// 1003: 3DL Color
-// 1004: Object Color
-// 1006: Glow
-// 1011: Detail Color For animated blocks (ill add some later)
+// 1004: player color 1
+// 1006: player color 2
+// 1010: black
 
 window.allobjects = function() {
   return {
@@ -26,7 +20,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "1": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "square_01_001.png",
     "gridW": 1,
@@ -36,7 +30,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "2": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "square_02_001.png",
     "gridW": 1,
@@ -46,7 +40,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "3": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "square_03_001.png",
     "gridW": 1,
@@ -56,7 +50,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "4": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "square_04_001.png",
     "gridW": 1,
@@ -75,7 +69,7 @@ window.allobjects = function() {
     "default_z_order": -7
   },
   "6": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "square_06_001.png",
     "gridW": 1,
@@ -85,7 +79,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "7": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "square_07_001.png",
     "gridW": 1,
@@ -95,7 +89,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "8": {
-    "can_color": false,
+    "can_color": true,
     "type": "hazard",
     "frame": "spike_01_001.png",
     "gridW": 1,
@@ -243,7 +237,6 @@ window.allobjects = function() {
   },
   "15": {
     "can_color": true,
-    "default_base_color_channel": 1005,
     "type": "deco",
     "frame": "rod_01_001.png",
     "gridW": 0,
@@ -267,12 +260,11 @@ window.allobjects = function() {
   },
   "16": {
     "can_color": true,
-    "default_base_color_channel": 1005,
     "type": "deco",
     "frame": "rod_02_001.png",
     "gridW": 0,
     "gridH": 0,
-    "z": -6,
+    "z": 1,
     "children": [
       {
         "frame": "rod_ball_01_001.png",
@@ -291,7 +283,6 @@ window.allobjects = function() {
   },
   "17": {
     "can_color": true,
-    "default_base_color_channel": 1005,
     "type": "deco",
     "frame": "rod_03_001.png",
     "gridW": 0,
@@ -604,7 +595,7 @@ window.allobjects = function() {
   "40": {
     "type": "solid",
     "frame": "plank_01_001.png",
-    "can_color": false,
+    "can_color": true,
     "gridW": 1,
     "gridH": 0.5,
     "editorOffsetY": 8.15, //WE CAN FINALLY MOVE SHIT!!! <3
@@ -743,7 +734,9 @@ window.allobjects = function() {
     "default_z_order": 9
   },
   "50": {
+    "can_color": true,
     "default_base_color_channel": 1006,
+    "blend": "additive",
     "type": "deco",
     "frame": "none",
     "gridW": 0,
@@ -753,6 +746,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "rod_ball_01_001.png",
         "z": 1,
         "audioScale": true
@@ -760,6 +755,7 @@ window.allobjects = function() {
     ],
   },
   "51": {
+    "can_color": true,
     "default_base_color_channel": 1006,
     "type": "deco",
     "frame": "none",
@@ -770,6 +766,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "rod_ball_02_001.png",
         "z": 1,
         "audioScale": true
@@ -777,6 +775,7 @@ window.allobjects = function() {
     ]
   },
   "52": {
+    "can_color": true,
     "default_base_color_channel": 1006,
     "type": "deco",
     "frame": "none",
@@ -787,6 +786,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "rod_ball_03_001.png",
         "z": 1,
         "audioScale": true
@@ -794,6 +795,7 @@ window.allobjects = function() {
     ]
   },
   "53": {
+    "can_color": true,
     "default_base_color_channel": 1006,
     "type": "deco",
     "frame": "none",
@@ -805,6 +807,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "d_ball_04_001.png",
         "z": 1,
         "audioScale": true
@@ -825,6 +829,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "d_ball_05_001.png",
         "z": 1,
         "audioScale": true
@@ -913,6 +919,7 @@ window.allobjects = function() {
     "enterEffect": 11
   },
   "60": {
+    "can_color": true,
     "default_base_color_channel": 1006,
     "type": "deco",
     "frame": "none",
@@ -923,6 +930,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "d_ball_06_001.png",
         "z": 1,
         "audioScale": true
@@ -948,7 +957,7 @@ window.allobjects = function() {
   "62": {
     "type": "solid",
     "frame": "square_b_01_001.png",
-    "can_color": false,
+    "can_color": true,
     "black": true,
     "gridW": 1,
     "gridH": 0.5,
@@ -960,7 +969,7 @@ window.allobjects = function() {
   "63": {
     "type": "solid",
     "frame": "square_b_02_001.png",
-    "can_color": false,
+    "can_color": true,
     "black": true,
     "gridW": 1,
     "gridH": 0.5,
@@ -971,7 +980,7 @@ window.allobjects = function() {
   "64": {
     "type": "solid",
     "frame": "square_b_03_001.png",
-    "can_color": false,
+    "can_color": true,
     "black": true,
     "gridW": 1,
     "gridH": 0.5,
@@ -984,7 +993,7 @@ window.allobjects = function() {
   "65": {
     "type": "solid",
     "frame": "square_b_04_001.png",
-    "can_color": false,
+    "can_color": true,
     "black": true,
     "gridW": 1,
     "gridH": 0.5,
@@ -996,7 +1005,7 @@ window.allobjects = function() {
   "66": {
     "type": "solid",
     "frame": "square_b_05_001.png",
-    "can_color": false,
+    "can_color": true,
     "black": true,
     "gridW": 1,
     "gridH": 0.5,
@@ -1028,7 +1037,7 @@ window.allobjects = function() {
     "editorOffsetY": 7.1,
   },
   "69": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "blockOutline_01_001.png",
     "gridW": 1,
@@ -1047,7 +1056,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "70": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "lightsquare_01_02_001.png",
     "gridW": 1,
@@ -1066,7 +1075,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "71": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "blockOutline_03_001.png",
     "gridW": 1,
@@ -1085,7 +1094,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "72": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "blockOutline_06_001.png",
     "gridW": 1,
@@ -1114,7 +1123,7 @@ window.allobjects = function() {
     "default_z_order": -7
   },
   "74": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "blockOutline_04_001.png",
     "gridW": 1,
@@ -1133,7 +1142,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "75": {
-    "can_color": false,
+    "can_color": true,
     "type": "solid",
     "frame": "blockOutline_05_001.png",
     "gridW": 1,
@@ -1157,7 +1166,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "76": {
-    "can_color": false,
+    "can_color": true,
     "children": [
       {
         "frame": "square_d_05_001.png",
@@ -1197,7 +1206,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "77": {
-    "can_color": false,
+    "can_color": true,
     "children": [
       {
         "frame": "square_d_05_001.png",
@@ -1219,7 +1228,7 @@ window.allobjects = function() {
     "default_z_order": 2
   },
   "78": {
-    "can_color": false,
+    "can_color": true,
     "children": [
       {
         "frame": "square_d_05_001.png",
@@ -1936,6 +1945,7 @@ window.allobjects = function() {
   },
   "123": {
     "type": "deco",
+    "default_base_color_channel": 1005,
     "frame": "d_thorn_01_001.png",
     "gridW": 0,
     "gridH": 0,
@@ -1945,6 +1955,7 @@ window.allobjects = function() {
   },
   "124": {
     "type": "deco",
+    "default_base_color_channel": 1005,
     "frame": "d_thorn_02_001.png",
     "gridW": 0,
     "gridH": 0,
@@ -1954,6 +1965,7 @@ window.allobjects = function() {
   },
   "125": {
     "type": "deco",
+    "default_base_color_channel": 1005,
     "frame": "d_thorn_03_001.png",
     "gridW": 0,
     "gridH": 0,
@@ -1963,6 +1975,7 @@ window.allobjects = function() {
   },
   "126": {
     "type": "deco",
+    "default_base_color_channel": 1005,
     "frame": "d_thorn_04_001.png",
     "gridW": 0,
     "gridH": 0,
@@ -1972,6 +1985,7 @@ window.allobjects = function() {
   },
   "127": {
     "type": "deco",
+    "default_base_color_channel": 1005,
     "frame": "d_thorn_05_001.png",
     "gridW": 0,
     "gridH": 0,
@@ -2032,6 +2046,7 @@ window.allobjects = function() {
   },
   "133": {
     "default_base_color_channel": 1006,
+    "audioPulse": true,
     "type": "deco",
     "frame": "d_exmark_01_001.png",
     "gridW": 0,
@@ -2070,6 +2085,7 @@ window.allobjects = function() {
   },
   "136": {
     "default_base_color_channel": 1006,
+    "audioPulse": true,
     "type": "deco",
     "frame": "d_qmark_01_001.png",
     "gridW": 0,
@@ -2092,7 +2108,7 @@ window.allobjects = function() {
         "z": -1 //needs to be flipped, not rotated.
       },
     ],
-    "default_detail_color_channel": -1,
+    "default_base_color_channel": 1006,
     "default_z_layer": 3,
     "default_z_order": 9
   },
@@ -2101,7 +2117,7 @@ window.allobjects = function() {
     "frame": "d_wheel_02_001.png",
     "gridW": 1.7000000476837158,
     "gridH": 1.7000000476837158,
-    "default_detail_color_channel": -1,
+    "default_base_color_channel": 1006,
     "default_z_layer": 3,
     "default_z_order": 9
   },
@@ -2110,7 +2126,7 @@ window.allobjects = function() {
     "frame": "d_wheel_03_001.png",
     "gridW": 0,
     "gridH": 0,
-    "default_detail_color_channel": -1,
+    "default_base_color_channel": 1006,
     "default_z_layer": 3,
     "default_z_order": 9
   },
@@ -2147,7 +2163,7 @@ window.allobjects = function() {
     "animInterval": 100
   },
   "143": {
-    "can_color": false,
+    "can_color": true,
     "default_base_color_channel": 1004,
     "frame": "brick_02_001.png",
     "glow_frame": "brick_02_glow_001.png",
@@ -2191,6 +2207,7 @@ window.allobjects = function() {
   "146": {
     "type": "solid",
     "frame": "invis_square_01_001.png",
+    "glow_frame": "invis_square_01_001.png",
     "gridW": 1,
     "gridH": 1,
     "default_detail_color_channel": -1,
@@ -2213,6 +2230,7 @@ window.allobjects = function() {
     "editorOffsetY": 8.15,
   },
   "148": {
+     "blend": "additive",
     "can_color": true,
     "default_base_color_channel": 1006,
     "frame": "none",
@@ -2226,6 +2244,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "d_ball_07_001.png",
         "z": 1,
         "audioScale": true
@@ -2246,6 +2266,8 @@ window.allobjects = function() {
     "default_z_order": 9,
     "children": [
       {
+        "default_base_color_channel": 1006,
+        "can_color": true,
         "frame": "d_ball_08_001.png",
         "z": 1,
         "audioScale": true
@@ -2254,6 +2276,7 @@ window.allobjects = function() {
   },
   "150": {
     "default_base_color_channel": 1006,
+    "audioPulse": true,
     "type": "deco",
     "frame": "d_cross_01_001.png",
     "gridW": 0,
@@ -3008,7 +3031,7 @@ window.allobjects = function() {
   },
   "191": {
     "black": true,
-    "can_color": true,
+    "can_color": false,
     "color_channel": "black",
     "default_base_color_channel": 1004,
     "frame": "fakeSpike_01_001.png",
@@ -3097,7 +3120,7 @@ window.allobjects = function() {
   },
   "198": {
     "black": true,
-    "can_color": true,
+    "can_color": false,
     "color_channel": "black",
     "default_base_color_channel": 1004,
     "frame": "fakeSpike_02_001.png",
@@ -3113,7 +3136,7 @@ window.allobjects = function() {
   },
   "199": {
     "black": true,
-    "can_color": true,
+    "can_color": false,
     "color_channel": "black",
     "default_base_color_channel": 1004,
     "frame": "fakeSpike_03_001.png",
@@ -3736,6 +3759,7 @@ window.allobjects = function() {
     "default_z_order": 9
   },
   "236": {
+    "audioPulse": true,
     "blend": "additive",
     "can_color": true,
     "default_base_color_channel": 1006,
@@ -4284,7 +4308,8 @@ window.allobjects = function() {
         "frame": "lightsquare_04_02_001.png",
         "localDy": 0,
         "tint": 65280,
-        "z": 1
+        "z": 1,
+        "rot": 90
       }
     ],
     "default_base_color_channel": 1004,
@@ -4425,8 +4450,7 @@ window.allobjects = function() {
       {
         "frame": "lightsquare_05_03_color_001.png",
         "localDy": 0,
-        "tint": 52224,
-        "z": -100
+        "z": 1
       }
     ],
     "default_base_color_channel": 1004,
@@ -4447,8 +4471,7 @@ window.allobjects = function() {
       {
         "frame": "lightsquare_05_04_color_001.png",
         "localDy": 0,
-        "tint": 52224,
-        "z": -100
+        "z": 1
       }
     ],
     "default_base_color_channel": 1004,
@@ -4483,7 +4506,6 @@ window.allobjects = function() {
       {
         "frame": "lightsquare_05_01_color_001.png",
         "localDy": 0,
-        "tint": 52224,
         "z": -100
       }
     ],
@@ -4505,7 +4527,6 @@ window.allobjects = function() {
       {
         "frame": "lightsquare_05_01_color_001.png",
         "localDy": 0,
-        "tint": 52224,
         "z": -100
       }
     ],
@@ -5469,7 +5490,7 @@ window.allobjects = function() {
   },
   "368": {
     "black": true,
-    "can_color": true,
+    "can_color": false,
     "color_channel": "black",
     "default_base_color_channel": 1004,
     "frame": "pit_04_low_001.png",
@@ -5705,7 +5726,7 @@ window.allobjects = function() {
   },
   "393": {
     "black": true,
-    "can_color": true,
+    "can_color": false,
     "color_channel": "black",
     "default_base_color_channel": 1004,
     "frame": "fakeSpike_04_001.png",
@@ -5787,8 +5808,8 @@ window.allobjects = function() {
     "children": [
       {
         "frame": "darkblade_01_color_001.png",
+        "color_channel": "black",
         "localDy": 0,
-        "tint": 52224,
         "z": -100
       },
       {
@@ -5801,6 +5822,7 @@ window.allobjects = function() {
       },
       {
         "frame": "darkblade_01_001.png",
+        "color_channel": "black",
         "localDy": 0,
         "tint": 0,
         "z": 1,
@@ -5823,6 +5845,7 @@ window.allobjects = function() {
     "gridH": 1.4333332777023315,
     "gridW": 1.4333332777023315,
     "spritesheet": "GJ_GameSheet-uhd",
+    "tint": 0,
     "type": "hazard",
     "z": 1,
     "hitbox_radius": 28.899999618530273,
@@ -5841,8 +5864,8 @@ window.allobjects = function() {
       },
       {
         "frame": "darkblade_02_001.png",
+        "color_channel": "black",
         "localDy": 0,
-        "tint": 0,
         "z": -1
       }
     ],
@@ -11470,7 +11493,6 @@ window.allobjects = function() {
     "color_channel": "black",
     "default_base_color_channel": 1004,
     "frame": "pit_07_001.png",
-    "glow_frame": "pit_07_glow_001.png",
     "gridH": 0.5,
     "gridW": 1,
     "spritesheet": "GJ_GameSheet-uhd",
@@ -11482,9 +11504,9 @@ window.allobjects = function() {
   },
   "668": {
     "black": true,
-    "can_color": true,
+    "can_color": false,
     "color_channel": "black",
-    "default_base_color_channel": 1004,
+    "default_base_color_channel": 1010,
     "frame": "d_pixelArt01_001_001.png",
     "glow_frame": "d_pixelArt01_001_glow_001.png",
     "gridH": 0.5,
@@ -11595,7 +11617,6 @@ window.allobjects = function() {
         "frame": "blackCogwheel_01_001.png",
         "localDy": 0,
         "cant_color": true,
-        "tint": 65280,
         "z": 1
       },
       {
@@ -11621,8 +11642,6 @@ window.allobjects = function() {
       },
       {
         "frame": "blackCogwheel_01_001.png",
-        "localDy": 0,
-        "tint": 65280,
         "cant_color": true,
         "z": 1,
         "rot": 90
@@ -11631,7 +11650,6 @@ window.allobjects = function() {
         "frame": "blackCogwheel_01_001.png",
         "localDy": 0,
         "cant_color": true,
-        "tint": 65280,
         "z": 1,
         "rot": 180
       },
@@ -11639,7 +11657,6 @@ window.allobjects = function() {
         "frame": "blackCogwheel_01_001.png",
         "localDy": 0,
         "cant_color": true,
-        "tint": 65280,
         "z": 1,
         "rot": 270
       },
@@ -11665,7 +11682,6 @@ window.allobjects = function() {
         "frame": "blackCogwheel_02_001.png",
         "localDy": 0,
         "cant_color": true,
-        "tint": 65280,
         "z": -1
       }
     ],
@@ -15548,7 +15564,7 @@ window.allobjects = function() {
     {
         "frame": "GJBeast01_03_001.png",
         "localDy": -19,
-        "localDx": -4,
+        "localDx": -6,
         "Cant_Color": true,
         "z": 2,
       }
@@ -18523,24 +18539,28 @@ window.allobjects = function() {
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -90
+        "rot": -90,
+        "audioPulse": true,
       },
       {
         "frame": "d_pickupCircle_02_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -180
+        "rot": -180,
+        "audioPulse": true,
       },
       {
         "frame": "d_pickupCircle_02_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -270
+        "rot": -270,
+        "audioPulse": true,
       }
     ],
     "default_base_color_channel": 1007,
+    "audioPulse": true,
     "frame": "d_pickupCircle_01_001.png",
     "glow_frame": "d_pickupCircle_01_glow_001.png",
     "gridH": 0.75,
@@ -18560,23 +18580,27 @@ window.allobjects = function() {
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -90
+        "rot": -90,
+        "audioPulse": true,
       },
       {
         "frame": "d_pickupCircle_01_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -180
+        "rot": -180,
+        "audioPulse": true,
       },
       {
         "frame": "d_pickupCircle_02_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -270
+        "rot": -270,
+        "audioPulse": true,
       }
     ],
+    "audioPulse": true,
     "default_base_color_channel": 1007,
     "frame": "d_pickupCircle_01_001.png",
     "glow_frame": "d_pickupCircle_01_glow_001.png",
@@ -18597,23 +18621,27 @@ window.allobjects = function() {
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -90
+        "rot": -90,
+        "audioPulse": true,
       },
       {
         "frame": "d_pickupCircle_01_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -180
+        "rot": -180,
+        "audioPulse": true,
       },
       {
         "frame": "d_pickupCircle_01_001.png",
         "localDy": 0,
         "tint": 65280,
         "z": -1,
-        "rot": -270
+        "rot": -270,
+        "audioPulse": true,
       }
     ],
+    "audioPulse": true,
     "default_base_color_channel": 1007,
     "frame": "d_pickupCircle_01_001.png",
     "glow_frame": "d_pickupCircle_01_glow_001.png",
