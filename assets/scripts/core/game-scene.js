@@ -1170,15 +1170,19 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  const songBoxH = 190;
  const songBoxY = sh - 95;
  const _squareCorner = 0.325 * this.textures.get("GJ_square01").source[0].width;
- const songBox = this.add.nineslice(centerX, songBoxY, "GJ_square01", null, songBoxW, songBoxH, _squareCorner, _squareCorner, _squareCorner, _squareCorner)
- .setScrollFactor(0).setDepth(503).setOrigin(0.5);
- this._playOverlayObjects.push(songBox);
+	 const songBox = this.add.nineslice(centerX, songBoxY, "GJ_square01", null, songBoxW, songBoxH, _squareCorner, _squareCorner, _squareCorner, _squareCorner)
+	 .setScrollFactor(0).setDepth(503).setOrigin(0.5);
+	 this._playOverlayObjects.push(songBox);
 
- const songNameText = this.add.bitmapText(centerX - songBoxW / 2 + 20, songBoxY - 60, "bigFont", lvl.songName || "Unknown", 50)
- .setScrollFactor(0).setDepth(504).setOrigin(0, 0.5)
- this._fitBitmapText(songNameText, songBoxW - 100);
- this._playOverlayObjects.push(songNameText);
- let songAuthor = "Unknown";
+	 const customSongMetadata = lvl.customSongID && typeof window.getCustomSongMetadata === "function"
+	 ? window.getCustomSongMetadata(lvl.customSongID) : null;
+	 const fallbackSongName = customSongMetadata?.title || (lvl.customSongID ? `Song #${lvl.customSongID}` : "Unknown");
+	 const displayedSongName = lvl.songName && !/^Song #\d+$/.test(lvl.songName) ? lvl.songName : fallbackSongName;
+	 const songNameText = this.add.bitmapText(centerX - songBoxW / 2 + 20, songBoxY - 60, "bigFont", displayedSongName, 50)
+	 .setScrollFactor(0).setDepth(504).setOrigin(0, 0.5)
+	 this._fitBitmapText(songNameText, songBoxW - 100);
+	 this._playOverlayObjects.push(songNameText);
+	 let songAuthor = customSongMetadata?.artist || "Unknown";
 
  const songAuthorText = this.add.bitmapText(centerX - songBoxW / 2 + 20, songBoxY - 15, "goldFont", "By: " + songAuthor, 36)
  .setScrollFactor(0).setDepth(504).setOrigin(0, 0.5)
@@ -1193,13 +1197,15 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  let isDownloading = false;
  let abortController = null;
  let isDownloaded = false;
- const updateBtnState = async () => {
- if (!downloadBtn || !downloadBtn.scene) return;
- if (isDownloading) {
- downloadBtn.setTexture("GJ_GameSheet03", "GJ_cancelDownloadBtn_001.png");
- } else {
- isDownloaded = await window.SongDB.isDownloaded(lvl.customSongID);
- if (downloadBtn && downloadBtn.scene) {
+	 const updateBtnState = async () => {
+	 if (!downloadBtn || !downloadBtn.scene) return;
+	 if (isDownloading) {
+	 downloadBtn.setTexture("GJ_GameSheet03", "GJ_cancelDownloadBtn_001.png");
+	 } else {
+	 const jukeboxCacheKey = window.getSongFileHubCacheKey?.(lvl.customSongID, lvl.id);
+	 isDownloaded = await window.SongDB.isDownloaded(lvl.customSongID) ||
+	 (jukeboxCacheKey ? await window.SongDB.isDownloaded(jukeboxCacheKey) : false);
+	 if (downloadBtn && downloadBtn.scene) {
  downloadBtn.setTexture("GJ_GameSheet03", isDownloaded ? "GJ_trashBtn_001.png" : "GJ_downloadBtn_001.png");
  }
  }
@@ -1211,22 +1217,32 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  isDownloading = false;
  updateBtnState();
  return;
- }
- if (isDownloaded) {
- await window.SongDB.delete(lvl.customSongID);
- updateBtnState();
+	 }
+	 if (isDownloaded) {
+	 await window.SongDB.delete(lvl.customSongID);
+	 const jukeboxCacheKey = window.getSongFileHubCacheKey?.(lvl.customSongID, lvl.id);
+	 if (jukeboxCacheKey) await window.SongDB.delete(jukeboxCacheKey);
+	 updateBtnState();
  return;
  }
  isDownloading = true;
  updateBtnState();
- abortController = new AbortController();
- try {
- const workerUrl = `https://fetchsongid.lasokar.workers.dev/?id=${encodeURIComponent(lvl.customSongID)}`;
- const audioRes = await fetch(workerUrl, { signal: abortController.signal });
- if (!audioRes.ok) throw new Error("Failed to download audio from worker");
- const arrayBuf = await audioRes.arrayBuffer();
- await window.SongDB.save(lvl.customSongID, arrayBuf, this.sound.context);
- } catch (err) {
+	 abortController = new AbortController();
+	 try {
+	 let jukeboxAudio = null;
+	 if (typeof window.loadSongFileHubAudio === "function") {
+	 try {
+	 jukeboxAudio = await window.loadSongFileHubAudio(lvl.customSongID, lvl.id, { signal: abortController.signal });
+	 } catch (sfhError) { console.warn("Song File Hub download failed; trying worker fallback", sfhError); }
+	 }
+	 if (!jukeboxAudio) {
+	 const workerUrl = `https://fetchsongid.lasokar.workers.dev/?id=${encodeURIComponent(lvl.customSongID)}`;
+	 const audioRes = await fetch(workerUrl, { signal: abortController.signal });
+	 if (!audioRes.ok) throw new Error("Failed to download audio from worker");
+	 const arrayBuf = await audioRes.arrayBuffer();
+	 await window.SongDB.save(lvl.customSongID, arrayBuf, this.sound.context);
+	 }
+	 } catch (err) {
  if (err.name === 'AbortError') {
  console.log('Download cancelled.');
  } else {
@@ -1241,8 +1257,8 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  });
  }
 
- if (lvl.customSongID) {
- const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
+	 if (lvl.customSongID && !customSongMetadata?.jukebox) {
+	 const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
  if (!PROXY_BASE) {
  console.warn("Play menu song author: window._gdProxyUrl is not configured");
  } else {
@@ -1258,8 +1274,8 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  const ngMap = {};
  for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
 
- const artistName = (ngMap["4"] || "Unknown").trim();
- const songName = (ngMap["2"] || "Unknown").trim();
+	 const artistName = (ngMap["4"] || songAuthor).replace(/:$/, "").trim();
+	 const songName = (ngMap["2"] || displayedSongName).replace(/:$/, "").trim();
 
  if (artistName) {
  songAuthor = artistName;
@@ -1329,32 +1345,49 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  window._onlineLevelId = "online_" + String(lvl.id).replace(/^online_/, "");
  window._onlineLevelString = _cachedLevelString;
  window._onlineLevelName = lvl.name || "Online Level";
- window._onlineSongOffset = offset;
- window._onlineSongBuffer = null;
- window._onlineSongKey = null;
+	 window._onlineSongOffset = offset;
+	 window._onlineSongBuffer = null;
+	 window._onlineSongKey = null;
 
- let songKey = (window.allLevels && window.allLevels[officialSong]) ? window.allLevels[officialSong][0] : `ng_song_${customSongID}`;
- let songArtist = "Unknown";
+	 let songKey = (window.allLevels && window.allLevels[officialSong]) ? window.allLevels[officialSong][0] : `ng_song_${customSongID}`;
+	 const cachedSongMetadata = isCustomSong && typeof window.getCustomSongMetadata === "function"
+	 ? window.getCustomSongMetadata(customSongID) : null;
+	 let songArtist = cachedSongMetadata?.artist || "Unknown";
+	 let songTitle = cachedSongMetadata?.title || (isCustomSong ? `Song #${customSongID}` : null);
+	 let songSource = "Local";
 
- if (isCustomSong) {
- songKey = `ng_song_${customSongID}`;
- try {
- const audioCtx = this.game.sound.context;
- if (audioCtx.state === "suspended") await audioCtx.resume();
- const arrayBuf = await window.SongDB.load(customSongID);
- if (arrayBuf) {
- const decoded = await audioCtx.decodeAudioData(arrayBuf);
+	 if (isCustomSong) {
+	 songKey = `ng_song_${customSongID}`;
+	 try {
+	 const audioCtx = this.game.sound.context;
+	 if (audioCtx.state === "suspended") await audioCtx.resume();
+	 let arrayBuf = null;
+	 if (typeof window.loadSongFileHubAudio === "function") {
+	 try {
+	 arrayBuf = await window.loadSongFileHubAudio(customSongID, lvl.id);
+	 if (arrayBuf && cachedSongMetadata?.jukebox) {
+	 songTitle = cachedSongMetadata.title;
+	 songArtist = cachedSongMetadata.artist;
+	 songSource = "Song File Hub";
+	 }
+	 } catch (sfhError) { console.warn("Song File Hub unavailable for cached level; trying local audio", sfhError); }
+	 }
+	 if (!arrayBuf) arrayBuf = await window.SongDB.load(customSongID);
+	 if (arrayBuf) {
+	 const decoded = await audioCtx.decodeAudioData(arrayBuf);
  window._onlineSongBuffer = decoded;
  window._onlineSongKey = songKey;
  }
  } catch(_e) {}
- } else if (window.allLevels && window.allLevels[officialSong]) {
- songArtist = window.allLevels[officialSong][3] || "Unknown";
- songKey = window.allLevels[officialSong][0];
- }
+	 } else if (window.allLevels && window.allLevels[officialSong]) {
+	 songArtist = window.allLevels[officialSong][3] || "Unknown";
+	 songKey = window.allLevels[officialSong][0];
+	 }
 
- window.currentlevel = [songKey, window._onlineLevelName, window._onlineLevelId, ["Online", songArtist]];
- this.game.registry.set("autoStartGame", true);
+	 window.currentlevel = [songKey, window._onlineLevelName, window._onlineLevelId, [songSource, songArtist]];
+	 window._onlineSongTitle = songTitle;
+	 window._onlineSongArtist = songArtist;
+	 this.game.registry.set("autoStartGame", true);
  window._onlineReturnToPlayMenu = { lvl, backTarget: this._playMenuBackTarget };
  this._closePlayMenu(false, () => this.scene.restart());
  return true;
@@ -1402,29 +1435,49 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  }
  } catch(_e) {}
 
- let songKey = (window.allLevels && window.allLevels[officialSong]) ? window.allLevels[officialSong][0] : `ng_song_${customSongID}`;
- let songArtist = "Unknown";
- let songTitle = null;
+	 let songKey = (window.allLevels && window.allLevels[officialSong]) ? window.allLevels[officialSong][0] : `ng_song_${customSongID}`;
+	 const onlineSongMetadata = isCustomSong && typeof window.getCustomSongMetadata === "function"
+	 ? window.getCustomSongMetadata(customSongID) : null;
+	 let songArtist = onlineSongMetadata?.artist || "Unknown";
+	 let songTitle = onlineSongMetadata?.title || (isCustomSong ? `Song #${customSongID}` : null);
+	 let songSource = "Local";
 
- if (isCustomSong) {
- songKey = `ng_song_${customSongID}`;
- try {
- const audioCtx = this.game.sound.context;
- if (audioCtx.state === "suspended") await audioCtx.resume();
- const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
- method: "POST",
- headers: { "Content-Type": "application/x-www-form-urlencoded" },
- body: `songID=${customSongID}&secret=Wmfd2893gb7`
- });
- const ngText = ngRes.ok ? await ngRes.text() : "-1";
- let ngMap = {};
- if (ngText && ngText !== "-1") {
- const ngParts = ngText.split("~|~");
- for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
- songArtist = (ngMap["4"] || "Unknown").replace(/:$/, "").trim();
- songTitle = (ngMap["2"] || "").trim() || null;
- }
- let arrayBuf = await window.SongDB.load(customSongID);
+	 if (isCustomSong) {
+	 songKey = `ng_song_${customSongID}`;
+	 try {
+	 const audioCtx = this.game.sound.context;
+	 if (audioCtx.state === "suspended") await audioCtx.resume();
+	 let arrayBuf = null;
+	 if (typeof window.loadSongFileHubAudio === "function") {
+	 try {
+	 arrayBuf = await window.loadSongFileHubAudio(customSongID, lvl.id);
+	 if (arrayBuf && onlineSongMetadata?.jukebox) {
+	 songTitle = onlineSongMetadata.title;
+	 songArtist = onlineSongMetadata.artist;
+	 songSource = "Song File Hub";
+	 }
+	 } catch (sfhError) { console.warn("Song File Hub unavailable for online level; trying worker/local audio", sfhError); }
+	 }
+	 if (!arrayBuf) arrayBuf = await window.SongDB.load(customSongID);
+	 let ngMap = {};
+	 if (!arrayBuf) {
+	 try {
+	 const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
+	 method: "POST",
+	 headers: { "Content-Type": "application/x-www-form-urlencoded" },
+	 body: `songID=${customSongID}&secret=Wmfd2893gb7`
+	 });
+	 const ngText = ngRes.ok ? await ngRes.text() : "-1";
+	 if (ngText && ngText !== "-1" && ngText !== "-2") {
+	 const ngParts = ngText.split("~|~");
+	 for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
+	 if (!onlineSongMetadata?.jukebox) {
+	 songArtist = (ngMap["4"] || songArtist).replace(/:$/, "").trim();
+	 songTitle = (ngMap["2"] || songTitle || "").replace(/:$/, "").trim() || null;
+	 }
+	 }
+	 } catch (metadataError) { console.warn("Newgrounds song metadata unavailable; continuing with audio fallback", metadataError); }
+	 }
  if (!arrayBuf) {
  const workerUrl = `https://fetchsongid.lasokar.workers.dev/?id=${encodeURIComponent(customSongID)}`;
  let audioRes = await fetch(workerUrl);
@@ -1450,11 +1503,13 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
  } catch (err) {
  console.warn("Failed to load custom song for online level", err);
  }
- } else if (window.allLevels && window.allLevels[officialSong]) {
- songArtist = window.allLevels[officialSong][3] || "Unknown";
- }
- window.currentlevel = [songKey, window._onlineLevelName, window._onlineLevelId, ["Online", songArtist]];
- this.game.registry.set("autoStartGame", true);
+	 } else if (window.allLevels && window.allLevels[officialSong]) {
+	 songArtist = window.allLevels[officialSong][3] || "Unknown";
+	 }
+	 window.currentlevel = [songKey, window._onlineLevelName, window._onlineLevelId, [songSource, songArtist]];
+	 window._onlineSongTitle = songTitle;
+	 window._onlineSongArtist = songArtist;
+	 this.game.registry.set("autoStartGame", true);
  window._onlineReturnToPlayMenu = { lvl, backTarget: this._playMenuBackTarget };
  this._closePlayMenu(false, () => this.scene.restart());
  return true;
@@ -2780,10 +2835,10 @@ this._applyLockedGray(uploadedlvls
  console.table(tableFriendlyData);
  console.groupEnd();
 
- let authorName = "Unknown";
- let songNameForCell = levelData.isCustomSong
- ? ("Song #" + levelData.customSongID)
- : (window.allLevels && window.allLevels[levelData.officialSong] ? window.allLevels[levelData.officialSong][1] : "Unknown");
+	 let authorName = "Unknown";
+	 let songNameForCell = levelData.isCustomSong
+	 ? (window.getCustomSongTitle?.(levelData.customSongID) || ("Song #" + levelData.customSongID))
+	 : (window.allLevels && window.allLevels[levelData.officialSong] ? window.allLevels[levelData.officialSong][1] : "Unknown");
  try {
  const infoRes = await fetch(`https://gdbrowser.com/api/level/${levelData.id}`);
  if (infoRes.ok) {
@@ -6179,6 +6234,7 @@ _buildSettingsPopup() {
  cullDistance: window.cullDistance,
  settingInfoText: window.settingInfoText || {},
  enableLDM: window.enableLDM,
+ hideDecorationForPerformance: !!window.hideDecorationForPerformance,
  };
  localStorage.setItem("gd_settings", JSON.stringify(settings));
  localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
@@ -6215,6 +6271,7 @@ _buildSettingsPopup() {
  enableOrbGuide: false,
  enableMiniIcon: false,
  enableLDM: false,
+ hideDecorationForPerformance: false,
  cullDistance: 3
  };
 
@@ -6253,6 +6310,7 @@ _buildSettingsPopup() {
  window.useDirectInternet = !!data.useDirectInternet;
  localStorage.setItem("gd_useDirectInternet", String(!!window.useDirectInternet));
  window.enableLDM = !!data.enableLDM;
+ window.hideDecorationForPerformance = !!data.hideDecorationForPerformance;
  }
  _loadKeybinds() {
  const defaults = {
@@ -7495,10 +7553,10 @@ _showwippopup() {
  const sm = parseKV(ss, "~|~");
  if (sm["1"]) songMap[sm["1"]] = sm["2"] || "";
  }
- const customId = (m["35"] || "").trim();
- const songName = (customId && customId !== "0")
- ? (songMap[customId] || ("Song #" + customId))
- : officialSongName(m);
+	 const customId = (m["35"] || "").trim();
+	 const songName = (customId && customId !== "0")
+	 ? (songMap[customId] || window.getCustomSongTitle?.(customId) || ("Song #" + customId))
+	 : officialSongName(m);
  lvl = buildLevel(m, playerMap[m["6"]], songName);
  }
  }
@@ -7515,8 +7573,8 @@ _showwippopup() {
  const pm = /^\d+:([^:#|]+):\d+$/.exec(seg);
  if (pm) { author = pm[1]; break; }
  }
- const customId = (m["35"] || "").trim();
- const songName = (customId && customId !== "0") ? ("Song #" + customId) : officialSongName(m);
+	 const customId = (m["35"] || "").trim();
+	 const songName = (customId && customId !== "0") ? (window.getCustomSongTitle?.(customId) || ("Song #" + customId)) : officialSongName(m);
  lvl = buildLevel(m, author, songName);
  }
  try {
@@ -8313,6 +8371,7 @@ _showwippopup() {
  this._level.resetShakeTriggers?.();
  this._level.resetChannelBlending?.();
  this._level.resetPlayerVisibilityTriggers?.();
+ this._level.resetBackgroundEffectTriggers?.();
  this._level.resetOnDeathTriggers?.();
  this._level.resetTouchTriggers?.();
  this._level.resetPickupTriggers?.();
@@ -8329,9 +8388,10 @@ _showwippopup() {
  if (this._orbGfx) { this._orbGfx.clear(); }
  this._colorManager.reset();
 
- this._applyLevelStartOptions();
- this._level.checkToggleTriggers?.(0);
- }
+	this._applyLevelStartOptions();
+	this._applySpawnGroupStartPosition();
+	this._level.checkToggleTriggers?.(0);
+	}
  _pushButton(ignoreMacro = false) {
  const objectsUnderPointer = this.input.manager.hitTest(
  this.input.activePointer,
@@ -8632,6 +8692,7 @@ _showwippopup() {
  this._level.resetShakeTriggers?.();
  this._level.resetChannelBlending?.();
  this._level.resetPlayerVisibilityTriggers?.();
+ this._level.resetBackgroundEffectTriggers?.();
  this._level.resetOnDeathTriggers?.();
  this._level.resetTouchTriggers?.();
  this._level.resetPickupTriggers?.();
@@ -8736,8 +8797,9 @@ _showwippopup() {
  this._player.enterSpiderMode();
  }
 
- this._applyLevelStartOptions();
- }
+	this._applyLevelStartOptions();
+	this._applySpawnGroupStartPosition();
+	}
 
  if (this._player && this._player._hitboxTrail) {
  this._player._hitboxTrail = [];
@@ -8975,6 +9037,7 @@ _showwippopup() {
  this._level.resetShakeTriggers?.();
  this._level.resetChannelBlending?.();
  this._level.resetPlayerVisibilityTriggers?.();
+ this._level.resetBackgroundEffectTriggers?.();
  this._level.resetOnDeathTriggers?.();
  this._level.resetTouchTriggers?.();
  this._level.resetPickupTriggers?.();
@@ -8987,6 +9050,7 @@ _showwippopup() {
  this._level.checkCollisionTriggers?.(checkpoint.x);
  this._level.checkInstantCountTriggers?.(checkpoint.x, this._colorManager);
  this._level.checkOnDeathTriggers?.(checkpoint.x);
+ this._level.checkBackgroundEffectTriggers?.(checkpoint.x);
  this._level.checkTouchTriggers?.(checkpoint.x);
  this._level.resetVisibility();
  this._level.applyShakeToOffsets?.(this.time.now);
@@ -9736,14 +9800,32 @@ _showwippopup() {
  }
  }
 
- if (this._macroBot?.playing) {
- this._macroBot.applyCurrentFrame();
- } else if (this._macroBot?.recording) {
- this._macroBot.recordFrame(this._physicsFrame);
- }
- }
- this._state.lastY = initialY;
- if (this._isDual) this._state2.lastY = initialY2;
+	 if (this._macroBot?.playing) {
+	 this._macroBot.applyCurrentFrame();
+	 } else if (this._macroBot?.recording) {
+	 this._macroBot.recordFrame(this._physicsFrame);
+	 }
+	 if (window.physicsTraceEnabled && Array.isArray(window.physicsTrace) && window.physicsTrace.length < 30000) {
+	 const state = this._state;
+	 window.physicsTrace.push({
+	 tick: this._physicsFrame,
+	 dt: subStepDelta,
+	 x: this._playerWorldX,
+	 y: state.y,
+	 vy: state.yVelocity,
+	 speed: playerSpeed,
+	 modes: { cube: state.isCube, ship: state.isFlying, ball: state.isBall, ufo: state.isUfo, wave: state.isWave, robot: state.isRobot, spider: state.isSpider },
+	 gravityFlipped: state.gravityFlipped,
+	 mini: state.isMini,
+	 input: { down: state.upKeyDown, pressed: state.upKeyPressed, hold: state.queuedHold },
+	 contact: { ground: state.onGround, ceiling: state.onCeiling, dead: state.isDead },
+	 collision: { x: this._player?._lastCollisionWorldX, y: this._player?._lastCollisionWorldY },
+	 dual: this._isDual ? { y: this._state2.y, vy: this._state2.yVelocity, dead: this._state2.isDead, collision: { x: this._player2?._lastCollisionWorldX, y: this._player2?._lastCollisionWorldY } } : null
+	 });
+	 }
+	 }
+	 this._state.lastY = initialY;
+	 if (this._isDual) this._state2.lastY = initialY2;
  this._state.ignorePortals = false;
  this._state2.ignorePortals = false;
  if (!this._endCameraOverride) {
@@ -9818,6 +9900,9 @@ _showwippopup() {
  }
  this._level.checkMoveTriggers(playerX);
  this._level.checkSpawnTriggers(playerX);
+ this._level.checkBackgroundEffectTriggers?.(playerX);
+ this._level.checkTouchBackgroundEffectTriggers?.(playerX, this._state.y);
+ if (this._isDual && !this._state2.isDead) this._level.checkTouchBackgroundEffectTriggers?.(playerX, this._state2.y);
  if (this._level.checkTouchSpawnTriggers) {
  this._level.checkTouchSpawnTriggers(playerX, this._state.y);
  if (this._isDual && !this._state2.isDead) {
@@ -11025,9 +11110,20 @@ _mirrorProgress() {
  window.enableLDM = !current;
  var newTexture = window.enableLDM ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
  ldmCheck.setTexture("GJ_GameSheet03", newTexture);
+ window.PerformanceOptimizer?.applyToLevel(this._level);
  if (this._saveSettings) {
  this._saveSettings();
  }
+ });
+
+ const decoCheck = this.add.image(_0x2a115c + 405, ldmY, "GJ_GameSheet03", window.hideDecorationForPerformance ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png").setScale(0.8).setInteractive();
+ const decoTxt = this.add.bitmapText(_0x2a115c + 445, ldmY, "bigFont", "Hide Decoration", 23).setOrigin(0, 0.5);
+ this._helplayer.add([decoCheck, decoTxt]);
+ this._makeBouncyButton(decoCheck, 0.8, () => {
+ window.hideDecorationForPerformance = !window.hideDecorationForPerformance;
+ decoCheck.setTexture("GJ_GameSheet03", window.hideDecorationForPerformance ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
+ window.PerformanceOptimizer?.applyToLevel(this._level);
+ this._saveSettings?.();
  });
 
  const reqbtnX = _0x2a115c + 655;
@@ -11220,7 +11316,37 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  thumb.on("dragend", () => { if (this._saveSettings) this._saveSettings(); });
 
  }
- _getSmartStartPosSettings(pos) {
+	 _getSpawnGroupStartObject() {
+	 const spawnGroupId = parseInt(window.settingsMap?.["kA27"] ?? "0", 10);
+	 if (!Number.isInteger(spawnGroupId) || spawnGroupId <= 0) return null;
+	 const groupId = String(spawnGroupId);
+	 const candidates = (window.levelObjects || []).filter(obj =>
+	 obj && Number.isFinite(Number(obj.x)) && Number.isFinite(Number(obj.y)) &&
+	 String(obj.groups || "").split(".").includes(groupId)
+	 );
+	 if (candidates.length === 0) {
+	 console.warn(`Spawn Group ${spawnGroupId} has no matching level object; keeping the default start.`);
+	 return null;
+	 }
+	 // The saved Funny Thing header has kA27=1, matching its displayed Spawn Group 1.
+	 return candidates.length === 1 ? candidates[0] : candidates[Math.floor(Math.random() * candidates.length)];
+	 }
+	 _applySpawnGroupStartPosition() {
+	 if (this._startPosIndex !== -1) return false;
+	 const spawnObject = this._getSpawnGroupStartObject();
+	 if (!spawnObject) return false;
+	 const spawnY = Number(spawnObject.y) * 2;
+	 if (!Number.isFinite(spawnY)) return false;
+	 this._state.y = spawnY;
+	 this._state.lastY = spawnY;
+	 this._state.lastGroundPosY = spawnY;
+	 if (this._player) {
+	 this._player._lastCollisionWorldX = Number.isFinite(Number(this._playerWorldX)) ? Number(this._playerWorldX) : null;
+	 this._player._lastCollisionWorldY = spawnY;
+	 }
+	 return true;
+	 }
+	 _getSmartStartPosSettings(pos) {
  const header = window.settingsMap || {};
  const num = (k) => parseInt(header[k] || "0", 10) || 0;
  const state = {
@@ -11251,8 +11377,8 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  else if (id === 101) state.miniMode = true;
  else if (id === 286) state.dualMode = true;
  else if (id === 287) state.dualMode = false;
- else if (id === 10) state.gravityFlipped = false;
- else if (id === 11) state.gravityFlipped = true;
+	 else if (id === 10) state.gravityFlipped = true;
+	 else if (id === 11) state.gravityFlipped = false;
  else if (id === 2926) state.gravityFlipped = !state.gravityFlipped;
  else if (id === 45) state.mirrored = true;
  else if (id === 46) state.mirrored = false;
@@ -13755,10 +13881,10 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  stars: parseInt(m["18"]) || 0,
  coins: parseInt(m["37"]) || 0,
  coinsVerified: m["38"] === "1",
- customSongID: (m["35"] && m["35"] !== "0") ? m["35"] : null,
- songName: m["35"]
- ? (songMap[m["35"]] || ("Song #" + m["35"]))
- : ("Song #" + (m["12"] || "0")),
+	 customSongID: (m["35"] && m["35"] !== "0") ? m["35"] : null,
+	 songName: m["35"]
+	 ? (songMap[m["35"]] || window.getCustomSongTitle?.(m["35"]) || ("Song #" + m["35"]))
+	 : ("Song #" + (m["12"] || "0")),
  featureScore: parseInt(m["19"]) || 0,
  featured: (parseInt(m["19"]) || 0) > 0,
  epic: parseInt(m["42"]) || 0
