@@ -13734,10 +13734,16 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  });
  btn9.on("pointerout", () => {
  if (btn9._pressed) {
- btn9._pressed = false;
  this.tweens.killTweensOf(_btnTargets, "scale");
  this.tweens.add({ targets: _btnTargets, scale: _baseScale, duration: 400, ease: "Bounce.Out" });
  }
+ });
+ btn9.on("pointerupoutside", () => {
+ if (!btn9._pressed) return;
+ btn9._pressed = false;
+ this.tweens.killTweensOf(_btnTargets);
+ btn9.setScale(_baseScale);
+ btnLbl.setScale(_baseScale);
  });
  btn9.on("pointerup", () => {
  if (!btn9._pressed) return;
@@ -14763,10 +14769,16 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
  });
  btn9.on("pointerout", () => {
  if (btn9._pressed) {
- btn9._pressed = false;
  this.tweens.killTweensOf(_btnTargets, "scale");
  this.tweens.add({ targets: _btnTargets, scale: _baseScale, duration: 400, ease: "Bounce.Out" });
  }
+ });
+ btn9.on("pointerupoutside", () => {
+ if (!btn9._pressed) return;
+ btn9._pressed = false;
+ this.tweens.killTweensOf(_btnTargets);
+ btn9.setScale(_baseScale);
+ btnLbl.setScale(_baseScale);
  });
  btn9.on("pointerup", () => {
  if (!btn9._pressed) return;
