@@ -1,4 +1,3 @@
-
 function _editorDecodeTextObjectString(value) {
   if (typeof _decodeTextObjectString === "function") return _decodeTextObjectString(value);
   if (value === undefined || value === null) return "";
@@ -257,27 +256,29 @@ class LevelEditor {
     });
 
     const tabX = (screenWidth / 2) - 475;
-    const tabYStart = screenHeight - 150;
-    const tabSpacing = 55;
+    const tabY = screenHeight - 100;
+    const tabScale = 1.15;
+    const tabGapX = 80 * tabScale;
+    const tabGapY = 88 * tabScale;
 
-    this._separatorLeft = this.add.image(tabX + 100, screenHeight - 100, "GJ_GameSheet03", "edit_vLine_001.png");
+    this._separatorLeft = this.add.image(tabX + tabGapX / 2 + 42 * tabScale + 12, screenHeight - 100, "GJ_GameSheet03", "edit_vLine_001.png");
     this._toolbox.add(this._separatorLeft);
 
     this._separatorRight = this.add.image(centerX + 375, screenHeight - 100, "GJ_GameSheet03", "edit_vLine_001.png");
     this._toolbox.add(this._separatorRight);
 
     const tabs = [
-        { id: "build", frame: "edit_buildBtn_001.png" },
-        { id: "edit", frame: "edit_editBtn_001.png" },
-        { id: "delete", frame: "edit_deleteBtn_001.png" }
+        { id: "build", frame: "buildBtnOff.png", x: tabX - tabGapX / 2, y: tabY - tabGapY / 2, dx: 0, dy: 0 },
+        { id: "edit", frame: "editBtnOff.png", x: tabX + tabGapX / 2, y: tabY - tabGapY / 2, dx: 5, dy: 0 },
+        { id: "delete", frame: "deleteBtnOff.png", x: tabX - tabGapX / 2, y: tabY + tabGapY / 2, dx: 0, dy: 0 }
     ];
 
     this._tabButtons = {};
-    tabs.forEach((tab, i) => {
-        const btn = this.add.image(tabX, tabYStart + (i * tabSpacing), "GJ_GameSheet03", tab.frame).setInteractive();
+    tabs.forEach(tab => {
+        const btn = this.add.image(tab.x + tab.dx, tab.y + tab.dy, "GJ_EditorSheet01", tab.frame).setScale(tabScale).setInteractive();
         this._toolbox.add(btn);
         this._tabButtons[tab.id] = btn;
-        this._makeBouncyButton(btn, 1, () => {
+        this._makeBouncyButton(btn, tabScale, () => {
             this._setEditorTab(tab.id);
         });
     });
@@ -1631,11 +1632,7 @@ class LevelEditor {
     Object.keys(this._tabButtons).forEach(id => {
         const isSelected = this._editorTab === id;
         const btn = this._tabButtons[id];
-        let frameName = btn.frame.name.replace("SBtn", "Btn");
-        if (isSelected) {
-            frameName = frameName.replace("Btn", "SBtn");
-        }
-        btn.setFrame(frameName);
+        btn.setFrame(`${id}Btn${isSelected ? "On" : "Off"}.png`);
     });
   }
 
