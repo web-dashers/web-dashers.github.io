@@ -784,6 +784,7 @@ class LevelEditor {
         collider.teleportTargetX = worldX;
         collider.teleportTargetY = worldY + validOffsetY * 2;
         collider.teleportYOffset = validOffsetY * 2;
+        collider.teleportTargetGroup = parseInt(saveObj._raw?.[51] ?? saveObj._raw?.["51"] ?? 0, 10) || 0;
     } else {
         collider.x = worldX;
         collider.y = worldY;
@@ -3113,6 +3114,20 @@ class LevelEditor {
     } else {
         this._editorTeleportExitSelectionRequest = clickedTeleportExit ? foundObjectIndex : -1;
         this._selectEditorObjectsByIds([foundObjectIndex], 0x00ff00);
+        const saveObj = this._getEditorSaveObjectForObjectId?.(foundObjectIndex);
+        if (saveObj && parseInt(saveObj.id ?? 0, 10) === 747 && Number(pointer.event?.detail) >= 2) {
+            const currentGroup = parseInt(saveObj._raw?.[51] ?? saveObj._raw?.["51"] ?? 0, 10) || 0;
+            const input = window.prompt("Teleport target group ID (0 = use vertical offset)", String(currentGroup));
+            if (input !== null) {
+                const parsedGroup = Number.parseInt(input.trim(), 10);
+                if (Number.isFinite(parsedGroup) && parsedGroup >= 0) {
+                    saveObj._raw = saveObj._raw || {};
+                    saveObj._raw[51] = String(parsedGroup);
+                    saveObj._raw["51"] = String(parsedGroup);
+                    this._syncEditorCollidersForObjectId?.(foundObjectIndex, saveObj);
+                }
+            }
+        }
     }
   }
 

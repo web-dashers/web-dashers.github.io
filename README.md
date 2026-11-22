@@ -41,6 +41,8 @@
 - **Icon Kit** - A working Icon Kit with different colors and icons to choose from! (Currently not including 2.2 icons.)
 - **Different Gamemodes** - Just about every gamemode is implemented currently, with the exception of the Swing.
 - **Extra Settings** - You can enable and disable things like Noclip or Show Hitboxes from the settings menu, along with other settings, like the level percentage!
+- **Teleport Portals** - Blue teleport portals can target a random object assigned to a group ID; set the target by double-clicking a portal in the editor's Edit mode. A target group of `0` keeps the vertical-offset behavior.
+- **Performance Options** - Low Detail Mode hides glow/effects, and the Help menu's **Hide Decoration** toggle hides decorative visuals without removing gameplay collisions. Both options are saved in settings.
 
 ## Things currently in development:
 - **Practice Mode** - Although an early version of Practice mode is already in the game, we hope to make a completely working Practice Mode with no bugs at all.

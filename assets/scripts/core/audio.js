@@ -57,6 +57,36 @@ window.SongDB = {
 };
 window.SongDB.init().catch(console.warn);
 
+window.getSongFileHubCacheKey = function(songId, levelId = window.currentlevel?.[2]) {
+  const metadata = typeof window.getCustomSongMetadata === "function"
+    ? window.getCustomSongMetadata(songId)
+    : null;
+  const track = metadata?.jukebox;
+  const normalizedLevelId = String(levelId || "").replace(/^online_/, "");
+  if (!track || !normalizedLevelId || !track.verifiedLevelIDs?.includes(normalizedLevelId)) return null;
+  return `jukebox:${songId}:${normalizedLevelId}`;
+};
+
+window.loadSongFileHubAudio = async function(songId, levelId = window.currentlevel?.[2], options = {}) {
+  const cacheKey = window.getSongFileHubCacheKey(songId, levelId);
+  if (!cacheKey) return null;
+
+  const cached = await window.SongDB.load(cacheKey);
+  if (cached) return cached;
+
+  const metadata = window.getCustomSongMetadata(songId);
+  const response = await fetch(metadata.jukebox.url, {
+    cache: "force-cache",
+    signal: options.signal
+  });
+  if (!response.ok) throw new Error(`Song File Hub returned HTTP ${response.status}`);
+
+  const arrayBuffer = await response.arrayBuffer();
+  if (!arrayBuffer.byteLength) throw new Error("Song File Hub returned an empty audio file");
+  await window.SongDB.save(cacheKey, arrayBuffer.slice(0));
+  return arrayBuffer;
+};
+
 class AudioManager {
   constructor(scene) {
     this._scene = scene;
@@ -176,7 +206,7 @@ class AudioManager {
     const ctx = soundMgr?.context;
     const songInfoUrl = (typeof window.getGdApiUrl === "function" ? window.getGdApiUrl("/getGJSongInfo.php") : null);
 
-    if (!songId || !ctx || !songInfoUrl) {
+    if (!songId || !ctx) {
       return false;
     }
 
@@ -194,24 +224,42 @@ class AudioManager {
       try {
         if (ctx.state === "suspended") await ctx.resume();
 
-        const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `songID=${encodeURIComponent(songId)}&secret=Wmfd2893gb7`
-        });
+        const knownMetadata = typeof window.getCustomSongMetadata === "function"
+          ? window.getCustomSongMetadata(songId)
+          : null;
+        let arrayBuf = null;
+        let audioSource = "Local";
+        if (typeof window.loadSongFileHubAudio === "function") {
+          try {
+            arrayBuf = await window.loadSongFileHubAudio(songId, window.currentlevel?.[2]);
+            if (arrayBuf) audioSource = "Song File Hub";
+          } catch (sfhError) {
+            console.warn("Song File Hub audio unavailable; trying local song cache", sfhError);
+          }
+        }
+        if (!arrayBuf) arrayBuf = await window.SongDB.load(songId);
+        if (!arrayBuf) throw new Error("Song not available from Song File Hub or local cache");
 
-        const ngText = ngRes.ok ? await ngRes.text() : "-1";
-        if (!ngText || ngText === "-1") throw new Error("Song info unavailable");
+        let songTitle = knownMetadata?.title || `Song #${songId}`;
+        let songArtist = knownMetadata?.artist || "Unknown";
 
-        const ngParts = ngText.split("~|~");
-        const ngMap = {};
-        for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
-
-        const songTitle = (ngMap["2"] || `Song #${songId}`).replace(/:$/, "").trim();
-        const songArtist = (ngMap["4"] || "Unknown").replace(/:$/, "").trim();
-        
-        const arrayBuf = await window.SongDB.load(songId);
-        if (!arrayBuf) throw new Error("Song not downloaded manually");
+        if (songInfoUrl && !knownMetadata?.jukebox) {
+          try {
+            const ngRes = await window.fetchGdApi("/getGJSongInfo.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: `songID=${encodeURIComponent(songId)}&secret=Wmfd2893gb7`
+            });
+            const ngText = ngRes.ok ? await ngRes.text() : "-1";
+            if (ngText && ngText !== "-1" && ngText !== "-2") {
+              const ngParts = ngText.split("~|~");
+              const ngMap = {};
+              for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
+              songTitle = (ngMap["2"] || songTitle).replace(/:$/, "").trim();
+              songArtist = (ngMap["4"] || songArtist).replace(/:$/, "").trim();
+            }
+          } catch (_metadataError) {}
+        }
         
         const decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
 
@@ -230,7 +278,7 @@ class AudioManager {
         window._onlineSongArtist = songArtist;
 
         if (Array.isArray(window.currentlevel) && window.currentlevel[0] === songKey) {
-          window.currentlevel[3] = ["Local", songArtist];
+          window.currentlevel[3] = [audioSource, songArtist];
           if (nextFadeDuration !== null && nextFadeDuration !== undefined) {
             this.fadeInMusic(nextFadeDuration);
           } else {

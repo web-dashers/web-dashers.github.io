@@ -11,6 +11,7 @@ class PlayerState {
     this.canJump = true;
     this.isJumping = false;
     this.gravityFlipped = false;
+    this.gravity = null;
     this.isFlying = false;
     this.isBall = false;
     this.isWave = false;
@@ -1633,7 +1634,32 @@ class PlayerObject {
     this._waveTrail = new WaveTrail(this._scene, this._primaryColor(), this._primaryColor());
     this._waveTrail.addToContainer(this._gameLayer.container, 9);
   }
+  setBackgroundEffectsDisabled(disabled) {
+    this._backgroundEffectsDisabled = !!disabled;
+    if (!this._backgroundEffectsDisabled) return;
+    for (const emitter of [this._particleEmitter, this._flyParticleEmitter, this._flyParticle2Emitter, this._shipDragEmitter, this._landEmitter1, this._landEmitter2]) {
+      emitter?.stop?.();
+    }
+    this._particleActive = false;
+    this._flyParticleActive = false;
+    this._flyParticle2Active = false;
+    this._shipDragActive = false;
+    this._streak?.stop?.();
+    this._streak?.reset?.();
+    this._waveTrail?.stop?.();
+    this._waveTrail?.reset?.();
+  }
   _updateParticles(_0xc43238, _0x52b718, _0x5af874) {
+    if (this._backgroundEffectsDisabled) {
+      for (const emitter of [this._particleEmitter, this._flyParticleEmitter, this._flyParticle2Emitter, this._shipDragEmitter, this._landEmitter1, this._landEmitter2]) {
+        emitter?.stop?.();
+      }
+      this._streak?.stop?.();
+      this._streak?.reset?.();
+      this._waveTrail?.stop?.();
+      this._waveTrail?.reset?.();
+      return;
+    }
     if (this._scene?._editorPlaytestActive) {
       this._particleEmitter.stop();
       this._particleActive = false;
@@ -3845,14 +3871,20 @@ if (this.p.isFlying || this.p.isUfo) {
       return this.p.yVelocity < thr;
     }
   }
+  _gravityForce(baseGravity = p) {
+    const customGravity = this.p?.gravity;
+    if (customGravity === null || customGravity === undefined) return baseGravity;
+    const value = Number(customGravity);
+    return Number.isFinite(value) ? Math.max(0, Math.min(2, value)) : baseGravity;
+  }
   _gdSpeedConsts() {
     const sp = typeof playerSpeed === 'number' ? playerSpeed : 0;
     if (typeof SpeedPortal !== 'undefined') {
-      if (sp === SpeedPortal.HALF) return { grav: 1.880398, yStart: 21.240064 };
-      if (sp === SpeedPortal.TWO_TIMES) return { grav: 1.914398, yStart: 22.840064 };
-      if (sp === SpeedPortal.THREE_TIMES || sp === SpeedPortal.FOUR_TIMES) return { grav: 1.922398, yStart: 22.460064 };
+      if (sp === SpeedPortal.HALF) return { grav: this._gravityForce(1.880398), yStart: 21.240064 };
+      if (sp === SpeedPortal.TWO_TIMES) return { grav: this._gravityForce(1.914398), yStart: 22.840064 };
+      if (sp === SpeedPortal.THREE_TIMES || sp === SpeedPortal.FOUR_TIMES) return { grav: this._gravityForce(1.922398), yStart: 22.460064 };
     }
-    return { grav: p, yStart: 22.360064 };
+    return { grav: this._gravityForce(p), yStart: 22.360064 };
   }
   _gdTrunc(v) {
     const h = v / 2;
@@ -3874,13 +3906,13 @@ if (this.p.isFlying || this.p.isUfo) {
     this.p.yVelocity = v;
   }
     _gravBaseForSpeed() {
-    if (window.speedGravity === false) return p;
-    if (typeof SpeedPortal === 'undefined' || typeof playerSpeed !== 'number') return p;
+    if (window.speedGravity === false) return this._gravityForce(p);
+    if (typeof SpeedPortal === 'undefined' || typeof playerSpeed !== 'number') return this._gravityForce(p);
     const sp = playerSpeed;
-    if (sp <= (SpeedPortal.HALF + SpeedPortal.ONE_TIMES) / 2) return 1.880398;
-    if (sp <= (SpeedPortal.ONE_TIMES + SpeedPortal.TWO_TIMES) / 2) return p;
-    if (sp <= (SpeedPortal.TWO_TIMES + SpeedPortal.THREE_TIMES) / 2) return 1.914398;
-    return 1.922398;
+    if (sp <= (SpeedPortal.HALF + SpeedPortal.ONE_TIMES) / 2) return this._gravityForce(1.880398);
+    if (sp <= (SpeedPortal.ONE_TIMES + SpeedPortal.TWO_TIMES) / 2) return this._gravityForce(p);
+    if (sp <= (SpeedPortal.TWO_TIMES + SpeedPortal.THREE_TIMES) / 2) return this._gravityForce(1.914398);
+    return this._gravityForce(1.922398);
   }
   updateJump(_0x3d1c6f) {
     if (this.p.pendingVelocity !== null) {
@@ -3938,7 +3970,7 @@ if (this.p.isFlying || this.p.isUfo) {
       }
       if (this.playerIsFalling()) {
         let _0x47ed2a;
-        _0x47ed2a = this.p.gravityFlipped ? this.p.yVelocity > p * 2 : this.p.yVelocity < -(p * 2);
+        _0x47ed2a = this.p.gravityFlipped ? this.p.yVelocity > this._gravityForce(p) * 2 : this.p.yVelocity < -(this._gravityForce(p) * 2);
         if (_0x47ed2a) {
           this.p.onGround = false;
         }
@@ -4014,7 +4046,7 @@ if (this.p.isFlying || this.p.isUfo) {
       mult = this.p.gdAccel ? (up >= 0 ? 0.8 : -1) : -1;
       k = below ? 0.5 : 0.4;
     }
-    this.p.yVelocity = this._gdTrunc(this.p.yVelocity - flip * k * mult * p * dt / f23);
+    this.p.yVelocity = this._gdTrunc(this.p.yVelocity - flip * k * mult * this._gravityForce(p) * dt / f23);
     if (hold) {
       this.p.onGround = false;
     }
@@ -4024,7 +4056,7 @@ if (this.p.isFlying || this.p.isUfo) {
     }
   }
   _updateBallJump(_0x2fe319) {
-      const _0x144266 = p * 0.6;
+      const _0x144266 = this._gravityForce(p) * 0.6;
       let prioritizeOrb = this._shouldPrioritizeGroundOrbInput();
 
       if (!prioritizeOrb && this.p.upKeyPressed && this.p.canJump) {
@@ -4050,7 +4082,7 @@ if (this.p.isFlying || this.p.isUfo) {
         this.p.yVelocity = Math.max(this.p.yVelocity, -30);
       }
       if (this.playerIsFalling()) {
-        const _0x1439be = this.p.gravityFlipped ? this.p.yVelocity > p * 2 : this.p.yVelocity < -(p * 2);
+        const _0x1439be = this.p.gravityFlipped ? this.p.yVelocity > this._gravityForce(p) * 2 : this.p.yVelocity < -(this._gravityForce(p) * 2);
         if (_0x1439be) {
           this.p.onGround = false;
         }
@@ -4171,7 +4203,7 @@ if (this.p.isFlying || this.p.isUfo) {
       }
     }
     const _ufoMult = this.p.yVelocity * flip >= 2 * this._gdSpeedConsts().grav ? 1.2 : 0.8;
-    this.p.yVelocity = this._gdTrunc(this.p.yVelocity - flip * _ufoMult * p * _dt * 0.5 / f23);
+    this.p.yVelocity = this._gdTrunc(this.p.yVelocity - flip * _ufoMult * this._gravityForce(p) * _dt * 0.5 / f23);
     if (!this.p.gdAccel) {
       const upNow = Math.max(-12.8 / f23, Math.min(16 / f23, this.p.yVelocity * flip));
       this.p.yVelocity = this._gdTrunc(upNow * flip);
@@ -4280,12 +4312,68 @@ if (this.p.isFlying || this.p.isUfo) {
     return bestSurface;
   }
 
+  _teleportSpiderToSurface() {
+    const playerSize = this.p.isMini ? 18 : 30;
+    const playerWorldX = this._scene?._playerWorldX ?? centerX;
+    const goingUp = !this.p.gravityFlipped;
+    const nearestSurfaceY = this._findSpiderTeleportSurface(goingUp, playerWorldX, playerSize);
+
+    if (nearestSurfaceY !== null && Number.isFinite(nearestSurfaceY)) {
+      const oldSpiderTeleportY = this.p.y;
+      const normalLandingY = goingUp ? nearestSurfaceY - playerSize : nearestSurfaceY + playerSize;
+      const blockingHazard = this._findSpiderTeleportHazard(goingUp, playerWorldX, playerSize, normalLandingY);
+
+      if (blockingHazard && !window.noClip) {
+        const hazardCenterY = (blockingHazard.bounds.lower + blockingHazard.bounds.upper) / 2;
+        this.p.y = Number.isFinite(hazardCenterY) ? hazardCenterY : normalLandingY;
+        this._spawnSpiderTeleportEffects(oldSpiderTeleportY, this.p.y);
+        this.p.yVelocity = 0;
+        this.p.onGround = false;
+        this.p.canJump = false;
+        this.p.isJumping = false;
+        this.killPlayer();
+        return;
+      }
+
+      this.p.y = normalLandingY;
+      if (goingUp) {
+        this.flipGravity(true, 1.0);
+        this.p.onCeiling = true;
+      } else {
+        this.flipGravity(false, 1.0);
+        this.p.onCeiling = false;
+      }
+      if (blockingHazard && window.noClip) {
+        this.p._spiderTeleportNoclipDeathPending = true;
+        this.p.diedThisFrame = true;
+      }
+      this._spawnSpiderTeleportEffects(oldSpiderTeleportY, this.p.y);
+      this.p.yVelocity = 0;
+      this.p.onGround = true;
+      this.p.canJump = true;
+      this.p.isJumping = false;
+    } else {
+      this.flipGravity(goingUp, 1.0);
+      this.p.yVelocity = 0;
+      this.p.onGround = false;
+      this.p.canJump = false;
+      this.p.isJumping = false;
+    }
+
+    this.p._spiderTeleportAnimTimer = 0;
+    this._spiderAnimTimer = (this._spiderAnimTimer || 0) + 0.12;
+    if (!this._scene?._editorPlaytestActive) {
+      this.p._spiderFlashDuration = 0.5;
+      this.p._spiderFlashTimer = 0.5;
+    }
+    this.runRotateAction();
+  }
+
   _updateSpiderJump(dt) {
     if (!this.rotateActionActive) {
       this.updateGroundRotation(dt);
     }
-    const playerSize = this.p.isMini ? 18 : 30;
-    const _gravAmt = p * 0.6;
+    const _gravAmt = this._gravityForce(p) * 0.6;
     const canSpiderTeleport = this.p.canJump || this.p.onGround || this.p.onCeiling;
 
     let prioritizeOrb = this._shouldPrioritizeGroundOrbInput();
@@ -4294,59 +4382,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this.p.upKeyPressed = false;
       this.p.queuedHold = false;
 
-      const playerWorldX = this._scene?._playerWorldX ?? centerX;
-      const goingUp = !this.p.gravityFlipped;
-      const nearestSurfaceY = this._findSpiderTeleportSurface(goingUp, playerWorldX, playerSize);
-
-      if (nearestSurfaceY !== null && Number.isFinite(nearestSurfaceY)) {
-        const oldSpiderTeleportY = this.p.y;
-        const normalLandingY = goingUp ? nearestSurfaceY - playerSize : nearestSurfaceY + playerSize;
-        const blockingHazard = this._findSpiderTeleportHazard(goingUp, playerWorldX, playerSize, normalLandingY);
-
-        if (blockingHazard && !window.noClip) {
-          const hazardCenterY = (blockingHazard.bounds.lower + blockingHazard.bounds.upper) / 2;
-          this.p.y = Number.isFinite(hazardCenterY) ? hazardCenterY : normalLandingY;
-          this._spawnSpiderTeleportEffects(oldSpiderTeleportY, this.p.y);
-          this.p.yVelocity = 0;
-          this.p.onGround = false;
-          this.p.canJump = false;
-          this.p.isJumping = false;
-          this.killPlayer();
-          return;
-        }
-
-        this.p.y = normalLandingY;
-        if (goingUp) {
-          this.flipGravity(true, 1.0);
-          this.p.onCeiling = true;
-        } else {
-          this.flipGravity(false, 1.0);
-          this.p.onCeiling = false;
-        }
-        if (blockingHazard && window.noClip) {
-          this.p._spiderTeleportNoclipDeathPending = true;
-          this.p.diedThisFrame = true;
-        }
-        this._spawnSpiderTeleportEffects(oldSpiderTeleportY, this.p.y);
-        this.p.yVelocity = 0;
-        this.p.onGround = true;
-        this.p.canJump = true;
-        this.p.isJumping = false;
-      } else {
-        this.flipGravity(goingUp, 1.0);
-        this.p.yVelocity = 0;
-        this.p.onGround = false;
-        this.p.canJump = false;
-        this.p.isJumping = false;
-      }
-
-      this.p._spiderTeleportAnimTimer = 0;
-      this._spiderAnimTimer = (this._spiderAnimTimer || 0) + 0.12;
-      if (!this._scene?._editorPlaytestActive) {
-        this.p._spiderFlashDuration = 0.5;
-        this.p._spiderFlashTimer = 0.5;
-      }
-      this.runRotateAction();
+      this._teleportSpiderToSurface();
       return;
     }
 
@@ -4361,8 +4397,8 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     if (this.playerIsFalling()) {
       const _pastThreshold = this.p.gravityFlipped
-        ? this.p.yVelocity > p * 2
-        : this.p.yVelocity < -(p * 2);
+        ? this.p.yVelocity > this._gravityForce(p) * 2
+        : this.p.yVelocity < -(this._gravityForce(p) * 2);
       if (_pastThreshold) {
         this.p.onGround = false;
       }
@@ -4625,8 +4661,20 @@ if (this.p.isFlying || this.p.isUfo) {
             this._setObjectActivated(gameObj, true);
             this._playPortalShine(gameObj);
             let targetY = Number(gameObj.teleportTargetY);
+            let targetX = Number(gameObj.teleportTargetX);
+            const targetGroup = parseInt(gameObj.teleportTargetGroup ?? 0, 10);
+            if (targetGroup > 0) {
+              const groupSprites = this._gameLayer?._groupSprites?.[targetGroup] || [];
+              const targets = groupSprites.filter(sprite => sprite?.active !== false
+                && !sprite._eeIsGlowSprite && !sprite._eeGeneratedTeleportExit
+                && Number.isFinite(Number(sprite._eeWorldX)) && Number.isFinite(Number(sprite._eeBaseY)));
+              const targetSprite = targets.length ? targets[Math.floor(Math.random() * targets.length)] : null;
+              if (targetSprite) {
+                targetX = Number(targetSprite._eeWorldX);
+                targetY = typeof b === "function" ? b(Number(targetSprite._eeBaseY)) : 460 - Number(targetSprite._eeBaseY);
+              }
+            }
             if (Number.isFinite(targetY)) {
-              const targetX = Number(gameObj.teleportTargetX);
               const currentCeilingY = this._gameLayer?.getCeilingY?.();
               if (currentCeilingY !== null && currentCeilingY !== undefined) {
                 const ceilingExitY = currentCeilingY - playerSize - 1;
@@ -4927,6 +4975,7 @@ if (this.p.isFlying || this.p.isUfo) {
           }
         } else if (_colType === jumpRingType) {
           const _orbId = gameObj.orbId;
+          if (_orbId === 3004 && !this.p.isSpider) continue;
           const _isDash = (_orbId === 1704 || _orbId === 1751);
           const justPressed = this.p.upKeyDown && !this.p.wasUpKeyDown;
           const _needsClick = !_orbInputConsumedThisStep && !this.p._orbActivationConsumedForPress && ((this.p.isFlying || this.p.isUfo) ? justPressed : (justPressed || (this.p.queuedHold && this.p.upKeyDown)));
@@ -4978,7 +5027,11 @@ if (this.p.isFlying || this.p.isUfo) {
               let _orbVel = 0;
               let _flipBefore = false;
               let _flipAfter = false;
-              if (_orbId === 1594) {
+              if (_orbId === 3004) {
+                this._teleportSpiderToSurface();
+                _boostedThisStep = true;
+                this._markActivatedOrbSprites(gameObj);
+              } else if (_orbId === 1594) {
                 this.flipGravity(!this.p.gravityFlipped);
                 this._syncOtherDualGravityForBlueBoost();
                 _boostedThisStep = true;

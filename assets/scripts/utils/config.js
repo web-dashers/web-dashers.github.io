@@ -66,9 +66,27 @@ window.fetchGdAudio = async function (songUrl, options = {}) {
   }
   throw lastError || new Error("No audio endpoint available");
 };
+window.customSongMetadataById = Object.freeze({
+  "1366557": Object.freeze({
+    title: "Funny Thing",
+    artist: "Thundercat",
+    jukebox: Object.freeze({
+      source: "Song File Hub",
+      url: "https://api.songfilehub.com/song/670c8fcae798331bd680b844?download=true&name=1366557",
+      verifiedLevelIDs: Object.freeze(["111112593"])
+    })
+  })
+});
+window.getCustomSongMetadata = function (songId) {
+  return window.customSongMetadataById[String(songId)] || null;
+};
+window.getCustomSongTitle = function (songId) {
+  const metadata = window.getCustomSongMetadata(songId);
+  return metadata ? metadata.title : `Song #${songId}`;
+};
 window.currentlevel = [
-	"stereo_madness", // internal level name
-	"Stereo Madness", // proper level name
+		"stereo_madness", // internal level name
+		"Stereo Madness", // proper level name
 	"level_1",        // level id in assets/levels
 	["RobTop", "Forever Bound"]   // person who made the song
 ];
@@ -78,6 +96,19 @@ window.orbClickShrinkTime = 250;
 window.orbParticleSize = 3.5;
 
 const urlParams = new URLSearchParams(window.location.search);
+window.physicsTraceEnabled = urlParams.get("physicsTrace") === "1";
+window.physicsTrace = window.physicsTraceEnabled ? [] : null;
+window.exportPhysicsTrace = function () {
+  if (!Array.isArray(window.physicsTrace) || window.physicsTrace.length === 0) return 0;
+  const blob = new Blob([JSON.stringify(window.physicsTrace)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `web-dashers-physics-trace-${Date.now()}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return window.physicsTrace.length;
+};
 if (urlParams.has('id')) {
   window.levelID = urlParams.get('id');
 }
