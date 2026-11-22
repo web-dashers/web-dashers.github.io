@@ -1276,6 +1276,12 @@ window.LevelObject = class LevelObject {
     this.checkTouchTriggers?.(0);
     window.levelObjects = levelObjects;
     window.settingslist = settingslist;
+    // Keep editor data intact; object 143 may be respawned from its serialized fields.
+    if (!window.isEditor) {
+      for (const levelObj of levelObjects) {
+        if (levelObj && parseInt(levelObj.id ?? 0, 10) !== 143) delete levelObj._raw;
+      }
+    }
   }
 
   _isOfficialLevel() {
