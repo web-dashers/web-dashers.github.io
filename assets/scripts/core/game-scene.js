@@ -8357,6 +8357,7 @@ _showwippopup() {
  this._level.resetObjects();
  this._level.resetGroundState();
  this._level.resetColorTriggers();
+ this._level.resetGravityTriggers?.();
  this._level.resetAlphaTriggers();
  this._level.resetRotateTriggers();
  this._level.resetPulseTriggers();
@@ -8378,6 +8379,7 @@ _showwippopup() {
  this._level.resetCountTriggers?.();
  this._level.resetCollisionTriggers?.();
  this._level.resetInstantCountTriggers?.();
+ this._level.checkGravityTriggers?.(this._playerWorldX);
  this._level.checkPickupTriggers?.(0, this._colorManager);
  this._level.checkCountTriggers?.(0, this._colorManager);
  this._level.checkCollisionTriggers?.(0);
@@ -8678,6 +8680,7 @@ _showwippopup() {
  this._level.shiftGroundTiles(this._cameraX - _0x2ba78a);
  this._level.resetGroundState();
  this._level.resetColorTriggers();
+ this._level.resetGravityTriggers?.();
  this._level.resetAlphaTriggers();
  this._level.resetRotateTriggers();
  this._level.resetPulseTriggers();
@@ -8800,6 +8803,12 @@ _showwippopup() {
 	this._applyLevelStartOptions();
 	this._applySpawnGroupStartPosition();
 	}
+
+ this._level.checkGravityTriggers?.(this._playerWorldX);
+ if (this._level.checkTouchGravityTriggers) {
+ this._level.checkTouchGravityTriggers(this._playerWorldX, this._state.y, 1);
+ if (this._isDual && !this._state2.isDead) this._level.checkTouchGravityTriggers(this._playerWorldX, this._state2.y, 2);
+ }
 
  if (this._player && this._player._hitboxTrail) {
  this._player._hitboxTrail = [];
@@ -9023,6 +9032,7 @@ _showwippopup() {
  if (this._player2) this._player2._hitboxTrail = [];
  }
  this._level.resetColorTriggers();
+ this._level.resetGravityTriggers?.();
  this._level.resetAlphaTriggers();
  this._level.resetRotateTriggers();
  this._level.resetPulseTriggers();
@@ -9044,6 +9054,7 @@ _showwippopup() {
  this._level.resetCountTriggers?.();
  this._level.resetCollisionTriggers?.();
  this._level.resetInstantCountTriggers?.();
+ this._level.checkGravityTriggers?.(checkpoint.x);
  this._level.checkToggleTriggers?.(checkpoint.x);
  this._level.checkPickupTriggers?.(checkpoint.x, this._colorManager);
  this._level.checkCountTriggers?.(checkpoint.x, this._colorManager);
@@ -9702,6 +9713,9 @@ _showwippopup() {
  const initialY = this._state.y;
  const initialY2 = this._state2.y;
  for (let i = 0; i < subSteps; i++) {
+ this._level.checkGravityTriggers?.(this._playerWorldX);
+ this._level.checkTouchGravityTriggers?.(this._playerWorldX, this._state.y, 1);
+ if (this._isDual && !this._state2.isDead) this._level.checkTouchGravityTriggers?.(this._playerWorldX, this._state2.y, 2);
  this._state.lastY = this._state.y;
  this._physicsFrame++;
  this._physicsTick = (this._physicsTick || 0) + 1;
@@ -9875,6 +9889,9 @@ _showwippopup() {
  this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
  this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
  let playerX = this._playerWorldX;
+ this._level.checkGravityTriggers?.(playerX);
+ this._level.checkTouchGravityTriggers?.(playerX, this._state.y, 1);
+ if (this._isDual && !this._state2.isDead) this._level.checkTouchGravityTriggers?.(playerX, this._state2.y, 2);
  if (!this._applyColorTriggerFn) {
  this._applyColorTriggerFn = (colorTrigger) => {
  this._colorManager.triggerColor(colorTrigger.index, colorTrigger.color, colorTrigger.duration, colorTrigger.copy, colorTrigger.opacity);

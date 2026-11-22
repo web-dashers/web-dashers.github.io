@@ -927,6 +927,9 @@ window.LevelObject = class LevelObject {
     this._spawnTriggers = [];
     this._spawnTriggerIdx = 0;
     this._activeSpawnDelays = [];
+    this._gravityTriggers = [];
+    this._gravityTriggerIdx = 0;
+    this._touchGravityTriggerActivated = new Set();
     this._colorChannelSprites = {};
     this._ground2Tint = 0xffffff;
     this._groupSprites = {};
@@ -2698,6 +2701,23 @@ window.LevelObject = class LevelObject {
       });
     }
 
+    if (levelObj.id === 2066) {
+      const raw = levelObj._raw || {};
+      const force = Number.parseFloat(raw[148] ?? raw["148"]);
+      if (Number.isFinite(force)) {
+        this._gravityTriggers.push({
+          ...triggerBase,
+          x: levelObj.x * 2,
+          y: levelObj.y * 2,
+          force,
+          touchTriggered: String(raw[11] ?? raw["11"] ?? "0") === "1",
+          targetPlayer1: String(raw[138] ?? raw["138"] ?? "0") === "1",
+          targetPlayer2: String(raw[200] ?? raw["200"] ?? "0") === "1",
+          targetTouch: String(raw[201] ?? raw["201"] ?? "0") === "1"
+        });
+      }
+    }
+
     if (levelObj.id === 1616) {
       const _raw = levelObj._raw;
       this._stopTriggers.push({
@@ -3941,6 +3961,7 @@ window.LevelObject = class LevelObject {
     this._countTriggers.sort((a, b) => a.x - b.x);
     this._instantCountTriggers.sort((a, b) => a.x - b.x);
     this._pulseTriggers.sort((a, b) => a.x - b.x);
+    this._gravityTriggers.sort((a, b) => a.x - b.x);
     this._collisionTriggers.sort((a, b) => a.x - b.x);
     this._buildTouchColorTriggers();
 
@@ -4101,6 +4122,47 @@ window.LevelObject = class LevelObject {
     }
     return _0x24b030 || EMPTY_TRIGGER_LIST;
   }
+  _applyGravityTrigger(trig, touchedPlayer = null) {
+    if (!trig || !Number.isFinite(Number(trig.force)) || !this._scene) return false;
+    const targetPlayer1 = !!trig.targetPlayer1;
+    const targetPlayer2 = !!trig.targetPlayer2;
+    const targetTouch = !!trig.targetTouch;
+    const hasTarget = targetPlayer1 || targetPlayer2 || targetTouch;
+    const force = Math.max(0, Math.min(2, Number(trig.force)));
+    const applyToPlayer1 = !hasTarget || targetPlayer1 || (targetTouch && touchedPlayer === 1);
+    const applyToPlayer2 = !hasTarget || targetPlayer2 || (targetTouch && touchedPlayer === 2);
+
+    if (applyToPlayer1 && this._scene._state) this._scene._state.gravity = force;
+    if (applyToPlayer2 && this._scene._state2) this._scene._state2.gravity = force;
+    return applyToPlayer1 || applyToPlayer2;
+  }
+  checkGravityTriggers(playerX) {
+    const x = Number(playerX) || 0;
+    while (this._gravityTriggerIdx < this._gravityTriggers.length) {
+      const trig = this._gravityTriggers[this._gravityTriggerIdx];
+      if (trig.x > x) break;
+      if (!trig.touchTriggered && !trig.spawnTriggered && !this._isTriggerToggledOff(trig) && this._isTriggerSaveObjectLive(trig.uid)) {
+        this._applyGravityTrigger(trig);
+      }
+      this._gravityTriggerIdx++;
+    }
+  }
+  checkTouchGravityTriggers(playerX, playerY, playerIndex = 1) {
+    const px = Number(playerX) || 0;
+    const py = Number(playerY) || 0;
+    const playerHalfSize = typeof playerSize === "number" ? playerSize : 20;
+    const halfHitbox = 30 + playerHalfSize;
+
+    for (const trig of this._gravityTriggers) {
+      if (!trig || !trig.touchTriggered || trig.spawnTriggered || !this._isTriggerSaveObjectLive(trig.uid)) continue;
+      const uid = trig.uid ?? `${trig.x},${trig.y},${trig.force}`;
+      if (this._touchGravityTriggerActivated.has(uid)) continue;
+      if (Math.abs(px - trig.x) <= halfHitbox && Math.abs(py - (trig.y ?? 0)) <= halfHitbox) {
+        this._touchGravityTriggerActivated.add(uid);
+        this._applyGravityTrigger(trig, playerIndex);
+      }
+    }
+  }
   checkTouchColorTriggers(playerX, playerY) {
     let triggered = null;
     const px = Number(playerX) || 0;
@@ -4131,6 +4193,10 @@ window.LevelObject = class LevelObject {
     this._colorDirty = true;
     this._colorTriggerIdx = 0;
     this._touchColorTriggerActivated = new Set();
+  }
+  resetGravityTriggers() {
+    this._gravityTriggerIdx = 0;
+    this._touchGravityTriggerActivated = new Set();
   }
   _getSectionIndexForWorldX(worldX) {
     return Math.max(0, Math.floor((Number(worldX) || 0) / 400));
@@ -5097,6 +5163,7 @@ window.LevelObject = class LevelObject {
     for (const trig of spawnMatches(this._playerVisTriggers)) this.playerHidden = trig.hide;
     for (const trig of spawnMatches(this._backgroundEffectTriggers)) this._setBackgroundEffectsDisabled(true);
     for (const trig of spawnMatches(this._pulseTriggers)) this._startPulseTrigger(trig);
+    for (const trig of spawnMatches(this._gravityTriggers)) this._applyGravityTrigger(trig);
     for (const trig of spawnMatches(this._spawnTriggers)) this._queueSpawnTrigger(trig);
     for (const trig of spawnMatches(this._onDeathTriggers)) this._armOnDeathTrigger(trig);
     for (const trig of spawnMatches(this._touchTriggers)) this._armTouchTrigger(trig);
