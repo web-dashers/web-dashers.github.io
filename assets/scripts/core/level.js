@@ -2240,6 +2240,7 @@ window.LevelObject = class LevelObject {
     if (visual.container?.setVisible) visual.container.setVisible(visible);
   }
   _spawnTriggerEditorVisual(levelObj, objectDef, linkedObjectId) {
+    if (!window.isEditor) return;
     const scene = this._scene;
     if (!scene || !this.topContainer || !levelObj) return;
 
