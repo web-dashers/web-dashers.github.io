@@ -3921,6 +3921,7 @@ if (this.p.isFlying || this.p.isUfo) {
       if (!this.p.upKeyDown || this.p.onGround) {
         this.p.isDashing = false;
         this.p.dashYVelocity = 0;
+        this.p.yVelocity = 0;
       } else {
         this.p.yVelocity = this.p.dashYVelocity;
         return;
