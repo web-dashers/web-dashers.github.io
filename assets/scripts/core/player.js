@@ -364,17 +364,18 @@ class WaveTrail {
     }
   }
 }
-function ds(scene, x, y, frameName, depth, isVisible) {
-  let atlasData = getAtlasFrame(scene, frameName);
+function ds(scene, x, y, frameName, depth, isVisible, fallbackFrame) {
+  const frame = getAtlasFrame(scene, frameName);
+  const atlasData = frame || (fallbackFrame && getAtlasFrame(scene, fallbackFrame));
   if (!atlasData) {
     return null;
   }
   let image = scene.add.image(x, y, atlasData.atlas, atlasData.frame);
   image.setDepth(depth);
-  image.setVisible(isVisible);
-  return {
-    sprite: image
-  };
+  image.setVisible(isVisible && (!fallbackFrame || !!frame));
+  return fallbackFrame
+    ? { sprite: image, kind: "extra", _hasIconFrame: !!frame }
+    : { sprite: image };
 }
 
 function _textureHasFrameSafe(scene, textureKey, frameName) {
@@ -824,6 +825,14 @@ class PlayerObject {
 
         layer.sprite.setVisible(kind === "glow" ? !!layer.sprite._glowEnabled : true);
       };
+      if (!part.extra && _textureHasFrameSafe(this._scene, _iconTexKeyFor(this._scene, resolvedFrames.extra), resolvedFrames.extra)) {
+        part.extra = _makeAtlasLayer(this._scene, commonX, commonY, _iconTexKeyFor(this._scene, resolvedFrames.extra), resolvedFrames.extra, 8 + zValue * 0.1 + 0.08, false, null, "extra");
+        if (part.extra) {
+          part.layers.push(part.extra);
+          this._spiderLayers.push(part.extra);
+          this._allLayers.push(part.extra);
+        }
+      }
       applyLayer(part.glow, "glow", -0.04);
       applyLayer(part.base, "base", 0);
       applyLayer(part.overlay, "overlay", -0.02);
@@ -1178,6 +1187,14 @@ class PlayerObject {
         }
         layer.sprite.setVisible(kind === "glow" ? !!layer.sprite._glowEnabled : true);
       };
+      if (!part.extra && _textureHasFrameSafe(this._scene, _iconTexKeyFor(this._scene, resolvedFrames.extra), resolvedFrames.extra)) {
+        part.extra = _makeAtlasLayer(this._scene, commonX, commonY, _iconTexKeyFor(this._scene, resolvedFrames.extra), resolvedFrames.extra, 8 + zValue * 0.1 + 0.08, false, null, "extra");
+        if (part.extra) {
+          part.layers.push(part.extra);
+          this._robotLayers.push(part.extra);
+          this._allLayers.push(part.extra);
+        }
+      }
       applyLayer(part.glow, "glow", -0.04);
       applyLayer(part.base, "base", 0);
       applyLayer(part.overlay, "overlay", -0.02);
@@ -1299,7 +1316,7 @@ class PlayerObject {
     this._playerGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentPlayer}_glow_001.png`, 9, false);
     this._playerSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentPlayer}_001.png`, 10, true);
     this._playerOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentPlayer}_2_001.png`, 8, true);
-    this._playerExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentPlayer}_extra_001.png`, 12, true);
+    this._playerExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentPlayer}_extra_001.png`, 12, true, `${window.currentPlayer}_001.png`);
     if (this._playerGlowLayer) {
       this._playerGlowLayer.sprite.setTint(this._secondaryColor());
       this._playerGlowLayer.sprite._glowEnabled = false;
@@ -1319,7 +1336,7 @@ class PlayerObject {
     this._shipGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentShip}_glow_001.png`, 9, false);
     this._shipSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentShip}_001.png`, 10, false);
     this._shipOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentShip}_2_001.png`, 8, false);
-    this._shipExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentShip}_extra_001.png`, 12, false);
+    this._shipExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentShip}_extra_001.png`, 12, false, `${window.currentShip}_001.png`);
     if (this._shipGlowLayer) {
       this._shipGlowLayer.sprite.setTint(this._secondaryColor());
       this._shipGlowLayer.sprite._glowEnabled = false;
@@ -1351,6 +1368,7 @@ class PlayerObject {
     this._ballGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_glow_001.png`, 9, false);
     this._ballSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_001.png`, 10, false);
     this._ballOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_2_001.png`, 8, false);
+    this._ballExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentBall}_extra_001.png`, 12, false, `${window.currentBall}_001.png`);
     if (this._ballGlowLayer) {
       this._ballGlowLayer.sprite.setTint(this._secondaryColor());
       this._ballGlowLayer.sprite._glowEnabled = false;
@@ -1363,7 +1381,7 @@ class PlayerObject {
     }
     this._waveGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_glow_001.png`, 9, false);
     this._waveOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_2_001.png`, 8, false);
-    this._waveExtraLayer = null;
+    this._waveExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_extra_001.png`, 12, false, `${window.currentWave}_001.png`);
     this._waveSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentWave}_001.png`, 10, false);
     if (this._waveGlowLayer) {
       this._waveGlowLayer.sprite.setTint(this._secondaryColor());
@@ -1379,7 +1397,7 @@ class PlayerObject {
     this.shipSprite = this._shipSpriteLayer.sprite;
     this._playerLayers = [this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer];
     this._shipLayers = [this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer];
-    this._ballLayers = [this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer].filter(_0x37ad93 => !!_0x37ad93);
+    this._ballLayers = [this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer, this._ballExtraLayer].filter(_0x37ad93 => !!_0x37ad93);
     this._waveLayers = [this._waveSpriteLayer, this._waveOverlayLayer, this._waveExtraLayer, this._waveGlowLayer].filter(_0x37ad93 => !!_0x37ad93);
     this._initSpiderAnimationParts(spriteY, particleY, spriteX);
     this._spiderSpriteLayer = this._spiderLayers.find(layer => layer.kind === "base") || null;
@@ -1394,7 +1412,7 @@ class PlayerObject {
     this._birdSpriteLayer = ds(spriteY, particleY, spriteX, `${window.currentBird}_001.png`, 10, false);
     this._birdGlowLayer = ds(spriteY, particleY, spriteX, `${window.currentBird}_2_001.png`, 9, false);
     this._birdOverlayLayer = ds(spriteY, particleY, spriteX, `${window.currentBird}_3_001.png`, 8, false);
-    this._birdExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentBird}_extra_001.png`, 12, false);
+    this._birdExtraLayer = ds(spriteY, particleY, spriteX, `${window.currentBird}_extra_001.png`, 12, false, `${window.currentBird}_001.png`);
     if (this._birdSpriteLayer) {
       this._birdSpriteLayer.sprite.setTint(this._primaryColor());
     }
@@ -1796,7 +1814,7 @@ class PlayerObject {
       this._playerOverlayLayer.sprite.setVisible(isCustom ? false : _0x411813);
     }
     if (this._playerExtraLayer) {
-      this._playerExtraLayer.sprite.setVisible(isCustom ? false : _0x411813);
+      this._playerExtraLayer.sprite.setVisible(this._playerExtraLayer._hasIconFrame !== false && (isCustom ? false : _0x411813));
     }
   }
   setShipVisible(_0x1c5620) {
@@ -1808,7 +1826,7 @@ class PlayerObject {
       this._shipOverlayLayer.sprite.setVisible(_0x1c5620);
     }
     if (this._shipExtraLayer) {
-      this._shipExtraLayer.sprite.setVisible(_0x1c5620);
+      this._shipExtraLayer.sprite.setVisible(this._shipExtraLayer._hasIconFrame !== false && (_0x1c5620));
     }
   }
   setBirdVisible(v) {
@@ -1816,7 +1834,7 @@ class PlayerObject {
       if (layer === this._birdGlowLayer) {
         layer.sprite.setVisible(v && layer.sprite._glowEnabled);
       } else {
-        layer.sprite.setVisible(v);
+        layer.sprite.setVisible(v && (layer.kind !== "extra" || layer._hasIconFrame !== false));
       }
     }
   }
@@ -1830,6 +1848,9 @@ class PlayerObject {
     if (this._ballOverlayLayer) {
       this._ballOverlayLayer.sprite.setVisible(_0x5685cf);
     }
+    if (this._ballExtraLayer) {
+      this._ballExtraLayer.sprite.setVisible(this._ballExtraLayer._hasIconFrame !== false && (_0x5685cf));
+    }
   }
   setWaveVisible(_0x2d078b) {
     if (this._waveSpriteLayer) {
@@ -1839,7 +1860,7 @@ class PlayerObject {
       this._waveOverlayLayer.sprite.setVisible(_0x2d078b);
     }
     if (this._waveExtraLayer) {
-      this._waveExtraLayer.sprite.setVisible(_0x2d078b);
+      this._waveExtraLayer.sprite.setVisible(this._waveExtraLayer._hasIconFrame !== false && (_0x2d078b));
     }
     if (this._waveGlowLayer) {
       this._waveGlowLayer.sprite.setVisible(_0x2d078b && this._waveGlowLayer.sprite._glowEnabled);
@@ -1949,7 +1970,7 @@ if (this.p.isFlying || this.p.isUfo) {
 	if (this.p.isUfo && !this.p.isDead) {
         for (const layer of this._birdLayers) {
           if (layer) {
-            layer.sprite.setVisible(true);
+            layer.sprite.setVisible(layer.kind !== "extra" || layer._hasIconFrame !== false);
             layer.sprite.x = _0x7f0705 + _0x1b1d28;
             layer.sprite.y = _0x1a433c + _0x185f91 + (this.p.gravityFlipped ? -15 : 5);
             layer.sprite.rotation = this.p.mirrored ? -playerRotation : playerRotation;
@@ -2754,7 +2775,7 @@ if (this.p.isFlying || this.p.isUfo) {
       height: sliderBar,
       add: false
     });
-    const _0x5c571a = [this._playerGlowLayer, this._playerOverlayLayer, this._ballGlowLayer, this._ballOverlayLayer, this._waveGlowLayer, this._waveOverlayLayer, this._waveExtraLayer, this._shipGlowLayer, this._shipOverlayLayer, this._spiderGlowLayer, this._spiderOverlayLayer, this._robotGlowLayer, this._robotOverlayLayer, this._playerSpriteLayer, this._playerExtraLayer, this._ballSpriteLayer, this._waveSpriteLayer, this._shipSpriteLayer, this._shipExtraLayer, this._spiderSpriteLayer, this._spiderExtraLayer, this._robotSpriteLayer, this._robotExtraLayer, this._birdSpriteLayer, this._birdGlowLayer, this._birdOverlayLayer, this._birdExtraLayer, ...(this._robotLayers || [])];
+    const _0x5c571a = [this._playerGlowLayer, this._playerOverlayLayer, this._ballGlowLayer, this._ballOverlayLayer, this._ballExtraLayer, this._waveGlowLayer, this._waveOverlayLayer, this._waveExtraLayer, this._shipGlowLayer, this._shipOverlayLayer, this._spiderGlowLayer, this._spiderOverlayLayer, this._robotGlowLayer, this._robotOverlayLayer, this._playerSpriteLayer, this._playerExtraLayer, this._ballSpriteLayer, this._waveSpriteLayer, this._shipSpriteLayer, this._shipExtraLayer, this._spiderSpriteLayer, this._spiderExtraLayer, this._robotSpriteLayer, this._robotExtraLayer, this._birdSpriteLayer, this._birdGlowLayer, this._birdOverlayLayer, this._birdExtraLayer, ...(this._robotLayers || [])];
 	  for (const _0x1f09e3 of _0x5c571a) {
       if (!_0x1f09e3) {
         continue;
@@ -3449,6 +3470,15 @@ if (this.p.isFlying || this.p.isUfo) {
     } };
   }
   _handleSlopeCollision(gameObj, pieceWidth, playersY, playersLastY, left, right, top, bottom, playerSize, waveHitSize, gamemodeAddition, previousWorldX) {
+    if (this.p.isWave) {
+      const surfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
+      if (surfaceY === null) return { landed: false, died: false };
+      const insideSolid = gameObj.slopeSolidBelow
+        ? playersY - waveHitSize < surfaceY
+        : playersY + waveHitSize > surfaceY;
+      const backWall = this._slopeBackWallHit(gameObj, pieceWidth, playersY, surfaceY);
+      return { landed: false, died: insideSolid || backWall, immediate: insideSolid || backWall };
+    }
     if (this._usesGdCubeSlopes()) {
       const gdSurfaceY = gameObj.getSlopeSurfaceY(pieceWidth);
       if (gdSurfaceY !== null && this._slopeBackWallHit(gameObj, pieceWidth, playersY, gdSurfaceY)) {
@@ -3995,32 +4025,42 @@ if (this.p.isFlying || this.p.isUfo) {
 
     return false;
   }
-  _updateFlyJump(dt) {
-    const f23 = this.p.isMini ? 0.85 : 1;
-    const flip = this.flipMod();
-    const hold = !!this.p.upKeyDown;
-    const up = this.p.yVelocity * flip;
-    if (this.p.gdAccel && ((up >= 0 && up < 16 / f23) || (up <= 0 && up > -12.8 / f23))) {
-      this.p.gdAccel = false;
+  _updateFlyJump(_0x130c46) {
+    const _shipMiniScale = this.p.isMini ? 1.176470588 : 1;
+    let _0x203040 = 0.8;
+    if (this.p.upKeyDown) {
+      _0x203040 = -1;
     }
-    const below = up < 2 * this._gdSpeedConsts().grav;
-    let mult;
-    let k;
-    if (!hold) {
-      mult = this.p.gdAccel ? (up >= 0 ? 0.8 : -1) : 0.8;
-      if (!below) mult = 1.2;
-      k = 0.4;
-    } else {
-      mult = this.p.gdAccel ? (up >= 0 ? 0.8 : -1) : -1;
-      k = below ? 0.5 : 0.4;
+    let isFalling = this.p.gravityFlipped ? this.p.yVelocity > p : this.p.yVelocity < p;
+    if (this._scene?._isDual) {
+      if (this.p.gravityFlipped) {
+        isFalling = this.p.yVelocity > p;
+      } else {
+        isFalling = this.p.yVelocity < -p; 
+      }
     }
-    this.p.yVelocity = this._gdTrunc(this.p.yVelocity - flip * k * mult * p * dt / f23);
-    if (hold) {
+    if (!this.p.upKeyDown && !isFalling && !this.p._slopeBounceActive) {
+      _0x203040 = 1.2;
+    }
+    let _0x2d237f = 0.4;
+    if (this.p.upKeyDown && isFalling) {
+      _0x2d237f = 0.5;
+    }
+    this.p.yVelocity -= p * _0x130c46 * this.flipMod() * _0x203040 * _0x2d237f * _shipMiniScale;
+    if (this.p.upKeyDown) {
       this.p.onGround = false;
     }
-    if (!this.p.gdAccel) {
-      const upNow = Math.max(-12.8 / f23, Math.min(16 / f23, this.p.yVelocity * flip));
-      this.p.yVelocity = this._gdTrunc(upNow * flip);
+    if (!this.p.wasBoosted && !this.p._slopeBounceActive) {
+      if (this.p.gravityFlipped) {
+        this.p.yVelocity = Math.max(this.p.yVelocity, -16 * _shipMiniScale);
+        this.p.yVelocity = Math.min(this.p.yVelocity, 12.8 * _shipMiniScale);
+      } else {
+        this.p.yVelocity = Math.max(this.p.yVelocity, -12.8 * _shipMiniScale);
+        this.p.yVelocity = Math.min(this.p.yVelocity, 16 * _shipMiniScale);
+      }
+    }
+    if (this.p._slopeBounceActive && (isFalling || this.p.onGround)) {
+      this.p._slopeBounceActive = false;
     }
   }
   _updateBallJump(_0x2fe319) {
@@ -5702,7 +5742,7 @@ if (this.p.isFlying || this.p.isUfo) {
     const _0x8bc9f4 = _0x568b25 + 300;
     const _0x11b580 = [
       this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer,
-      this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer,
+      this._ballSpriteLayer, this._ballGlowLayer, this._ballOverlayLayer, this._ballExtraLayer,
       this._waveSpriteLayer, this._waveOverlayLayer, this._waveExtraLayer, this._waveGlowLayer,
       this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer,
       ...(this._birdLayers || []),

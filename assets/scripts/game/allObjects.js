@@ -602,7 +602,8 @@ window.allobjects = function() {
     "children": [
       {
         "frame": "plank_01_color_001.png",
-        "tint": 0
+        "tint": 0,
+        "can_color": false
       }
     ],
     "default_detail_color_channel": -1,

@@ -53,9 +53,7 @@ const phaserConfig = {
     windowEvents: false
   },
   render: {
-    powerPreference: "default",
-    antialiasGL: false,
-    roundPixels: true
+    powerPreference: "default"
   },
   scale: {
     mode: Phaser.Scale.FIT,
