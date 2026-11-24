@@ -9713,8 +9713,9 @@ _showwippopup() {
       this._state.y += this._state.yVelocity * verticalDelta;
       this._player.checkCollisions(this._playerWorldX - centerX);
       const _primaryGravityChanged = this._isDual && !!this._state.gravityFlipped !== _primaryGravityBefore;
+      const _waveGravitySync = _primaryGravityChanged && this._state.isWave && this._state2.isWave;
       let _primaryGravitySynced = false;
-      if (this._isDual && this._getDualSharedSignature(this._state) !== _primarySharedBefore) {
+      if (this._isDual && !_waveGravitySync && this._getDualSharedSignature(this._state) !== _primarySharedBefore) {
         _primaryGravitySynced = this._syncDualGlobalsFromPrimary({
           skipBallInputGravity: _primaryGravityChanged && this._state.isBall && _dualInputState.upKeyPressed,
           skipSpiderInputGravity: _primaryGravityChanged && this._state.isSpider && _dualInputState.upKeyPressed
@@ -9739,6 +9740,9 @@ _showwippopup() {
         if (!this._state2.queuedHold) this._state.queuedHold = false;
         if (this._state2._orbActivationConsumedForPress) this._state._orbActivationConsumedForPress = true;
         this._state2.y += this._state2.yVelocity * verticalDelta;
+        if (_waveGravitySync) {
+          this._syncDualGlobalsFromPrimary();
+        }
         this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
         if (this._isDual && !this._state2.isDead && this._getDualSharedSignature(this._state2) !== _secondarySharedBefore) {
           this._syncDualGlobalsFromSecondary({
