@@ -2689,6 +2689,7 @@ class GameScene extends UIScene {
       _dualInputState.upKeyPressed = this._state.upKeyPressed;
       _dualInputState.queuedHold = this._state.queuedHold;
       _dualInputState.orbActivationConsumedForPress = !!this._state._orbActivationConsumedForPress;
+      const _bothBallsBefore = this._isDual && this._state.isBall && this._state2.isBall;
       const _primaryGravityBefore = !!this._state.gravityFlipped;
       const _primarySharedBefore = this._getDualSharedSignature(this._state);
       this._player.updateJump(verticalDelta);
@@ -2731,6 +2732,9 @@ class GameScene extends UIScene {
             skipBallInputGravity: _secondaryBallInputGravity,
             skipSpiderInputGravity: _secondarySpiderInputGravity
           });
+        }
+        if (!_bothBallsBefore && this._areDualBallsOverlapping()) {
+          this._dualBallSpawnGravityLock = true;
         }
         this._resolveDualBallOverlap();
         if (this._isDual && this._state2.isDead && !this._state.isDead) {
@@ -3371,7 +3375,10 @@ _applyMirrorEffect() {
       return false;
     }
     if (this._dualBallSpawnGravityLock) {
-      this._state2.gravityFlipped = !this._state.gravityFlipped;
+      if (this._state2.gravityFlipped === this._state.gravityFlipped) {
+        this._player2.flipGravity(!this._state.gravityFlipped, 1);
+        this._state2.onCeiling = false;
+      }
       this._dualBallOverlapResolved = true;
       return false;
     }
@@ -3498,6 +3505,9 @@ _applyMirrorEffect() {
     this._state2.upKeyDown = false;
     this._state2.upKeyPressed = false;
     this._state2.queuedHold = false;
+    this._state2.isDashing = false;
+    this._state2.dashYVelocity = 0;
+    this._player2._dashAnimationSprite?.setVisible(false);
     this._player2.setCubeVisible(false);
     this._player2.setShipVisible(false);
     this._player2.setBallVisible(false);

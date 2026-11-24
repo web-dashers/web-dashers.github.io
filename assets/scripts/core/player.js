@@ -4341,9 +4341,20 @@ if (this.p.isFlying || this.p.isUfo) {
 
     const nearbyObjects = this._gameLayer.getNearbySectionObjects(playerWorldX);
     for (const obj of nearbyObjects) {
-      if (obj.type !== solidType && obj.type !== "solid") continue;
+      if (obj.type !== solidType && obj.type !== slopeType) continue;
       const bounds = this._getSpiderSearchBounds(obj);
       if (playerWorldX + xPad <= bounds.left || playerWorldX - xPad >= bounds.right) continue;
+      if (obj.type === slopeType) {
+        const slopeX = Math.max(bounds.left, Math.min(bounds.right, playerWorldX));
+        const slopeY = obj.getSlopeSurfaceY(slopeX);
+        if (slopeY === null) continue;
+        const offset = playerSize / Math.cos(Math.atan(obj.h / obj.w)) - playerSize;
+        if (obj.slopeSolidBelow) {
+          bounds.upper = Math.min(bounds.upper, slopeY + offset);
+        } else {
+          bounds.lower = Math.max(bounds.lower, slopeY - offset);
+        }
+      }
 
       if (goingUp) {
         const undersideSurface = bounds.lower;
@@ -5267,6 +5278,10 @@ if (this.p.isFlying || this.p.isUfo) {
           }
           continue;
         } else if (_colType === solidType) {
+          left = rotatedLeft;
+          right = rotatedRight;
+          top = rotatedTop;
+          bottom = rotatedBottom;
           const _solidSize = this.p.isWave ? waveHitSize : playerSize;
           let _0x146a97 = playersY - _solidSize + gamemodeAddition;
           let _0x869e42 = playersLastY - _solidSize + gamemodeAddition;
@@ -5274,15 +5289,6 @@ if (this.p.isFlying || this.p.isUfo) {
           let _0x135a9d = playersLastY + _solidSize - gamemodeAddition;
           const _0x55559d = this.p.isWave ? waveHitSize / 3 : 9;
           let iscolliding;
-          if (!_hasCircleHitbox) {
-            const _sRot = (((Number(gameObj.rotationDegrees) || 0) % 180) + 180) % 180;
-            if (Math.abs(_sRot - 90) < 0.5) {
-              left = gameObj.x - gameObj.h / 2;
-              right = gameObj.x + gameObj.h / 2;
-              top = gameObj.y - gameObj.w / 2;
-              bottom = gameObj.y + gameObj.w / 2;
-            }
-          }
           if (_hasCircleHitbox) {
             const _sdx = pieceWidth - gameObj.x;
             const _sdy = playersY - gameObj.y;
@@ -5531,17 +5537,18 @@ if (this.p.isFlying || this.p.isUfo) {
       }
     }
     let _0x496456 = this._gameLayer.getCeilingY();
-    if (!_teleportedThisStep && _0x496456 !== null && this.p.y >= _0x496456 - _effectiveSize && !iscube) {
-      this.p.y = _0x496456 - _effectiveSize;
-      this.hitGround();
-      this.p.onCeiling = true;
-    }
-    if (this.p.y > 1890*4) {
-      if (window.noClip) {
-        this.p.diedThisFrame = true;
-      } else {
-        this.killPlayer();
-        return;
+    if (!_teleportedThisStep && _0x496456 !== null && this.p.y >= _0x496456 - _effectiveSize) {
+      if (this.p.gravityFlipped || !iscube) {
+        this.p.y = _0x496456 - _effectiveSize;
+        this.hitGround();
+        this.p.onCeiling = true;
+      } else if (this.p.yVelocity > 0.5 || this.p.y > _0x496456 - _effectiveSize) {
+        if (window.noClip) {
+          this.p.diedThisFrame = true;
+        } else {
+          this.killPlayer();
+          return;
+        }
       }
     }
     if (this._ignoreTeleportUntilClear && !_touchingTeleportDuringRespawnIgnore) {

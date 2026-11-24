@@ -60,7 +60,7 @@ class LevelEditor {
         this._cameraX += camSpeed;
     }
 
-    if (cursors.up.isDown) {
+    if (window._kbDown.has("ArrowUp")) {
         this._cameraY -= camSpeed;
     } else if (cursors.down.isDown) {
         this._cameraY += camSpeed;
@@ -645,6 +645,7 @@ class LevelEditor {
     this._level.resetFollowPlayerYTriggers?.();
     this._level.resetFollowTriggers?.();
     this._level.resetToggleTriggers?.();
+    this._level.resetAnimationTriggers?.();
     this._level.resetShakeTriggers?.();
     this._level.resetChannelBlending?.();
     this._level.resetPlayerVisibilityTriggers?.();
@@ -652,10 +653,12 @@ class LevelEditor {
     this._level.resetTouchTriggers?.();
     this._level.resetPickupTriggers?.();
     this._level.resetCountTriggers?.();
+    this._level.resetCollisionTriggers?.();
     this._level.resetInstantCountTriggers?.();
     this._level.checkToggleTriggers?.(0);
     this._level.checkPickupTriggers?.(0, this._colorManager);
     this._level.checkCountTriggers?.(0, this._colorManager);
+    this._level.checkCollisionTriggers?.(0);
     this._level.checkInstantCountTriggers?.(0, this._colorManager);
     this._level.checkOnDeathTriggers?.(0);
     this._level.checkTouchTriggers?.(0);
@@ -1226,17 +1229,21 @@ class LevelEditor {
     this._state.upKeyDown = true;
     this._state.upKeyPressed = true;
     this._state.queuedHold = true;
+    this._state._orbActivationConsumedForPress = false;
     if (this._isDual && this._state2 && !this._state2.isDead) {
         this._state2.upKeyDown = true;
         this._state2.upKeyPressed = true;
         this._state2.queuedHold = true;
+        this._state2._orbActivationConsumedForPress = false;
     }
 
     const primaryGravityBefore = !!this._state.gravityFlipped;
     if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && this._state.canJump) {
         this._player.updateJump(0);
     } else if (this._state.isUfo) {
-        this._player.updateJump(0);
+        if (!this._player._shouldPrioritizeUfoOrbInput?.()) {
+            this._player.updateJump(0);
+        }
     }
     const primaryGravityChanged = this._isDual && !!this._state.gravityFlipped !== primaryGravityBefore;
     let primaryGravitySynced = false;
@@ -1258,7 +1265,9 @@ class LevelEditor {
         if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
             this._player2.updateJump(0);
         } else if (this._state2.isUfo) {
-            this._player2.updateJump(0);
+            if (!this._player2._shouldPrioritizeUfoOrbInput?.()) {
+                this._player2.updateJump(0);
+            }
         }
         if (!!this._state2.gravityFlipped !== secondaryGravityBefore) {
             this._syncDualGlobalsFromSecondary?.({
@@ -1279,6 +1288,10 @@ class LevelEditor {
     this._state2.upKeyDown = false;
     this._state2.upKeyPressed = false;
     this._state2.queuedHold = false;
+    this._state.queuedHold = false;
+    this._state._orbActivationConsumedForPress = false;
+    this._state2.queuedHold = false;
+    this._state2._orbActivationConsumedForPress = false;
   }
 
 
@@ -1306,7 +1319,6 @@ class LevelEditor {
   _updateEditorPlaytest(deltaTime) {
     if (!this._editorPlaytestActive || this._editorPlaytestPaused) return;
 
-    this._updateEditorPlaytestInput();
     this._audio.update(deltaTime / 1000);
     this._state.mirrored = false;
     this._state2.mirrored = false;
@@ -1321,6 +1333,8 @@ class LevelEditor {
     const subStepDelta = subSteps > 0 ? quantizedDelta / subSteps : 0;
     const verticalDelta = subStepDelta * d;
     const horizontalDelta = subStepDelta * playerSpeed * d;
+    const initialY = this._state.y;
+    const initialY2 = this._state2.y;
     const previousNoClip = window.noClip;
 
     window.noClip = false;
@@ -1330,11 +1344,14 @@ class LevelEditor {
             this._state.lastY = this._state.y;
             this._physicsFrame++;
             this._physicsTick = (this._physicsTick || 0) + 1;
+            this._updateEditorPlaytestInput();
             const dualInputState = {
                 upKeyDown: this._state.upKeyDown,
                 upKeyPressed: this._state.upKeyPressed,
-                queuedHold: this._state.queuedHold
+                queuedHold: this._state.queuedHold,
+                orbActivationConsumedForPress: !!this._state._orbActivationConsumedForPress
             };
+            const _bothBallsBefore = this._isDual && this._state.isBall && this._state2.isBall;
             const primaryGravityBefore = !!this._state.gravityFlipped;
             const primarySharedBefore = this._getDualSharedSignature?.(this._state);
             this._player.updateJump(verticalDelta);
@@ -1377,11 +1394,14 @@ class LevelEditor {
                         skipSpiderInputGravity: secondarySpiderInputGravity
                     });
                 }
+                if (!_bothBallsBefore && this._areDualBallsOverlapping()) {
+                    this._dualBallSpawnGravityLock = true;
+                }
                 this._resolveDualBallOverlap?.();
-                if (this._state2.isDead && !this._state.isDead) {
+                if (this._isDual && this._state2.isDead && !this._state.isDead) {
                     this._player.killPlayer();
                 }
-                if (this._state.isDead && !this._state2.isDead) {
+                if (this._isDual && this._state.isDead && !this._state2.isDead) {
                     this._player2.killPlayer();
                 }
                 this._ensureDualFlyBounds?.();
@@ -1439,6 +1459,8 @@ class LevelEditor {
         return;
     }
 
+    this._state.lastY = initialY;
+    if (this._isDual) this._state2.lastY = initialY2;
     this._state.ignorePortals = false;
     this._state2.ignorePortals = false;
 
@@ -1489,9 +1511,16 @@ class LevelEditor {
             this._level.checkTouchMoveTriggers(playerX, this._state2.y);
         }
     }
+    this._level.beginGroupTransformBatch();
     this._level.stepMoveTriggers(deltaTime / 1000);
     this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
     this._level.checkAlphaTriggers(playerX);
+    if (this._level.checkTouchAlphaTriggers) {
+        this._level.checkTouchAlphaTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchAlphaTriggers(playerX, this._state2.y);
+        }
+    }
     this._level.stepAlphaTriggers(deltaTime / 1000);
     this._level.checkRotateTriggers(playerX);
     this._level.stepRotateTriggers(deltaTime / 1000);
@@ -1518,7 +1547,15 @@ class LevelEditor {
         }
     }
     this._level.stepFollowTriggers?.(deltaTime / 1000);
+    this._level.flushGroupTransformBatch();
     this._level.checkToggleTriggers?.(playerX);
+    this._level.checkAnimationTriggers?.(playerX);
+    if (this._level.checkTouchAnimationTriggers) {
+        this._level.checkTouchAnimationTriggers(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchAnimationTriggers(playerX, this._state2.y);
+        }
+    }
     if (this._level.checkTouchToggleTriggers) {
         this._level.checkTouchToggleTriggers(playerX, this._state.y);
         if (this._isDual && !this._state2.isDead) {
@@ -1551,9 +1588,19 @@ class LevelEditor {
             this._level.checkTouchTouchTriggers(playerX, this._state2.y);
         }
     }
-    const isHoldingInput = Boolean(this._state?.upKeyDown || (this._isDual && !this._state2?.isDead && this._state2?.upKeyDown));
-    const isPressedInput = Boolean(this._state?.upKeyPressed || (this._isDual && !this._state2?.isDead && this._state2?.upKeyPressed));
-    this._level.stepTouchTriggers?.(isHoldingInput, isPressedInput, this._colorManager);
+    const isHoldingInput = Boolean(this._state?.upKeyDown);
+    const isPressedInput = Boolean(this._state?.upKeyPressed);
+    let p2HoldingInput = false;
+    let p2PressedInput = false;
+    if (this._isDual && !this._state2?.isDead) {
+        p2HoldingInput = Boolean(this._state2?.upKeyDown);
+        p2PressedInput = Boolean(this._state2?.upKeyPressed);
+    }
+    if (!this._level.isTouchTriggerDualMode?.()) {
+        p2HoldingInput = false;
+        p2PressedInput = false;
+    }
+    this._level.stepTouchTriggers?.(isHoldingInput, isPressedInput, p2HoldingInput, p2PressedInput, this._colorManager);
     this._level.checkPickupTriggers?.(playerX, this._colorManager);
     if (this._level.checkTouchPickupTriggers) {
         this._level.checkTouchPickupTriggers(playerX, this._state.y, this._colorManager);
@@ -1562,6 +1609,8 @@ class LevelEditor {
         }
     }
     this._level.checkCountTriggers?.(playerX, this._colorManager);
+    this._level.checkCollisionTriggers?.(playerX);
+    this._level.updateCollisionTriggers?.();
     if (this._level.checkTouchCountTriggers) {
         this._level.checkTouchCountTriggers(playerX, this._state.y, this._colorManager);
         if (this._isDual && !this._state2.isDead) {
@@ -1584,6 +1633,7 @@ class LevelEditor {
     this._level.setGroundColor(this._colorManager.getHex(gs));
     this._level.updateVisibility(this._cameraX);
     this._level.updateObjectDebugIds();
+    window.BeastAnim.update(this, deltaTime);
     this._refreshEditorPlaytestGlowVisibility();
 
     if (this._state.isFlying) {
@@ -2271,9 +2321,26 @@ class LevelEditor {
 
         if (!saveObj) continue;
 
+        const objectDef = getObjectFromId(saveObj.id);
+        const offsetX = Number(objectDef?.editorOffsetX ?? objectDef?.offsetX) || 0;
+        const offsetY = Number(objectDef?.editorOffsetY ?? objectDef?.offsetY) || 0;
+        const oldRad = (saveObj.rot || 0) * Math.PI / 180;
+        const rad = degrees * Math.PI / 180;
+        const newRad = oldRad + rad;
+
+        const oldX = offsetX * Math.cos(oldRad) + offsetY * Math.sin(oldRad);
+        const oldY = -offsetX * Math.sin(oldRad) + offsetY * Math.cos(oldRad);
+        const pivotX = (saveObj.x - oldX) * 2;
+        const pivotY = b((saveObj.y - oldY) * 2);
+
+        saveObj.x += offsetX * Math.cos(newRad) + offsetY * Math.sin(newRad) - oldX;
+        saveObj.y += -offsetX * Math.sin(newRad) + offsetY * Math.cos(newRad) - oldY;
+
         saveObj.rot = (saveObj.rot || 0) + degrees;
 
         if (saveObj._raw) {
+            saveObj._raw["2"] = String(saveObj.x);
+            saveObj._raw["3"] = String(saveObj.y);
             saveObj._raw["6"] = String(saveObj.rot);
         }
 
@@ -2289,6 +2356,25 @@ class LevelEditor {
         if (sprites) {
             for (const s of sprites) {
                 if (!s) continue;
+                if (offsetX || offsetY) {
+                    for (const [xKey, yKey] of [["x", "y"], ["_eeWorldX", "_eeBaseY"], ["_origWorldX", "_origBaseY"], ["_eeInitialWorldX", "_eeInitialBaseY"], ["_eeMoveBaseWorldX", "_eeMoveBaseBaseY"]]) {
+                        if (s[xKey] === undefined || s[yKey] === undefined) continue;
+                        const x = s[xKey] - pivotX;
+                        const y = s[yKey] - pivotY;
+                        s[xKey] = pivotX + x * Math.cos(rad) - y * Math.sin(rad);
+                        s[yKey] = pivotY + x * Math.sin(rad) + y * Math.cos(rad);
+                    }
+                    if (s._eeVisOffX !== undefined || s._eeVisOffY !== undefined) {
+                        const x = s._eeVisOffX || 0;
+                        const y = s._eeVisOffY || 0;
+                        s._eeVisOffX = x * Math.cos(rad) - y * Math.sin(rad);
+                        s._eeVisOffY = x * Math.sin(rad) + y * Math.cos(rad);
+                    }
+                    if (s._eeInitialRotationRad !== undefined) {
+                        s._eeInitialRotationRad += rad;
+                    }
+                    this._level._refreshSpriteSection(s);
+                }
                 if (s._eeEditorTrigger) {
                     const triggerTargets = [];
                     if (s._eeTriggerSprite) triggerTargets.push(s._eeTriggerSprite);
