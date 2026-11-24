@@ -1086,7 +1086,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         });
         container.add(newBtn);
 
-         const importBtn = this.add.image(50, newBtnY - 90, "GJ_GameSheet04", "GJ_importBtn_001.png").setScale(0.95).setInteractive();
+         const importBtn = this.add.image(60, newBtnY - 90, "GJ_GameSheet04", "GJ_importBtn_001.png").setScale(0.95).setInteractive();
           this._makeBouncyButton(importBtn, 0.95, () => {
             this._importGMD();
         });
