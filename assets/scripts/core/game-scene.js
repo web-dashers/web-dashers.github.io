@@ -3431,12 +3431,14 @@ _applyMirrorEffect() {
   }
   _ensureDualFlyBounds(centerY = null) {
     if (!this._isDual || !this._level) return;
-    const span = Number(typeof f !== "undefined" ? f : 480) || 480;
+    const fullSpan = f;
+    const hasShipWave = this._state.isFlying || this._state.isWave || this._state2.isFlying || this._state2.isWave;
+    const span = hasShipWave ? fullSpan : fullSpan - a;
     const floorY = this._level._flyFloorY;
     const ceilingY = this._level._flyCeilingY;
     const currentSpan = Number.isFinite(Number(floorY)) && Number.isFinite(Number(ceilingY)) ? Number(ceilingY) - Number(floorY) : null;
     if (currentSpan === null || Math.abs(currentSpan - span) > 0.01 || !this._level._flyGroundActive) {
-      const y = Number.isFinite(Number(centerY)) ? Number(centerY) : (Number.isFinite(Number(this._state?.y)) ? Number(this._state.y) : 30);
+      const y = centerY === null && Number.isFinite(floorY) && this._level._flyGroundActive ? floorY + span / 2 : (centerY ?? this._state.y) + (span - fullSpan) / 2;
       this._level.setFlyMode(true, y, span, false);
     }
   }
