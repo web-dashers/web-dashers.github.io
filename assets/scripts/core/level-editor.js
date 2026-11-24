@@ -1226,10 +1226,12 @@ class LevelEditor {
     this._state.upKeyDown = true;
     this._state.upKeyPressed = true;
     this._state.queuedHold = true;
+    this._state._dashJumpLock = false;
     if (this._isDual && this._state2 && !this._state2.isDead) {
         this._state2.upKeyDown = true;
         this._state2.upKeyPressed = true;
         this._state2.queuedHold = true;
+        this._state2._dashJumpLock = false;
     }
 
     const primaryGravityBefore = !!this._state.gravityFlipped;
@@ -1276,9 +1278,11 @@ class LevelEditor {
     this._state.upKeyDown = false;
     this._state.upKeyPressed = false;
     this._state.queuedHold = false;
+    this._state._dashJumpLock = false;
     this._state2.upKeyDown = false;
     this._state2.upKeyPressed = false;
     this._state2.queuedHold = false;
+    this._state2._dashJumpLock = false;
   }
 
 
