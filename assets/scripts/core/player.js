@@ -35,6 +35,7 @@ class PlayerState {
     this.upKeyPressed = false;
     this.queuedHold = false;
     this._orbActivationConsumedForPress = false;
+    this._dashJumpLock = false;
     this.isDead = false;
     this.mirrored = false;
     this.isDashing = false;
@@ -3777,6 +3778,12 @@ if (this.p.isFlying || this.p.isUfo) {
     this.rotateActionStart = this._rotation;
     this.rotateActionTotal = Math.PI * this.flipMod() * direction;
   }
+  _endDash() {
+    if (!this.p.isDashing) return;
+    this.p.isDashing = false;
+    this.p.dashYVelocity = 0;
+    if (this.p.upKeyDown) this.p._dashJumpLock = true;
+  }
   _isDashSpinning() {
     return !!this.p.isDashing && !this.p.isFlying && !this.p.isBall && !this.p.isWave
       && !this.p.isUfo && !this.p.isSpider && !this.p.isRobot && !this.p.isSwing;
@@ -3951,6 +3958,7 @@ if (this.p.isFlying || this.p.isUfo) {
     return 1.922398;
   }
   updateJump(_0x3d1c6f) {
+    if (!this.p.upKeyDown) this.p._dashJumpLock = false;
     if (this.p.pendingVelocity !== null) {
       this.p.yVelocity = this.p.pendingVelocity;
       this.p.pendingVelocity = null;
@@ -3981,7 +3989,7 @@ if (this.p.isFlying || this.p.isUfo) {
       this._updateSpiderJump(_0x3d1c6f);
     } else if (this.p.isRobot) {
       this._updateRobotJump(_0x3d1c6f);
-    } else if (this.p.upKeyDown && this.p.canJump) {
+    } else if (this.p.upKeyDown && this.p.canJump && !this.p._dashJumpLock) {
       this.p.isJumping = true;
       this.p.onGround = false;
       this.p.canJump = false;
@@ -5402,10 +5410,7 @@ if (this.p.isFlying || this.p.isUfo) {
             }
           }
         } else if (_colType === sBlockType) {
-          if (this.p.isDashing) {
-            this.p.isDashing = false;
-            this.p.dashYVelocity = 0;
-          }
+          this._endDash();
         }
       }
     }
@@ -5818,6 +5823,7 @@ if (this.p.isFlying || this.p.isUfo) {
     this._shipDragEmitter.stop();
     this.p.isDashing = false;
     this.p.dashYVelocity = 0;
+    this.p._dashJumpLock = false;
     if (this._dashAnimationSprite) this._dashAnimationSprite.setVisible(false);
     this._dashAnimationFrame = 0;
     this._dashAnimationTimer = 0;
