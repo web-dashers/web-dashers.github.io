@@ -1456,11 +1456,13 @@ class GameScene extends UIScene {
       this._state.upKeyPressed = true;
       this._state.queuedHold = true;
       this._state._orbActivationConsumedForPress = false;
+      this._state._dashJumpLock = false;
       if (this._isDual && !this._state2.isDead) {
         this._state2.upKeyDown = true;
         this._state2.upKeyPressed = true;
         this._state2.queuedHold = true;
         this._state2._orbActivationConsumedForPress = false;
+        this._state2._dashJumpLock = false;
       }
       const _dualImmediateBeforeGravity = !!this._state.gravityFlipped;
       let _primaryImmediateJumped = false;
@@ -1527,10 +1529,12 @@ class GameScene extends UIScene {
     this._state.upKeyPressed = false;
     this._state.queuedHold = false;
     this._state._orbActivationConsumedForPress = false;
+    this._state._dashJumpLock = false;
     this._state2.upKeyDown = false;
     this._state2.upKeyPressed = false;
     this._state2.queuedHold = false;
     this._state2._orbActivationConsumedForPress = false;
+    this._state2._dashJumpLock = false;
   }
   _initMacroBot() {
     this._macroBot = new MacroBot(this);
@@ -2461,6 +2465,7 @@ class GameScene extends UIScene {
       this._state.upKeyDown = true;
       this._state.queuedHold = true;
       this._state._orbActivationConsumedForPress = false;
+      this._state._dashJumpLock = false;
     }
     if (cancelInput) {
       this._state.upKeyDown = false;
