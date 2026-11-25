@@ -952,44 +952,77 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         const maskShape = this.add.graphics().fillStyle(0xffffff).fillRect(tableX, tableY, tableW, tableH).setVisible(false);
         const mask = maskShape.createGeometryMask();
         listContainer.setMask(mask);
+        listContainer.y = tableY + 22;
         container.add(this.add.graphics().setScrollFactor(0).setDepth(90).fillStyle(0xc2723e, 1).fillRect(tableX, tableY, tableW, tableH));
         container.add(listContainer);
 
         const spacing = 140;
+        const levelsPerPage = 10;
+        let currentPage = 0;
+        let scrollOffsetY = 0;
+        let activeLevelRows = [];
+        const getCurrentPageLevelCount = () => Math.min(
+            levelsPerPage,
+            Math.max(0, createdLevels.length - currentPage * levelsPerPage)
+        );
+        const getMaxScroll = () => Math.max(0, getCurrentPageLevelCount() * spacing - tableH + 32);
+        const setScroll = (offset) => {
+            scrollOffsetY = Phaser.Math.Clamp(offset, 0, getMaxScroll());
+            listContainer.y = tableY + 22 - scrollOffsetY;
+        };
+        const clearLevelRows = () => {
+            activeLevelRows.forEach(rowObject => rowObject.destroy());
+            activeLevelRows = [];
+        };
+        const renderCreatedPage = () => {
+            clearLevelRows();
+            const startIndex = currentPage * levelsPerPage;
+            createdLevels.slice(startIndex, startIndex + levelsPerPage).forEach((level, pageIndex) => {
+                const index = startIndex + pageIndex;
+                const slotY = (pageIndex * spacing) + (spacing / 2);
+                const stripeColor = index % 2 !== 0 ? 0xc2723e : 0xa1582c;
 
-        createdLevels.forEach((level, index) => {
-            const slotY = (index * spacing) + (spacing / 2);
+                const bgStripe = this.add.rectangle(centerX, slotY, tableW - 10, spacing, stripeColor, 1);
+                const separator = this.add.rectangle(centerX, slotY + (spacing / 2), tableW - 10, 1, 0x502c16, 1);
+                const nameTxt = this.add.bitmapText(tableX + 31, slotY - 29, "bigFont", level.levelName, 48).setOrigin(0, 0.5);
+                const revLabel = levelRevisions[level.createdId];
+                const revText = this.add.bitmapText(0, nameTxt.y + 5, "goldFont", revLabel, 20).setOrigin(0, 0.5);
+                const nameMaxW = (tableX + tableW - 145) - nameTxt.x - (revLabel ? revText.width + 10 : 0);
+                this._fitBitmapText(nameTxt, nameMaxW);
+                revText.x = nameTxt.x + nameTxt.displayWidth + 10;
+                const infoY = slotY + 30;
+                const lenIcon = this.add.image(tableX + 50, infoY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(0.8);
+                const lenTxt = this.add.bitmapText(lenIcon.x + 22, infoY, "bigFont", lengthValues[parseInt(level.levelLength, 10)] || "Tiny", 23).setOrigin(0, 0.5);
+                const songIcon = this.add.image(tableX + 165, infoY, "GJ_GameSheet03", "GJ_musicIcon_001.png").setScale(0.8);
+                const songTxt = this.add.bitmapText(songIcon.x + 22, infoY, "bigFont", level.song, 23).setOrigin(0, 0.5);
+                const statusIcon = this.add.image(tableX + 415, infoY, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScale(0.8);
+                this._fitBitmapText(songTxt, Math.max(20, (statusIcon.x - 25) - songTxt.x));
+                const statusTxt = this.add.bitmapText(statusIcon.x + 22, infoY, "bigFont", level.status, 23).setOrigin(0, 0.5);
 
-            const isOdd = index % 2 !== 0;
-            const stripeColor = isOdd ? 0xc2723e : 0xa1582c;
+                const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY, "GJ_button01", null, 115, 55, 24, 24, 24, 24).setScale(0.75).setInteractive().setScale(1.05);
+                const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 32).setOrigin(0.5).setScale(1.1);
+                this._makeCompositeBouncyButton(viewBtn, [viewBtn, viewTxt], 0.75, () => {
+                    this._closeEditorMenu(false);
+                    this._openLevelView(level);
+                });
 
-            const bgStripe = this.add.rectangle(centerX, slotY, tableW - 10, spacing, stripeColor, 1);
-            const separator = this.add.rectangle(centerX, slotY + (spacing / 2), tableW - 10, 1, 0x502c16, 1);
-            const nameTxt = this.add.bitmapText(tableX + 31, slotY - 29, "bigFont", level.levelName, 48).setOrigin(0, 0.5);
-            const revLabel = levelRevisions[level.createdId];
-            const revText = this.add.bitmapText(0, nameTxt.y + 5, "goldFont", revLabel, 20).setOrigin(0, 0.5);
-            const nameMaxW = (tableX + tableW - 145) - nameTxt.x - (revLabel ? revText.width + 10 : 0);
-            this._fitBitmapText(nameTxt, nameMaxW);
-            revText.x = nameTxt.x + nameTxt.displayWidth + 10;
-            const infoY = slotY + 30;
-            const lenIcon = this.add.image(tableX + 50, infoY, "GJ_GameSheet03", "GJ_timeIcon_001.png").setScale(0.8);
-            const lenTxt = this.add.bitmapText(lenIcon.x + 22, infoY, "bigFont", lengthValues[parseInt(level.levelLength, 10)] || "Tiny", 23).setOrigin(0, 0.5);
-            const songIcon = this.add.image(tableX + 165, infoY, "GJ_GameSheet03", "GJ_musicIcon_001.png").setScale(0.8);
-            const songTxt = this.add.bitmapText(songIcon.x + 22, infoY, "bigFont", level.song, 23).setOrigin(0, 0.5);
-            const statusIcon = this.add.image(tableX + 415, infoY, "GJ_GameSheet03", "GJ_infoIcon_001.png").setScale(0.8);
-            this._fitBitmapText(songTxt, Math.max(20, (statusIcon.x - 25) - songTxt.x));
-            const statusTxt = this.add.bitmapText(statusIcon.x + 22, infoY, "bigFont", level.status, 23).setOrigin(0, 0.5);
-
-            const viewBtn = this.add.nineslice(tableX + tableW - 80, slotY, "GJ_button01", null, 115, 55, 24, 24, 24, 24 ).setScale(0.75).setInteractive().setScale(1.05);
-            const viewTxt = this.add.bitmapText(viewBtn.x - 2, viewBtn.y - 1, "bigFont", "View", 32).setOrigin(0.5).setScale(1.1);
-
-            this._makeCompositeBouncyButton(viewBtn, [viewBtn, viewTxt], 0.75, () => {
-                this._closeEditorMenu(false);
-                this._openLevelView(level);
+                const rowObjects = [bgStripe, separator, nameTxt, revText, lenIcon, lenTxt, songIcon, songTxt, statusIcon, statusTxt, viewBtn, viewTxt];
+                listContainer.add(rowObjects);
+                activeLevelRows.push(...rowObjects);
             });
 
-            listContainer.add([bgStripe, separator, nameTxt, revText, lenIcon, lenTxt, songIcon, songTxt, statusIcon, statusTxt, viewBtn, viewTxt]);
-        });
+            setScroll(scrollOffsetY);
+            const hasLevels = createdLevels.length > 0;
+            const totalPages = Math.max(1, Math.ceil(createdLevels.length / levelsPerPage));
+            const start = hasLevels ? currentPage * levelsPerPage + 1 : 0;
+            const end = hasLevels ? Math.min(createdLevels.length, (currentPage + 1) * levelsPerPage) : 0;
+            pageBtnGroup.setVisible(hasLevels);
+            pageNum.setText(String(currentPage + 1));
+            pageLabel.setText(`${start} to ${end} of ${createdLevels.length}`).setVisible(hasLevels);
+            prevBtn.setVisible(hasLevels && currentPage > 0);
+            nextBtn.setVisible(hasLevels && currentPage < totalPages - 1);
+        };
+
         if (createdLevels.length === 0) {
           container.add(this.add.bitmapText(centerX, tableY + (tableH/2), "bigFont", "Tap New to create a level", 38).setOrigin(0.5));
         }
@@ -1001,28 +1034,52 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         container.add(this.add.image(centerX, tableY + tableH + 20, "GJ_WebSheet", "GJ_table_bottom_001.png"));
         container.add(this.add.bitmapText(centerX, tableY - 15, "bigFont", "My Levels", 42).setOrigin(0.5).setScale(1.1));
 
-        let scrollOffsetY = 0;
-        const listHeight = createdLevels.length * spacing;
-        const minY = tableY - Math.max(0, listHeight - tableH) - 10;
-        const maxY = tableY + 22;
-        const maxScroll = listHeight > tableH ? maxY - minY : 0;
+        const pageLabel = this.add.bitmapText(sw - 8, 3, "goldFont", "", 22).setOrigin(1, 0);
+        container.add(pageLabel);
+        const pageBtnGroup = this.add.container(sw - 35, sh / 2 - 240);
+        const pageBtn = this.add.image(0, 0, "GJ_button02").setScale(0.7);
+        const pageNum = this.add.bitmapText(-2, 0, "bigFont", "1", 35).setOrigin(0.5);
+        pageBtnGroup.add([pageBtn, pageNum]);
+        const pageBtnFrame = this.textures.getFrame("GJ_button02");
+        const pageBtnW = (pageBtnFrame ? pageBtnFrame.realWidth : 100) * 0.7;
+        const pageBtnH = (pageBtnFrame ? pageBtnFrame.realHeight : 100) * 0.7;
+        pageBtnGroup.setInteractive(
+            new Phaser.Geom.Rectangle(-pageBtnW / 2, -pageBtnH / 2, pageBtnW, pageBtnH),
+            Phaser.Geom.Rectangle.Contains
+        );
+        container.add(pageBtnGroup);
 
-        listContainer.y = maxY;
+        const prevBtn = this.add.image(40, sh / 2, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+            .setOrigin(0.5).setInteractive().setVisible(false);
+        const nextBtn = this.add.image(sw - 40, sh / 2, "GJ_GameSheet03", "GJ_arrow_03_001.png")
+            .setOrigin(0.5).setFlipX(true).setInteractive().setVisible(false);
+        container.add([prevBtn, nextBtn]);
 
-        const inTable = (pointer) => {
-            return pointer.x >= tableX && pointer.x <= tableX + tableW && pointer.y >= tableY && pointer.y <= tableY + tableH;
+        const goToPage = (page) => {
+            const totalPages = Math.max(1, Math.ceil(createdLevels.length / levelsPerPage));
+            currentPage = Math.max(0, Math.min(page, totalPages - 1));
+            scrollOffsetY = 0;
+            renderCreatedPage();
         };
-        const setScroll = (offset) => {
-            scrollOffsetY = Phaser.Math.Clamp(offset, 0, maxScroll);
-            listContainer.y = maxY - scrollOffsetY;
-        };
+        this._makeBouncyButton(pageBtnGroup, 1, () => {
+            const totalPages = Math.max(1, Math.ceil(createdLevels.length / levelsPerPage));
+            goToPage((currentPage + 1) % totalPages);
+        }, () => true);
+        this._makeBouncyButton(prevBtn, 1, () => goToPage(currentPage - 1));
+        this._makeBouncyButton(nextBtn, 1, () => goToPage(currentPage + 1));
+        renderCreatedPage();
 
+        const inTable = (pointer) => (
+            pointer.x >= tableX && pointer.x <= tableX + tableW &&
+            pointer.y >= tableY && pointer.y <= tableY + tableH
+        );
         const onWheel = (pointer, gameObjects, deltaX, deltaY) => {
             if (!this._editorOverlay || !inTable(pointer)) return;
             setScroll(scrollOffsetY + deltaY * 0.5);
         };
-
-        let isDragging = false, dragStartY = 0, dragStartOffset = 0;
+        let isDragging = false;
+        let dragStartY = 0;
+        let dragStartOffset = 0;
         const onDragStart = (pointer) => {
             if (!inTable(pointer)) return;
             isDragging = true;
@@ -1034,7 +1091,6 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
             setScroll(dragStartOffset + (dragStartY - pointer.y) * 0.5);
         };
         const onDragEnd = () => { isDragging = false; };
-
         this.input.on("wheel", onWheel);
         this.input.on("pointerdown", onDragStart);
         this.input.on("pointermove", onDragMove);
@@ -1318,13 +1374,23 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         const sw = screenWidth;
         const sh = screenHeight;
         const centerX = sw / 2;
+        let storageWarningShown = false;
         const saveToLS = (key, val) => {
             const rawData = localStorage.getItem("created_levels");
             let levels = rawData ? JSON.parse(rawData) : [];
             const idx = levels.findIndex(l => l.createdId === level.createdId);
             if (idx !== -1) {
                 levels[idx][key] = val;
-                localStorage.setItem("created_levels", JSON.stringify(levels));
+                try {
+                    window.gameCache.setItemWithQuotaRecovery("created_levels", JSON.stringify(levels));
+                    storageWarningShown = false;
+                } catch (err) {
+                    if (!storageWarningShown) {
+                        console.error("failed to save created level", err);
+                        alert("browser storage full. empty pls");
+                        storageWarningShown = true;
+                    }
+                }
             }
         };
         const deleteLevel = () => {
@@ -3924,7 +3990,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
             const loadingText = this.add.bitmapText(cx, cy, "goldFont", "Downloading Level Assets...", 20).setOrigin(0.5).setDepth(200);
 
             this.load.text(levelFileName, "assets/levels/" + levelFileName.split("_")[1] + ".txt");
-            this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
+            this.load.audio(songID, "assets/sound/music/" + songFileName + ".mp3");
 
             this.load.once("complete", () => {
                 loadingText.destroy();
@@ -8994,7 +9060,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
           .setScrollFactor(0).setOrigin(0.5).setDepth(700);
 
         this.load.text(challengeLevelFile, "assets/levels/67.txt");
-        if (known && !this.cache.audio.exists(songID)) this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
+        if (known && !this.cache.audio.exists(songID)) this.load.audio(songID, "assets/sound/music/" + songFileName + ".mp3");
 
         this.load.once("complete", () => {
           loadingText.destroy();

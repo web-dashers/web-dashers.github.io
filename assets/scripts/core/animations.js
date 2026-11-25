@@ -453,7 +453,7 @@ const BEAST_ANIM_DESC_KEYS = Object.keys(BEAST_ANIM_DEFS);
 
 function beastAnimPreload(scene) {
   for (const name of BEAST_ANIM_DESC_KEYS) {
-    scene.load.json(name + "_AnimDesc", "assets/sheets/" + name + "_AnimDesc.json");
+    scene.load.json(name + "_AnimDesc", "assets/ui-graphics/sheets/" + name + "_AnimDesc.json");
   }
 }
 

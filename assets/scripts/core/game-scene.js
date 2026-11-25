@@ -2330,7 +2330,7 @@ class GameScene extends UIScene {
         ).setOrigin(0.5).setDepth(200);
 
         this.load.text(levelFileName, "assets/levels/" + levelFileName.split("_")[1] + ".txt");
-        this.load.audio(songID, "assets/music/" + songFileName + ".mp3");
+        this.load.audio(songID, "assets/sound/music/" + songFileName + ".mp3");
 
         this.load.once("complete", () => {
           loadingText.destroy();

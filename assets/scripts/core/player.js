@@ -3075,19 +3075,6 @@ if (this.p.isFlying || this.p.isUfo) {
   _getPortalShineAtlasFrameData(scene, frameName) {
     if (!scene?.textures) return null;
 
-    const requestedSheet = "GJ_GameSheet04";
-    if (scene.textures.exists(requestedSheet)) {
-      const texture = scene.textures.get(requestedSheet);
-      const frameData = texture?.get?.(frameName);
-      if (frameData && frameData.name !== "__MISSING") {
-        return {
-          atlasFrame: { atlas: requestedSheet, frame: frameName },
-          atlasTexture: texture,
-          frameData
-        };
-      }
-    }
-
     if (typeof getAtlasFrame !== "function") return null;
     const atlasFrame = getAtlasFrame(scene, frameName);
     if (!atlasFrame) return null;
@@ -3119,17 +3106,7 @@ if (this.p.isFlying || this.p.isUfo) {
   }
 
   _getPortalShinePackedFrameMeta(frameName) {
-    const shineAtlasMeta = {
-      "boost_01_shine_001.png": { rotated: false, frame: { x: 910, y: 1038, w: 64, h: 82 }, sourceSize: { w: 64, h: 82 }, spriteSourceSize: { x: 0, y: 0, w: 64, h: 82 } },
-      "boost_02_shine_001.png": { rotated: true, frame: { x: 325, y: 1083, w: 61, h: 108 }, sourceSize: { w: 61, h: 108 }, spriteSourceSize: { x: 0, y: 0, w: 61, h: 108 } },
-      "boost_03_shine_001.png": { rotated: true, frame: { x: 801, y: 1052, w: 96, h: 108 }, sourceSize: { w: 96, h: 108 }, spriteSourceSize: { x: 0, y: 0, w: 96, h: 108 } },
-      "boost_04_shine_001.png": { rotated: true, frame: { x: 332, y: 957, w: 125, h: 108 }, sourceSize: { w: 125, h: 108 }, spriteSourceSize: { x: 0, y: 0, w: 125, h: 108 } },
-      "boost_05_shine_001.png": { rotated: true, frame: { x: 937, y: 742, w: 128, h: 103 }, sourceSize: { w: 128, h: 103 }, spriteSourceSize: { x: 0, y: 0, w: 128, h: 103 } },
-      "portalshine_03_front_001.png": { rotated: true, frame: { x: 971, y: 1, w: 72, h: 178 }, sourceSize: { w: 88, h: 178 }, spriteSourceSize: { x: 16, y: 0, w: 72, h: 178 } },
-      "portalshine_04_front_001.png": { rotated: true, frame: { x: 1, y: 1092, w: 40, h: 174 }, sourceSize: { w: 50, h: 174 }, spriteSourceSize: { x: 10, y: 0, w: 40, h: 174 } },
-      "portalshine_05_front_001.png": { rotated: true, frame: { x: 176, y: 1069, w: 66, h: 148 }, sourceSize: { w: 66, h: 148 }, spriteSourceSize: { x: 0, y: 0, w: 66, h: 148 } }
-    };
-    return shineAtlasMeta[frameName] || null;
+    return null;
   }
 
   _getCorrectedPortalShineTextureKey(scene, frameName) {

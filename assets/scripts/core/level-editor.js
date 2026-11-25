@@ -8678,7 +8678,7 @@ class LevelEditor {
             cb: async () => { 
                 this._showEditorPauseMenu(false);
                 this._stopEditorPlaytest?.();
-                this._saveEditorLevel();
+                if (!this._saveEditorLevel()) return;
                 const savedRecord = this._getCurrentEditorLevelRecord?.().level || null;
                 window._createdLevelReturnToView = {
                     createdId: savedRecord?.createdId ?? window.currentlevel?.[2] ?? window._onlineLevelId,
@@ -8694,7 +8694,7 @@ class LevelEditor {
         { 
             text: "Save and Exit", 
             cb: async () => { 
-                this._saveEditorLevel();
+                if (!this._saveEditorLevel()) return;
                 await returnToLevelView(true);
             } 
         },
@@ -8921,7 +8921,13 @@ _serializeObject(object) {
             createdLevels[levelIndex].song = this._editorPendingSongName || createdLevels[levelIndex].song;
         }
 
-        localStorage.setItem("created_levels", JSON.stringify(createdLevels));
+        try {
+            window.gameCache.setItemWithQuotaRecovery("created_levels", JSON.stringify(createdLevels));
+        } catch (err) {
+            console.error("Failed to save editor level", err);
+            alert("Could not save this level because browser storage is full. Free up browser storage and try again.");
+            return false;
+        }
 
         window._onlineLevelString = createdLevels[levelIndex].levelString;
         window._onlineLevelName = createdLevels[levelIndex].levelName;
@@ -8930,6 +8936,7 @@ _serializeObject(object) {
         this._editorPendingSongId = undefined;
         this._editorPendingSongName = undefined;
     }
+    return true;
   }
 
 

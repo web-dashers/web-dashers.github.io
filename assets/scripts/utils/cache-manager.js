@@ -55,6 +55,17 @@ class GameCacheManager {
             return null;
         }
     }
+    setItemWithQuotaRecovery(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            if (e.name !== 'QuotaExceededError' && e.code !== 22 && e.code !== 1014) {
+                throw e;
+            }
+            this.clearCache();
+            localStorage.setItem(key, value);
+        }
+    }
     cacheFile(url, content) {
         const cacheKey = this.getCacheKey(url);
         const data = {
