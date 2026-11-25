@@ -1434,14 +1434,21 @@ class GameScene extends UIScene {
     this._level.checkToggleTriggers?.(0);
   }
   _pushButton(ignoreMacro = false) {
-    const objectsUnderPointer = this.input.manager.hitTest(
-      this.input.activePointer,
-      this._startPosGui.list,
-      this.cameras.main
-    );
-    const isOverUI = objectsUnderPointer.length > 0;
-    const fromClick = this.input.activePointer.isDown;
-    const cancelInput = isOverUI && fromClick;
+ const uiObjects = [
+  ...(this._startPosGui?.list || []),
+  this._checkpointBtn,
+  this._clearCheckpointBtn
+].filter(Boolean);
+
+const objectsUnderPointer = this.input.manager.hitTest(
+  this.input.activePointer,
+  uiObjects,
+  this.cameras.main
+);
+
+const isOverUI = objectsUnderPointer.length > 0;
+const fromClick = this.input.activePointer.isDown;
+const cancelInput = isOverUI && fromClick;
 
     if (this._menuActive) {
       this._audio.playEffect("playSound_01", {
@@ -2451,11 +2458,17 @@ class GameScene extends UIScene {
   }
 
     const fromClick = this.input.activePointer.isDown;
-    const cancelInput = fromClick && this.input.manager.hitTest(
-      this.input.activePointer,
-      this._startPosGui.list,
-      this.cameras.main
-    ).length > 0;
+    const uiObjects = [
+  ...(this._startPosGui?.list || []),
+  this._checkpointBtn,
+  this._clearCheckpointBtn
+].filter(Boolean);
+
+const cancelInput = fromClick && this.input.manager.hitTest(
+  this.input.activePointer,
+  uiObjects,
+  this.cameras.main
+).length > 0;
 
     if (!!this.input.activePointer.isDown && !this._state.upKeyDown && !this._state.isDead) {
       this._state.upKeyDown = true;
