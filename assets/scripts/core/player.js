@@ -3878,7 +3878,7 @@ if (this.p.isFlying || this.p.isUfo) {
     }
     const slopeAngle = Math.atan(steepness);
     const offset = playerSize / Math.cos(slopeAngle);
-    const slopeIntersection = wasOnSlope && this._gdLastSlopeObj !== gameObj && this._gdLastSlopeTop !== isFloorTop;
+    const slopeIntersection = wasOnSlope && this._gdLastSlopeObj !== gameObj && this._gdLastSlopeTop !== isFloorTop && (!(!!this.p.isFlying) || (pieceWidth >= minX && pieceWidth <= maxX));
     const tolerance = slopeIntersection ? 40 * (this.p.isMini ? 0.6 : 1) : 0;
     let target;
     if (!isFloorTop) {
@@ -3931,8 +3931,11 @@ if (this.p.isFlying || this.p.isUfo) {
       if (this._gdSlopeGrace()) return { landed: false, died: false, push: { y: target, grace: true } };
       return { landed: false, died: true };
     }
-    const special = !slopeIntersection && slidingDown &&
-      (ship ? !holding : (ufo || wave || this.p.isSwing) ? true : !this.p.isJumping);
+    if (ship && this._gdLastSlopeObj !== gameObj &&
+        (pieceWidth < minX || pieceWidth > maxX)) {
+        return none;
+    }
+    const special = !slopeIntersection && slidingDown && (ship ? !holding : (ufo || wave || this.p.isSwing) ? true : !this.p.isJumping);
     const touching = upsideDown ? playersY > target : playersY < target;
     let within = !ship && special && (upsideDown ? playersY > target - stick : playersY < target + stick);
     if (within && !touching && ufo) within = upsideDown ? this.p.yVelocity >= 0 : this.p.yVelocity <= 0;
