@@ -6,12 +6,51 @@ if (window.mainColor == null) {
 if (window.secondaryColor == null) {
   window.secondaryColor = parseInt(localStorage.getItem("iconSecondaryColor") || "00FBFF", 16);
 }
+window.iconGlowColor = parseInt(localStorage.getItem("iconGlowColor") || "7DFF00", 16);
+window.iconGlowEnabled = localStorage.getItem("iconGlowEnabled") === "true";
 window.currentPlayer = localStorage.getItem("iconCurrentPlayer") || "player_01";
 window.currentShip   = localStorage.getItem("iconCurrentShip")   || "ship_01";
 window.currentBall   = localStorage.getItem("iconCurrentBall")   || "player_ball_01";
 window.currentWave   = localStorage.getItem("iconCurrentWave")   || "dart_01";
 window.currentSpider = localStorage.getItem("iconCurrentSpider") || "spider_01";
 window.currentBird   = localStorage.getItem("iconCurrentBird")   || "bird_01";
+window.currentSwing = localStorage.getItem("iconCurrentSwing") || "swing_01";
+const readIconEffectID = (key, max) => {
+  const value = Number(localStorage.getItem(key));
+  return Number.isInteger(value) && value >= 1 && value <= max ? value : 1;
+};
+window.currentTrail = readIconEffectID("iconCurrentTrail", 7);
+window.currentShipFire = readIconEffectID("iconCurrentShipFire", 6);
+window.currentDeathEffect = readIconEffectID("iconCurrentDeathEffect", 20);
+window.iconExplode = localStorage.getItem("iconExplode") !== "false";
+window.iconSlowRobotRun = localStorage.getItem("iconSlowRobotRun") === "true";
+window.iconFastRobotRun = localStorage.getItem("iconFastRobotRun") === "true";
+window.iconFastSpiderRun = localStorage.getItem("iconFastSpiderRun") === "true";
+const iconFireFrameCounts = [0, 0, 9, 10, 6, 16, 5];
+window.iconEffectTextureNames = (kind, id) => {
+  const two = String(id).padStart(2, "0");
+  if (kind === "trail") return id >= 1 && id <= 7 ? [`streak_${two}_001.png`] : [];
+  if (kind !== "fire") return [];
+  return Array.from({ length: iconFireFrameCounts[id] || 0 }, (_, i) =>
+    `shipfire${two}_${String(i + 1).padStart(3, "0")}.png`);
+};
+const iconEffectTextureAttempts = new WeakMap();
+window.loadIconEffectTextures = (scene, kind, id) => {
+  const manager = scene.textures;
+  let attempts = iconEffectTextureAttempts.get(manager);
+  if (!attempts) iconEffectTextureAttempts.set(manager, attempts = new Set());
+  for (const name of window.iconEffectTextureNames(kind, id)) {
+    if (manager.exists(name) || attempts.has(name)) continue;
+    attempts.add(name);
+    const image = new Image();
+    image.onload = () => {
+      if (manager.list && !manager.exists(name)) manager.addImage(name, image);
+    };
+    image.onerror = () => {};
+    image.src = `assets/game-sprites/icon-effects/${name}`;
+  }
+};
+
 const storedUseDirectInternet = localStorage.getItem("gd_useDirectInternet");
 window.useDirectInternet = storedUseDirectInternet === null ? true : storedUseDirectInternet === "true";
 window.getGdApiBase = function () {
@@ -130,9 +169,9 @@ const fs = 1000;
 const gs = 1001;
 
 
-window.ICON_COUNTS = { icon: 485, ship: 169, ball: 119, wave: 96, ufo: 149, robot: 68, spider: 69 };
+window.ICON_COUNTS = { icon: 485, ship: 169, ball: 119, wave: 96, ufo: 149, robot: 68, spider: 69, swing: 43 };
 
-const ICON_BASE_RE = /^((?:player_ball|player|ship|dart|bird|spider|robot)_\d{2,3})(?:_.*)?_001\.png$/;
+const ICON_BASE_RE = /^((?:player_ball|player|ship|dart|bird|spider|robot|swing)_\d{2,3})(?:_.*)?_001\.png$/;
 window._iconAtlasFailed  = window._iconAtlasFailed  || new Set();
 window._iconAtlasPending = window._iconAtlasPending || new Set();
 
@@ -150,7 +189,7 @@ function iconAtlasPath(base) {
 function getEquippedIconBases() {
   const robot = window.currentRobot || localStorage.getItem("iconCurrentRobot") || "robot_01";
   const list = [window.currentPlayer, window.currentShip, window.currentBall,
-                window.currentWave, window.currentBird, window.currentSpider, robot];
+                window.currentWave, window.currentBird, window.currentSpider, robot, window.currentSwing];
   const out = [];
   for (const v of list) {
     const b = iconBaseOf(String(v || "") + "_001.png");
@@ -246,6 +285,90 @@ function _buildIconAtlasFromPlist(scene, base) {
     }
   }
 }
+const deathEffectLoads = new WeakMap();
+const deathEffectAtlases = new WeakMap();
+window.loadIconDeathEffect = (scene, id) => {
+  if (!Number.isInteger(id) || id < 2 || id > 20) return Promise.resolve(null);
+  const manager = scene.textures;
+  let loads = deathEffectLoads.get(manager);
+  if (!loads) deathEffectLoads.set(manager, loads = new Map());
+  if (loads.has(id)) return loads.get(id);
+  const key = `iconDeathEffect_${id}`;
+  const base = `assets/game-sprites/icon-effects/PlayerExplosion_${String(id - 1).padStart(2, "0")}`;
+  const task = (async () => {
+    for (const [suffix, resolution] of [["-hd", 2], ["", 1], ["-uhd", 4]]) {
+      try {
+        const response = await fetch(base + suffix + ".plist");
+        if (!response.ok) continue;
+        const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
+        if (xml.documentElement.tagName !== "plist" || xml.querySelector("parsererror")) continue;
+        const plist = _plistNode(xml.documentElement.firstElementChild);
+        const frames = _plistFrames(plist).filter(f => /\.png$/i.test(f.name));
+        if (!frames.length || frames.some(f => ![f.x, f.y, f.w, f.h, f.srcW, f.srcH, f.sx, f.sy].every(Number.isFinite) || f.w <= 0 || f.h <= 0 || f.srcW <= 0 || f.srcH <= 0)) continue;
+        const names = frames.map(f => f.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const img = await new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = base + suffix + ".png";
+        });
+        if (!manager.list) return null;
+        const size = _packIconFrames(frames, img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = size.w; canvas.height = size.h;
+        const ctx = canvas.getContext("2d");
+        for (const f of frames) {
+          if (f.rotated) {
+            ctx.save();
+            ctx.translate(f.dx, f.dy + f.h);
+            ctx.rotate(-Math.PI / 2);
+            ctx.drawImage(img, f.x, f.y, f.h, f.w, 0, 0, f.h, f.w);
+            ctx.restore();
+          } else {
+            ctx.drawImage(img, f.x, f.y, f.w, f.h, f.dx, f.dy, f.w, f.h);
+          }
+        }
+        const tex = manager.addCanvas(key, canvas);
+        if (!tex) continue;
+        for (const f of frames) {
+          const frame = tex.add(f.name, 0, f.dx, f.dy, f.w, f.h);
+          if (frame && (f.w !== f.srcW || f.h !== f.srcH || f.sx || f.sy)) {
+            frame.setTrim(f.srcW, f.srcH, f.sx, f.sy, f.w, f.h);
+          }
+        }
+        const data = { key, names, resolution };
+        let atlases = deathEffectAtlases.get(manager);
+        if (!atlases) deathEffectAtlases.set(manager, atlases = new Map());
+        atlases.set(id, data);
+        return data;
+      } catch (err) {
+        if (manager.list && manager.exists(key)) manager.remove(key);
+      }
+    }
+    return null;
+  })();
+  loads.set(id, task);
+  return task;
+};
+window.playIconDeathEffect = (scene, id, x, y, depth, size = 1) => {
+  const data = deathEffectAtlases.get(scene.textures)?.get(id);
+  if (!data || !scene.textures.exists(data.key)) return null;
+  const sprite = scene.add.image(x, y, data.key, data.names[0]).setOrigin(0.5).setScrollFactor(0).setDepth(depth).setScale(size * (40 / 30) / data.resolution * 1.5);
+  const state = { frame: 0 };
+  const playback = { sprite, tween: null, active: true };
+  sprite.once("destroy", () => {
+    playback.active = false;
+    scene.tweens.killTweensOf(state);
+  });
+  playback.tween = scene.tweens.add({
+    targets: state, frame: data.names.length, duration: data.names.length * (1000 / 20), ease: "Linear",
+    onUpdate: () => {
+      if (playback.active) sprite.setFrame(data.names[Math.min(data.names.length - 1, Math.floor(state.frame))]);
+    },
+    onComplete: () => { if (playback.active) sprite.destroy(); }
+  });
+  return playback;
+};
 function _cleanupIconTemps(scene, base) {
   const pk = "iconplist_" + base, ik = "iconimg_" + base;
   if (scene.cache.xml.exists(pk)) scene.cache.xml.remove(pk);
@@ -268,6 +391,10 @@ function _ensureIconLoaderHooks(scene) {
   const loader = scene.load;
   if (loader._iconHooks) return;
   loader._iconHooks = true;
+
+  scene.sys.events.once("shutdown", () => {
+    loader._iconHooks = false;
+  });
   loader.on("loaderror", (file) => {
     const m = /^icon(?:plist|img)_(.+)$/.exec(file && file.key);
     if (!m) return;
@@ -281,8 +408,8 @@ function _ensureIconLoaderHooks(scene) {
   });
 }
 function getAllIconBases() {
-  const c = Object.assign({ icon: 485, ship: 169, ball: 119, wave: 96, ufo: 149, robot: 68, spider: 69 }, window.ICON_COUNTS || {});
-  const prefixes = { icon: "player", ship: "ship", ball: "player_ball", wave: "dart", ufo: "bird", robot: "robot", spider: "spider" };
+  const c = Object.assign({ icon: 485, ship: 169, ball: 119, wave: 96, ufo: 149, robot: 68, spider: 69, swing: 43 }, window.ICON_COUNTS || {});
+  const prefixes = { icon: "player", ship: "ship", ball: "player_ball", wave: "dart", ufo: "bird", robot: "robot", spider: "spider", swing: "swing" };
   const seen = new Set(getEquippedIconBases());
   const out = Array.from(seen);
   for (const k of Object.keys(prefixes)) {

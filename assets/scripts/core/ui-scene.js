@@ -495,6 +495,19 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       const closeBtn = this.add.image(sideBtnX, sideBtnY0 + sideBtnGap, "GJ_GameSheet03", "GJ_deleteBtn_001.png")
         .setScrollFactor(0).setDepth(504).setScale(sideBtnScale).setInteractive();
       this._makeBouncyButton(closeBtn, sideBtnScale, () => {
+        if (!confirm(`Are you sure you want to delete ${lvl.name}?`)) return;
+        try {
+          const savedKey = "gd_saved_online_levels";
+          const savedLevels = JSON.parse(localStorage.getItem(savedKey) || "[]");
+          const id = String(lvl.id).replace(/^online_/, "");
+          const updatedLevels = savedLevels.filter(
+            sl => String(sl.id).replace(/^online_/, "") !== id
+          );
+          localStorage.setItem(savedKey, JSON.stringify(updatedLevels));
+        } catch (err) {
+          console.warn("Failed to delete:", err);
+          return;
+        }
         this._closePlayMenu(false, () => this._playMenuBackTarget());
       });
 
@@ -2305,7 +2318,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
 
     this._iconOverlay = null;
     const _iconCounts = Object.assign(
-      { icon: 485, ship: 169, ball: 119, wave: 96, ufo: 149, robot: 68, spider: 69 },
+      { icon: 485, ship: 169, ball: 119, wave: 96, ufo: 149, robot: 68, spider: 69, swing: 43 },
       window.ICON_COUNTS || {}
     );
     const _makeIconFrames = (prefix, count) =>
@@ -2316,6 +2329,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       ball: _makeIconFrames("player_ball", _iconCounts.ball),
       wave: _makeIconFrames("dart", _iconCounts.wave),
       ufo: _makeIconFrames("bird", _iconCounts.ufo),
+      swing: _makeIconFrames("swing", _iconCounts.swing),
     };
 
     const _selectorParseAnimPair = (value, fallbackX = 0, fallbackY = 0) => {
@@ -2427,6 +2441,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       ufo: "currentBird",
       robot: "currentRobot",
       spider: "currentSpider",
+      swing: "currentSwing",
     };
 
     const _iconAtlas = {
@@ -2437,6 +2452,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       ufo: "GJ_GameSheetIcons",
       robot: "GJ_GameSheetIcons",
       spider: "GJ_GameSheetIcons",
+      swing: "GJ_GameSheetIcons",
     };
 
     const _tabBtnFrames = {
@@ -2447,6 +2463,9 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       ufo: { on: "gj_birdBtn_on_001.png", off: "gj_birdBtn_off_001.png" },
       robot:{ on: "gj_robotBtn_on_001.png", off: "gj_robotBtn_off_001.png" },
       spider:{ on: "gj_spiderBtn_on_001.png", off: "gj_spiderBtn_off_001.png" },
+      swing: { on: "gj_swingBtn_on_001.png", off: "gj_swingBtn_off_001.png" },
+      streak: { on: "gj_streakBtn_on_001.png", off: "gj_streakBtn_off_001.png" },
+      explosion: { on: "gj_explosionBtn_on_001.png", off: "gj_explosionBtn_off_001.png" },
     };
 
     const _safeTabBtnFrame = (tab, state) => {
@@ -2480,62 +2499,90 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       }
       this._iconOverlay = overlay;
 
-      const blocker = this.add.zone(sw / 2, sh / 2, sw, sh)
-        .setScrollFactor(0).setDepth(100).setInteractive();
+      const blocker = this.add.zone(sw / 2, sh / 2, sw, sh).setScrollFactor(0).setDepth(100).setInteractive();
 
       const titleMaxLength = 20;
       const titleAllowedChars = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
       let titleText = String(localStorage.getItem("playerName") || "Player").replace(/\r|\n/g, "").slice(0, titleMaxLength);
-      if (!titleText || titleText.trim() === "") titleText = "Player";
-
+      if (!titleText.trim()) titleText = "Player";
       const titleTxt = this.add.bitmapText(sw / 2, 70, "bigFont", titleText, 64)
         .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(105).setInteractive();
+      const titleCursor = this.add.rectangle(0, 75, 3, 40, 0xffffff).setScrollFactor(0).setDepth(105.1).setVisible(false);
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.maxLength = titleMaxLength;
+      titleInput.autocomplete = "off";
+      titleInput.setAttribute("aria-label", "Player name");
+      titleInput.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;";
+      titleInput.value = titleText;
+      document.body.appendChild(titleInput);
       let titleFocused = false;
-
       const _updateTitleText = () => {
-        const safeTitle = titleText.slice(0, titleMaxLength);
-        titleText = safeTitle;
-        titleTxt.setText(safeTitle || "");
-        localStorage.setItem("playerName", safeTitle || "Player");
+        titleTxt.setText(titleText);
+        const before = titleText.slice(0, titleInput.selectionStart ?? titleText.length);
+        const fullWidth = titleTxt.displayWidth;
+        const ratio = titleText.length ? before.length / titleText.length : 0;
+        titleCursor.setX(sw / 2 - fullWidth / 2 + fullWidth * ratio + 2);
+        localStorage.setItem("playerName", titleText.trim() ? titleText : "Player");
       };
-
-      const _focusTitle = () => {
-        titleFocused = true;
-      };
-
       const _blurTitle = () => {
         titleFocused = false;
+        titleCursor.setVisible(false);
         if (!titleText.trim()) {
           titleText = "Player";
-          titleTxt.setText("Player");
-          localStorage.setItem("playerName", "Player");
+          titleInput.value = titleText;
         }
+        _updateTitleText();
+        if (document.activeElement === titleInput) titleInput.blur();
       };
-
-      titleTxt.on("pointerdown", () => _focusTitle());
-      blocker.on("pointerdown", () => _blurTitle());
-
-      const _onTitleKeyDown = (event) => {
-        if (!titleFocused || !this._iconOverlay) return;
+      titleTxt.on("pointerdown", () => {
+        if (this._closeIconColorMenu || this._iconImportMenuObjects) return;
+        titleFocused = true;
+        titleInput.focus({ preventScroll: true });
+        titleInput.setSelectionRange(titleText.length, titleText.length);
+        _updateTitleText();
+        titleCursor.setVisible(true);
+      });
+      titleInput.addEventListener("input", () => {
+        const caret = titleInput.selectionStart ?? titleInput.value.length;
+        const clean = value => [...value].filter(c => titleAllowedChars.includes(c)).join("").slice(0, titleMaxLength);
+        const nextCaret = clean(titleInput.value.slice(0, caret)).length;
+        titleText = clean(titleInput.value);
+        titleInput.value = titleText;
+        titleInput.setSelectionRange(nextCaret, nextCaret);
+        _updateTitleText();
+        titleCursor.setVisible(true);
+      });
+      titleInput.addEventListener("keydown", event => {
         event.stopPropagation();
-        if (event.key === "Backspace") {
-          if (titleText.length > 0) {
-            titleText = titleText.slice(0, -1);
-            _updateTitleText();
-          }
-        } else if (event.key === "Enter") {
+        if (event.key === "Enter" || event.key === "Escape") {
+          event.preventDefault();
           _blurTitle();
-        } else if (event.key.length === 1 && titleAllowedChars.includes(event.key) && !event.ctrlKey && !event.metaKey) {
-          if (titleText.length < titleMaxLength) {
-            titleText += event.key;
-            _updateTitleText();
-          }
         }
+      });
+      titleInput.addEventListener("keyup", event => { window._kbDown?.delete(event.code); event.stopPropagation(); if (titleFocused) _updateTitleText(); });
+      titleInput.addEventListener("blur", _blurTitle);
+      const titleBlink = this.time.addEvent({ delay: 500, loop: true, callback: () => {
+        titleCursor.setVisible(titleFocused && !titleCursor.visible);
+      } });
+      const outsideTitle = pointer => {
+        if (titleFocused && (Math.abs(pointer.x - sw / 2) > Math.max(20, titleTxt.displayWidth / 2) || Math.abs(pointer.y - 70) > Math.max(35, titleTxt.displayHeight / 2))) _blurTitle();
       };
+      this.input.on("pointerdown", outsideTitle);
+      this._iconTitleCleanup = () => {
+        _blurTitle();
+        titleBlink.remove();
+        this.input.off("pointerdown", outsideTitle);
+        titleInput.remove();
+      };
+      _updateTitleText();
+      this._iconOverlayObjects = [overlay, blocker, titleTxt, titleCursor];
 
-      window.addEventListener("keydown", _onTitleKeyDown);
-      this._iconTitleKeyHandler = _onTitleKeyDown;
-      this._iconOverlayObjects = [overlay, blocker, titleTxt];
+      const secretCoinIcon = this.add.image(sw - 60, 35, "GJ_GameSheet03", "GJ_coinsIcon_001.png").setScrollFactor(0).setDepth(105).setScale(0.8);
+      const secretCoinText = this.add.bitmapText(sw - 86, 35, "bigFont", String(window._totalsecretcoins || 0), 32).setOrigin(1, 0.5).setScrollFactor(0).setDepth(105);
+      const userCoinIcon = this.add.image(sw - 60, 80, "GJ_GameSheet03", "GJ_coinsIcon2_001.png").setScrollFactor(0).setDepth(105).setScale(0.8);
+      const userCoinText = this.add.bitmapText(sw - 86, 80, "bigFont", String(window._totalusercoins || 0), 32).setOrigin(1, 0.5).setScrollFactor(0).setDepth(105);
+      this._iconOverlayObjects.push(secretCoinIcon, secretCoinText,userCoinIcon, userCoinText);
 
       const backBtn = this.add.image(50, 48, "GJ_GameSheet03", "GJ_arrow_03_001.png")
         .setScrollFactor(0).setDepth(104).setFlipY(true)
@@ -2553,7 +2600,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
      */
       const topBarHeight = 110;
       const lineY = topBarHeight + 100;
-      const linePadding = 230;
+      const linePadding = 150;
       const topBar = this.add.graphics().setScrollFactor(0).setDepth(102);
       const lineSegments = 40;
       const lineStart = linePadding;
@@ -2561,203 +2608,74 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       const lineWidth = lineEnd - lineStart;
       const fadeZone = lineWidth * 0.25;
       for (let li = 0; li < lineSegments; li++) {
-    const t0 = li / lineSegments;
-    const t1 = (li + 1) / lineSegments;
-    const x0 = lineStart + t0 * lineWidth;
-    const x1 = lineStart + t1 * lineWidth;
-    const mid = (t0 + t1) / 2 * lineWidth;
-    let alpha;
-    if (mid < fadeZone) {
-      alpha = mid / fadeZone;
-    } else if (mid > lineWidth - fadeZone) {
-      alpha = (lineWidth - mid) / fadeZone;
-    } else {
-      alpha = 1;
-    }
-    topBar.lineStyle(3, 0xFFFFFF, alpha);
-    topBar.beginPath();
-    topBar.moveTo(x0, lineY);
-    topBar.lineTo(x1, lineY);
-    topBar.strokePath();
-  }
+        const t0 = li / lineSegments;
+        const t1 = (li + 1) / lineSegments;
+        const x0 = lineStart + t0 * lineWidth;
+        const x1 = lineStart + t1 * lineWidth;
+        const mid = (t0 + t1) / 2 * lineWidth;
+        let alpha;
+        if (mid < fadeZone) {
+          alpha = mid / fadeZone;
+        } else if (mid > lineWidth - fadeZone) {
+          alpha = (lineWidth - mid) / fadeZone;
+        } else {
+          alpha = 1;
+        }
+        topBar.lineStyle(4, 0xFFFFFF, alpha);
+        topBar.beginPath();
+        topBar.moveTo(x0, lineY);
+        topBar.lineTo(x1, lineY);
+        topBar.strokePath();
+      }
       this._iconOverlayObjects.push(topBar);
 
+      const gridSizeMultiplier = 1.20;
       const cols = 12;
       const rows = 3;
-      const iconSize = 45;
-      const padding = 12;
-      const containerPadding = 10;
-      const marginX = 30;
-      const marginY = 15;
+      const iconSize = 45 * gridSizeMultiplier;
+      const padding = 12 * gridSizeMultiplier;
+      const containerPadding = 10 * gridSizeMultiplier;
+      const marginX = 30 * gridSizeMultiplier;
+      const marginY = 15 * gridSizeMultiplier;
       const containerWidth = cols * iconSize + (cols - 1) * padding + marginX * 2;
       const containerHeight = rows * iconSize + (rows - 1) * padding + marginY * 2;
       const containerX = sw / 2 - containerWidth / 2;
-      const containerY = sh - containerHeight - containerPadding - 150;
+      const containerY = sh - containerHeight - containerPadding - 80;
       const startX = containerX + marginX + iconSize / 2;
       const startY = containerY + marginY + iconSize / 2;
 
       const gridBg = this.add.graphics().setScrollFactor(0).setDepth(102);
-      gridBg.fillStyle(0x454444, 1);
-      gridBg.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 10);
+      gridBg.fillStyle(0x000000, 0.3);
+      gridBg.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 10 * gridSizeMultiplier);
       this._iconOverlayObjects.push(gridBg);
 
-      const cornerTL = this.add.image(0, 0, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(100).setOrigin(0, 0).setFlipY(true)
-      const cornerTR = this.add.image(sw, 0, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(103).setOrigin(1, 0).setFlipY(true).setFlipX(true);
-      this._iconOverlayObjects.push(cornerTL, cornerTR);
+      const cornerTL = this.add.image(0, 0, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(100).setOrigin(0, 0).setFlipY(true);
+      const cornerBL = this.add.image(0, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(103).setOrigin(0, 1);
+      const cornerBR = this.add.image(sw, sh, "GJ_GameSheet03", "GJ_sideArt_001.png").setScrollFactor(0).setDepth(103).setOrigin(1, 1).setFlipX(true);
+      this._iconOverlayObjects.push(cornerTL, cornerBL, cornerBR);
       const gdColors = [
         0x7DFF00, 0x00FF00, 0x00FF7D, 0x00FFFF, 0x007DFF, 0x0000FF, 0x7D00FF, 0xFF00FF, 0xFF007D, 0xFF0000, 0xFF7D00, 0xFFFF00,
         0xFFFFFF, 0xB900FF, 0xFFB900, 0x000000, 0x00C8FF, 0xAFAFAF, 0x5A5A5A, 0xFF7D7D, 0x00AF4B, 0x007D7D, 0x004BAF, 0x4B00AF,
-        0x7D007D, 0xAF004C, 0xAF4B00, 0x7D7D00, 0x4AAF00, 0xFF4B00, 0x963200, 0x966400, 0x649600, 0x009664, 0x006496, 0x640096,
+        0x7D007D, 0xAF004B, 0xAF4B00, 0x7D7D00, 0x4BAF00, 0xFF4B00, 0x963200, 0x966400, 0x649600, 0x009664, 0x006496, 0x640096,
         0x960064, 0x960000, 0x009600, 0x000096, 0x7DFFAF, 0x7D7DFF, 0xFFFA7F, 0xFA7FFF, 0x00FFC0, 0x50320E, 0xCDA576, 0xB680FF,
-        0xFF3A3B, 0x4D4D8F, 0x000A4C, 0xFCD5CE, 0xBEB5FF, 0x700000, 0x530000, 0x390006, 0x804F4F, 0x7A3535, 0x512424, 0xA36246,
-        0x754936, 0x563528, 0xFFB972, 0xFEA040, 0x66311E, 0x5B2700, 0x472000, 0xA77B4D, 0x6D5339, 0x513E2A, 0xFFFFC0, 0xFCE8A8,
-        0xC0FFA0, 0xB1FF6D, 0xC0FFE0, 0x95FFE4, 0x43A18A, 0x316D5F, 0x265449, 0x006000, 0x004000, 0x006060, 0x004040, 0xA0FFFF,
-        0x000770, 0x00496D, 0x00324C, 0x002638, 0x5080AD, 0x335375, 0x243C56, 0xE0E0E0, 0x3D068C, 0x370860, 0x404040, 0x6E49A4,
-        0x54367F, 0x432A63, 0xFCB5FF, 0xAF57AE, 0x824382, 0x5E315E, 0x808080, 0x66003E, 0x470034, 0xD2FF31, 0x76BDFF,
+        0xFF3A3A, 0x4D4D8F, 0x000A4C, 0xFDD4CE, 0xBEB5FF, 0x700000, 0x520200, 0x380106, 0x804F4F, 0x7A3535, 0x512424, 0xA36246,
+        0x754936, 0x563528, 0xFFB972, 0xFFA040, 0x66311E, 0x5B2700, 0x472000, 0xA77B4D, 0x6D5339, 0x513E2A, 0xFFFFC0, 0xFDE0A0,
+        0xC0FFA0, 0xB1FF6D, 0xC0FFE0, 0x94FFE4, 0x43A18A, 0x316D5F, 0x265449, 0x006000, 0x004000, 0x006060, 0x004040, 0xA0FFFF,
+        0x010770, 0x00496D, 0x00324C, 0x002638, 0x5080AD, 0x335375, 0x243C56, 0xE0E0E0, 0x3D068C, 0x370860, 0x404040, 0x6F49A4,
+        0x54367F, 0x422A63, 0xFCB5FF, 0xAF57AF, 0x824382, 0x5E315E, 0x808080, 0x66033E, 0x470134, 0xD2FF32, 0x76BDFF,
       ];
-
-      const colorCols = 12;
-      const colorPageCount = Math.ceil(gdColors.length / colorCols);
-      let colorPage = 0;
-
-      const colorBtnSize = 44;
-      const colorPadding = 6;
-      const colorRowWidth = colorCols * (colorBtnSize + colorPadding) - colorPadding;
-      const colorRow2Y = sh - 39 - colorBtnSize / 2;
-      const colorRow1Y = colorRow2Y - colorBtnSize - 10;
-      const colorRowStartX = sw / 2 - colorRowWidth / 2 + colorBtnSize / 2;
-
-      const colorBoxWidth = sw;
-
-      const colorBoxX = 0;
-      const colorBoxY = colorRow1Y - colorBtnSize / 2 - 10;
-      const colorBoxHeight = sh - colorBoxY;
-      const colorBox = this.add.graphics().setScrollFactor(0).setDepth(101);
-      colorBox.fillStyle(0x000000, 0.5);
-      colorBox.fillRect(colorBoxX, colorBoxY, colorBoxWidth, colorBoxHeight);
-      this._iconOverlayObjects.push(colorBox);
-
-      const color1SelLabel = this.add.image(0, 0, "GJ_GameSheet03", "GJ_select_001.png").setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setVisible(false).setScale(0.6 * colorBtnSize / 35);
-      const color2SelLabel = this.add.image(0, 0, "GJ_GameSheet03", "GJ_select_001.png").setScrollFactor(0).setDepth(106).setOrigin(0.5, 0.5).setVisible(false).setScale(0.6 * colorBtnSize / 35);
-      this._iconOverlayObjects.push(color1SelLabel, color2SelLabel);
-      const _moveColorSelect = (label, color, rowY) => {
-        const idx = gdColors.indexOf(color);
-        const col = idx - colorPage * colorCols;
-        if (idx === -1 || col < 0 || col >= colorCols) {
-          label.setVisible(false);
-          return;
-        }
-        label.setPosition(colorRowStartX + col * (colorBtnSize + colorPadding), rowY).setVisible(true);
-      };
-
-          const _applyMainColor = (color) => {
-            window.mainColor = color;
-            localStorage.setItem("iconMainColor", hexadecimalToHex(color));
-            _moveColorSelect(color1SelLabel, color, colorRow1Y);
-            if (this._player) {
-              const safeSetTint = (sprite, c) => {
-                if (sprite && sprite.setTint) {
-                  try { sprite.setTint(c); } catch (e) {}
-                }
-              };
-              if (!this._player._playerSpriteLayer?.sprite?._customCubeIcon) safeSetTint(this._player._playerSpriteLayer?.sprite, color);
-              safeSetTint(this._player._shipSpriteLayer?.sprite, color);
-              safeSetTint(this._player._ballSpriteLayer?.sprite, color);
-              safeSetTint(this._player._waveSpriteLayer?.sprite, color);
-              for (const layer of this._player._robotLayers || []) safeSetTint(layer?.sprite, color);
-              for (const layer of this._player._spiderLayers || []) safeSetTint(layer?.sprite, color);
-              this._player._applyPlayerTints();
-              if (this._player._particleEmitter) {
-                try { this._player._particleEmitter.tint = color; } catch (e) {}
-              }
-            }
-            selectedIcon.setTint(color);
-            _refreshPreview(_currentTab, _getPreviewFrame(_currentTab));
-            if (window.iconGridColored && this._rebuildIconGrid) this._rebuildIconGrid();
-          };
-
-          const _applySecondaryColor = (color) => {
-            window.secondaryColor = color;
-            localStorage.setItem("iconSecondaryColor", hexadecimalToHex(color));
-            _moveColorSelect(color2SelLabel, color, colorRow2Y);
-            if (this._player) {
-              const safeSetTint = (sprite, c) => {
-                if (sprite && sprite.setTint) {
-                  try { sprite.setTint(c); } catch (e) {}
-                }
-              };
-              safeSetTint(this._player._playerGlowLayer?.sprite, color);
-              safeSetTint(this._player._playerOverlayLayer?.sprite, color);
-              safeSetTint(this._player._shipGlowLayer?.sprite, color);
-              safeSetTint(this._player._shipOverlayLayer?.sprite, color);
-              safeSetTint(this._player._ballGlowLayer?.sprite, color);
-              safeSetTint(this._player._ballOverlayLayer?.sprite, color);
-              safeSetTint(this._player._waveGlowLayer?.sprite, color);
-              safeSetTint(this._player._waveOverlayLayer?.sprite, color);
-              for (const layer of this._player._robotLayers || []) safeSetTint(layer?.sprite, color);
-              for (const layer of this._player._spiderLayers || []) safeSetTint(layer?.sprite, color);
-              this._player._applyPlayerTints();
-              if (this._player._streak) {
-                try { this._player._streak._color = color; } catch (e) {}
-              }
-            }
-            selectedIconExtra.setTint(window.secondaryColor);
-            _refreshPreview(_currentTab, _getPreviewFrame(_currentTab));
-            if (window.iconGridColored && this._rebuildIconGrid) this._rebuildIconGrid();
-          };
-          const colorDotSpacing = 29;
-          const colorDotY = sh - 20;
-          const colorDotStartX = sw / 2 - (colorPageCount - 1) * colorDotSpacing / 2;
-          let colorDotObjs = [];
-          const _updateColorDots = () => {
-            for (const d of colorDotObjs) { if (d && d.destroy) d.destroy(); }
-            this._iconOverlayObjects = this._iconOverlayObjects.filter(o => !colorDotObjs.includes(o));
-            colorDotObjs = [];
-            for (let i = 0; i < colorPageCount; i++) {
-              const d = this.add.graphics().setScrollFactor(0).setDepth(153);
-              d.fillStyle(0xffffff, i === colorPage ? 1 : 0.3);
-              d.fillCircle(colorDotStartX + i * colorDotSpacing, colorDotY, 7);
-              colorDotObjs.push(d);
-              this._iconOverlayObjects.push(d);
-            }
-          };
-          let colorPageObjs = [];
-          const _buildColorPage = (page) => {
-            colorPage = Math.max(0, Math.min(colorPageCount - 1, page));
-            for (const o of colorPageObjs) { if (o && o.destroy) o.destroy(); }
-            this._iconOverlayObjects = this._iconOverlayObjects.filter(o => !colorPageObjs.includes(o));
-            colorPageObjs = [];
-
-            const first = colorPage * colorCols;
-            for (let ci = 0; ci < colorCols; ci++) {
-          const color = gdColors[first + ci];
-          if (color === undefined) break;
-          const cx = colorRowStartX + ci * (colorBtnSize + colorPadding);
-
-          const b1 = this.add.rectangle(cx, colorRow1Y, colorBtnSize, colorBtnSize, color).setScrollFactor(0).setDepth(104).setInteractive();
-          const b2 = this.add.rectangle(cx, colorRow2Y, colorBtnSize, colorBtnSize, color).setScrollFactor(0).setDepth(104).setInteractive();
-          colorPageObjs.push(b1, b2);
-          this._iconOverlayObjects.push(b1, b2);
-          this._makeBouncyButton(b1, 1.0, () => _applyMainColor(color));
-          this._makeBouncyButton(b2, 1.0, () => _applySecondaryColor(color));
-        }
-        _moveColorSelect(color1SelLabel, window.mainColor, colorRow1Y);
-        _moveColorSelect(color2SelLabel, window.secondaryColor, colorRow2Y);
-        _updateColorDots();
-      };
-      const colorArrowY = (colorRow1Y + colorRow2Y) / 2;
-      const colorArrowMargin = colorRowWidth / 2 + 45;
-      const colorPrevArrow = this.add.image(sw / 2 - colorArrowMargin, colorArrowY, "GJ_GameSheet03", "GJ_arrow_02_001.png")
-        .setScrollFactor(0).setDepth(106).setScale(0.8).setFlipX(false).setInteractive();
-      const colorNextArrow = this.add.image(sw / 2 + colorArrowMargin, colorArrowY, "GJ_GameSheet03", "GJ_arrow_02_001.png")
-        .setScrollFactor(0).setDepth(106).setScale(0.8).setFlipX(true).setInteractive();
-      this._makeBouncyButton(colorPrevArrow, 0.8, () => _buildColorPage((colorPage - 1 + colorPageCount) % colorPageCount));
-      this._makeBouncyButton(colorNextArrow, 0.8, () => _buildColorPage((colorPage + 1) % colorPageCount));
-      this._iconOverlayObjects.push(colorPrevArrow, colorNextArrow);
-      {
-        const mi = gdColors.indexOf(window.mainColor);
-        _buildColorPage(mi >= 0 ? Math.floor(mi / colorCols) : 0);
-      }
+      const oldColorIDs = new Map([[0xAF004C, 25], [0x4AAF00, 28], [0xFF3A3B, 48], [0xFCD5CE, 51], [0x530000, 54], [0x390006, 55], [0xFEA040, 63], [0xFCE8A8, 71], [0x95FFE4, 75], [0x000770, 84], [0x6E49A4, 95], [0x432A63, 97], [0xAF57AE, 99], [0x66003E, 103], [0x470034, 104], [0xD2FF31, 105], [0x04FF00, 1], [0x00FBFF, 3]]); // for backwards compatibility, note: i should remove this later
+      const colorGroups = [
+        [[51, 19, 48, 9], [37, 53, 54, 55], [25, 56, 57, 58]],
+        [[62, 63, 10, 29], [26, 59, 60, 61], [30, 64, 65, 66]],
+        [[70, 42, 11, 27], [71, 14, 31, 45], [46, 67, 68, 69]],
+        [[72, 73, 0, 1], [105, 28, 32, 20], [2, 38, 79, 80]],
+        [[74, 75, 3, 44], [40, 76, 77, 78], [33, 21, 81, 82]],
+        [[83, 16, 4, 5], [22, 39, 84, 50], [34, 85, 86, 87], [106, 88, 89, 90]],
+        [[52, 41, 6, 35], [47, 23, 92, 93], [49, 95, 96, 97]],
+        [[98, 8, 36, 103], [7, 13, 24, 104], [43, 99, 100, 101]]
+      ];
+      const grayscaleColors = [12, 91, 17, 102, 18, 94, 15];
 
       const previewY = lineY - 45;
       const previewConfig = {
@@ -2768,11 +2686,13 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         wave: { size: 70, y: 0 },
         robot: { size: 88, y: 0 },
         spider: { size: 100, y: 0 },
+        swing: { size: 100, y: 0 },
       };
       const _pv = (tab) => previewConfig[tab] || { size: 88, y: 0 };
-      const selectedIconExtra = this.add.image(sw / 2, previewY, _iconAtlas[startTab], null).setScrollFactor(0).setDepth(102).setVisible(false);
-      const selectedIcon = this.add.image(sw / 2, previewY, _iconAtlas[startTab], null).setScrollFactor(0).setDepth(103);
-      const selectedIconWhite = this.add.image(sw / 2, previewY, _iconAtlas[startTab], null).setScrollFactor(0).setDepth(103.5).setVisible(false);
+      const selectedIconGlow = this.add.image(sw / 2, previewY, (_iconAtlas[startTab] || _iconAtlas.icon), null).setScrollFactor(0).setDepth(101.9).setVisible(false);
+      const selectedIconExtra = this.add.image(sw / 2, previewY, (_iconAtlas[startTab] || _iconAtlas.icon), null).setScrollFactor(0).setDepth(102).setVisible(false);
+      const selectedIcon = this.add.image(sw / 2, previewY, (_iconAtlas[startTab] || _iconAtlas.icon), null).setScrollFactor(0).setDepth(103);
+      const selectedIconWhite = this.add.image(sw / 2, previewY, (_iconAtlas[startTab] || _iconAtlas.icon), null).setScrollFactor(0).setDepth(103.5).setVisible(false);
       let selectedSegmentedPreview = null;
 
       const _destroySegmentedPreview = () => {
@@ -2807,6 +2727,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
             ? (isSpiderLegTag ? 1.8 : 1)
             : ((isRobotLegTag || isRobotArmTag) ? 1.8 : 1);
           const variants = [
+            ...(!muted && window.iconGlowEnabled ? [{ kind: "glow", frame: _selectorVariantFrameName(sourceTexture, "glow"), tint: window.iconGlowColor, z: zValue * 0.1 - 0.06 }] : []),
             { kind: "base", frame: sourceTexture, tint: (muted && !window.iconGridColored) ? 0xAFAFAF : window.mainColor, z: zValue * 0.1 },
             { kind: "overlay", frame: _selectorVariantFrameName(sourceTexture, "overlay"), tint: (muted && !window.iconGridColored) ? 0xffffff : window.secondaryColor, z: zValue * 0.1 - 0.04 },
             { kind: "extra", frame: _selectorVariantFrameName(sourceTexture, "extra"), tint: null, z: zValue * 0.1 + 0.08 }
@@ -2848,7 +2769,13 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         return container;
       };
 
+      let _lastPreviewTab = (startTab === "streak" || startTab === "explosion") ? "icon" : startTab;
       const _getPreviewFrame = (tab) => {
+        if (tab === "streak" || tab === "explosion") {
+          tab = _lastPreviewTab;
+        } else {
+          _lastPreviewTab = tab;
+        }
         const prop = _iconWindowProps[tab];
         const frames = _iconFrameSets[tab] || [];
         const currentValue = String(window[prop] || "");
@@ -2857,6 +2784,8 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       };
 
       const _refreshPreview = (tab, frame) => {
+        if (tab === "streak" || tab === "explosion") tab = _lastPreviewTab;
+        selectedIconGlow.setVisible(false);
         if (tab === "icon" && window.customCubeIconSrc && this.textures.exists("custom_cube_icon")) {
           _destroySegmentedPreview();
           selectedIcon.setVisible(true).setTexture(this.textures.exists("custom_cube_icon_hd") ? "custom_cube_icon_hd" : "custom_cube_icon").setTint(0xffffff);
@@ -2874,7 +2803,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
           const _pb = iconBaseOf(frame);
           if (_pb && !iconAtlasReady(this, _pb) && !window._iconAtlasFailed.has(_pb)) {
             loadIconAtlases(this, [_pb], () => {
-              if (this._iconOverlay && _currentTab === tab) _refreshPreview(tab, frame);
+              if (this._iconOverlay && _lastPreviewTab === tab) _refreshPreview(tab, frame);
             });
             return;
           }
@@ -2893,6 +2822,10 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         selectedIconExtra.setY(previewY + _pv(tab).y);
         selectedIconWhite.setY(previewY + _pv(tab).y);
         selectedIcon.setTint(window.mainColor);
+        const glowInfo = getAtlasFrame(this, frame.replace("_001.png", "_glow_001.png"));
+        if (glowInfo && window.iconGlowEnabled) {
+          selectedIconGlow.setTexture(glowInfo.atlas, glowInfo.frame).setScale(s).setY(previewY + _pv(tab).y).setTint(window.iconGlowColor).setVisible(true);
+        }
         const extraFrame = frame.replace("_001.png", "_2_001.png");
         const extraInfo = getAtlasFrame(this, extraFrame);
         if (extraInfo) {
@@ -2909,27 +2842,17 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       };
 
       _refreshPreview(startTab, _getPreviewFrame(startTab));
-      this._iconOverlayObjects.push(selectedIconExtra, selectedIcon, selectedIconWhite);
+      this._iconOverlayObjects.push(selectedIconGlow, selectedIconExtra, selectedIcon, selectedIconWhite);
 
-      const tabBtnY = containerY - 40;
-      const tabKeys = ["icon", "ship", "ball", "ufo", "wave", "robot", "spider"];
-      const tabSpacing = 66;
-      const tabOffsets = {
-        icon: -tabSpacing * 3,
-        ship: -tabSpacing * 2,
-        ball: -tabSpacing,
-        ufo: 0,
-        wave: tabSpacing,
-        robot: tabSpacing * 2,
-        spider: tabSpacing * 3,
-      };
-      const tabRotations = { icon: -Math.PI/2, ship: 0, ball: -Math.PI/2, ufo: Math.PI/2, wave: Math.PI/2, robot: 0, spider: 0 };
-      const tabFlipXStates = { icon: true, ship: false, ball: true, ufo: false, wave: false, robot: false, spider: false };
-      const tabFlipYStates = { icon: false, ship: false, ball: false, ufo: true, wave: true, robot: false, spider: false };
+      const tabBtnY = containerY - 58;
+      const tabKeys = ["icon", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
+      const selectorTabs = [...tabKeys, "streak", "explosion"];
+      const tabSpacing = 73;
+      const tabOffsets = Object.fromEntries(selectorTabs.map((tab, i) => [tab, (i - (selectorTabs.length - 1) / 2) * tabSpacing]));
       const tabBtnSprites = {};
 
       const _switchTab = (tab) => {
-        for (const k of tabKeys) {
+        for (const k of selectorTabs) {
           if (tabBtnSprites[k]) {
             tabBtnSprites[k].setTexture("GJ_GameSheet03",
               _safeTabBtnFrame(k, k === tab ? "on" : "off"));
@@ -2939,16 +2862,16 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         _buildGrid(tab);
       };
 
-      tabKeys.forEach((tab, i) => {
+      selectorTabs.forEach((tab, i) => {
         const isActive = tab === startTab;
         const btn = this.add.image(sw / 2 + tabOffsets[tab], tabBtnY, "GJ_GameSheet03",
             _safeTabBtnFrame(tab, isActive ? "on" : "off"))
-            .setScrollFactor(0).setDepth(104).setScale(0.85)
+            .setScrollFactor(0).setDepth(104).setScale(0.95)
 
           .setInteractive();
         tabBtnSprites[tab] = btn;
         this._iconOverlayObjects.push(btn);
-        this._makeBouncyButton(btn, 0.85, () => _switchTab(tab));
+        this._makeBouncyButton(btn, 0.95, () => _switchTab(tab));
       });
 
       this._iconGridObjects = [];
@@ -2958,32 +2881,208 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
 
       const iconsPerPage = cols * rows;
       let currentPage = 0;
+      const pageDots = [];
+      const pageDotY = containerY + containerHeight + 45;
 
       const arrowY = containerY + containerHeight / 2;
-      const arrowMargin = 54;
+      const arrowMargin = 54 * gridSizeMultiplier;
+      const arrowScale = 0.8 * gridSizeMultiplier;
 
-      const prevArrow = this.add.image(containerX - arrowMargin, arrowY, "GJ_GameSheet03", "GJ_arrow_01_001.png")
-        .setScrollFactor(0).setDepth(106).setScale(0.8).setFlipX(false).setInteractive();
-      const nextArrow = this.add.image(containerX + containerWidth + arrowMargin, arrowY, "GJ_GameSheet03", "GJ_arrow_01_001.png")
-        .setScrollFactor(0).setDepth(106).setScale(0.8).setInteractive().setFlipX(true);
+      const prevArrow = this.add.image(containerX - arrowMargin, arrowY, "GJ_GameSheet03", "GJ_arrow_01_001.png").setScrollFactor(0).setDepth(106).setScale(arrowScale).setFlipX(false).setInteractive();
+      const nextArrow = this.add.image(containerX + containerWidth + arrowMargin, arrowY, "GJ_GameSheet03", "GJ_arrow_01_001.png").setScrollFactor(0).setDepth(106).setScale(arrowScale).setInteractive().setFlipX(true);
 
       const _getMaxPages = (tab) => {
-        return Math.ceil(_iconFrameSets[tab].length / iconsPerPage);
+        return (tab === "streak" || tab === "explosion") ? 0 : Math.ceil((_iconFrameSets[tab] || []).length / iconsPerPage);
+      };
+      const _refreshPageDots = (tab, page) => {
+        const count = _getMaxPages(tab);
+        const spacing = Math.min(51, (containerWidth / Math.max(count, 1)) * 1.5);
+        const scale = Math.min(0.9625, spacing / 48);
+        while (pageDots.length < count) {
+          const index = pageDots.length;
+          const dot = this.add.image(0, pageDotY, "GJ_GameSheet03", "gj_navDotBtn_off_001.png").setScrollFactor(0).setDepth(106).setScale(scale).setInteractive();
+          this._makeBouncyButton(dot, scale, () => {
+            currentPage = index;
+            _buildGrid(_currentTab, currentPage);
+          });
+          pageDots.push(dot);
+          this._iconOverlayObjects.push(dot);
+        }
+        pageDots.forEach((dot, i) => {
+          dot.setVisible(i < count);
+          if (i >= count) {
+            dot.disableInteractive();
+            return;
+          }
+          dot.setInteractive();
+          dot.setX(sw / 2 + (i - (count - 1) / 2) * spacing);
+          dot.setTexture("GJ_GameSheet03",
+            i === page ? "gj_navDotBtn_on_001.png" : "gj_navDotBtn_off_001.png");
+          dot._bouncyBaseScale = scale;
+          dot.setScale(scale);
+        });
       };
       const _prevPage = () => {
         const maxPages = _getMaxPages(_currentTab);
+        if (!maxPages) return;
         currentPage = (currentPage - 1 + maxPages) % maxPages;
         _buildGrid(_currentTab, currentPage);
       };
       const _nextPage = () => {
         const maxPages = _getMaxPages(_currentTab);
+        if (!maxPages) return;
         currentPage = (currentPage + 1) % maxPages;
         _buildGrid(_currentTab, currentPage);
       };
-      this._makeBouncyButton(prevArrow, 0.8, _prevPage);
-      this._makeBouncyButton(nextArrow, 0.8, _nextPage);
+      this._makeBouncyButton(prevArrow, arrowScale, _prevPage);
+      this._makeBouncyButton(nextArrow, arrowScale, _nextPage);
       this._iconOverlayObjects.push(prevArrow, nextArrow);
+
+      const _playRainbowPreviewParticles = () => {
+        const x = selectedIcon.x;
+        const y = selectedIcon.y;
+        const size = Math.max(selectedIcon.displayWidth, selectedIcon.displayHeight);
+        const objects = this._iconGridObjects;
+        const createWave = (color, start, end, duration, width, opacity) => {
+          const wave = this.add.graphics().setPosition(x, y).setScrollFactor(0).setDepth(101);
+          const state = { t: 0 };
+          objects.push(wave);
+          const draw = () => {
+            const t = state.t;
+            const expansion = Math.pow(t, 0.6);
+            const radius = size * (start + (end - start) * expansion);
+            const alpha = opacity * (1 - Math.max(0, (t - 0.16) / 0.84));
+            wave.clear();
+            if (width === 0) {
+              wave.fillStyle(color, alpha);
+              wave.fillCircle(0, 0, radius);
+            } else {
+              wave.lineStyle(width, color, alpha);
+              wave.strokeCircle(0, 0, radius);
+            }
+          };
+          draw();
+          wave.once("destroy", () => {
+            this.tweens.killTweensOf(state);
+          });
+          this.tweens.add({
+            targets: state,
+            t: 1,
+            duration: duration,
+            ease: "Linear",
+            onUpdate: draw,
+            onComplete: () => {
+              const index = objects.indexOf(wave);
+              if (index !== -1) objects.splice(index, 1);
+              wave.destroy();
+            }
+          });
+        };
+        createWave(0x8175FF, 0.50, 1.25, 500, 0, 1);
+        createWave(0xFF80FF, 0.35, 1.30, 460, 0.8, 1);
+        createWave(0x80FFFF, 0.28, 1.25, 500, 0.8, 1);
+      };
+
+      const _buildStreakGrid = () => {
+        const atlas = "GJ_GameSheet03";
+        const runKeys = ["iconSlowRobotRun", "iconFastRobotRun", "iconFastSpiderRun"];
+        const markers = [0, 1].map(() => this.add.image(0, 0, atlas, "GJ_select_001.png").setScrollFactor(0).setDepth(106));
+        this._iconGridObjects.push(...markers);
+        const buttons = [[], [], []];
+        const refresh = () => {
+          [window.currentTrail, window.currentShipFire].forEach((id, row) => {
+            const btn = buttons[row][id - 1];
+            if (btn) markers[row].setPosition(btn.x, btn.y).setScale(iconSize * 1.25 / markers[row].width).setVisible(true);
+          });
+          buttons[2].forEach((btn, i) => btn.setTint(window[runKeys[i]] ? 0xffffff : 0x555555));
+        };
+        [7, 6, 3].forEach((count, row) => {
+          for (let col = 0; col < count; col++) {
+            const id = col + 1;
+            const suffix = String(id).padStart(2, "0");
+            const frame = row === 0 ? `player_special_${suffix}_001.png` : row === 1 ? `shipfireIcon_${suffix}_001.png` : `gjItem_${18 + col}_001.png`;
+            const btn = this.add.image(startX + col * (iconSize + padding), startY + row * (iconSize + padding), atlas, frame).setScrollFactor(0).setDepth(104).setInteractive();
+            const scale = Math.min(iconSize / btn.width, iconSize / btn.height);
+            btn.setScale(scale);
+            buttons[row].push(btn);
+            this._iconGridObjects.push(btn);
+            this._makeBouncyButton(btn, scale, () => {
+              if (row === 2) {
+                const key = runKeys[col];
+                window[key] = !window[key];
+                localStorage.setItem(key, String(window[key]));
+              } else {
+                const key = row === 0 ? "currentTrail" : "currentShipFire";
+                window[key] = id;
+                localStorage.setItem(row === 0 ? "iconCurrentTrail" : "iconCurrentShipFire", String(id));
+                window.loadIconEffectTextures(this, row === 0 ? "trail" : "fire", id);
+                if (row === 0 && id === 2) {
+                  _playRainbowPreviewParticles();
+                }
+              }
+              refresh();
+            });
+          }
+        });
+        refresh();
+      };
+      const _buildExplosionGrid = () => {
+        const atlas = "GJ_GameSheet03";
+        const objects = this._iconGridObjects;
+        const marker = this.add.image(0, 0, atlas, "GJ_select_001.png")
+          .setScrollFactor(0).setDepth(106);
+        objects.push(marker);
+        const buttons = [];
+        const refresh = () => {
+          const btn = buttons[window.currentDeathEffect - 1];
+          if (btn) marker.setPosition(btn.x, btn.y).setScale(iconSize * 1.25 / marker.width).setVisible(true);
+        };
+        for (let i = 0; i < 20; i++) {
+          const id = i + 1;
+          const frame = `explosionIcon_${String(id).padStart(2, "0")}_001.png`;
+          const col = i % 12, row = Math.floor(i / 12);
+          const btn = this.add.image(startX + col * (iconSize + padding), startY + row * (iconSize + padding), atlas, frame).setScrollFactor(0).setDepth(104).setInteractive();
+          const scale = iconSize / 60;
+          btn.setScale(scale);
+          buttons.push(btn);
+          objects.push(btn);
+          this._makeBouncyButton(btn, scale, () => {
+            window.currentDeathEffect = id;
+            localStorage.setItem("iconCurrentDeathEffect", String(id));
+            refresh();
+            window.loadIconDeathEffect(this, id);
+          });
+        }
+        const toggleY = startY + 2 * (iconSize + padding);
+        const toggleFrame = () => window.iconExplode ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png";
+        const toggle = this.add.image(startX, toggleY, atlas, toggleFrame()).setScrollFactor(0).setDepth(104).setInteractive();
+        const toggleScale = iconSize * 0.85 / 62;
+        toggle.setScale(toggleScale);
+        const label = this.add.bitmapText(startX + (iconSize + padding) * 0.62, toggleY, "goldFont", "Explode", 30).setOrigin(0, 0.5).setScrollFactor(0).setDepth(104);
+        objects.push(toggle, label);
+        this._makeBouncyButton(toggle, toggleScale, () => {
+          window.iconExplode = !window.iconExplode;
+          localStorage.setItem("iconExplode", String(window.iconExplode));
+          toggle.setTexture(atlas, toggleFrame());
+        });
+        refresh();
+        window.loadIconDeathEffect(this, window.currentDeathEffect);
+      };
       const _buildGrid = (tab, page = 0) => {
+        _refreshPageDots(tab, page);
+        const effectsTab = tab === "streak" || tab === "explosion";
+        for (const arrow of [prevArrow, nextArrow]) {
+          arrow.setVisible(!effectsTab);
+          if (effectsTab) arrow.disableInteractive(); else arrow.setInteractive();
+        }
+        if (effectsTab) {
+          for (const o of this._iconGridObjects) if (o?.destroy) o.destroy();
+          this._iconGridObjects = [];
+          selLabel.setVisible(false);
+          if (tab === "explosion") _buildExplosionGrid();
+          else _buildStreakGrid();
+          return;
+        }
         const _pageBases = [...new Set(
           (_iconFrameSets[tab] || []).slice(page * iconsPerPage, (page + 1) * iconsPerPage)
             .map(f => iconBaseOf(f)).filter(Boolean)
@@ -3054,7 +3153,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
           if (whiteImg) this._iconGridObjects.push(whiteImg);
           this._iconGridObjects.push(iconImg, hitRect);
           if (frame.replace("_001.png", "") === window[prop]) {
-            selLabel.setPosition(ix, iy).setScale(0.8).setVisible(true);
+            selLabel.setPosition(ix, iy).setScale(0.75 * gridSizeMultiplier).setVisible(true);
           }
 
           ((capturedFrame, capturedImg, capturedExtra, capturedWhite, capturedOrigScale) => {
@@ -3077,7 +3176,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
               iconTargets.forEach(t => { this.tweens.killTweensOf(t); t.setScale(capturedOrigScale); });
               if (!this._iconOverlay) return;
 
-              selLabel.setPosition(capturedImg.x, capturedImg.y).setScale(0.75).setVisible(true);
+              selLabel.setPosition(capturedImg.x, capturedImg.y).setScale(0.75 * gridSizeMultiplier).setVisible(true);
 
               window[prop] = capturedFrame.replace("_001.png", "");
               localStorage.setItem("icon" + prop.charAt(0).toUpperCase() + prop.slice(1), window[prop]);
@@ -3086,7 +3185,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
                 window.clearCustomCubeIcon();
                 const layerMap = [
                   { lp: "_playerSpriteLayer", suffix: "_001.png", tint: window.mainColor },
-                  { lp: "_playerGlowLayer", suffix: "_glow_001.png", tint: window.secondaryColor },
+                  { lp: "_playerGlowLayer", suffix: "_glow_001.png", tint: window.iconGlowColor },
                   { lp: "_playerOverlayLayer", suffix: "_2_001.png", tint: window.secondaryColor },
                   { lp: "_playerExtraLayer", suffix: "_extra_001.png", tint: null },
                 ];
@@ -3111,7 +3210,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
               if (tab === "ship" && this._player) {
                 const layerMap = [
                   { lp: "_shipSpriteLayer", suffix: "_001.png", tint: window.mainColor },
-                  { lp: "_shipGlowLayer", suffix: "_glow_001.png", tint: window.secondaryColor },
+                  { lp: "_shipGlowLayer", suffix: "_glow_001.png", tint: window.iconGlowColor },
                   { lp: "_shipOverlayLayer", suffix: "_2_001.png", tint: window.secondaryColor },
                   { lp: "_shipExtraLayer", suffix: "_extra_001.png", tint: null },
                 ];
@@ -3133,7 +3232,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
               if (tab === "ball" && this._player) {
                 const layerMap = [
                   { lp: "_ballSpriteLayer", suffix: "_001.png", tint: window.mainColor },
-                  { lp: "_ballGlowLayer", suffix: "_glow_001.png", tint: window.secondaryColor },
+                  { lp: "_ballGlowLayer", suffix: "_glow_001.png", tint: window.iconGlowColor },
                   { lp: "_ballOverlayLayer", suffix: "_2_001.png", tint: window.secondaryColor },
                   { lp: "_ballExtraLayer", suffix: "_extra_001.png", tint: null },
                 ];
@@ -3155,7 +3254,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
               if (tab === "wave" && this._player) {
                 const layerMap = [
                   { lp: "_waveSpriteLayer", suffix: "_001.png", tint: window.mainColor },
-                  { lp: "_waveGlowLayer", suffix: "_glow_001.png", tint: window.secondaryColor },
+                  { lp: "_waveGlowLayer", suffix: "_glow_001.png", tint: window.iconGlowColor },
                   { lp: "_waveOverlayLayer", suffix: "_2_001.png", tint: window.secondaryColor },
                   { lp: "_waveExtraLayer", suffix: "_extra_001.png", tint: null },
                 ];
@@ -3177,7 +3276,8 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
               if (tab === "ufo" && this._player) {
                 const layerMap = [
                   { lp: "_birdSpriteLayer", suffix: "_001.png", tint: window.mainColor },
-                  { lp: "_birdGlowLayer", suffix: "_2_001.png", tint: window.secondaryColor },
+                  { lp: "_birdGlowLayer", suffix: "_glow_001.png", tint: window.iconGlowColor },
+                  { lp: "_birdSecondaryLayer", suffix: "_2_001.png", tint: window.secondaryColor },
                   { lp: "_birdOverlayLayer", suffix: "_3_001.png", tint: window.secondaryColor },
                   { lp: "_birdExtraLayer", suffix: "_extra_001.png",tint: null },
                 ];
@@ -3197,6 +3297,10 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
                 }
               }
 
+              if (tab === "swing") {
+                this._player?._refreshSwingIcon();
+                this._player2?._refreshSwingIcon();
+              }
               _refreshPreview(tab, capturedFrame);
               if (tab === "icon") _refreshCustomIconUI();
             });
@@ -3209,7 +3313,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
 
       const customIconSize = 97;
       const customIconX = 60;
-      const customIconY = 245;
+      const customIconY = 325;
 
       const customIconBtn = this.add.image(customIconX, customIconY, "GJ_GameSheet03", "GJ_plusBtn_001.png")
         .setScrollFactor(0).setDepth(104).setInteractive();
@@ -3397,7 +3501,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
       const _switchTabPaged = (tab) => {
         _currentTab = tab;
         currentPage = 0;
-        for (const k of tabKeys) {
+        for (const k of selectorTabs) {
           if (tabBtnSprites[k]) {
             tabBtnSprites[k].setTexture("GJ_GameSheet03",
               _safeTabBtnFrame(k, k === tab ? "on" : "off"));
@@ -3407,15 +3511,183 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
         _buildGrid(tab, 0);
         _refreshCustomIconUI();
       };
-      tabKeys.forEach(tab => {
+      selectorTabs.forEach(tab => {
         const btn = tabBtnSprites[tab];
         if (btn) {
           btn.removeAllListeners("pointerup");
           btn.removeAllListeners("pointerdown");
           btn.removeAllListeners("pointerout");
-          this._makeBouncyButton(btn, 0.85, () => _switchTabPaged(tab));
+          this._makeBouncyButton(btn, 0.95, () => _switchTabPaged(tab));
         }
       });
+
+      const _openColorPopup = () => {
+        if (this._closeIconColorMenu) return;
+        _blurTitle();
+        const backdrop = this.add.rectangle(sw / 2, sh / 2, sw, sh, 0x000000, 0.65).setScrollFactor(0).setDepth(150).setInteractive();
+        const popup = this.add.container(-sw / 2, sh / 2).setScrollFactor(0).setDepth(151);
+        popup.setScale(Math.min((sw - 80) / 800, (sh - 55) / 530, 1.1));
+        const corner = 0.325 * this.textures.get("GJ_square05").source[0].width;
+        const panel = this._drawScale9(0, 0, 860, 560, "GJ_square05", corner);
+        const previewBg = this.add.graphics();
+        previewBg.fillStyle(0x414141, 1).fillRoundedRect(-378, -220, 756, 103, 12);
+        popup.add([panel, previewBg]);
+        this._closeIconColorMenu = () => {
+          this._closeIconColorMenu = null;
+          this.tweens.killTweensOf(popup);
+          popup.destroy(true);
+          backdrop.destroy();
+        };
+        const close = this.add.image(-400, -255, "GJ_GameSheet03", "GJ_closeBtn_001.png").setScale(0.75).setInteractive();
+        popup.add(close);
+        this._makeBouncyButton(close, 0.75, () => this._closeIconColorMenu?.());
+        const keys = ["mainColor", "secondaryColor", "iconGlowColor"];
+        const storageKeys = ["iconMainColor", "iconSecondaryColor", "iconGlowColor"];
+        let activeTab = 0;
+        const swatches = new Map();
+        const tabButtons = [];
+        const previewScale = 0.75;
+        const previews = this.add.container(0, 0);
+        popup.add(previews);
+        const refreshIcons = () => {
+          if (!this._closeIconColorMenu || !popup.scene || !previews.scene) return;
+          previews.removeAll(true);
+          tabKeys.forEach((tab, i) => {
+            const x = (i - (tabKeys.length - 1) / 2) * 92;
+            const frame = _getPreviewFrame(tab);
+            if (!frame) return;
+            const pvSize = _pv(tab).size * previewScale;
+            const y = -167.5 + _pv(tab).y * previewScale;
+            if (tab === "icon" && window.customCubeIconSrc && this.textures.exists("custom_cube_icon")) {
+              const img = this.add.image(x, y, this.textures.exists("custom_cube_icon_hd") ? "custom_cube_icon_hd" : "custom_cube_icon");
+              img.setScale(Math.min(80 / (img.width || 80), 80 / (img.height || 80)) * 0.85 * previewScale);
+              previews.add(img);
+              return;
+            }
+            if (_isSegmentedIconTab(tab)) {
+              const icon = _createSegmentedIconComposite(tab, frame, x, y, pvSize, 0, false);
+              if (icon) previews.add(icon);
+              return;
+            }
+            const base = getAtlasFrame(this, frame);
+            if (!base) return;
+            const icon = this.add.container(x, y);
+            const variants = [
+              ...(window.iconGlowEnabled ? [["_glow_001.png", window.iconGlowColor]] : []),
+              ...(tab === "ufo" ? [["_3_001.png", window.secondaryColor]] : []),
+              ["_2_001.png", window.secondaryColor],
+              ["_001.png", window.mainColor],
+              ["_extra_001.png", null]
+            ];
+            let baseImg;
+            for (const [suffix, tint] of variants) {
+              const info = getAtlasFrame(this, frame.replace("_001.png", suffix));
+              if (!info) continue;
+              const img = this.add.image(0, 0, info.atlas, info.frame);
+              if (tint !== null) img.setTint(tint);
+              if (suffix === "_001.png") baseImg = img;
+              icon.add(img);
+            }
+            if (baseImg) icon.setScale(Math.min(pvSize / (baseImg.width || pvSize), pvSize / (baseImg.height || pvSize)));
+            previews.add(icon);
+          });
+        };
+        const refreshSelection = () => {
+          const ids = keys.map(key => {
+            const id = gdColors.indexOf(window[key]);
+            return id === -1 ? (oldColorIDs.get(window[key]) ?? -1) : id;
+          });
+          const stacked = new Map();
+          for (const i of [activeTab, ...keys.map((_, i) => i).filter(i => i !== activeTab)]) {
+            const swatch = swatches.get(ids[i]);
+            const marker = selectionMarkers[i];
+            marker.setVisible(!!swatch);
+            if (!swatch) continue;
+            const overlap = stacked.get(ids[i]) || 0;
+            stacked.set(ids[i], overlap + 1);
+            marker.setPosition(swatch.x, swatch.y).setScale(0.6 * 40 / 35 - overlap * 0.13).setTint(i === activeTab ? 0xffffff : 0x2d2e2e);
+          }
+          tabButtons.forEach((button, i) => button.setTexture(i === activeTab ? "GJ_button01" : "GJ_button04"));
+          toggle.setVisible(activeTab === 2);
+          toggleLabel.setVisible(activeTab === 2);
+        };
+        const applyColors = () => {
+          this._player?._applyPlayerTints();
+          this._player2?._applyPlayerTints();
+          _refreshPreview(_currentTab, _getPreviewFrame(_currentTab));
+          if (window.iconGridColored) this._rebuildIconGrid?.();
+          refreshIcons();
+          refreshSelection();
+        };
+        if (!this.textures.exists("iconColorSwatch")) {
+          const g = this.make.graphics({ x: 0, y: 0, add: false });
+
+          g.fillStyle(0x000000, 0.35).fillRoundedRect(8, 9, 40, 40, 6);
+          g.fillStyle(0xffffff, 1).fillRoundedRect(5, 5, 40, 40, 6);
+          g.lineStyle(2, 0x000000, 1).strokeRoundedRect(5, 5, 40, 40, 6);
+
+          g.generateTexture("iconColorSwatch", 50, 50);
+          g.destroy();
+        }
+        const makeSwatch = (id, x, y) => {
+          const root = this.add.container(x, y);
+          const visual = this.add.image(0, 0, "iconColorSwatch")
+            .setTint(gdColors[id]);
+          const hit = this.add.zone(0, 0, 40, 40)
+            .setOrigin(0.5).setInteractive();
+
+          swatches.set(id, root);
+          root.add([visual, hit]);
+          popup.add(root);
+
+          this._makeCompositeBouncyButton(hit, visual, 1, () => {
+            window[keys[activeTab]] = gdColors[id];
+            localStorage.setItem(storageKeys[activeTab], hexadecimalToHex(gdColors[id]));
+            applyColors();
+          });
+        };
+        ["Col1", "Col2", "Glow"].forEach((label, i) => {
+          const x = 140 + i * 97;
+          const root = this.add.container(x, -247);
+          const button = this.add.nineslice(0, 0, "GJ_button01", null, 102, 40, 18, 18, 18, 18).setScale(1 / 1.2).setInteractive();
+          const text = this.add.bitmapText(-3, -3, "bigFont", label, 22).setOrigin(0.5);
+          root.add([button, text]);
+          popup.add(root);
+          tabButtons.push(button);
+          this._makeCompositeBouncyButton(button, root, 1, () => { activeTab = i; refreshSelection(); });
+        });
+        colorGroups.forEach((group, gi) => {
+          group.forEach((row, ri) => row.forEach((id, ci) => {
+            makeSwatch(id, -386 + (gi % 4) * 210 + ci * 47, -79 + Math.floor(gi / 4) * 160 + ri * 47);
+          }));
+        });
+        grayscaleColors.forEach((id, i) => makeSwatch(id, 104 + i * 47, 235));
+        const selectionMarkers = keys.map(() => this.add.image(0, 0, "GJ_GameSheet03", "GJ_select_001.png").setOrigin(0.5).setVisible(false));
+        popup.add(selectionMarkers);
+        const toggle = this.add.image(-387, 235, "GJ_GameSheet03", window.iconGlowEnabled ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png").setScale(0.55).setInteractive();
+        const toggleLabel = this.add.bitmapText(-355, 235, "bigFont", "Glow", 28).setOrigin(0, 0.5);
+        popup.add([toggle, toggleLabel]);
+        this._makeBouncyButton(toggle, 0.55, () => {
+          window.iconGlowEnabled = !window.iconGlowEnabled;
+          localStorage.setItem("iconGlowEnabled", String(window.iconGlowEnabled));
+          toggle.setTexture("GJ_GameSheet03", window.iconGlowEnabled ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png");
+          applyColors();
+        });
+        refreshSelection();
+        refreshIcons();
+        const bases = getEquippedIconBases().filter(b => !iconAtlasReady(this, b) && !window._iconAtlasFailed.has(b));
+        if (bases.length) loadIconAtlases(this, bases, refreshIcons);
+        this.tweens.add({
+          targets: popup,
+          x: sw / 2,
+          duration: 400,
+          ease: "Elastic.Out",
+          easeParams: [1, 0.9]
+        });
+      };
+      const paintBtn = this.add.image(60, 245, "GJ_GameSheet03", "GJ_paintBtn_001.png").setScrollFactor(0).setDepth(104).setInteractive();
+      this._iconOverlayObjects.push(paintBtn);
+      this._makeBouncyButton(paintBtn, _fitImageToBox(paintBtn, customIconSize * 0.8), _openColorPopup);
 
       _buildGrid(startTab, 0);
       _refreshCustomIconUI();
@@ -3423,7 +3695,18 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
 
     this._closeIconSelector = (silent = false) => {
       if (!this._iconOverlay) return;
+      if (this._closeIconColorMenu && !silent) {
+        this._closeIconColorMenu();
+        return;
+      }
+      if (this._iconImportMenuObjects && !silent) {
+        this._closeIconImportMenu?.();
+        return;
+      }
       const destroy = () => {
+        this._iconTitleCleanup?.();
+        this._iconTitleCleanup = null;
+        this._closeIconColorMenu?.();
         if (this._closeIconImportMenu) {
           this._closeIconImportMenu();
           this._closeIconImportMenu = null;
@@ -3439,10 +3722,6 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
             if (obj && obj.destroy) obj.destroy();
           }
           this._iconOverlayObjects = null;
-        }
-        if (this._iconTitleKeyHandler) {
-          window.removeEventListener("keydown", this._iconTitleKeyHandler);
-          this._iconTitleKeyHandler = null;
         }
         if (this._iconCustomFileInput) {
           this._iconCustomFileInput.remove();
@@ -3512,7 +3791,7 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
     this._percentageLabel.setVisible(false);
     this._percentageLabel.setDepth(100);
 
-    this._noclipIndicator = this.add.bitmapText(10, 10, "bigFont", "Ignore Damage", 20)
+    this._noclipIndicator = this.add.bitmapText(10, 10, "bigFont", "Noclip", 20)
       .setOrigin(0, 0)
       .setAlpha(0.4)
       .setDepth(100)
@@ -4690,8 +4969,8 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
           "Startpos Switcher": "Switches between start positions in a level.",
           "Progress Bar": "Shows a progress bar at the top of the screen.",
           "Smart StartPos": "Sets the mode, size, speed and gravity of start positions to match the level.",
-          "Ignore Damage": "Allows you to phase throught mostly anything that would kill you normally.",
-          "Ignore Damage Accuracy": "Flashes your screen red when you would've died with noclip.",
+          "Noclip": "Allows you to phase throught mostly anything that would kill you normally.",
+          "Noclip Accuracy": "Flashes your screen red when you would've died with noclip.",
           "Macro Bot": "Lets you record and replay your inputs for a level.",
           "Show Hitboxes": "Shows you the hitboxes for objects and your player.",
           "Hitbox Trail": "Shows the hitbox of exactly where your hitbox has been.",
@@ -4936,22 +5215,22 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
             "Progress Bar"
           );
   
-            createToggle(container, column1X, startY + (spacingY * 3), "Ignore Damage",
+            createToggle(container, column1X, startY + (spacingY * 3), "Noclip",
               () => window.noClip,
               (v) => window.noClip = v,
               (v) => { if (this._noclipIndicator) this._noclipIndicator.setVisible(v); },
               undefined,
               25,
-             "Ignore Damage"
+             "Noclip"
           );
   
-            createToggle(container, column1X, startY + (spacingY * 4), "Ignore Damage Accuracy",
+            createToggle(container, column1X, startY + (spacingY * 4), "Noclip Accuracy",
               () => window.noClipAccuracy,
               (v) => window.noClipAccuracy = v,
               null,
               22,
               true,
-             "Ignore Damage Accuracy"
+             "Noclip Accuracy"
           );
   
           createToggle(container, column1X, startY + (spacingY * 5), "Macro Bot",
@@ -6211,8 +6490,89 @@ this._menuFsBtn = this.add.image(33, 33, "GJ_WebSheet", _0x28fa5b ? "toggleFulls
     _newsCorners.forEach(c => this._newsPopup.add(c));
     const titleText = this.add.bitmapText(xPos, _nt + 42, "goldFont", "News", 52).setOrigin(0.5, 0.5);
     this._newsPopup.add(titleText);
-    const _newsTemplate = { date: "November 23rd, 2026", title: "Minor Bug Fix Update - V2.01", notes: ["A bunch of bugs have been fixed plus minor changes and additions.", "This update includes:", "- Revamped Create Menu UI", "- Fixed some physics and gameplay bugs", "- Revamped Stats Menu", "- Seperated UI from game-scene (now ui-scene) (MAINLY FOR DEVELOPERS)", "- Fixed dash orb cancelling", "- Fixed levels seeming broken for a split moment before fully loading", "- and more i dont remember"] };
-    const newsPages = (this._newsPages && this._newsPages.length) ? this._newsPages : [_newsTemplate];
+    this._newsPages = [
+      {
+        date: "November 27th, 2026",
+        title: "QOL Update! - V2.1",
+        notes: [
+          "AKA. Lasokar's super tuff return to Web Dashers development",
+          "This update includes:",
+          "- Swing gamemode :o",
+          "- Added spider orbs and pads",
+          "- New color selector and icon kit menus",
+          "- Fixed being unable to delete saved lvls",
+          "- Fixed dual going above the ceiling",
+          "- Fixed noclip accuracy wave collisions",
+          "- Player glow!",
+          "- Free Mode",
+          "- Custom trails, ship fires, and death fx",
+          "- Fixed icon layering and ship trail",
+          "- Fixed dual boundaries",
+          "- Fixed D blocks in slopes",
+          "- Made triggers tick based",
+          "- Hitbox consistency fixes",
+          "- Fixed slope snapping when it shouldnt be",
+          "- Rename ignore damage back to noclip",
+          "- Added the ability to import .gdlvl files",
+          "- Added timewarp trigger",
+          "- Added H blocks",
+          "- Added Player renaming",
+          "- Fixed rotated line hitboxes",
+          "- Fixed editor camera up arrow bug",
+          "- Fixed the coloring for some blocks",
+          "- Fixed slope collisions when teleporting as the spider",
+          "- Fixed physics inconsistencies when playtesting in editor",
+          "- Made the news tab functional instead of falling back to having 1 entry (wtf did you do pinkdev)",
+          "- Other bug fixes stuff that I might've added but i forgor"
+        ]
+      },
+      {
+        date: "November 23rd, 2026",
+        title: "Minor Bugfix Update - V2.01",
+        notes: [
+          "A bunch of bugs have been fixed plus minor changes and additions.",
+          "This update includes:",
+          "- Revamped Create Menu UI",
+          "- Fixed some physics and gameplay bugs",
+          "- Revamped Stats Menu",
+          "- Seperated UI from game-scene (now ui-scene) (MAINLY FOR DEVELOPERS)",
+          "- Fixed dash orb cancelling",
+          "- Fixed levels seeming broken for a split moment before fully loading",
+          "- and more i dont remember"
+        ]
+      },
+      {
+        date: "November 13th, 2026",
+        title: "MEGA UPDATE - V2.0",
+        notes: [
+          "V2.0 Mega Update. me (rohanis0000) and PinkDev have combined our updates into 1 huge update for more content for you guys to play with.",
+          "This update includes:",
+          "2.2 icons",
+          "Fixed robot and spider icons/layering",
+          "More colors for the icon kit",
+          "Custom icons",
+          "The Vault and Vault of Secrets",
+          "A new update menu (News)",
+          "Custom keybinds",
+          "3D textures fixed",
+          "MANY, MANY BUG FIXES",
+          "2.209 UI updates",
+          "Daily Levels",
+          "Weekly Demons",
+          "Event Levels",
+          "Level Stats",
+          "Progress Bar",
+          "Startpos Revamp",
+          "Fixed/Added a lot of triggers",
+          "Texture fixes",
+          "Object warping",
+          "Mirror portal transitions",
+          "Minor QOL additions",
+          "and more i think i prolly forgot ngl"
+        ]
+      }
+    ];
+    const newsPages = this._newsPages;
     const pageCount = newsPages.length;
     let newsPage = 0;
     const pageText = this.add.bitmapText(_nr - 90, _nt + 62, "goldFont", `1 of ${pageCount}`, 26).setOrigin(1, 0.5);
@@ -7926,7 +8286,7 @@ window.open("https://github.com/web-dashers/web-dashers.github.io", "_blank"); }
     { id: "jump2", label: "Jump P2", cat: "gameplay" },
     { id: "pause", label: "Pause", cat: "gameplay" },
     { id: "restart", label: "Restart", cat: "gameplay" },
-    { id: "Ignore Damage", label: "Ignore Damage", cat: "gameplay" },
+    { id: "Noclip", label: "Noclip", cat: "gameplay" },
     { id: "showHitboxes", label: "Show Hitboxes", cat: "gameplay" },
     { id: "practice", label: "Practice Mode", cat: "practice" },
     { id: "startPosPrev", label: "StartPos Prev", cat: "practice" },

@@ -110,6 +110,9 @@ class PracticeMode {
       isDart: playerState.isDart,
       isRobot: playerState.isRobot,
       isSwing: playerState.isSwing,
+      swingFlipPending: !!playerState._swingFlipPending,
+      swingGdAccel: !!playerState.gdAccel,
+      swingOnCeiling: !!playerState.onCeiling,
       isJetpack: playerState.isJetpack,
       isFlying: playerState.isFlying,
       isJumping: playerState.isJumping,
@@ -130,6 +133,8 @@ class PracticeMode {
       robotHold: !!playerState._robotHold,
       robotHoldTimer: playerState._robotHoldTimer || 0,
       cameraX: cameraX,
+      portalFreeMode: !!scene._level._portalFreeMode,
+      timeWarpState: scene._level.saveTimeWarpState(),
       flyFloorY: scene._level._flyFloorY,
       flyCeilingY: scene._level._flyCeilingY,
       flyGroundActive: scene._level._flyGroundActive,
@@ -151,7 +156,11 @@ class PracticeMode {
       speed: playerSpeed,
       physicsFrame: scene._physicsFrame,
       dualMode: !!scene._isDual,
+      dualBoundsCenterY: scene._dualBoundsCenterY,
       dualGameMode: scene?._getDualModeId ? scene._getDualModeId(scene._state2) : null,
+      dualSwingFlipPending: !!scene._state2?._swingFlipPending,
+      dualSwingGdAccel: !!scene._state2?.gdAccel,
+      dualSwingWasBoosted: !!scene._state2?.wasBoosted,
       dualIsMini: !!scene._state2?.isMini,
       dualY: scene._state2?.y,
       dualYVelocity: scene._state2?.yVelocity,
@@ -290,6 +299,7 @@ class MacroBot {
       player.setBallVisible(mode === "ball");
       player.setWaveVisible(mode === "wave");
       player.setBirdVisible?.(mode === "ufo");
+      player.setSwingVisible?.(mode === "swing");
       player.setRobotVisible(mode === "robot");
       player.setSpiderVisible(mode === "spider");
     }
@@ -319,6 +329,7 @@ class MacroBot {
       scene._player2.setBallVisible(false);
       scene._player2.setWaveVisible(false);
       scene._player2.setBirdVisible?.(false);
+      scene._player2.setSwingVisible?.(false);
       scene._player2.setSpiderVisible(false);
       scene._player2.setRobotVisible(false);
     }
@@ -538,6 +549,7 @@ class GameScene extends UIScene {
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
     this._player2.setBirdVisible?.(false);
+    this._player2.setSwingVisible?.(false);
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
     this._colorManager = new ColorManager();
@@ -646,6 +658,7 @@ class GameScene extends UIScene {
     this._slideGroundX = null;
     this._firstPlay = true;
     this._player.setCubeVisible(false);
+    this._player.setSwingVisible(false);
     this._player.setShipVisible(false);
     this._player.setBallVisible(false);
     this._createMenuUI();
@@ -877,10 +890,10 @@ class GameScene extends UIScene {
       this._openLevelSelect();
     }
   }
-  if (this._menuActive && !window._newsAutoOpened) {
+  if (this._menuActive && !window._newsAutoOpened && !new URLSearchParams(window.location.search).has("id")) {
     window._newsAutoOpened = true;
     this._buildNewsPopup();
-    const updateNoticeVersion = (this._newsPages?.[0]?.title || "MEGA UPDATE - V2.0").trim();
+    const updateNoticeVersion = (this._newsPages?.[0]?.title || "News").trim();
     const seenUpdateVersion = localStorage.getItem("gd_yayy_update_notice_version");
     if (seenUpdateVersion !== updateNoticeVersion) {
       localStorage.setItem("gd_yayy_update_notice_version", updateNoticeVersion);
@@ -1330,7 +1343,9 @@ class GameScene extends UIScene {
         this._level.container.setVisible(true);
         this._level.topContainer.setVisible(true);
         this._player.setCubeVisible(false);
+        this._player.setSwingVisible(false);
         this._player2.setCubeVisible(false);
+        this._player2.setSwingVisible(false);
         this._attemptsLabel.setVisible(false);
         window.selectedObjId = 1;
         this._levelEditor._initEditorLogic();
@@ -1370,6 +1385,7 @@ class GameScene extends UIScene {
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
     this._player2.setBirdVisible?.(false);
+    this._player2.setSwingVisible?.(false);
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
     this._levelAttempts = 1;
@@ -1381,6 +1397,8 @@ class GameScene extends UIScene {
     this._attemptsLabel.setText("Attempt " + this._levelAttempts);
     this._attemptsLabel.setVisible(true);
     this._positionAttemptsLabel();
+    this._level.resetGroundState();
+
     let gamemode = parseInt(window.settingsMap["kA2"] || "0");
     if (gamemode == 1) {
       this._player.enterShipMode(); 
@@ -1395,10 +1413,11 @@ class GameScene extends UIScene {
       this._player.enterRobotMode();
     } else if (gamemode == 6) {
       this._player.enterSpiderMode();
+    } else if (gamemode == 7) {
+      this._player.enterSwingMode();
     }
 
     this._level.resetObjects();
-    this._level.resetGroundState();
     this._level.resetColorTriggers();
     this._level.resetAlphaTriggers();
     this._level.resetRotateTriggers();
@@ -1420,6 +1439,7 @@ class GameScene extends UIScene {
     this._level.resetCountTriggers?.();
     this._level.resetCollisionTriggers?.();
     this._level.resetInstantCountTriggers?.();
+    this._level.resetTimeWarpTriggers();
     this._level.checkPickupTriggers?.(0, this._colorManager);
     this._level.checkCountTriggers?.(0, this._colorManager);
     this._level.checkCollisionTriggers?.(0);
@@ -1464,7 +1484,7 @@ class GameScene extends UIScene {
       }
       const _dualImmediateBeforeGravity = !!this._state.gravityFlipped;
       let _primaryImmediateJumped = false;
-      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && this._state.canJump) {
+      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && !this._state.isSwing && this._state.canJump) {
         this._player.updateJump(0);
         _primaryImmediateJumped = true;
       } else if (this._state.isUfo) {
@@ -1489,7 +1509,7 @@ class GameScene extends UIScene {
         const _secondaryImmediateBeforeGravity = !!this._state2.gravityFlipped;
         const _secondaryImmediateBallInput = this._state2.isBall && this._state2.upKeyPressed;
         const _secondaryImmediateSpiderInput = this._state2.isSpider && this._state2.upKeyPressed;
-        if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && this._state2.canJump) {
+        if (!this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && !this._state2.isSwing && this._state2.canJump) {
           this._player2.updateJump(0);
         } else if (this._state2.isUfo) {
           if (!this._player2._shouldPrioritizeUfoOrbInput?.()) {
@@ -1521,6 +1541,8 @@ class GameScene extends UIScene {
     return false;
   }
   _releaseButton(ignoreMacro = false) {
+    this._state._spiderOrbInputLocked = false;
+    this._state2._spiderOrbInputLocked = false;
     this._state.robotTouchedPad = true;
     this._state2.robotTouchedPad = true;
     this._state.upKeyDown = false;
@@ -1642,6 +1664,7 @@ class GameScene extends UIScene {
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
     this._player2.setBirdVisible?.(false);
+    this._player2.setSwingVisible?.(false);
     this._player2.setSpiderVisible(false);
     this._player2.setRobotVisible(false);
     this._glitterEmitter.stop();
@@ -1681,6 +1704,7 @@ class GameScene extends UIScene {
     this._level.resetCountTriggers?.();
     this._level.resetCollisionTriggers?.();
     this._level.resetInstantCountTriggers?.();
+    this._level.resetTimeWarpTriggers();
     this._level.checkToggleTriggers?.(0);
     this._level.checkPickupTriggers?.(0, this._colorManager);
     this._level.checkCountTriggers?.(0, this._colorManager);
@@ -1721,6 +1745,8 @@ class GameScene extends UIScene {
         this._player.enterRobotMode();
       } else if (pos.gameMode == 6) {
         this._player.enterSpiderMode();
+      } else if (pos.gameMode == 7) {
+        this._player.enterSwingMode();
       }
       this._state.gravityFlipped = pos.gravityFlipped;
       this._state.isMini = pos.miniMode;
@@ -1777,6 +1803,8 @@ class GameScene extends UIScene {
         this._player.enterRobotMode();
       } else if (gamemode == 6) {
         this._player.enterSpiderMode();
+      } else if (gamemode == 7) {
+        this._player.enterSwingMode();
       }
 
       this._applyLevelStartOptions();
@@ -1847,7 +1875,7 @@ class GameScene extends UIScene {
     this._state.isBird = checkpoint.isBird;
     this._state.isDart = checkpoint.isDart;
     this._state.isRobot = checkpoint.isRobot;
-    this._state.isSwing = checkpoint.isSwing;
+    this._state.isSwing = !!checkpoint.isSwing;
     this._state.isJetpack = checkpoint.isJetpack;
     this._state.isFlying = checkpoint.isFlying;
     this._state.isJumping = checkpoint.isJumping;
@@ -1880,7 +1908,10 @@ class GameScene extends UIScene {
     this._state.isSpider = false;
     this._state.isRobot = false;
     this._state.isBird = false;
-    if (checkpoint.isFlying) {
+    this._state.isSwing = false;
+    if (checkpoint.isSwing) {
+      this._player.enterSwingMode(null, true); // dont mess with y velocity if ur loading a checkpoint
+    } else if (checkpoint.isFlying) {
       this._player.enterShipMode(null, true); // dont mess with y velocity if ur loading a checkpoint
     } else if (checkpoint.isBall) {
       this._player.enterBallMode();
@@ -1910,6 +1941,16 @@ class GameScene extends UIScene {
     this._state.isSpider = checkpoint.isSpider;
     this._state.isRobot = checkpoint.isRobot;
     this._state.isBird = checkpoint.isBird;
+    this._state.isSwing = !!checkpoint.isSwing;
+    this._state._swingFlipPending = !!checkpoint.swingFlipPending;
+    if (checkpoint.isSwing) {
+      this._state.gdAccel = !!checkpoint.swingGdAccel;
+      this._state.onCeiling = !!checkpoint.swingOnCeiling;
+      this._state.onGround = !!checkpoint.onGround;
+      this._state.canJump = !!checkpoint.canJump;
+      this._state.isJumping = !!checkpoint.isJumping;
+      this._state.wasBoosted = !!checkpoint.wasBoosted;
+    }
     this._state._robotHold = !!checkpoint.robotHold;
     this._state._robotHoldTimer = checkpoint.robotHoldTimer || 0;
 
@@ -1926,6 +1967,7 @@ class GameScene extends UIScene {
     this._state2.ignorePortals = true;
     this._level.resetGroundTiles(this._cameraX);
     this._level.resetObjects();
+    this._level._portalFreeMode = !!checkpoint.portalFreeMode;
     this._level._flyFloorY = checkpoint.flyFloorY !== undefined
       ? checkpoint.flyFloorY
       : (this._level._flyFloorY ?? 0);
@@ -1982,13 +2024,19 @@ class GameScene extends UIScene {
       if (Number.isFinite(Number(checkpoint.dualYVelocity))) this._state2.yVelocity = Number(checkpoint.dualYVelocity);
       if (checkpoint.dualIsMini !== undefined) this._state2.isMini = !!checkpoint.dualIsMini;
       if (checkpoint.dualGameMode) this._setPlayerGamemode(this._player2, this._state2, checkpoint.dualGameMode, true);
+      if (this._state2.isSwing) {
+        this._state2._swingFlipPending = !!checkpoint.dualSwingFlipPending;
+        this._state2.gdAccel = !!checkpoint.dualSwingGdAccel;
+        this._state2.wasBoosted = !!checkpoint.dualSwingWasBoosted;
+      }
       if (checkpoint.dualGravityFlipped !== undefined) this._state2.gravityFlipped = !!checkpoint.dualGravityFlipped;
       if (checkpoint.dualOnGround !== undefined) this._state2.onGround = !!checkpoint.dualOnGround;
       if (checkpoint.dualOnCeiling !== undefined) this._state2.onCeiling = !!checkpoint.dualOnCeiling;
       if (checkpoint.dualCanJump !== undefined) this._state2.canJump = !!checkpoint.dualCanJump;
       if (checkpoint.dualIsJumping !== undefined) this._state2.isJumping = !!checkpoint.dualIsJumping;
       this._copyDualInputFlags(this._state, this._state2);
-      this._ensureDualFlyBounds(this._state.y);
+      this._dualBoundsCenterY = checkpoint.dualBoundsCenterY ?? (checkpoint.flyFloorY + checkpoint.flyCeilingY) / 2;
+      this._ensureDualFlyBounds();
     } else {
       this._isDual = false;
       this._state2.reset();
@@ -1998,6 +2046,7 @@ class GameScene extends UIScene {
       this._player2.setBallVisible(false);
       this._player2.setWaveVisible(false);
       this._player2.setBirdVisible?.(false);
+      this._player2.setSwingVisible?.(false);
       this._player2.setSpiderVisible(false);
       this._player2.setRobotVisible(false);
       if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
@@ -2024,7 +2073,9 @@ class GameScene extends UIScene {
     this._level.resetCountTriggers?.();
     this._level.resetCollisionTriggers?.();
     this._level.resetInstantCountTriggers?.();
+    this._level.resetTimeWarpTriggers();
     this._level.checkToggleTriggers?.(checkpoint.x);
+    this._level.restoreTimeWarpState(checkpoint.timeWarpState, checkpoint.x);
     this._level.checkPickupTriggers?.(checkpoint.x, this._colorManager);
     this._level.checkCountTriggers?.(checkpoint.x, this._colorManager);
     this._level.checkCollisionTriggers?.(checkpoint.x);
@@ -2468,7 +2519,7 @@ class GameScene extends UIScene {
       this._state.queuedHold = false;
       this._state._orbActivationConsumedForPress = false;
     }
-    this._level.updateEndPortalY(this._cameraY, this._state.isFlying || this._state.isWave || this._state.isUfo || this._state.isSpider);
+    this._level.updateEndPortalY(this._cameraY, this._state.isFlying || this._state.isWave || this._state.isUfo || this._state.isSwing || this._state.isSpider);
     if (!this._levelWon && !this._state.isDead && this._level.endXPos > 0) {
       const _0x448396 = 600;
       if (this._playerWorldX >= this._level.endXPos - _0x448396) {
@@ -2587,6 +2638,7 @@ class GameScene extends UIScene {
     }
     this._playTime += deltaTime / 1000;
     this._audio.update(deltaTime / 1000);
+    deltaTime *= this._level._timeWarp;
 
     if (!window.enableLDM) {
       window._animTimer += deltaTime;
@@ -2745,7 +2797,7 @@ class GameScene extends UIScene {
         }
         if (this._isDual) this._ensureDualFlyBounds();
       }
-      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo) {
+      if (!this._state.isFlying && !this._state.isWave && !this._state.isUfo && !this._state.isSwing) {
         if (this._state.isBall) {
           const ballOnSurface = this._state.onGround || this._state.onCeiling;
           this._player.updateBallRoll(horizontalDelta, ballOnSurface);
@@ -2757,7 +2809,7 @@ class GameScene extends UIScene {
           this._player.updateRotateAction(u);
         }
       }
-      if (this._isDual && !this._state2.isDead && !this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo) {
+      if (this._isDual && !this._state2.isDead && !this._state2.isFlying && !this._state2.isWave && !this._state2.isUfo && !this._state2.isSwing) {
         if (this._state2.isBall) {
           const ball2OnSurface = this._state2.onGround || this._state2.onCeiling;
           this._player2.updateBallRoll(horizontalDelta, ball2OnSurface);
@@ -2787,6 +2839,165 @@ class GameScene extends UIScene {
         this._macroBot.applyCurrentFrame();
       } else if (this._macroBot?.recording) {
         this._macroBot.recordFrame(this._physicsFrame);
+      }
+      if (!this._state.isDead) {
+        let playerX = this._playerWorldX;
+        if (!this._applyColorTriggerFn) {
+          this._applyColorTriggerFn = (colorTrigger) => {
+          this._colorManager.triggerColor(colorTrigger.index, colorTrigger.color, colorTrigger.duration, colorTrigger.copy, colorTrigger.opacity);
+          this._level.setChannelBlending?.(colorTrigger.index, !!colorTrigger.blending);
+          if (colorTrigger.tintGround) {
+            this._colorManager.triggerColor(gs, colorTrigger.color, colorTrigger.duration, colorTrigger.copy);
+          }
+        };
+      }
+        const applyColorTrigger = this._applyColorTriggerFn;
+        for (let colorTrigger of this._level.checkColorTriggers(playerX)) {
+          applyColorTrigger(colorTrigger);
+        }
+        if (this._level.checkTouchColorTriggers) {
+          for (let colorTrigger of this._level.checkTouchColorTriggers(playerX, this._state.y)) {
+            applyColorTrigger(colorTrigger);
+          }
+          if (this._isDual && !this._state2.isDead) {
+            for (let colorTrigger of this._level.checkTouchColorTriggers(playerX, this._state2.y)) {
+              applyColorTrigger(colorTrigger);
+            }
+          }
+        }
+        this._level.checkMoveTriggers(playerX);
+        this._level.checkSpawnTriggers(playerX);
+        if (this._level.checkTouchSpawnTriggers) {
+            this._level.checkTouchSpawnTriggers(playerX, this._state.y);
+            if (this._isDual && !this._state2.isDead) {
+                this._level.checkTouchSpawnTriggers(playerX, this._state2.y);
+            }
+        }
+        if (this._level.checkTouchMoveTriggers) {
+            this._level.checkTouchMoveTriggers(playerX, this._state.y);
+            if (this._isDual && !this._state2.isDead) {
+                this._level.checkTouchMoveTriggers(playerX, this._state2.y);
+            }
+        }
+        this._level.beginGroupTransformBatch();
+        this._level.stepMoveTriggers(subStepDelta / 60);
+        this._level.stepSpawnTriggers(subStepDelta / 60, this._colorManager);
+        this._level.checkAlphaTriggers(playerX);
+        if (this._level.checkTouchAlphaTriggers) {
+          this._level.checkTouchAlphaTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchAlphaTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.stepAlphaTriggers(subStepDelta / 60);
+        this._level.checkRotateTriggers(playerX);
+        this._level.stepRotateTriggers(subStepDelta / 60);
+        this._level.checkStopTriggers?.(playerX);
+        if (this._level.checkTouchStopTriggers) {
+          this._level.checkTouchStopTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchStopTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.checkFollowPlayerYTriggers?.(playerX);
+        if (this._level.checkTouchFollowPlayerYTriggers) {
+          this._level.checkTouchFollowPlayerYTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchFollowPlayerYTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.stepFollowPlayerYTriggers?.(subStepDelta / 60);
+        this._level.checkFollowTriggers?.(playerX);
+        if (this._level.checkTouchFollowTriggers) {
+          this._level.checkTouchFollowTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchFollowTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.stepFollowTriggers?.(subStepDelta / 60);
+        this._level.flushGroupTransformBatch();
+        this._level.checkToggleTriggers?.(playerX);
+        this._level.checkAnimationTriggers?.(playerX);
+        if (this._level.checkTouchAnimationTriggers) {
+          this._level.checkTouchAnimationTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchAnimationTriggers(playerX, this._state2.y);
+          }
+        }
+        if (this._level.checkTouchToggleTriggers) {
+          this._level.checkTouchToggleTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchToggleTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.checkShakeTriggers?.(playerX);
+        this._level.checkPlayerVisibilityTriggers?.(playerX);
+        this._level.checkTouchPlayerVisibilityTriggers?.(playerX, this._state.y);
+        if (this._isDual && !this._state2.isDead) this._level.checkTouchPlayerVisibilityTriggers?.(playerX, this._state2.y);
+        this._player?.setHidden?.(!!this._level.playerHidden);
+        if (this._isDual) this._player2?.setHidden?.(!!this._level.playerHidden);
+        if (this._level.checkTouchShakeTriggers) {
+          this._level.checkTouchShakeTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchShakeTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.checkOnDeathTriggers?.(playerX);
+        if (this._level.checkTouchOnDeathTriggers) {
+          this._level.checkTouchOnDeathTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchOnDeathTriggers(playerX, this._state2.y);
+          }
+        }
+        this._level.checkTouchTriggers?.(playerX);
+        if (this._level.checkTouchTouchTriggers) {
+          this._level.checkTouchTouchTriggers(playerX, this._state.y);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchTouchTriggers(playerX, this._state2.y);
+          }
+        }
+        const isHoldingInput = Boolean(this._state?.upKeyDown);
+        const isPressedInput = Boolean(this._state?.upKeyPressed);
+        let p2HoldingInput = false;
+        let p2PressedInput = false;
+        if (this._isDual && !this._state2?.isDead) {
+          p2HoldingInput = Boolean(this._state2?.upKeyDown);
+          p2PressedInput = Boolean(this._state2?.upKeyPressed);
+        }
+        if (!this._level.isTouchTriggerDualMode?.()) {
+          p2HoldingInput = false;
+          p2PressedInput = false;
+        }
+        this._level.stepTouchTriggers?.(isHoldingInput, isPressedInput, p2HoldingInput, p2PressedInput, this._colorManager);
+        this._level.checkPickupTriggers?.(playerX, this._colorManager);
+        if (this._level.checkTouchPickupTriggers) {
+          this._level.checkTouchPickupTriggers(playerX, this._state.y, this._colorManager);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchPickupTriggers(playerX, this._state2.y, this._colorManager);
+          }
+        }
+        this._level.checkCountTriggers?.(playerX, this._colorManager);
+        this._level.checkCollisionTriggers?.(playerX);
+        this._level.updateCollisionTriggers?.();
+        if (this._level.checkTouchCountTriggers) {
+          this._level.checkTouchCountTriggers(playerX, this._state.y, this._colorManager);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchCountTriggers(playerX, this._state2.y, this._colorManager);
+          }
+        }
+        this._level.checkInstantCountTriggers?.(playerX, this._colorManager);
+        if (this._level.checkTouchInstantCountTriggers) {
+          this._level.checkTouchInstantCountTriggers(playerX, this._state.y, this._colorManager);
+          if (this._isDual && !this._state2.isDead) {
+            this._level.checkTouchInstantCountTriggers(playerX, this._state2.y, this._colorManager);
+          }
+        }
+        this._level.checkPulseTriggers(playerX);
+        this._level.stepPulseTriggers(subStepDelta / 60, this._colorManager);
+        this._colorManager.step(subStepDelta / 60);
+        this._level.checkEnterEffectTriggers(playerX);
+        this._level.checkTimeWarpTriggers(playerX, this._state.y, this._isDual && !this._state2.isDead ? this._state2.y : null);
+        this._level.applyShakeToOffsets?.(this.time.now);
       }
     }
     this._state.lastY = initialY;
@@ -2832,174 +3043,18 @@ class GameScene extends UIScene {
     if (!this._endCameraOverride) {
       this._updateCameraY(quantizedDelta);
     }
-    this._level.applyShakeToOffsets?.(this.time.now);
     this._level.additiveContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
     this._level.additiveContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
     this._level.container.x = -this._cameraX + (this._level.shakeOffsetX || 0);
     this._level.container.y = this._cameraY + (this._level.shakeOffsetY || 0);
     this._level.topContainer.x = -this._cameraX + (this._level.shakeOffsetX || 0);
     this._level.topContainer.y = this._cameraY + (this._level.shakeOffsetY || 0);
-    let playerX = this._playerWorldX;
-    if (!this._applyColorTriggerFn) {
-      this._applyColorTriggerFn = (colorTrigger) => {
-      this._colorManager.triggerColor(colorTrigger.index, colorTrigger.color, colorTrigger.duration, colorTrigger.copy, colorTrigger.opacity);
-      this._level.setChannelBlending?.(colorTrigger.index, !!colorTrigger.blending);
-      if (colorTrigger.tintGround) {
-        this._colorManager.triggerColor(gs, colorTrigger.color, colorTrigger.duration, colorTrigger.copy);
-      }
-    };
-  }
-    const applyColorTrigger = this._applyColorTriggerFn;
-    for (let colorTrigger of this._level.checkColorTriggers(playerX)) {
-      applyColorTrigger(colorTrigger);
-    }
-    if (this._level.checkTouchColorTriggers) {
-      for (let colorTrigger of this._level.checkTouchColorTriggers(playerX, this._state.y)) {
-        applyColorTrigger(colorTrigger);
-      }
-      if (this._isDual && !this._state2.isDead) {
-        for (let colorTrigger of this._level.checkTouchColorTriggers(playerX, this._state2.y)) {
-          applyColorTrigger(colorTrigger);
-        }
-      }
-    }
-    this._level.checkMoveTriggers(playerX);
-    this._level.checkSpawnTriggers(playerX);
-    if (this._level.checkTouchSpawnTriggers) {
-        this._level.checkTouchSpawnTriggers(playerX, this._state.y);
-        if (this._isDual && !this._state2.isDead) {
-            this._level.checkTouchSpawnTriggers(playerX, this._state2.y);
-        }
-    }
-    if (this._level.checkTouchMoveTriggers) {
-        this._level.checkTouchMoveTriggers(playerX, this._state.y);
-        if (this._isDual && !this._state2.isDead) {
-            this._level.checkTouchMoveTriggers(playerX, this._state2.y);
-        }
-    }
-    this._level.beginGroupTransformBatch();
-    this._level.stepMoveTriggers(deltaTime / 1000);
-    this._level.stepSpawnTriggers(deltaTime / 1000, this._colorManager);
-    this._level.checkAlphaTriggers(playerX);
-    if (this._level.checkTouchAlphaTriggers) {
-      this._level.checkTouchAlphaTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchAlphaTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.stepAlphaTriggers(deltaTime / 1000);
-    this._level.checkRotateTriggers(playerX);
-    this._level.stepRotateTriggers(deltaTime / 1000);
-    this._level.checkStopTriggers?.(playerX);
-    if (this._level.checkTouchStopTriggers) {
-      this._level.checkTouchStopTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchStopTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.checkFollowPlayerYTriggers?.(playerX);
-    if (this._level.checkTouchFollowPlayerYTriggers) {
-      this._level.checkTouchFollowPlayerYTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchFollowPlayerYTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.stepFollowPlayerYTriggers?.(deltaTime / 1000);
-    this._level.checkFollowTriggers?.(playerX);
-    if (this._level.checkTouchFollowTriggers) {
-      this._level.checkTouchFollowTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchFollowTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.stepFollowTriggers?.(deltaTime / 1000);
-    this._level.flushGroupTransformBatch();
-    this._level.checkToggleTriggers?.(playerX);
-    this._level.checkAnimationTriggers?.(playerX);
-    if (this._level.checkTouchAnimationTriggers) {
-      this._level.checkTouchAnimationTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchAnimationTriggers(playerX, this._state2.y);
-      }
-    }
-    if (this._level.checkTouchToggleTriggers) {
-      this._level.checkTouchToggleTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchToggleTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.checkShakeTriggers?.(playerX);
-    this._level.checkPlayerVisibilityTriggers?.(playerX);
-    this._level.checkTouchPlayerVisibilityTriggers?.(playerX, this._state.y);
-    if (this._isDual && !this._state2.isDead) this._level.checkTouchPlayerVisibilityTriggers?.(playerX, this._state2.y);
-    this._player?.setHidden?.(!!this._level.playerHidden);
-    if (this._isDual) this._player2?.setHidden?.(!!this._level.playerHidden);
-    if (this._level.checkTouchShakeTriggers) {
-      this._level.checkTouchShakeTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchShakeTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.checkOnDeathTriggers?.(playerX);
-    if (this._level.checkTouchOnDeathTriggers) {
-      this._level.checkTouchOnDeathTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchOnDeathTriggers(playerX, this._state2.y);
-      }
-    }
-    this._level.checkTouchTriggers?.(playerX);
-    if (this._level.checkTouchTouchTriggers) {
-      this._level.checkTouchTouchTriggers(playerX, this._state.y);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchTouchTriggers(playerX, this._state2.y);
-      }
-    }
-    const isHoldingInput = Boolean(this._state?.upKeyDown);
-    const isPressedInput = Boolean(this._state?.upKeyPressed);
-    let p2HoldingInput = false;
-    let p2PressedInput = false;
-    if (this._isDual && !this._state2?.isDead) {
-      p2HoldingInput = Boolean(this._state2?.upKeyDown);
-      p2PressedInput = Boolean(this._state2?.upKeyPressed);
-    }
-    if (!this._level.isTouchTriggerDualMode?.()) {
-      p2HoldingInput = false;
-      p2PressedInput = false;
-    }
-    this._level.stepTouchTriggers?.(isHoldingInput, isPressedInput, p2HoldingInput, p2PressedInput, this._colorManager);
-    this._level.checkPickupTriggers?.(playerX, this._colorManager);
-    if (this._level.checkTouchPickupTriggers) {
-      this._level.checkTouchPickupTriggers(playerX, this._state.y, this._colorManager);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchPickupTriggers(playerX, this._state2.y, this._colorManager);
-      }
-    }
-    this._level.checkCountTriggers?.(playerX, this._colorManager);
-    this._level.checkCollisionTriggers?.(playerX);
-    this._level.updateCollisionTriggers?.();
-    if (this._level.checkTouchCountTriggers) {
-      this._level.checkTouchCountTriggers(playerX, this._state.y, this._colorManager);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchCountTriggers(playerX, this._state2.y, this._colorManager);
-      }
-    }
-    this._level.checkInstantCountTriggers?.(playerX, this._colorManager);
-    if (this._level.checkTouchInstantCountTriggers) {
-      this._level.checkTouchInstantCountTriggers(playerX, this._state.y, this._colorManager);
-      if (this._isDual && !this._state2.isDead) {
-        this._level.checkTouchInstantCountTriggers(playerX, this._state2.y, this._colorManager);
-      }
-    }
     this._level.updateVisibility(this._cameraX);
-    this._level.checkPulseTriggers(playerX);
-    this._level.stepPulseTriggers(deltaTime / 1000, this._colorManager);
-    this._colorManager.step(deltaTime / 1000);
     this._level.applyColorChannels(this._colorManager, true);
     this._bg.setTint(this._colorManager.getHex(fs));
     this._level.setGroundColor(this._colorManager.getHex(gs));
     this._level.setGround2Color?.(this._colorManager.getHex(1009));
     this._level.updateObjectDebugIds();
-    this._level.checkEnterEffectTriggers(playerX);
     this._level.applyEnterEffects(this._cameraX);
     window.BeastAnim.update(this, deltaTime);
     this._glitterCenterX = this._cameraX + screenWidth / 2;
@@ -3008,10 +3063,14 @@ class GameScene extends UIScene {
     this._updateBackground();
     this._level.stepGroundAnimation(deltaTime / 1000);
     this._level.updateGroundTiles(this._cameraY);
-    if (this._state.isFlying) {
+    if (this._state.isSwing) {
+      this._player.updateSwingRotation(quantizedDelta);
+    } else if (this._state.isFlying) {
       this._player.updateShipRotation(quantizedDelta);
     }
-    if (this._isDual && this._state2.isFlying && !this._state2.isDead) {
+    if (this._isDual && this._state2.isSwing && !this._state2.isDead) {
+      this._player2.updateSwingRotation(quantizedDelta);
+    } else if (this._isDual && this._state2.isFlying && !this._state2.isDead) {
     this._player2.updateShipRotation(quantizedDelta);
   }
     const playerScreenX = this._playerWorldX - this._cameraX;
@@ -3074,6 +3133,30 @@ _mirrorTransformObjects(p) {
   this._restoreMirrorTransforms();
   const saved = this._mirrorSaved || (this._mirrorSaved = []);
   const flip = p >= 0.5;
+  const trailContainer = this._level.container;
+  const anchorX = this._playerWorldX;
+  const screenX = anchorX + trailContainer.x;
+  const direction = flip ? -1 : 1;
+  const offsetX = p * (screenWidth - 2 * screenX) + (1 - direction) * anchorX;
+  for (const player of [this._player, this._player2]) {
+      if (!player) continue;
+      const trails = [
+          player._streak?._gfx,
+          ...(player._streak?._ropes || []),
+          player._waveTrail?._gfx,
+          player._waveTrail?._glowGfx
+      ];
+      for (const o of trails) {
+          if (!o || !o.visible) continue;
+          saved.push(
+              o, o.x, o.scaleX,
+              o.rotation, o.alpha, o.visible
+          );
+          o.x = o.x * direction + offsetX;
+          o.scaleX *= direction;
+          o.rotation *= direction;
+      }
+  }
   const apply = (o, ox) => {
     if (!o.visible) return;
     const isEmitter = o.type === "ParticleEmitter";
@@ -3139,6 +3222,7 @@ _applyMirrorEffect() {
   }
   _getDualModeId(state) {
     if (!state) return "cube";
+    if (state.isSwing) return "swing";
     if (state.isFlying) return "ship";
     if (state.isBall) return "ball";
     if (state.isUfo) return "ufo";
@@ -3161,6 +3245,8 @@ _applyMirrorEffect() {
         return "ufo";
       case "portal_robot":
         return "robot";
+      case "portal_swing":
+        return "swing";
       case "portal_spider":
         return "spider";
       default:
@@ -3176,6 +3262,7 @@ _applyMirrorEffect() {
       player.setBallVisible(mode === "ball");
       player.setWaveVisible(mode === "wave");
       player.setBirdVisible?.(mode === "ufo");
+      player.setSwingVisible?.(mode === "swing");
       player.setRobotVisible(mode === "robot");
       player.setSpiderVisible(mode === "spider");
       return;
@@ -3192,6 +3279,9 @@ _applyMirrorEffect() {
       isMini: state.isMini
     };
     switch (mode) {
+      case "swing":
+        player.enterSwingMode({ y: saved.y, portalY: saved.y }, true);
+        break;
       case "ship":
         player.enterShipMode({ y: saved.y, portalY: saved.y }, true);
         break;
@@ -3211,6 +3301,7 @@ _applyMirrorEffect() {
         player.enterSpiderMode({ y: saved.y, portalY: saved.y });
         break;
       default:
+        player.exitSwingMode();
         player.exitShipMode();
         player.exitBallMode();
         player.exitUfoMode();
@@ -3218,6 +3309,7 @@ _applyMirrorEffect() {
         player.exitRobotMode();
         player.exitSpiderMode();
         state.isFlying = false;
+        state.isSwing = false;
         state.isBall = false;
         state.isUfo = false;
         state.isWave = false;
@@ -3227,6 +3319,7 @@ _applyMirrorEffect() {
         player.setBallVisible(false);
         player.setWaveVisible(false);
         player.setBirdVisible?.(false);
+        player.setSwingVisible?.(false);
         player.setRobotVisible(false);
         player.setSpiderVisible(false);
         player.setCubeVisible(true);
@@ -3335,7 +3428,9 @@ _applyMirrorEffect() {
     return !!(gravityAlreadySynced && state && state.isBall && state.upKeyPressed);
   }
   _shouldSkipDualBallGravitySync(fromState, toState, options = {}) {
-    if (!fromState?.isBall || !toState) return false;
+    if (!toState) return false;
+    if (fromState?.isSwing && toState.isSwing && toState._swingFlipPending && !options.forceGravitySync) return true;
+    if (!fromState?.isBall) return false;
     if (options.forceGravitySync) return false;
     if (options.skipBallInputGravity) return true;
     return !(toState.onGround || toState.onCeiling || toState.canJump);
@@ -3429,22 +3524,28 @@ _applyMirrorEffect() {
     this._ensureDualFlyBounds();
     return gravitySynced;
   }
-  _ensureDualFlyBounds(centerY = null) {
-    if (!this._isDual || !this._level) return;
-    const fullSpan = f;
-    const hasShipWave = this._state.isFlying || this._state.isWave || this._state2.isFlying || this._state2.isWave;
-    const span = hasShipWave ? fullSpan : fullSpan - a;
-    const floorY = this._level._flyFloorY;
-    const ceilingY = this._level._flyCeilingY;
-    const currentSpan = Number.isFinite(Number(floorY)) && Number.isFinite(Number(ceilingY)) ? Number(ceilingY) - Number(floorY) : null;
-    if (currentSpan === null || Math.abs(currentSpan - span) > 0.01 || !this._level._flyGroundActive) {
-      const y = centerY === null && Number.isFinite(floorY) && this._level._flyGroundActive ? floorY + span / 2 : (centerY ?? this._state.y) + (span - fullSpan) / 2;
-      this._level.setFlyMode(true, y, span, false);
+  _ensureDualFlyBounds() {
+    if (!this._isDual || !this._level || this._level._portalFreeMode) return;
+
+    const hasTenBlockMode = [this._state, this._state2].some(
+      s => s.isFlying || s.isWave || s.isUfo || s.isSwing
+    );
+    const span = hasTenBlockMode ? f : f - a;
+
+    const centerY = this._dualBoundsCenterY ?? this._state.y;
+    const bounds = this._level._computeFlyBounds(centerY, span);
+
+    if (!this._level._flyGroundActive ||
+        this._level._flyVisualOnly ||
+        this._level._flyFloorY !== bounds.floorY ||
+        this._level._flyCeilingY !== bounds.ceilingY) {
+      this._level.setFlyMode(true, centerY, span, false);
     }
   }
   _refreshFlyBoundsAfterDual() {
-    if (!this._level) return;
-    if (this._state.isFlying || this._state.isWave || this._state.isUfo) {
+    if (!this._level || this._level._portalFreeMode) return;
+    if (this._state.isFlying || this._state.isWave || this._state.isUfo || this._state.isSwing) {
+      if (this._level._flyGroundActive && !this._level._flyVisualOnly && this._level._flyCeilingY - this._level._flyFloorY === f) return;
       this._level.setFlyMode(true, this._state.y, f, false);
     } else if (this._state.isBall) {
       this._level.setFlyMode(true, this._state.y, f - a * 2, false);
@@ -3465,16 +3566,14 @@ _applyMirrorEffect() {
   _getMirrorXOffset(xOffset) {
     return xOffset + (screenWidth - 2 * xOffset) * this._mirrorProgress();
   }
-  _enableDualMode() {
+  _enableDualMode(portal = null) {
     if (this._isDual) return;
     this._isDual = true;
     this._dualBallSpawnGravityLock = false;
     this._dualBallOverlapResolved = false;
     this._state2.reset();
     this._state2.isDead = false;
-    this._state2.yVelocity = this._state.yVelocity;
     this._copyInitialDualModeFlags(this._state, this._state2);
-    this._ensureDualFlyBounds(this._state.y);
     const primaryY = Number.isFinite(Number(this._state.y)) ? Number(this._state.y) : 30;
     this._state2.y = primaryY;
     this._state2.lastY = primaryY;
@@ -3494,7 +3593,8 @@ _applyMirrorEffect() {
       this._dualBallOverlapResolved = true;
       this._dualBallSpawnGravityLock = true;
     }
-    this._ensureDualFlyBounds(this._state.y);
+    this._dualBoundsCenterY = portal?.portalY ?? portal?.y ?? this._state.y;
+    this._ensureDualFlyBounds();
     if (this._player2 && this._player2._hitboxTrail) this._player2._hitboxTrail = [];
     if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
   }
@@ -3504,6 +3604,7 @@ _applyMirrorEffect() {
     this._dualBallOverlapResolved = false;
     this._dualBallSpawnGravityLock = false;
     this._state2.isDead = true;
+    if (this._state2.isSwing) this._player2._applyHidden();
     this._state2.upKeyDown = false;
     this._state2.upKeyPressed = false;
     this._state2.queuedHold = false;
@@ -3515,6 +3616,7 @@ _applyMirrorEffect() {
     this._player2.setBallVisible(false);
     this._player2.setWaveVisible(false);
     this._player2.setBirdVisible?.(false);
+    this._player2.setSwingVisible?.(false);
     this._player2.setRobotVisible(false);
     this._player2.setSpiderVisible(false);
     if (this._player2?._hitboxGraphics) this._player2._hitboxGraphics.clear();
